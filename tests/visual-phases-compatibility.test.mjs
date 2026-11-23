@@ -1,30 +1,22 @@
 /** Independent integration oracle: never regenerate expectations from candidate code.
- * Load the verified Phase 1 source directly from its immutable Git object. */
-import test, { after } from 'node:test';
+ * Use a byte-exact portable copy of the verified Phase 1 oracle. */
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import * as candidate from '../dist/sim.js';
 import * as persistence from '../dist/persistence.js';
 import { authoritativeState } from './helpers/presentation-state.mjs';
 import { createPresentationClock } from '../dist/presentation-clock.js';
 
-const BASELINE = 'e3a7f3d73fdd4aa28e7b41e1a8faeed9b38327d8';
-const repo = fileURLToPath(new URL('../', import.meta.url));
-const fixture = mkdtempSync(join(tmpdir(), 'saber-phase1-oracle-'));
-after(() => rmSync(fixture, { recursive: true, force: true }));
-writeFileSync(join(fixture, 'package.json'), '{"type":"module"}');
-const files = execFileSync('git', ['ls-tree', '-r', '--name-only', BASELINE, 'dist'], { cwd: repo, encoding: 'utf8' }).trim().split(/\r?\n/).filter(p => p.endsWith('.js'));
-for (const file of files) {
-  const target = join(fixture, file);
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, execFileSync('git', ['show', `${BASELINE}:${file}`], { cwd: repo }));
+const fixture = new URL('./fixtures/phase1-reference/', import.meta.url);
+const digests = JSON.parse(readFileSync(new URL('SHA256.json', fixture), 'utf8'));
+for (const [file, expected] of Object.entries(digests)) {
+  const actual = createHash('sha256').update(readFileSync(new URL(file, fixture))).digest('hex');
+  assert.equal(actual, expected, 'Frozen Phase 1 oracle mismatch: ' + file);
 }
-const baseline = await import(pathToFileURL(join(fixture, 'dist/sim.js')));
-const baselinePersistence = await import(pathToFileURL(join(fixture, 'dist/persistence.js')));
+const baseline = await import(new URL('sim.js', fixture));
+const baselinePersistence = await import(new URL('persistence.js', fixture));
 const memory = () => {
   const map = new Map();
   return { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: key => map.delete(key) };

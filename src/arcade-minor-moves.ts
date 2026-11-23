@@ -1,0 +1,41 @@
+// @ts-nocheck
+/** Seven optional v3.01 saber phrases. Timings and choreography describe the same
+ * in-game swing; none of these entries changes a form's base stats. */
+const rows=[
+  ['m301_sc_threshold_fan','Threshold Fan','shii_cho',4,'crowd','sweep','inside',
+    ['arc',-.78,2.03,.51,-3,4,3,1,7,.46,1],
+    [.328,.787,91,1.74,18,17,96,119,.22],2,
+    'Wide, close sweep for two rivals sharing the same lane.'],
+  ['m301_mk_switch_point','Switch Point','makashi',5,'light','rush','outside',
+    ['point',1.31,-.11,.44,-1,13,2,7,5,-.29,5],
+    [.211,.604,105,.36,14,10,151,94,.14],1,
+    'A narrow thrust from the outside line; it gives up coverage for precision.'],
+  ['m301_sr_eave_catch','Eave Catch','soresu',6,'counter','slash','intercept',
+    ['screen',-.42,.93,.39,-3,3,-10,-4,12,.12,1],
+    [.213,.644,77,.97,15,13,66,105,.19],1,
+    'A compact high screen and reply. It works close and can deflect a blade.',{deflect:true}],
+  ['m301_at_skimming_wheel','Skimming Wheel','ataru',8,'heavy','rush','outside',
+    ['aerial',1.18,-1.31,.46,2,7,-1,11,4,-.35,5],
+    [.361,.846,108,1.25,25,22,227,173,.27],1,
+    'A lateral vault with a low sweeping exit and a committed landing.',{air:'crossVault'}],
+  ['m301_ds_braced_rise','Braced Rise','djem_so',7,'heavy','uppercut','inside',
+    ['diagonal',.54,-1.91,.62,-6,4,-13,9,14,-.36,2],
+    [.343,.863,93,1.01,28,23,119,208,.36],1,
+    'A weighted rising cut that can launch a nearby opponent on contact.',{launch:true}],
+  ['m301_nm_offset_current','Offset Current','niman',9,'crowd','sweep','wide',
+    ['arc',-1.49,.68,.53,3,8,-4,5,6,.28,5],
+    [.332,.766,104,1.63,22,20,131,146,.25],2,
+    'A middle-line sweep that covers two rivals without the reach of a dedicated crowd cut.'],
+  ['m301_jy_undertow','Undertow','juyo',10,'light','slash','outside',
+    ['diagonal',1.97,-1.45,.34,2,3,8,10,4,-.48,6],
+    [.204,.601,89,1.17,18,13,163,125,.21],1,
+    'A quick low return from a deep chamber; short reach and a longer reset.'],
+];
+export const ARCADE_MINOR_MOVES=Object.freeze(rows.map(([id,name,form,minRank,role,mapAction,opening,
+  [path,chamber,finish,wind,cut,motionReach,lift,lean,brace,twist,lead],
+  [contact,duration,reach,arc,damage,cost,lunge,knock,recoil],cap,hint,extra])=>Object.freeze({
+  id,name,form,minRank,role,mapAction,opening,
+  motion:Object.freeze({path,chamber,finish,wind,cut,reach:motionReach,lift,lean,brace,twist,lead}),
+  contact,duration,reach,arc,damage,cost,lunge,knock,recoil,cap,minorMove:true,...extra,
+})));
+export const MINOR_MOVE_HINTS=Object.freeze(Object.fromEntries(rows.map(row=>[row[0],row[10]])));

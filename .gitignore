@@ -6,3 +6,6 @@ node_modules/
 # Generated Sites Worker
 dist/server/
 dist/.openai/
+
+# Generated TypeScript artifacts
+build/

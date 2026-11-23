@@ -5,8 +5,8 @@
   "type": "module",
   "description": "A tactical saber battlefield with rank-trained combat, acrobatic forms, Force repertoires and persistent careers",
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
-    "check": "node scripts/check.mjs",
+    "test": "npm run build && node --test build/tests/*.test.mjs",
+    "check": "npm run typecheck && npm run build && node build/scripts/check.mjs",
     "start": "node scripts/serve.mjs",
     "audit:arcade-injuries": "node scripts/audit-arcade-injuries-v29.mjs",
     "audit:arcade-ranks": "node scripts/audit-arcade-ranks-v27.mjs",
@@ -19,6 +19,18 @@
     "audit:v07": "node scripts/audit-v07.mjs",
     "audit:v08": "node scripts/audit-v08.mjs",
     "audit:arcade-sabers": "node scripts/audit-arcade-sabers-v210.mjs",
-    "audit:arcade-pressure": "node scripts/audit-arcade-pressure.mjs"
+    "audit:arcade-pressure": "node scripts/audit-arcade-pressure.mjs",
+    "test:baseline": "node --test tests/*.test.mjs",
+    "build": "node scripts/build-typescript.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "verify:parity": "node scripts/compare-typescript-release.mjs",
+    "check:baseline": "node scripts/check.mjs",
+    "prestart": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
