@@ -1,6 +1,8 @@
-// @ts-nocheck
 /** Read-only objective copy shared by the live view and focused UI checks. */
-export function objectiveFeedback(game) {
+type ObjectiveSoldier = {id:string;lane:number;team:number;alive:boolean};
+type ObjectiveState = {points?:readonly number[];carrierId?:string|null;state?:string;unlockTick?:number;targetScore?:number;contested?:boolean;home?:{x:number;y:number};x:number;y:number;owner?:number|null};
+type ObjectiveGame = {objective?:ObjectiveState|null;config?:{matchMode?:string;mode?:string};status:string;winner?:number|null;round:number;tick?:number;soldiers:readonly ObjectiveSoldier[];control?:{soldierId?:string|null};events?:readonly {type:string;team?:number|null}[]};
+export function objectiveFeedback(game:ObjectiveGame) {
   const objective = game.objective;
   const mode = game.config?.matchMode || 'control';
   const points = objective?.points || [0, 0];
@@ -47,7 +49,7 @@ export function objectiveFeedback(game) {
 }
 
 /** Cycle living fighters during a round; final-position review includes casualties. */
-export function nextInspectionId(soldiers, selectedId, direction = 1, team = 'all', includeDead = false) {
+export function nextInspectionId(soldiers:readonly Pick<ObjectiveSoldier,'id'|'team'|'alive'>[], selectedId:string|null, direction = 1, team: string|number = 'all', includeDead = false) {
   const candidates = soldiers.filter(soldier => (includeDead || soldier.alive) && (team === 'all' || soldier.team === Number(team)));
   if (!candidates.length) return null;
   const current = candidates.findIndex(soldier => soldier.id === selectedId);

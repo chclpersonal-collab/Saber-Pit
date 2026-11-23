@@ -1,7 +1,10 @@
-// @ts-nocheck
+type Move=Parameters<typeof advancedAttackScore>[0] & {tactical?:string};
+type Context=Parameters<typeof advancedAttackScore>[1] & {form:string;wind:number;side:number;open?:boolean;counter?:boolean;chain?:boolean;
+ variety?:Record<string,number>;history?:{id:string;family:string}[]; preferred?:string};
+type Choice={id:string;move:Move;action:string;intentMatch?:boolean};
 import {advancedAttackScore} from './arcade-advanced-moves.js?v=2.30.0';
 /** Authoring classification and contextual choice among already legal saber moves. */
-export function arcadeAttackPresentation(id,move,action){
+export function arcadeAttackPresentation(id:string|undefined,move:Pick<Move,"air"|"motion"|"forceAbility">|null|undefined,action:string){
   const path=move?.motion?.path;
   const family=action==='force' || move?.forceAbility?'cast':
     move?.air||path==='aerial'||id==='vault'?'vault':
@@ -9,11 +12,11 @@ export function arcadeAttackPresentation(id,move,action){
     path==='screen'||id==='deflect'?'screen':
     path==='point'||path==='feint'||action==='rush'?'thrust':
     path==='arc'||action==='sweep'?'sweep':'cut';
-  const chamber=Number.isFinite(move?.motion?.chamber)?move.motion.chamber:
+  const chamber=Number.isFinite(move?.motion?.chamber)?move?.motion?.chamber!:
     id==='slash2'||id==='slash4'?1:id==='slash'||id==='slash3'?-1:0;
   return {family,variant:chamber<-.35?'inside':chamber>.35?'outside':'center'};
 }
-function formAffinity(form,family,c){
+function formAffinity(form:string,family:string,c:Context){
   const {distance,side,guarded,wind,open,crowd}=c;
   if(form==='shii_cho')return family==='sweep'?(crowd>=2?4.2:Math.abs(side)>.46?2.4:guarded?1.3:.3):family==='cut'&&distance<78?2.0:0;
   if(form==='makashi')return family==='thrust'?(distance>87?3.4:guarded?1.4:.8):family==='cut'&&distance<82?2.3:0;
@@ -24,9 +27,9 @@ function formAffinity(form,family,c){
   if(form==='juyo')return family==='cut'?(c.chain||open?2.9:1.2):family==='sweep'&&(guarded||crowd>=2)?2.2:0;
   return 0;
 }
-export function chooseFormCommit(pool,c){
+export function chooseFormCommit(pool:readonly Choice[],c:Context){
   let best=null,value=-Infinity;
-  const viable=c.variety?[]:null;
+  const viable:{id:string;family:string;score:number;count:number;seen:boolean}[]|null=c.variety?[]:null;
   const lastFamily=c.history?.at(-1)?.family;
   for(const option of pool){
     const m=option.move;
@@ -59,7 +62,7 @@ export function chooseFormCommit(pool,c){
     const score=intent+spacing+timing+lane+trained+learned+advancedAttackScore(m,c)+formAffinity(c.form,family,c)-
       Number(last?.id===option.id)*(c.chain&&c.open?.95:3.7)-Number(last?.family===family)*1.42-same*.36-stale-cost;
     if(viable&&option.id!==last?.id&&margin>=0&&c.line<=m.arc&&(!c.wind||m.deflect||m.contact<=c.wind+.025))
-      viable.push({id:option.id,family,score,count:c.variety[option.id]??0,seen:recent.some(h=>h.id===option.id)});
+      viable.push({id:option.id,family,score,count:c.variety?.[option.id]??0,seen:recent.some(h=>h.id===option.id)});
     if(score>value){value=score;best=option.id;}
   }
   if(viable?.length){

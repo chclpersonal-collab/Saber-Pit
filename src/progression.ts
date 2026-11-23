@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Persistent slot careers. Independent of life XP, veteran rank and equipment. */
 export const LEGACY_MAX_MERIT = 2400;
 export const MAX_MERIT = 6000;
@@ -9,7 +8,9 @@ const labels = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS', 'SSS', 'SSS+', 'SSS+I',
 const thresholds = [0, 35, 90, 180, 320, 520, 800, 1150, 1650, LEGACY_MAX_MERIT, 3000, 3600, 4400, 5200, MAX_MERIT];
 
 /** Keep the existing SSS+ save identifier while making all six top ranks distinct. */
-export function gradeDisplayLabel(label) {
+export function gradeDisplayLabel(label: string): string;
+export function gradeDisplayLabel<T>(label: T): T | string;
+export function gradeDisplayLabel(label: unknown): unknown {
   if (label === 'SSS+') return 'SSS+ (entry)';
   return typeof label === 'string' ? label.replace(/^SSS\+([IV]+)$/, 'SSS+ $1') : label;
 }
@@ -18,37 +19,37 @@ export const SOLDIER_GRADES = Object.freeze(labels.map((label, index) =>
   Object.freeze({ label, displayLabel: gradeDisplayLabel(label), index, threshold: thresholds[index] })));
 const legacyGrades = SOLDIER_GRADES.slice(0, LEGACY_TOP_INDEX + 1);
 
-const bounded = (value, maximum) => typeof value === 'number' && Number.isFinite(value)
+const bounded = (value: unknown, maximum: number) => typeof value === 'number' && Number.isFinite(value)
   ? Math.max(0, Math.min(maximum, value)) : 0;
-const meritValue = (value, maximum = MAX_MERIT) => Math.floor(bounded(
-  value && typeof value === 'object' ? value.merit : value, maximum));
-const precise = value => Math.round(value * 1e6) / 1e6;
+const meritValue = (value: unknown, maximum = MAX_MERIT) => Math.floor(bounded(
+  value && typeof value === 'object' ? (value as {merit?: unknown}).merit : value, maximum));
+const precise = (value: number) => Math.round(value * 1e6) / 1e6;
 
 /** Returns a fresh, serializable career; invalid or negative merit starts at F. */
-export function createCareer(merit = 0) {
+export function createCareer(merit: unknown = 0) {
   return { merit: meritValue(merit) };
 }
 
 /** Awards are nonnegative integer merit. Never mutates the previous career. */
-export function awardMerit(career, amount) {
+export function awardMerit(career: unknown, amount: unknown) {
   return createCareer(meritValue(career) + Math.floor(bounded(amount, MAX_MERIT)));
 }
 
-function gradeAtValue(value, grades = SOLDIER_GRADES) {
+function gradeAtValue(value: number, grades: typeof SOLDIER_GRADES = SOLDIER_GRADES) {
   for (let i = grades.length - 1; i >= 0; i--) {
     if (value >= grades[i].threshold) return grades[i];
   }
   return grades[0];
 }
 
-export function gradeForMerit(merit) {
+export function gradeForMerit(merit: unknown) {
   return gradeAtValue(meritValue(merit));
 }
 
 /** Snapshot at round spawn: original F–SSS+ bonuses never change. The five extra
  * grades add bounded bonuses, ending at +30% HP, +12pp aim and -18% reload.
  * Apply healthMultiplier to base HP plus the existing veteran HP bonus. */
-export function progressionModifiers(careerOrMerit) {
+export function progressionModifiers(careerOrMerit: unknown) {
   return modifiersForIndex(gradeForMerit(careerOrMerit).index);
 }
 
@@ -56,13 +57,14 @@ export function progressionModifiers(careerOrMerit) {
  * Training changes execution and decisions, not health, raw damage or immunity.
  * Defense values are resources for a reacted, visible threat, not passive armor:
  * every block still needs eligibility, energy and a fallible contested roll. */
-export function combatSkillProfile(careerOrMerit) {
-  const index = Number.isInteger(careerOrMerit?.gradeIndex)
-    ? Math.max(0, Math.min(14, careerOrMerit.gradeIndex)) : gradeForMerit(careerOrMerit).index;
+export function combatSkillProfile(careerOrMerit: unknown) {
+  const gradeIndex = (careerOrMerit as {gradeIndex?: number} | null)?.gradeIndex;
+  const index = Number.isInteger(gradeIndex)
+    ? Math.max(0, Math.min(14, gradeIndex!)) : gradeForMerit(careerOrMerit).index;
   return COMBAT_SKILL_PROFILES[index];
 }
 
-function skillProfileForIndex(index) {
+function skillProfileForIndex(index: number) {
   const skill = index / 14;
   return Object.freeze({ rankIndex: index, skill,
     reactionTicks: Math.round(15 - 13 * skill), predictionSeconds: .02 + .20 * skill,
@@ -92,7 +94,7 @@ function skillProfileForIndex(index) {
 // across the hot combat loop instead of allocating one for each threat/read.
 const COMBAT_SKILL_PROFILES = Object.freeze(SOLDIER_GRADES.map(grade => skillProfileForIndex(grade.index)));
 
-function modifiersForIndex(index) {
+function modifiersForIndex(index: number) {
   const mastery = Math.min(index, LEGACY_TOP_INDEX) / LEGACY_TOP_INDEX;
   const eliteSteps = Math.max(0, index - LEGACY_TOP_INDEX);
   return {
@@ -104,7 +106,8 @@ function modifiersForIndex(index) {
 
 /** Settle once per completed round. Credit actual damage and effective pressure,
  * and only eligible objective presence. Category caps prevent farming/overkill. */
-export function meritForRound(stats = {}) {
+export function meritForRound(stats: {damageDealt?: unknown; kills?: unknown; objectiveSeconds?: unknown;
+  suppressionDealt?: unknown; survived?: unknown; won?: unknown} = {}) {
   if (!stats || typeof stats !== 'object') return 0;
   const combat = bounded(stats.damageDealt, 600) * .06 + bounded(stats.kills, 5) * 10;
   const support = bounded(stats.objectiveSeconds, 45) * .8 + bounded(stats.suppressionDealt, 600) * .025;
@@ -112,17 +115,17 @@ export function meritForRound(stats = {}) {
   return Math.min(MAX_ROUND_MERIT, Math.round(combat + support + service));
 }
 
-export function progressionSummary(careerOrMerit) {
+export function progressionSummary(careerOrMerit: unknown) {
   return summaryAtValue(meritValue(careerOrMerit), SOLDIER_GRADES);
 }
 
 /** Exact original ladder for validating pre-extension save snapshots. It does
  * not award progress or invent historical records when an old campaign loads. */
-export function legacyProgressionSummary(careerOrMerit) {
+export function legacyProgressionSummary(careerOrMerit: unknown) {
   return summaryAtValue(meritValue(careerOrMerit, LEGACY_MAX_MERIT), legacyGrades);
 }
 
-function summaryAtValue(merit, grades) {
+function summaryAtValue(merit: number, grades: typeof SOLDIER_GRADES) {
   const grade = gradeAtValue(merit, grades), next = grades[grade.index + 1];
   return {
     grade: grade.label, gradeIndex: grade.index, merit,

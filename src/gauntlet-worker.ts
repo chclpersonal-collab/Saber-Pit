@@ -9,7 +9,7 @@ export function gauntletWorkerReply(message: GauntletWorkerRequest | GauntletFix
     // The browser sends an envelope. The original entry point also accepts
     // a bare fixture; simulator validation still handles invalid payloads.
     const fixture=(message as GauntletWorkerRequest | null)?.fixture??message;
-    return {result:simulateGauntlet(fixture)};
+    return {result:simulateGauntlet(fixture as GauntletFixture)};
   }
   catch(error){ return {error:error instanceof Error?error.message:'The gauntlet fight could not be simulated.'}; }
 }

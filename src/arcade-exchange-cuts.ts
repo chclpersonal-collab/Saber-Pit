@@ -1,14 +1,15 @@
-// @ts-nocheck
+type Spec=[number,number,number,number,number,number,number,number,number];
+type Flags={opening?:string;air?:string;deflect?:boolean;cap?:number;launch?:boolean;tactical?:string};
 /** Original hand-authored Saber Pit exchanges. Numerical timings are in seconds
  * and geometry in game units. Each row is consumed by the repertoire's queue,
  * hit solver and shared weapon pose, rather than choosing a display alias. */
-const pose=(path,chamber,finish,wind,cut,reach,lift,lean,brace,twist,lead)=>Object.freeze({
+const pose=(path:string,chamber:number,finish:number,wind:number,cut:number,reach:number,lift:number,lean:number,brace:number,twist:number,lead:number)=>Object.freeze({
   path,chamber,finish,wind,cut,reach,lift,lean,brace,twist,lead
 });
-const row=(id,name,rank,role,action,fallback,spec,motion,flags={})=>Object.freeze([
+const row=(id:string,name:string,rank:number,role:string,action:string,fallback:string,spec:Spec,motion:ReturnType<typeof pose>,flags:Flags={})=>Object.freeze([
   id,name,rank,role,action,fallback,Object.freeze(spec),Object.freeze({...flags,motion})
-]);
-const pair=(a,b)=>Object.freeze([a,b]);
+] as const);
+const pair=(a:ReturnType<typeof row>,b:ReturnType<typeof row>)=>Object.freeze([a,b]);
 export const ARCADE_EXCHANGE_CUT_ROWS=Object.freeze({
   shii_cho:pair(
     // Fast low outside opening vs a delayed wide multi-target return.

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {MINOR_MOVE_HINTS} from './arcade-minor-moves.js?v=3.1.0';
 import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=3.2.0';
 import {ARCADE_MOTION_KEY,readArcadeReducedMotion,saveArcadeReducedMotion} from './arcade-motion-preference.js?v=2.43.0';
@@ -6,7 +5,8 @@ import {combatMoveLabel} from './arcade-callouts.js?v=3.1.0';
 import {createArcadeFloatingText} from './arcade-floating-text.js?v=2.42.0';
 import {CIRCUIT_CUT_HINTS} from './arcade-circuit-cuts.js?v=2.33.0';
 import {arcadeExpandedMoveById,arcadeExpandedMovesFor} from './arcade-expanded-combat.js?v=3.1.0';
-import {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,createArcade,stepArcade,arcadeMovesFor} from './arcade-engine.js?v=3.0.0';
+import {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,createArcade,stepArcade,arcadeMovesFor} from "./arcade-engine-api.js";
+import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeMode,ArcadeOptions,ArcadeInput} from "./arcade-engine-api.js";
 import {drawArcadeFighter} from './arcade-painter.js?v=4.0.0';
 import {sampleArcadeFighter,arcadeBladeWorld,arcadeHeroLabelWorld} from './arcade-fighters.js?v=4.0.0';
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
@@ -30,22 +30,28 @@ import {tournamentHeroLoadout} from './arcade-tournament-sim.js?v=3.0.0';
 import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
 import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=2.25.3';
-const $=id=>document.getElementById(id);
-const canvas=$('arena'), ctx=canvas.getContext('2d',{alpha:false});
+import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
+interface Point{x:number;y:number}
+type ArenaMode=ArcadeMode; type Scene='menu'|'game';
+type TouchAim={id:string}|(Point&{id?:never;until:number});
+type SavedHero=ReturnType<typeof tournamentHeroes>[number];
+type Career={mode:ArcadeMode;seed:number;round:number;careers:NonNullable<ArcadeOptions['careers']>;
+  records?:ArcadeOptions['records'];setup?:ReturnType<typeof loadSetup>;form?:string;body?:string;heroLineup?:ArcadeOptions['heroLineup'];};
+type TechniqueRow={name:string;id:string;tactical?:string;opening?:string;circuitCut?:boolean;arenaCut?:boolean;minorMove?:boolean};
+const field = <T extends object>(obj:T,key:PropertyKey|undefined):T[keyof T]|undefined => obj[key as keyof T];
+const readCareerForUI=readArcadeCareer as unknown as ()=>Career|null;
+const settleCareerForUI=settleArcadeCareer as unknown as (game:ArcadeGame)=>ReturnType<typeof settleArcadeCareer>;
+type HeroLineup=ReturnType<typeof battleHeroLineup>;
+type SceneOptions=Pick<ArcadeOptions,'records'|'careers'|'heroLineup'>&{setup?:ReturnType<typeof loadSetup>};
+type AimEvent=Pick<PointerEvent,'clientX'|'clientY'>;
+const canvas=$('arena'), ctx=canvas.getContext('2d',{alpha:false})!;
 let W=1120,H=640;
-let setup=loadSetup(), matchSetup=setup, pendingOrder=null,matchHeroes={},heroRoster=[];
-const clock=newDisplayClock(), sim={remainder:0,previous:null};
-const clamp=(v,l,h)=>Math.min(h,Math.max(l,v));
-const chessReadout=f=>f?.chessPawn?.promoted?'Pawn → Queen':f?.chessStyle&&f.chessStyle!=='none'?ARCADE_CHESS_STYLES[f.chessStyle]?.label??'':'';
+let setup=loadSetup(), matchSetup=setup, pendingOrder:ArcadeInput["order"]|null=null,matchHeroes:HeroLineup={},heroRoster:SavedHero[]=[];
+const clock=newDisplayClock(), sim={remainder:0,previous:null as ReturnType<typeof fighterSamples>|null};
+const clamp=(v:number,l:number,h:number)=>Math.min(h,Math.max(l,v));
+const chessReadout=(f:ArcadeFighter|undefined)=>f?.chessPawn?.promoted?'Pawn → Queen':f?.chessStyle&&f.chessStyle!=='none'?ARCADE_CHESS_STYLES[f.chessStyle]?.label??'':'';
 
 const mobileUI=matchMedia('(max-width:740px), (pointer:coarse) and (max-width:1100px), (orientation:landscape) and (max-height:520px) and (max-width:1100px)');
-const touchPrefsKey='saber-pit-touch-v1';
-const readTouchPrefs=()=>{
-  try{
-    const p=JSON.parse(localStorage.getItem(touchPrefsKey));
-    return {layout:p?.layout==='arrows'?'arrows':'stick',side:p?.side==='left'?'left':'right'};
-  }catch{return {layout:'stick',side:'right'};}
-};
 const touchPrefs=readTouchPrefs(), stick=createArcadeTouchOwner(), stickButton=$('touchStick');
 const lore={
   shii_cho:{name:'Shii-Cho',roman:'I',read:'Wide, flowing cuts and broad footwork. Useful against multiple rivals.',signature:'Wide sweep'},
@@ -56,25 +62,25 @@ const lore={
   niman:{name:'Niman',roman:'VI',read:'Balanced blade work with space for a Force-assisted attack.',signature:'Force-assisted strike'},
   juyo:{name:'Juyo',roman:'VII',read:'Aggressive, irregular chains. Pressure the rival before they can reset.',signature:'Ferocity chain'}
 };
-const ratingText=value=>value.toLocaleString('en-US');
-const formName=id=>lore[id]?.name||ARCADE_FORMS?.[id]?.name||'Saber';
-const titleCase=value=>value[0].toUpperCase()+value.slice(1);
+const ratingText=(value:number)=>value.toLocaleString('en-US');
+const formName=(id:string)=>field(lore,id)?.name||field(ARCADE_FORMS,id)?.name||'Saber';
+const titleCase=(value:string)=>value[0].toUpperCase()+value.slice(1);
 const fx=createArcadeFX({contactLabels:false}), swingWaves=createArcadeSwingWaves();
-let view='menu', mode='duel', paused=false, game, stage, round=1, seed=0, seedCounter=0;
-let heroWatchEvents={},heroWatchFocus=false,watchedHeroIdentity='',heroWatchKey='';
-let moveSeen={}, echoes=new Map(), watchedPhases={}, maxHeight=0;
-let career=null, imported=null, savedCareer=readArcadeCareer();
+let view:Scene='menu', mode:ArenaMode='duel', paused=false, game:ArcadeGame, stage:ReturnType<typeof createArcadeStage>, round=1, seed=0, seedCounter=0;
+let heroWatchEvents:ReturnType<typeof captureHeroWatch>={},heroWatchFocus=false,watchedHeroIdentity='',heroWatchKey='';
+let moveSeen:Record<string,number>={}, echoes=new Map<string,{pose:ArcadeFighter;time:number;at:number}[]>(), watchedPhases:Record<string,boolean>={}, maxHeight=0;
+let career:Career|null=null, imported:ReturnType<typeof classicCareers>|null=null, savedCareer=readCareerForUI();
 let crowdedLOD=false;
 let displayTime=0, hudAt=-1, endDelay=0, lastEvent=0, hitDelay=0;
-let audio, sound=false, reduced=readArcadeReducedMotion(), touchWalk=false, followAction=true;
+let audio:AudioContext|undefined, sound=false, reduced=readArcadeReducedMotion(), touchWalk=false, followAction=true;
 let lastAudioAt=-1,audioEventsAtTime=0;
-let transform={scale:1,x:0,y:0},canvasPixelScale=1;
-let focus={x:W/2,y:H/2,zoom:1}, aim=null,touchAim=null,touchDown=null;
-const keys=new Set(), pointers=new Map(), pulse=new Set();
-const keyMap={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
-const punishLabels={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
+let transform:Omit<ReturnType<typeof composeArcadeFrame>,"scaleY">&{scaleY?:number}={scale:1,x:0,y:0},canvasPixelScale=1;
+let focus={x:W/2,y:H/2,zoom:1}, aim:Point|null=null,touchAim:TouchAim|null=null,touchDown:(Point&{id:number})|null=null;
+const keys=new Set<string>(), pointers=new Map<number,string>(), pulse=new Set<string>();
+const keyMap:Record<string,string>={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
 const callouts=createArcadeFloatingText();
-const announce=text=>{$('announce').textContent=text;};
+const announce=(text:string)=>{$('announce').textContent=text;};
 function resize(){
   const {width,height}=canvas.getBoundingClientRect();
   const dpr=Math.min(devicePixelRatio||1,2,Math.sqrt((crowdedLOD?530000:2300000)/Math.max(1,width*height)));
@@ -88,7 +94,7 @@ function syncCamera(){
   button.setAttribute('aria-pressed',String(action));
   button.title=reduced?'Reduced motion uses the wide frame':button.disabled?'The full arena stays visible in this match':'Follow nearby fighters, or switch to a fixed wide view';
 }
-function setReduced(value){
+function setReduced(value:boolean){
   reduced=value;document.body.dataset.reduced=String(value);$('motion').setAttribute('aria-pressed',String(value));syncCamera();
   if(game){updateHeroWatch();draw(0);}
 }
@@ -102,14 +108,14 @@ $('motion').addEventListener('click',()=>{
 });
 $('sound').addEventListener('click',async()=>{
   if(sound){sound=false;}else {
-    try { const Engine=window.AudioContext||window.webkitAudioContext;if(!Engine)return;audio ||= new Engine();await audio.resume();sound=audio.state==='running'; }
+    try { const Engine=window.AudioContext||(window as Window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;if(!Engine)return;audio ||= new Engine();await audio.resume();sound=audio.state==='running'; }
     catch {sound=false;}
   }
   $('sound').textContent=sound?'Sound on':'Sound off';$('sound').setAttribute('aria-pressed',String(sound));
 });
-function soundEvent(kind){
+function soundEvent(kind:string){
   if(!sound||!audio||!['hit','parry','ko','dash','sweep','rush','break','launch','clash'].includes(kind))return;
-  const cues={
+  const cues:Record<string,readonly [number,number,number,number,OscillatorType][]>={
     hit:[[146,59,.095,.078,'triangle'],[350,125,.024,.029,'triangle']],
     parry:[[1170,430,.096,.027,'triangle'],[1730,940,.070,.014,'sine']],
     clash:[[795,300,.115,.036,'triangle'],[1320,725,.079,.018,'triangle']],
@@ -160,26 +166,25 @@ function cancelStick(){
 function clearInput(clearAim=true){
   touchDown=null;keys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();
   if(clearAim){touchAim=null;syncTouchAim();}
-  document.querySelectorAll('[data-held=true]').forEach(b=>b.dataset.held='false');
+  document.querySelectorAll<HTMLElement>('[data-held=true]').forEach(b=>b.dataset.held='false');
 }
-function active(name){return keys.has(name)||[...pointers.values()].some(x=>x===name);}
+function active(name:string){return keys.has(name)||[...pointers.values()].some(x=>x===name);}
 function currentTouchAim(){
-  if(!touchAim)return null;
-  if(touchAim.id){
-    const target=game.fighters.find(f=>f.id===touchAim.id&&f.alive);
+  const current=touchAim;
+  if(!current)return null;
+  if(current.id){
+    const target=game.fighters.find(f=>f.id===touchAim?.id&&f.alive);
     if(target)return target;
-  }else if(game.time<touchAim.until)return touchAim;
+  }else if(game.time<(current as Point&{until:number}).until)return current as Point;
   touchAim=null;syncTouchAim();return null;
 }
 function inputs(){
   const p=currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
-  const fromStick=stick.snapshot(), read=name=>active(name)||pulse.has(name);
-  const dx=Number(active('right'))-Number(active('left')),dy=Number(active('down'))-Number(active('up'));
-  const data={phase:pulse.has('phase'),feint:pulse.has('feint'),jump:pulse.has('jump'),x:dx||dy?dx:fromStick.x,y:dx||dy?dy:fromStick.y,
-    walk:active('walk')||touchWalk,technique:read('technique')?$('chosenTechnique').value:null,force:read('force'),order:pendingOrder,strike:read('strike'),heavy:read('heavy'),dash:read('dash'),guard:read('guard'),aimX:p?.x,aimY:p?.y};
+  const data=arenaInputFrame({held:active,pulse,fromStick:stick.snapshot(),aim:p,touchWalk,
+    technique:()=>$('chosenTechnique').value},pendingOrder);
   pulse.clear();pendingOrder=null;return data;
 }
-function setScene(nextView,nextMode='duel',nextRound=1,options={}){
+function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
   career=null;crowdedLOD=false;pendingOrder=null;touchWalk=false;$('walkTouch').setAttribute('aria-pressed','false');
   view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
   clearInput();fx.reset();swingWaves.reset();
@@ -192,9 +197,9 @@ function setScene(nextView,nextMode='duel',nextRound=1,options={}){
   let {careers}=options;
   if(careers&&nextRound===1&&nextView==='game'){
     careers={...careers};
-    for(const slot of Object.keys(useHeroes))delete careers[slot];
+    for(const slot of Object.keys(useHeroes))delete (careers as Record<string,unknown>)[slot];
   }
-  [W,H]=SIZE[config.mapSize];
+  [W,H]=SIZE[config.mapSize as keyof typeof SIZE];
   const terrain=createArcadeTerrain(config.mapId,W,H,round);
   const isMenu=view==='menu';
   const lineups=engineLineups(config);
@@ -204,16 +209,16 @@ function setScene(nextView,nextMode='duel',nextRound=1,options={}){
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
     round,terrain,limit:config.duration,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,styleChoreo:true,peasantMotion:true,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,stanceFlow:!isMenu,liveEntry:!isMenu,impactPhysics:!isMenu,recoveryFlow:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
-    teamSizes:sideSizes,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles});
+    teamSizes:sideSizes,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});
   const shownMap=resolveArcadeMap(config.mapId,round);
-  $('mapCaptionName').textContent=ARCADE_MAPS[shownMap]?.[0]??'Arena';
-  $('mapCaptionDesc').textContent=ARCADE_MAPS[config.mapId]?.[1]??ARCADE_MAPS[shownMap]?.[1]??'';
+  $('mapCaptionName').textContent=field(ARCADE_MAPS,shownMap)?.[0]??'Arena';
+  $('mapCaptionDesc').textContent=field(ARCADE_MAPS,config.mapId)?.[1]??field(ARCADE_MAPS,shownMap)?.[1]??'';
   $('mapCaption').hidden=!isMenu;
   $('objectiveHUD').hidden=isMenu||!game.objective||game.objective.rule==='elimination';
   $('commandBar').hidden=isMenu||mode!=='command';
   prepareHeroWatch(isMenu||mode!=='watch',nextRound===1);
-  for(const b of document.querySelectorAll('[data-order]'))b.setAttribute('aria-pressed',String(b.dataset.order===(game.order??'push')));
+  for(const b of document.querySelectorAll<HTMLElement>('[data-order]'))b.setAttribute('aria-pressed',String(b.dataset.order===(game.order??'push')));
   $('forceAction').hidden=config.saberOnly;
   $('continueRun').hidden=!savedCareer;
   focus={x:W/2,y:H/2,zoom:1};
@@ -227,22 +232,22 @@ function setScene(nextView,nextMode='duel',nextRound=1,options={}){
   document.body.dataset.largeBattle=String(view==='game'&&game.fighters.length>=12);
   resize();
   $('entry').hidden=view!=='menu';$('hud').hidden=view!=='game';$('floorUI').hidden=view!=='game';$('pause').hidden=view!=='game';$('statsButton').hidden=view!=='game';
-  for(const id of ['touchLayout','touchSide','resetAim'])$(id).hidden=isMenu||mode==='watch'||mode==='command';
+  for(const id of ['touchLayout','touchSide','resetAim'] as const)$(id).hidden=isMenu||mode==='watch'||mode==='command';
   syncFullscreen();
   $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';
-  for(const b of document.querySelectorAll('#help [data-home]'))b.hidden=view==='menu';
+  for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
   $('modeLabel').textContent=mode==='watch'?'Showdown':titleCase(mode);
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Saber Pit arena',...deployedHeroes].join('. '));
-  $('profileText').textContent=mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary.gear).label;
+  $('profileText').textContent=mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label;
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
-  $('airControlHint').textContent=FORM_AIR_NAMES[primary.form]??'Form footwork';
-  $('signatureHint').textContent=lore[primary.form]?.signature||'Heavy attack';
-  $('blueName').textContent=primary.displayName??(mode==='duel'?formName(primary.form):mode==='watch'?'Blue side':'Your side');
-  $('rivalName').textContent=rival.displayName??(mode==='duel'?formName(rival.form):'Rival side');
+  $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
+  $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
+  $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue side':'Your side');
+  $('rivalName').textContent=rival!.displayName??(mode==='duel'?formName(rival!.form):'Rival side');
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
@@ -271,9 +276,9 @@ const footworkHelp={
 const footworkByTechnique=Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>['footwork:'+m.id,m]));
 const heroTechnique={id:ARCADE_TRAKATA_ID,name:"Tràkata"};
 const techniqueHint={counter:'Best after a parry or block.',crowd:'Broad attack for multiple opponents.',force:'Uses Force.',acrobatics:'Uses aerial movement.',defense:'Uses defensive footwork.'};
-function setupTechnique(f,saberOnly){
+function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
   const select=$('chosenTechnique'), previous=select.value;
-  const list=f&&view==='game'?arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:true,rankCuts:true,circuitCuts:f.circuitCuts===true,arenaCuts:game.config.arenaCuts===true,exchangeVariety:game.config.exchangeVariety===true,minorMoves:game.config.minorMoves===true}).filter(m=>!saberOnly||m.mapAction!=='force'):[];
+  const list:TechniqueRow[]=f&&view==='game'?arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:true,rankCuts:true,circuitCuts:f.circuitCuts===true,arenaCuts:game.config.arenaCuts===true,exchangeVariety:game.config.exchangeVariety===true,minorMoves:game.config.minorMoves===true}).filter(m=>!saberOnly||m.mapAction!=='force'):[];
   const steps=f&&view==='game'?arcadeRankFootworkFor(f.career.gradeIndex).map(m=>({name:m.label,id:'footwork:'+m.id})):[];
   const expanded=f&&view==='game'&&f.expandedCombat?arcadeExpandedMovesFor(f.career.gradeIndex,{saberOnly,weapon:f.gear.weapon,forceVariants:game.config.forceVariants===true}):[];
   list.push(...steps,...expanded);
@@ -281,9 +286,9 @@ function setupTechnique(f,saberOnly){
   $('techniqueBar').hidden=!list.length;
   $('quickTechnique').hidden=!list.length;
   if(!list.length)return;
-  const original=new Set(arcadeMovesFor(f.form,f.career.gradeIndex).map(m=>m.id));
+  const original=new Set(arcadeMovesFor(f!.form,f!.career.gradeIndex).map(m=>m.id));
   const core=list.filter(m=>original.has(m.id)), tactical=list.filter(m=>m.tactical), cuts=list.filter(m=>m.opening&&!m.circuitCut&&!m.arenaCut&&!m.minorMove),circuit=list.filter(m=>m.circuitCut),newCuts=list.filter(m=>m.arenaCut&&!m.tactical),minorCuts=list.filter(m=>m.minorMove&&!m.tactical);
-  const groups=[['Form techniques',core],['Tactical techniques',tactical],['Ranked cuts',cuts],['Circuit cuts',circuit],['Arena cuts',newCuts],['New form moves',minorCuts],['Footwork',steps],['Force powers',expanded.filter(m=>m.kind==='force')],['Free hand',expanded.filter(m=>m.kind==='free_hand')],['Hero technique',list.filter(m=>m.id===ARCADE_TRAKATA_ID)]].filter(([,items])=>items.length).map(([label,items])=>{
+  const groups=([['Form techniques',core],['Tactical techniques',tactical],['Ranked cuts',cuts],['Circuit cuts',circuit],['Arena cuts',newCuts],['New form moves',minorCuts],['Footwork',steps],['Force powers',expanded.filter(m=>m.kind==='force')],['Free hand',expanded.filter(m=>m.kind==='free_hand')],['Hero technique',list.filter(m=>m.id===ARCADE_TRAKATA_ID)]] satisfies [string,readonly TechniqueRow[]][]).filter(([,items])=>items.length).map(([label,items])=>{
     const group=document.createElement('optgroup');group.label=label;
     group.append(...items.map(m=>new Option(m.name,m.id)));return group;
   });
@@ -300,14 +305,14 @@ function setTechniqueHint(){
   const selected=$('chosenTechnique').value, step=footworkByTechnique[selected];
   if(step){
     $('quickTechnique').title=step.label;
-    $('techniqueHelp').textContent=footworkHelp[step.path]+' Costs '+step.cost+' stamina.';
+    $('techniqueHelp').textContent=field(footworkHelp,step.path)+' Costs '+step.cost+' stamina.';
     return;
   }
   const expanded=arcadeExpandedMoveById(selected,{forceVariants:game.config.forceVariants===true});
   if(expanded){$('quickTechnique').title=expanded.label;$('techniqueHelp').textContent=expanded.description+' Costs '+expanded.cost+' stamina.';return;}
   const m=ARCADE_TECHNIQUES[selected];
   $('quickTechnique').title=m?.name??'Selected technique';
-  $('techniqueHelp').textContent=MINOR_MOVE_HINTS[selected]??CIRCUIT_CUT_HINTS[selected]??(m?.air?'Aerial technique.':tacticalHint[m?.tactical]??techniqueHint[m?.role]??'');
+  $('techniqueHelp').textContent=field(MINOR_MOVE_HINTS,selected)??field(CIRCUIT_CUT_HINTS,selected)??(m?.air?'Aerial technique.':field(tacticalHint,m?.tactical)??field(techniqueHint,m?.role)??'');
 }
 $('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();canvas.focus({preventScroll:true});});
 
@@ -319,20 +324,20 @@ function launch(){
 }
 $('lobby').addEventListener('submit',e=>{e.preventDefault();readLobby();launch();});
 function goHome(){setScene('menu');$('startMatch').focus({preventScroll:true});window.scrollTo({top:0});}
-for(const b of document.querySelectorAll('[data-home]'))b.addEventListener('click',goHome);
+for(const b of document.querySelectorAll<HTMLElement>('[data-home]'))b.addEventListener('click',goHome);
 $('again').addEventListener('click',()=>{
   if(!career)return;
   seed=career.seed;setScene('game',mode,career.round,{careers:career.careers,records:career.records,setup:career.setup,heroLineup:career.heroLineup});
 });
-for(const button of document.querySelectorAll('[data-order]')){
+for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
   button.addEventListener('click',()=>{
     if(mode!=='command'||game.phase!=='playing')return;
-    pendingOrder=button.dataset.order;
-    for(const b of document.querySelectorAll('[data-order]'))b.setAttribute('aria-pressed',String(b===button));
+    pendingOrder=button.dataset.order as ArcadeInput["order"];
+    for(const b of document.querySelectorAll<HTMLElement>('[data-order]'))b.setAttribute('aria-pressed',String(b===button));
     canvas.focus({preventScroll:true});
   });
 }
-function pause(value,{focus=true}={}){
+function pause(value:boolean,{focus=true}={}){
   if(view!=='game'||game.phase!=='playing')return;
   paused=value;clearInput();sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
   $('pause').textContent=paused?'Resume':'Pause';
@@ -340,7 +345,7 @@ function pause(value,{focus=true}={}){
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
 window.addEventListener('keydown',e=>{
-  if(view!=='game'||$('statsDialog').open||['BUTTON','SELECT','INPUT','A'].includes(e.target.tagName)&&!paused)return;
+  if(view!=='game'||$('statsDialog').open||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
   const key=e.key.toLowerCase();
   if(key==='escape'||key==='p'){if(!e.repeat){e.preventDefault();pause(!paused);}return;}
   const action=keyMap[key];if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
@@ -353,7 +358,7 @@ document.addEventListener('visibilitychange',()=>{
   resetDisplayClock(clock);sim.remainder=0;sim.previous=null;clearInput(false);$('frameRate').textContent='FPS';
   if(document.hidden&&view==='game'&&mode!=='watch'&&game?.phase==='playing'&&!paused)pause(true,{focus:false});
 });
-function onTouchPref(key,next){
+function onTouchPref<K extends keyof typeof touchPrefs>(key:K,next:(typeof touchPrefs)[K]){
   touchPrefs[key]=next;clearInput(false);syncTouchPrefs();
   try{localStorage.setItem(touchPrefsKey,JSON.stringify(touchPrefs));}catch{}
 }
@@ -387,23 +392,23 @@ stickButton.addEventListener('pointerdown',e=>{
   stick.move(e.pointerId,e.clientX,e.clientY);paintStick();
 });
 stickButton.addEventListener('pointermove',e=>{if(stick.move(e.pointerId,e.clientX,e.clientY))paintStick();});
-for(const type of ['pointerup','pointercancel','lostpointercapture']){
+for(const type of ['pointerup','pointercancel','lostpointercapture'] as const){
   stickButton.addEventListener(type,e=>{if(stick.end(e.pointerId))paintStick();});
 }
 stickButton.addEventListener('click',e=>{if(e.detail===0){onTouchPref('layout','arrows');$('touchLayout').focus();}});
 $('walkTouch').addEventListener('click',()=>{touchWalk=!touchWalk;$('walkTouch').setAttribute('aria-pressed',String(touchWalk));canvas.focus({preventScroll:true});});
-for(const button of document.querySelectorAll('[data-move],[data-action]')){
-  const a=button.dataset.move||button.dataset.action;
-  function release(e){pointers.delete(e.pointerId);button.dataset.held=String([...pointers.values()].includes(a));}
+for(const button of document.querySelectorAll<HTMLElement>('[data-move],[data-action]')){
+  const a=(button.dataset.move||button.dataset.action)!;
+  function release(e:PointerEvent){pointers.delete(e.pointerId);button.dataset.held=String([...pointers.values()].includes(a));}
   button.addEventListener('pointerdown',e=>{
     if(e.button!==0||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
     e.preventDefault();button.setPointerCapture(e.pointerId);pointers.set(e.pointerId,a);button.dataset.held='true';
     if(button.dataset.action)pulse.add(a);
   });
-  for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,release);
+  for(const name of ['pointerup','pointercancel','lostpointercapture'] as const)button.addEventListener(name,release);
   button.addEventListener('click', e=>{if(e.detail===0 && button.dataset.action && !paused && game.phase==='playing'){pulse.add(a);canvas.focus({preventScroll:true});}});
 }
-function updateAim(e){
+function updateAim(e:AimEvent){
   const b=canvas.getBoundingClientRect();
   if(!b.width||!b.height)return;
   if(touchAim){touchAim=null;syncTouchAim();}
@@ -414,7 +419,7 @@ canvas.addEventListener('pointermove',e=>{
   updateAim(e);
 });
 canvas.addEventListener('pointerleave',()=>{aim=null;});
-function setTouchAim(e){
+function setTouchAim(e:AimEvent){
   const b=canvas.getBoundingClientRect();
   if(!b.width||!b.height)return;
   const p=screenToArena(e.clientX,e.clientY,b,canvas.width,canvas.height,transform);
@@ -451,14 +456,14 @@ function showEnd(){
     :decidedByObjective?(timedOut?'Time limit · ':'')+(obj.rule==='control'?'Decided by signal points.':'Decided by relic deliveries.')
     :timedOut?'Time limit · '+(survivors[0]!==survivors[1]?'Decided by survivors.':'Decided by regional injuries.')
     :mode==='watch'?'One side knocked out the other.':game.phase==='won'?'All rivals knocked out.':'Your side was knocked out.';
-  const lastPunish=game.events.findLast(e=>e.punish&&e.damage>0);
+  const lastPunish=game.events.findLast(e=>e.punish&&(e.damage as number)>0);
   const relevant=lastPunish&&game.phase!=='draw'&&lastPunish.team===(game.phase==='won'?0:1)&&game.time-lastPunish.time<=3;
   $('turningPoint').hidden=!relevant;
   if(relevant){
-    const reason=punishLabels[lastPunish.punishReason];
+    const reason=field(punishLabels,lastPunish.punishReason);
     $('turningPoint').textContent=(lastPunish.team?'Pink':'Blue')+' punished '+(reason?'a '+reason:'an opening')+(lastPunish.region?' with a hit to '+regionName(lastPunish.region).toLowerCase():'')+' late in the round.';
   }
-  const settled=settleArcadeCareer(game), selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
+  const settled=settleCareerForUI(game)!, selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
   career={mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
   const persisted=saveArcadeCareer(career);
   if(persisted)savedCareer=career;
@@ -469,14 +474,14 @@ function showEnd(){
   updateHUD();
   $('result').hidden=false;$('pause').hidden=true;clearInput();$('again').focus({preventScroll:true});announce(text);
 }
-const regionName=id=>ARCADE_BODY_REGIONS.find(x=>x.id===id)?.label??'Body';
+const regionName=(id:string)=>ARCADE_BODY_REGIONS.find(x=>x.id===id)?.label??'Body';
 const shortRegion={head:'Head',torso:'Torso',leftArm:'L arm',rightArm:'R arm',leftLeg:'L leg',rightLeg:'R leg'};
 const compactRegion={head:'H',torso:'T',leftArm:'LA',rightArm:'RA',leftLeg:'LL',rightLeg:'RL'};
-const severityLevel=label=>{
+const severityLevel=(label:unknown)=>{
   const text=String(label??'').toLowerCase();
   return /fatal/.test(text)?'fatal':/severe|critical|disabled|incapacitat|impaired/.test(text)?'severe':/hurt|injur|wound|light|moderate|strained/.test(text)?'hurt':'clear';
 };
-function renderRibbon(id,f){
+function renderRibbon(id:"blueInjuries"|"redInjuries",f:ArcadeFighter){
   const parent=$(id);
   const opts={attackerRank:f.career?.gradeIndex??0,defenderRank:f.career?.gradeIndex??0};
   const front=arcadeInjuryReport(f.injuries,{...opts,direction:'front'});
@@ -496,17 +501,17 @@ function renderRibbon(id,f){
     el.setAttribute('aria-label',el.title);return el;
   }));
 }
-const habitName=f=>({opening_reader:'Looks for openings',lane_builder:'Sets up angles',tempo_keeper:'Keeps up the tempo'}[f?.combatHabit]??'');
+const habitName=(f:ArcadeFighter|undefined)=>field({opening_reader:'Looks for openings',lane_builder:'Sets up angles',tempo_keeper:'Keeps up the tempo'},f?.combatHabit)??'';
 const watchChoice=$('heroWatchChoice');
 const activeWatchHero=()=>game?.fighters.find(f=>f.id===watchChoice.value&&f.heroId&&!f.control);
-function prepareHeroWatch(hide,resetFocus){
+function prepareHeroWatch(hide:boolean,resetFocus:boolean){
   heroWatchEvents={};heroWatchKey='';
   if(resetFocus||hide)heroWatchFocus=false;
   const roster=hide?[]:game.fighters.filter(f=>f.heroId&&!f.control);
   $('heroWatch').hidden=!roster.length;
   watchChoice.replaceChildren(...roster.map(f=>new Option(f.displayName,f.id)));
   const chosen=roster.find(f=>f.heroId===watchedHeroIdentity)??roster[0];
-  if(chosen){watchChoice.value=chosen.id;watchedHeroIdentity=chosen.heroId;}
+  if(chosen){watchChoice.value=chosen.id;watchedHeroIdentity=chosen.heroId!;}
   updateHeroWatch();
 }
 function updateHeroWatch(){
@@ -536,14 +541,14 @@ $('heroWatchStats').addEventListener('click',()=>{
 });
 function updateHUD(){
   updateHeroWatch();
-  for(const [team,side] of [[0,'blue'],[1,'red']]){
+  for(const [team,side] of [[0,'blue'],[1,'red']] as const){
     const roster=game.fighters.filter(f=>f.team===team);
     const lead=roster.find(f=>f.control)??roster.find(f=>f.alive)??roster[0];
-    const final=career?.careers?.[lead?.id];
-    const rank=gradeDisplayLabel(final?SOLDIER_GRADES.findLast(g=>g.threshold<=final.merit)?.label??'F':lead?.career?.grade??'F');
-    $(side+'Rank').textContent=rank;$(side+'Rank').title='Displayed fighter rank';
-    $(side+'Count').textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
-    if(lead)renderRibbon(side+'Injuries',lead);
+    const final=career?.careers?.[lead?.id as `${number}-${number}`];
+    const rank=gradeDisplayLabel(final?SOLDIER_GRADES.findLast(g=>g.threshold<=(final as {merit:number}).merit)?.label??'F':lead?.career?.grade??'F');
+    $(`${side}Rank`).textContent=rank;$(`${side}Rank`).title='Displayed fighter rank';
+    $(`${side}Count`).textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
+    if(lead)renderRibbon(`${side}Injuries`,lead);
   }
   const player=game.fighters.find(f=>f.control);$('quickTechnique').disabled=$('useTechnique').disabled=player?.alive===false;$('energy').hidden=!player;$('energy').value=clamp((player?.energy??0)/100,0,1);
   const low=Boolean(player?.alive&&player.energy<=30);
@@ -564,8 +569,8 @@ function updateHUD(){
   }
   const obj=game.objective;
   if(!$('objectiveHUD').hidden&&obj){
-    $('objectiveBlue').textContent=Math.floor(obj.score[0]+1e-8);
-    $('objectivePink').textContent=Math.floor(obj.score[1]+1e-8);
+    $('objectiveBlue').textContent=Math.floor(obj.score[0]+1e-8) as unknown as string;
+    $('objectivePink').textContent=Math.floor(obj.score[1]+1e-8) as unknown as string;
     $('objectiveLabel').textContent=obj.rule==='control'?(obj.contested?'Contested':'Signal · '+obj.target)
       :obj.relic?.carrierId?(obj.relic.carrierTeam?'Pink carries':'Blue carries'):'Relic · '+obj.target;
   }
@@ -573,7 +578,7 @@ function updateHUD(){
   $('clock').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
   $('round').textContent='Round '+round;
 }
-function events(dt){
+function events(dt:number){
   fx.observe(game.events);fx.update(dt,reduced||crowdedLOD);
   if(view==='game')callouts.update(dt,game.events,game.fighters,{focusId:activeWatchHero()?.id});
   if(!$('heroWatch').hidden&&game.eventId>lastEvent){const fresh=game.events.filter(e=>e.id>lastEvent);heroWatchEvents=captureHeroWatch(fresh,game.fighters,heroWatchEvents);}
@@ -589,16 +594,16 @@ function events(dt){
 
   }
 }
-function drawAttackReads(alive){
+function drawAttackReads(alive:readonly ArcadeFighter[]){
   for(const f of alive){
     if(!f.technique||f.technique.startsWith('slash')||f.technique==='vault_step'||!f.attack)continue;
-    const spec=f.attackSpec||ARCADE_ATTACKS[f.attack];
+    const spec=f.attackSpec||field(ARCADE_ATTACKS,f.attack??undefined);
     if(!spec||f.actionTime>=spec.contact)continue;
     const t=clamp(f.actionTime/spec.contact,0,1), color=f.team?'#ff83ae':'#75ecff';
     ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.face);
     ctx.globalAlpha=reduced?.6:.12+.28*t;
     ctx.strokeStyle=color;ctx.lineWidth=reduced?2:1.3+1.1*t;
-    const cuesOnly=reduced||['force','thrust'].includes(f.technique);
+    const cuesOnly=reduced||['force','thrust'].includes(f.technique as string);
     if(!cuesOnly){ctx.restore();continue;}
     if(f.technique==='thrust'){
       const n=spec.reach+30;
@@ -611,12 +616,12 @@ function drawAttackReads(alive){
   }
 }
 // Solid afterimages are sampled from earlier positions, not drawn as skeletal lines.
-function drawEchoes(f,neighbors,crowded){
+function drawEchoes(f:ArcadeFighter,neighbors:readonly ArcadeFighter[],crowded:boolean){
   if(reduced||crowded||crowdedLOD){echoes.delete(f.id);return;}
   const history=echoes.get(f.id)||[];
   while(history.length&&displayTime-history[0].at>.15)history.shift();
-  const active=f.alive&&Math.hypot(f.vx,f.vy)>300&&(f.action==='dash'||['vault','frenzy','thrust'].includes(f.technique));
-  if(active&&(!history.length||displayTime-history.at(-1).at>=.044)){
+  const active=f.alive&&Math.hypot(f.vx,f.vy)>300&&(f.action==='dash'||['vault','frenzy','thrust'].includes(f.technique as string));
+  if(active&&(!history.length||displayTime-history.at(-1)!.at>=.044)){
     history.push({pose:{...f},time:displayTime,at:displayTime});
     if(history.length>2)history.shift();
     echoes.set(f.id,history);
@@ -632,7 +637,7 @@ function renderObjective(){
   const o=game.objective;
   if(!o||o.rule==='elimination'||view==='menu')return;
   ctx.save();
-  const ring=(p,color,dashed)=>{
+  const ring=(p:Point&{radius:number},color:string,dashed:boolean)=>{
     ctx.strokeStyle=color;ctx.fillStyle=color+'17';ctx.lineWidth=2.5;
     if(dashed)ctx.setLineDash([9,6]);else ctx.setLineDash([]);
     ctx.beginPath();ctx.ellipse(p.x,p.y,p.radius,p.radius,0,0,Math.PI*2);ctx.fill();ctx.stroke();
@@ -649,7 +654,7 @@ function renderObjective(){
   }
   ctx.restore();
 }
-function draw(dt){
+function draw(dt:number){
   const cw=canvas.width,ch=canvas.height;
   const sample=displayFighters(game.fighters,sim.previous,sim.remainder);
   const alive=sample.filter(f=>f.alive);
@@ -661,10 +666,10 @@ function draw(dt){
   // giving up vertical room for the feet or jumping blade.
   const frame=profile&&shot.zoom>1?{...shot,y:shot.y-30}:shot;
   focus=stepActionFrame(focus,frame,W,H,dt,!enabled);
-  transform=composeArcadeFrame(cw,ch,W,H,focus,{profile,shake});
+  transform=composeArcadeFrame(cw,ch,W,H,focus,{profile,shake:shake as Point|undefined});
   const {scale,scaleY}=transform;
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#181613';ctx.fillRect(0,0,cw,ch);
-  ctx.setTransform(scale,0,0,scaleY,transform.x,transform.y);
+  ctx.setTransform(scale,0,0,scaleY!,transform.x,transform.y);
   drawArcadeStage(ctx,stage,W,H,displayTime,reduced);
   renderObjective();
   fx.drawGround(ctx);
@@ -681,17 +686,18 @@ function draw(dt){
     const rig=sampleArcadeFighter(pose,displayTime,{reducedMotion:reduced});
     if(!reduced&&!crowdedLOD&&pose.alive&&!pose.saberOff){
       const blade=arcadeBladeWorld(pose,rig);
-      fx.sampleBlade(pose,blade);
+      fx.sampleBlade(pose as Parameters<typeof fx.sampleBlade>[0],blade);
       if(view==='game')swingWaves.sample(pose,blade,displayTime);
-    }else if(view==='game'&&!reduced&&!crowdedLOD)swingWaves.sample(pose,null,displayTime);
+    }else if(view==='game'&&!reduced&&!crowdedLOD)swingWaves.sample(pose,null as unknown as undefined,displayTime);
     return [{pose,rig,opacity}];
   });
   fx.drawBladeTrails(ctx);
   swingWaves.draw(ctx,displayTime,{reducedMotion:reduced||crowdedLOD});
   const paint=[...poses.map(p=>({p,depth:p.pose.y})),...(stage.obstacles??[]).map(o=>({o,depth:o.y+o.height}))].sort((a,b)=>a.depth-b.depth);
-  for(const {p,o} of paint){
-    if(o)drawArcadeObstacle(ctx,stage,o);
+  for(const item of paint){
+    if("o" in item)drawArcadeObstacle(ctx,stage,item.o);
     else {
+      const {p}=item;
       ctx.globalAlpha=p.opacity;
       drawArcadeFighter(ctx,p.pose,displayTime,{rig:p.rig,reducedMotion:reduced,selected:p.pose.control,
         outline:p.pose.alive,lowDetail:crowdedLOD,crowded:crowd.has(p.pose.id)});
@@ -701,7 +707,7 @@ function draw(dt){
   fx.drawAir(ctx);
   if(view==='game')callouts.draw(ctx,{reducedMotion:reduced});
   if(touchAim?.id){
-    const target=alive.find(f=>f.id===touchAim.id);
+    const target=alive.find(f=>f.id===touchAim?.id);
     if(target){
       const y=target.y-39-(target.airHeight??0), x=target.x;
       ctx.save();ctx.strokeStyle='#ffe5ad';ctx.lineWidth=2.4;
@@ -717,7 +723,7 @@ function draw(dt){
       transform,cw/canvasPixelScale,ch/canvasPixelScale,canvasPixelScale),canvasPixelScale);
   }
 }
-function frame(now){
+function frame(now:number){
   const dt=displayDelta(clock,now);
   const fps=clock.fps?clock.fps+' FPS':'FPS';
   // On heavy battles shed decorative effects rather than frames. Fighter
@@ -734,7 +740,7 @@ function frame(now){
       if(view==='game'&&game.phase==='playing'){
         advanceSim(sim,dt*(mode==='watch'||mode==='command'?matchSetup.pace:1),{blocked:hitDelay>0,playing:()=>game.phase==='playing',step:()=>{
           sim.previous=fighterSamples(game.fighters);
-          if(view==='game')stepArcade(game,FRAME_STEP,inputs());
+          if(view==='game')stepArcade(game,FRAME_STEP,inputs() as ArcadeInput);
         }});
       }else{
         sim.previous=null;
@@ -757,12 +763,12 @@ function frame(now){
   }
   requestAnimationFrame(frame);
 }
-let debug=null;
+let debug:HTMLOutputElement|null=null;
 if(new URLSearchParams(location.search).has('qa')){
   debug=document.createElement('output');debug.style.cssText='position:fixed;bottom:0;left:0;background:#170c27;color:white;font:12px monospace;z-index:10;padding:4px';debug.id='arcadeQA';document.body.append(debug);
 }
 for(const id of ARCADE_FORM_IDS){
-  const form=lore[id];if(!form)continue;
+  const form=field(lore,id);if(!form)continue;
   const option=document.createElement('option');option.value=id;option.textContent=form.roman+' · '+form.name;$('style').append(option);
   const card=document.createElement('section'),title=document.createElement('h3'),desc=document.createElement('p');
   title.textContent=option.textContent;desc.textContent=form.read;card.append(title,desc);$('guideForms').append(card);
@@ -790,18 +796,18 @@ function resumeRun(){
   if(!savedCareer)return;
   if($('rankDialog').open)$('rankDialog').close();
   const next=savedCareer;seed=next.seed;seedCounter=0;
-  const old=normalizeSetup({...presets[next.mode],teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
+  const old=normalizeSetup({...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
   setScene('game',next.mode,next.round,{careers:next.careers,records:next.records,setup:next.setup??old,heroLineup:next.heroLineup});
 }
 $('resumeCareer').addEventListener('click',resumeRun);$('continueRun').addEventListener('click',resumeRun);
 const reportRows=[['Saber swings','saberSwings'],['Saber hits','saberHits'],
   ['Blocks','blocks'],['Parries','parries'],['Directional reads','guardReads'],['Feints','feints'],['Ripostes','ripostes'],['Blade clashes','clashes'],['Ally-blocked swings','allyBlocks'],['Punishes','punishes'],['Counter hits','counters'],['Force casts','forceCasts'],
-  ['Force hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard deaths','environmentDeaths']];
-function reportCell(tag,value,cl){
-  const el=document.createElement(tag);el.textContent=value;if(cl)el.className=cl;return el;
+  ['Force hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard deaths','environmentDeaths']] as const;
+function reportCell<K extends keyof HTMLElementTagNameMap>(tag:K,value:unknown,cl?:string){
+  const el=document.createElement(tag);el.textContent=value as string;if(cl)el.className=cl;return el;
 }
-const defenseNames={perfect_parry:'Perfect parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Hero crossfire exit',advanced_parry:'Parry follow-up',advanced_whiff:'Changed attack line',advanced_travel:'Footwork follow-up',jump:'Jump',wheel:'Wheel hop',crossflip:'Crossflip',compact:'Compact hop',line:'Line jump',bound:'Bounding jump',drift:'Drift step',pounce:'Pounce',corkscrew:'Corkscrew jump',feint:'Feint',read:'Directional read',guard_read:'Directional read',directional_parry:'Directional parry',force_ward_block:'Force ward block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash evade',vault_step:'Vault evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing defense',pressure_recover:'Stagger recovery'};
-function showInjuryReport(f){
+const defenseNames:Record<string,string>={perfect_parry:'Perfect parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Hero crossfire exit',advanced_parry:'Parry follow-up',advanced_whiff:'Changed attack line',advanced_travel:'Footwork follow-up',jump:'Jump',wheel:'Wheel hop',crossflip:'Crossflip',compact:'Compact hop',line:'Line jump',bound:'Bounding jump',drift:'Drift step',pounce:'Pounce',corkscrew:'Corkscrew jump',feint:'Feint',read:'Directional read',guard_read:'Directional read',directional_parry:'Directional parry',force_ward_block:'Force ward block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash evade',vault_step:'Vault evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing defense',pressure_recover:'Stagger recovery'};
+function showInjuryReport(f:ArcadeFighter|undefined){
   const rank=f?.career?.gradeIndex??0;
   const opts={attackerRank:rank,defenderRank:rank};
   const front=arcadeInjuryReport(f?.injuries,{...opts,direction:'front'}), rear=arcadeInjuryReport(f?.injuries,{...opts,direction:'rear'});
@@ -814,20 +820,20 @@ function showInjuryReport(f){
   }));
   $('injuryReference').textContent=ARCADE_INJURY_REFERENCE.description+' Timing and technique can shift the odds.';
 }
-const baseAttackNames={stamina_hit:'Stamina from clean hits',...Object.fromEntries(Object.values(ARCADE_AIR_STRIKES).map(move=>[move.id,move.label])),chain_follow:'Linked follow-up',staff_primary_hit:'Staff primary-tip hits',staff_rear_hit:'Staff reverse-tip hits',landed_riposte:'Confirmed riposte',slash:'Opening cut',slash2:'Reverse cut',slash3:'Finishing cut',slash4:'Fourth cut',thrust:'Linear thrust',wide_cut:'Wide sweep',deflect:'Guard riposte',vault:'Acrobatic vault',riposte:'Power counter',force:'Force cast',force_push:'Force push',force_burst:'Force burst',force_pulse:'Force pulse',frenzy:'Ferocity chain',sweep:'Sweep',rush:'Rush',uppercut:'Rising cut',offhand:'Offhand cut',guard_break:'Guard break'};
-const words=id=>id.replaceAll('_',' ').replace(/(^| )([a-z])/g,(_,space,c)=>space+c.toUpperCase());
+const baseAttackNames:Record<string,string>={stamina_hit:'Stamina from clean hits',...Object.fromEntries(Object.values(ARCADE_AIR_STRIKES).map(move=>[move.id,move.label])),chain_follow:'Linked follow-up',staff_primary_hit:'Staff primary-tip hits',staff_rear_hit:'Staff reverse-tip hits',landed_riposte:'Confirmed riposte',slash:'Opening cut',slash2:'Reverse cut',slash3:'Finishing cut',slash4:'Fourth cut',thrust:'Linear thrust',wide_cut:'Wide sweep',deflect:'Guard riposte',vault:'Acrobatic vault',riposte:'Power counter',force:'Force cast',force_push:'Force push',force_burst:'Force burst',force_pulse:'Force pulse',frenzy:'Ferocity chain',sweep:'Sweep',rush:'Rush',uppercut:'Rising cut',offhand:'Offhand cut',guard_break:'Guard break'};
+const words=(id:string)=>id.replaceAll('_',' ').replace(/(^| )([a-z])/g,(_,space,c)=>space+c.toUpperCase());
 function showMoveStats(){
   const f=game?.fighters.find(x=>x.id===$('moveFighter').value);
   showInjuryReport(f);
-  const damage=n=>Number.isFinite(n)?Math.max(0,n).toLocaleString(undefined,{maximumFractionDigits:1}):'0';
+  const damage=(n:number|undefined)=>Number.isFinite(n)?Math.max(0,n as number).toLocaleString(undefined,{maximumFractionDigits:1}):'0';
   $('fighterDamageDealt').textContent=damage(f?.stats?.damage);
   $('fighterDamageTaken').textContent=damage(f?.stats?.damageTaken);
   const grade=f?.career?.grade??'F';
-  const rating=f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo)+' Elo · floor '+ratingText(eloFloor(f.heroEloFloorGrade))+' · '+(f.control?'Your control':titleCase(f.heroPlan??'balanced')):'Elo floor '+ratingText(eloFloor(grade));
+  const rating=f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo as number)+' Elo · floor '+ratingText(eloFloor(f.heroEloFloorGrade))+' · '+(f.control?'Your control':titleCase(f.heroPlan??'balanced')):'Elo floor '+ratingText(eloFloor(grade));
   const chess=chessReadout(f);
   $('moveRank').textContent=f?gradeDisplayLabel(grade)+' · '+formName(f.form)+(chess?' · '+chess+' style':'')+(f.heroId?' · '+fighterGenderLabel(f.gender):'')+' · '+rating+(habitName(f)?' · '+habitName(f):''):'';
   const moves=Object.entries(f?.moves??{}).filter(([id,n])=>n>0&&typeof id==='string').sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
-  for(const [id,defense] of [['attackMoves',false],['defenseMoves',true]]){
+  for(const [id,defense] of [['attackMoves',false],['defenseMoves',true]] as const){
     const rows=moves.filter(([key])=>defense===Boolean(defenseNames[key]||ARCADE_TECHNIQUES[key]?.tactical==='moving_guard')).map(([key,n])=>{
       const row=document.createElement('div');
       row.append(reportCell('dt',defenseNames[key]??combatMoveLabel(key)??baseAttackNames[key]??words(key)),reportCell('dd',n));return row;
@@ -851,13 +857,13 @@ function openStats(){
     h.scope='row';row.append(h,...obj.score.map((n,i)=>reportCell('td',Math.floor(n+1e-8),i?'pink':'blue')));$('roundStats').append(row);
   }
   $('reportSeed').textContent='Seed '+seed;$('copySeed').textContent='Copy seed';
-  const eventsBy={stamina_hit:'Stamina earned',expanded_release:'Technique released',hero_plan:'Hero changed tactics',advanced_route:'Tactical follow-up',hero_reposition:'Hero escaped a crossfire',trakata_off:'Tràkata: blade doused',trakata_on:'Tràkata: blade relit',feint:'Feint',read:'Directional read',riposte:'Riposte',ally_blocked:'Ally blocked strike lane',clash:'Blade clash',parry:'Parry',break:'Guard break',ko:'Knockout',hazard:'Hazard hit',capture:'Point captured',deliver:'Relic delivered',pickup:'Relic picked up',drop:'Relic dropped'};
-  const namedCommit=e=>e.contact>0&&!e.offhand&&combatMoveLabel(e.moveId??e.technique,e);
+  const eventsBy:Record<string,string>={stamina_hit:'Stamina earned',expanded_release:'Technique released',hero_plan:'Hero changed tactics',advanced_route:'Tactical follow-up',hero_reposition:'Hero escaped a crossfire',trakata_off:'Tràkata: blade doused',trakata_on:'Tràkata: blade relit',feint:'Feint',read:'Directional read',riposte:'Riposte',ally_blocked:'Ally blocked strike lane',clash:'Blade clash',parry:'Parry',break:'Guard break',ko:'Knockout',hazard:'Hazard hit',capture:'Point captured',deliver:'Relic delivered',pickup:'Relic picked up',drop:'Relic dropped'};
+  const namedCommit=(e:ArcadeEvent)=>(e.contact as number)>0&&!e.offhand&&combatMoveLabel(e.moveId??e.technique,e);
   const visible=game.events.filter(e=>e.punish||e.region||eventsBy[e.kind]||namedCommit(e)).slice(-8).reverse();
-  const eventLabel=e=>{
-    if(e.kind==='stamina_hit')return 'Stamina +'+Math.round(e.staminaGain*10)/10+' · '+regionName(e.region);
+  const eventLabel=(e:ArcadeEvent)=>{
+    if(e.kind==='stamina_hit')return 'Stamina +'+Math.round((e.staminaGain as number)*10)/10+' · '+regionName(e.region as string);
     if(e.kind==='parry'&&e.perfect)return 'Perfect parry';
-    const expanded=e.kind==='expanded_release'&&arcadeExpandedMoveById(e.moveId,{forceVariants:true});
+    const expanded=e.kind==='expanded_release'&&arcadeExpandedMoveById(e.moveId as string,{forceVariants:true});
     if(expanded)return expanded.label;
     if(e.region)return (e.fatal||e.kind==='ko'?'Fatal hit':e.punish?'Punish':'Injury')+' · '+regionName(e.region)+(e.direction==='rear'?' (rear)':'');
     return namedCommit(e)||eventsBy[e.kind]||'Punish';
@@ -867,7 +873,7 @@ function openStats(){
   fillOptions($('moveFighter'),game.fighters.map(f=>[f.id,(f.displayName??((f.team?'Pink ':'Blue ')+(f.slot+1)))+' · '+formName(f.form)]));
   $('moveFighter').value=game.fighters.some(f=>f.id===prior)?prior:game.fighters.find(f=>f.control)?.id??game.fighters[0].id;
   showMoveStats();
-  const awards=settleArcadeCareer(game);
+  const awards=settleCareerForUI(game);
   $('fighterStats').replaceChildren(...game.fighters.map(f=>{
     const side=f.team?'Pink':'Blue', row=document.createElement('tr'), label=reportCell('th',f.displayName??side+' '+(f.slot+1),f.team?'pink':'blue');
     label.scope='row';if(f.displayName)label.append(reportCell('small',side+' '+(f.slot+1)+' · Hero'));label.append(reportCell('small',formName(f.form)),reportCell('small',arcadeSaberOption(f.gear).label));
@@ -875,9 +881,9 @@ function openStats(){
     if(habit)label.append(reportCell('small',habit));
     if(f.gear?.dualPhase)label.append(reportCell('small',f.saberPhase==='long'?'Extended phase':'Short phase'));
     const earned=awards?.report.find(a=>a.id===f.id), summary=earned?.after??f.career;
-    const rank=reportCell('td',''), record=game.records?.soldiers.find(r=>r.id===f.id)??{};
+    const rank=reportCell('td',''), record=game.records?.soldiers.find(r=>r.id===f.id);
     rank.append(reportCell('b',gradeDisplayLabel(summary?.grade??'F')),reportCell('small',(summary?.merit??0).toLocaleString()+' pts'+(earned?.reward?' / +'+earned.reward:'')+(earned?.promoted?' · Up':'')));
-    row.append(label,rank,reportCell('td',[record.kills??0,record.deaths??0,record.assists??0].join(' / ')));return row;
+    row.append(label,rank,reportCell('td',[record?.kills??0,record?.deaths??0,record?.assists??0].join(' / ')));return row;
   }));
   $('statsDialog').showModal();
 }
@@ -892,9 +898,9 @@ $('statsDialog').addEventListener('close',()=>{if(!paused&&game.phase==='playing
 
 $('formsGuide').addEventListener('click',()=>$('guide').showModal());
 
-const pairs={
+const pairs:Record<string,[string,string][]>= {
   startingRanks:SOLDIER_GRADES.map(g=>[g.label,g.displayLabel]),
-  groupForms:[['mixed','Mixed'],...ARCADE_FORM_IDS.map(id=>[id,formName(id)])],
+  groupForms:[['mixed','Mixed'],...ARCADE_FORM_IDS.map(id=>[id,formName(id)] as [string,string])],
   chessStyles:Object.entries(ARCADE_CHESS_STYLES).filter(([id])=>id!=='none').map(([id,style])=>[id,style.label]),
   doctrines:[['balanced','Balanced'],['aggressive','Aggressive'],['defensive','Defensive']],
   formations:[['line','Line'],['wedge','Wedge'],['spread','Spread']],
@@ -904,17 +910,17 @@ const pairs={
   startingForceQuality:ARCADE_GEAR_QUALITIES.map(x=>[x.id,x.label]),
   startingForceFamily:ARCADE_FORCE_FAMILIES.map(x=>[x.id,x.label])
 };
-const teamLabels={startingRanks:'Starting rank',groupForms:'Team forms',doctrines:'AI style',formations:'Formation',targeting:'Target priority',deployments:'Deployment',startingSaberQuality:'Saber grade',startingForceQuality:'Force grade',startingForceFamily:'Force ability'};
-function fillOptions(select,options){select.replaceChildren(...options.map(([value,label])=>new Option(label,value)));}
-function createLabel(name,field){
+const teamLabels:Record<string,string>={startingRanks:'Starting rank',groupForms:'Team forms',doctrines:'AI style',formations:'Formation',targeting:'Target priority',deployments:'Deployment',startingSaberQuality:'Saber grade',startingForceQuality:'Force grade',startingForceFamily:'Force ability'};
+function fillOptions(select:HTMLSelectElement,options:readonly (readonly [string|number,string])[]){select.replaceChildren(...options.map(([value,label])=>new Option(label,value as string)));}
+function createLabel(name:string,field:HTMLElement){
   const label=document.createElement('label');label.append(document.createTextNode(name),field);return label;
 }
 function buildLobby(){
   fillOptions($('mapPick'),Object.entries(ARCADE_MAPS).map(([id,[label]])=>[id,label]));
-  for(const [i,name] of ['Blue','Pink'].entries()){
-    fillOptions($('saberKit'+i),ARCADE_SABER_OPTIONS.map(o=>[o.id,o.label]));
-    fillOptions($('groupForms'+i),pairs.groupForms);
-    fillOptions($('chessStyles'+i),pairs.chessStyles);
+  for(const [i,name] of [[0,'Blue'],[1,'Pink']] as const){
+    fillOptions($(`saberKit${i}`),ARCADE_SABER_OPTIONS.map(o=>[o.id,o.label]));
+    fillOptions($(`groupForms${i}`),pairs.groupForms);
+    fillOptions($(`chessStyles${i}`),pairs.chessStyles);
     const card=document.createElement('section');
     card.append(reportCell('h2',name,i?'pink':'blue'));
     for(const [key,opts] of Object.entries(pairs)){
@@ -933,12 +939,12 @@ function buildLobby(){
     row.append(reportCell('dt',grade.displayLabel),reportCell('dd',ratingText(eloFloor(grade.label))));floors.append(row);
   }
 }
-const scalar={rule:'rule',mapId:'mapPick',mapSize:'mapSize',body:'bodyStyle',playerSlot:'playerSlot',duration:'duration',pace:'pace',seed:'matchSeed',environment:'weatherPick'};
+const scalar={rule:'rule',mapId:'mapPick',mapSize:'mapSize',body:'bodyStyle',playerSlot:'playerSlot',duration:'duration',pace:'pace',seed:'matchSeed',environment:'weatherPick'} as const;
 function rosterFromSetup(){
   const field=$('playerSlot');fillOptions(field,Array.from({length:setup.teamSizes[0]},(_,j)=>[j,'Blue '+(j+1)]));
   field.value=String(setup.playerSlot);
-  for(const [i,name] of ['Blue','Pink'].entries()){
-    const place=$('roster'+i);
+  for(const [i,name] of [[0,'Blue'],[1,'Pink']] as const){
+    const place=$(`roster${i}`);
     const length=setup.teamSizes[i];place.replaceChildren();
     for(let j=0;j<length;j++){
       if(i===0&&j===setup.playerSlot&&setup.participation==='play'){place.append(reportCell('p',name+' '+(j+1)+(setup.form==='mixed'?' · Mixed form':' · Your form'),'player-form-note'));continue;}
@@ -948,8 +954,8 @@ function rosterFromSetup(){
     }
   }
 }
-function previewHeroes(selection){
-  const first={};
+function previewHeroes(selection:HeroLineup){
+  const first:HeroLineup={};
   for(const [slot,value] of Object.entries(selection))first[slot[0]+'-0']=value;
   return first;
 }
@@ -958,22 +964,22 @@ function heroSelects(){
   $('heroEmpty').hidden=!empty;$('heroHelp').hidden=empty;
   $('watchHero').disabled=empty;
   $('watchHeroHelp').textContent=empty?'Save a Hero in Tournament to use Watch a Hero.':'Sets up one saved Hero vs three SSS+ V fighters. Start when ready.';
-  document.querySelector('.hero-options').hidden=empty;
-  for(const i of [0,1]){
+  document.querySelector<HTMLElement>('.hero-options')!.hidden=empty;
+  for(const i of [0,1] as const){
     const p=setup.heroPicks[i], other=setup.heroPicks[1-i]?.id??'';
     const choices=heroRoster.filter(x=>x.id!==other||x.id===p.id);
-    fillOptions($('heroChoice'+i),[['','No Hero'],...choices.map(x=>[x.id,x.name])]);
-    $('heroChoice'+i).value=choices.some(x=>x.id===p.id)?p.id:'';
-    const selected=choices.find(x=>x.id===$('heroChoice'+i).value), info=$('heroEloHint'+i);
+    fillOptions($(`heroChoice${i}`),[['','No Hero'],...choices.map(x=>[x.id,x.name] as const)]);
+    $(`heroChoice${i}`).value=choices.some(x=>x.id===p.id)?p.id:'';
+    const selected=choices.find(x=>x.id===$(`heroChoice${i}`).value), info=$(`heroEloHint${i}`);
     info.hidden=!selected;
     const actor=lobbyHeroControl(setup,i)==='manual'?'You control this Hero':'AI-controlled';
     info.textContent=selected?actor+' · '+fighterGenderLabel(selected.gender)+' · SSS+ V · '+ratingText(selected.elo)+' Elo · floor '+ratingText(eloFloor(selected.eloFloorGrade)):'';
-    fillOptions($('heroPos'+i),Array.from({length:setup.teamSizes[i]},(_,j)=>[j,'Slot '+(j+1)]));
-    $('heroPos'+i).value=String(p.slot);
-    $('heroPosLabel'+i).hidden=!$('heroChoice'+i).value||setup.teamSizes[i]===1;
+    fillOptions($(`heroPos${i}`),Array.from({length:setup.teamSizes[i]},(_,j)=>[j,'Slot '+(j+1)]));
+    $(`heroPos${i}`).value=String(p.slot);
+    $(`heroPosLabel${i}`).hidden=!$(`heroChoice${i}`).value||setup.teamSizes[i]===1;
   }
 }
-function prepareWatchHero(heroId){
+function prepareWatchHero(heroId?:string){
   const next=watchHeroSetup(setup,heroRoster,heroId);
   if(!next)return false;
   if(setup.startingRanks.join()!==next.startingRanks.join())imported=null;
@@ -985,7 +991,7 @@ function refreshHeroRoster(){
   heroRoster=tournamentHeroes(loadTournament());
   heroSelects();
 }
-const kitHints={
+const kitHints:Record<string,string>={
   single:'Direct cuts and a quick return to guard.',
   dual:'Two independently timed swings; the second blade follows the first.',
   backhand:'Compact close-range cuts with a quick wrist return.',
@@ -995,9 +1001,9 @@ const kitHints={
   greatsaber:'Longer reach and harder hits, with slower and costlier swings.',
 };
 function updateSetupHints(){
-  for(const i of [0,1]){
-    $('kitHint'+i).textContent=kitHints[$('saberKit'+i).value]??kitHints.single;
-    $('chessStyleHint'+i).textContent=ARCADE_CHESS_STYLES[setup.chessStyles[i]].hint;
+  for(const i of [0,1] as const){
+    $(`kitHint${i}`).textContent=kitHints[$(`saberKit${i}`).value]??kitHints.single;
+    $(`chessStyleHint${i}`).textContent=ARCADE_CHESS_STYLES[setup.chessStyles[i]].hint;
   }
   const play=setup.participation==='play';
   const mixed=play&&setup.form==='mixed';
@@ -1009,45 +1015,45 @@ function updateSetupHints(){
   const hero=play&&pick.slot===setup.playerSlot?heroRoster.find(h=>h.id===pick.id):null;
   $('style').disabled=Boolean(hero);
   $('pace').disabled=play;$('pace').title=play?'Available for Spectator and Commander':'';
-  for(const el of document.querySelectorAll('[data-force-setting]'))el.hidden=setup.saberOnly;
-  for(const b of document.querySelectorAll('[data-preset]')){
-    const kind=b.dataset.preset,p=presets[kind];
+  for(const el of document.querySelectorAll<HTMLElement>('[data-force-setting]'))el.hidden=setup.saberOnly;
+  for(const b of document.querySelectorAll<HTMLElement>('[data-preset]')){
+    const kind=b.dataset.preset,p=field(presets,kind);
     const same=kind==='master'?setup.teamSizes.join()==='1,15'&&setup.startingRanks.join()==='SSS+V,F'&&setup.participation==='watch'&&setup.rule==='elimination'
       :p&&setup.participation===p.participation&&setup.rule===p.rule&&setup.teamSizes.join()===p.teamSizes.join();
     b.setAttribute('aria-pressed',String(Boolean(same)));
   }
-  $('formDetail').textContent=play&&!mixed&&!hero?lore[setup.form]?.read??'':'';
-  $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':FORM_AIR_NAMES[setup.form]??'';
+  $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.read??'':'';
+  $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':field(FORM_AIR_NAMES,setup.form)??'';
 }
 function applyLobby(){
   $('participation').value=setupPlayAs(setup);
   $('style').value=setup.fixedForm;
-  for(const [key,id] of Object.entries(scalar))if(key!=='playerSlot')$(id).value=setup[key]===null?'':String(setup[key]);
-  for(const key of Object.keys(pairs))for(const i of [0,1])$(key+i).value=setup[key][i];
-  for(const i of [0,1]){$('count'+i).value=setup.teamSizes[i];$('saberKit'+i).value=arcadeSaberOption(arcadeFighterGear(setup,i)).id;$('dualPhase'+i).checked=setup.startingDualPhase[i];}
+  for(const [key,id] of Object.entries(scalar))if(key!=='playerSlot')$(id).value=setup[key as keyof typeof setup]===null?'':String(setup[key as keyof typeof setup]);
+  for(const key of Object.keys(pairs))for(const i of [0,1] as const)(document.getElementById(key+i) as HTMLSelectElement).value=((setup as unknown as Record<string,string[]>)[key])[i];
+  for(const i of [0,1] as const){$(`count${i}`).value=setup.teamSizes[i] as unknown as string;$(`saberKit${i}`).value=arcadeSaberOption(arcadeFighterGear(setup,i)).id;$(`dualPhase${i}`).checked=setup.startingDualPhase[i];}
   $('saberOnly').checked=setup.saberOnly;
   rosterFromSetup();heroSelects();updateSetupHints();
 }
 function readLobby(){
-  const old=setup, input={...old,...playAsSetup($('participation').value,$('style').value,old)};
+  const old=setup, input:Record<string,unknown>={...old,...playAsSetup($('participation').value as Parameters<typeof playAsSetup>[0],$('style').value,old)};
   for(const [key,id] of Object.entries(scalar))input[key]=$(id).value;
-  for(const key of Object.keys(pairs))input[key]=[0,1].map(i=>$(key+i).value);
-  input.teamSizes=[0,1].map(i=>$('count'+i).value);
-  const kits=[0,1].map(i=>ARCADE_SABER_OPTIONS.find(o=>o.id===$('saberKit'+i).value)??ARCADE_SABER_OPTIONS[0]);
+  for(const key of Object.keys(pairs))input[key]=([0,1] as const).map(i=>(document.getElementById(key+i) as HTMLSelectElement).value);
+  input.teamSizes=([0,1] as const).map(i=>$(`count${i}`).value);
+  const kits=([0,1] as const).map(i=>ARCADE_SABER_OPTIONS.find(o=>o.id===$(`saberKit${i}`).value)??ARCADE_SABER_OPTIONS[0]);
   input.startingSaberWeapon=kits.map(o=>o.weapon);
   input.startingSaberGrip=kits.map(o=>o.grip);
-  input.startingDualPhase=[0,1].map(i=>$('dualPhase'+i).checked);
+  input.startingDualPhase=([0,1] as const).map(i=>$(`dualPhase${i}`).checked);
   input.saberOnly=$('saberOnly').checked;
-  input.heroPicks=[0,1].map(i=>({id:$('heroChoice'+i).value,slot:$('heroPos'+i).value}));
-  input.teamForms=[0,1].map(i=>setup.teamForms[i].map((prior,j)=>$('slotForm'+i+'-'+j)?.value??prior));
+  input.heroPicks=([0,1] as const).map(i=>({id:$(`heroChoice${i}`).value,slot:$(`heroPos${i}`).value}));
+  input.teamForms=([0,1] as const).map(i=>setup.teamForms[i].map((prior,j)=>$(`slotForm${i}-${j}`)?.value??prior));
   setup=normalizeSetup(input);
   if(setup.startingRanks.join()!==old.startingRanks.join())imported=null;
   const needsRoster=setup.playerSlot!==old.playerSlot||setup.participation!==old.participation||(setup.form==='mixed')!==(old.form==='mixed')||setup.teamSizes.join()!==old.teamSizes.join();
   if(needsRoster)rosterFromSetup();
   heroSelects();updateSetupHints();saveSetup(setup);
-  const rePreview=['mapId','mapSize','environment','form','body','participation','playerSlot'].some(k=>old[k]!==setup[k])||
+  const rePreview=(['mapId','mapSize','environment','form','body','participation','playerSlot'] as const).some(k=>old[k]!==setup[k])||
     engineLineups(old).flat().join()!==engineLineups(setup).flat().join()||
-    ['startingSaberWeapon','startingSaberGrip','startingDualPhase','chessStyles'].some(k=>old[k].join()!==setup[k].join())||
+    (['startingSaberWeapon','startingSaberGrip','startingDualPhase','chessStyles'] as const).some(k=>old[k].join()!==setup[k].join())||
     old.heroPicks.some((p,i)=>p.id!==setup.heroPicks[i].id||p.slot!==setup.heroPicks[i].slot);
   if(rePreview&&view==='menu')setScene('menu');
 }
@@ -1058,10 +1064,10 @@ $('watchHero').addEventListener('click',()=>{
   $('setupStatus').textContent=name+' will fight under AI control. Press Start match when ready.';
 });
 $('lobby').addEventListener('change',readLobby);
-for(const button of document.querySelectorAll('[data-preset]')){
+for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
   button.addEventListener('click',()=>{
     const key=button.dataset.preset;
-    const p=presets[key];
+    const p=field(presets,key);
     if(!p)return;
     if(key==='master')imported=null;
     setup=normalizeSetup({...setup,...p,...(key==='master'?{heroPicks:[]}:{}),playerSlot:0});applyLobby();saveSetup(setup);setScene('menu');

@@ -1,7 +1,7 @@
-// @ts-nocheck
+type CircuitRow=[string,string,string,string,string,string,number,number,number,number,number,number,number,number,number,number];
 /** Circuit-only saber phrases. Existing engine contact and the rendered
  * rig share these precise timing and geometry values. */
-const rows={
+const rows:Record<string,CircuitRow[]>={
   shii_cho:[
     ['sc_gate_feeler','Gate Feeler','light','sweep','arc','outside',1.26,-.98,.247,.617,103,1.22,14,9,121,1],
     ['sc_reversed_compass','Reversed Compass','crowd','sweep','arc','wide',2.01,-1.58,.397,.925,123,2.26,27,27,135,3]],

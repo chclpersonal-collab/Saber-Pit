@@ -1,50 +1,54 @@
-// @ts-nocheck
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
 
+interface Cue{label:string;style:string;priority:number;tone:string;life:number;key:string}
+interface Point{x:number;y:number}
+interface CueActor extends Point{id:string;airHeight?:number;control?:boolean;chessStyle?:string;chessPawn?:{promoted?:boolean}}
+interface CueEvent{id:number;fighterId?:string;kind:string;x?:number;y?:number}
+interface Caption extends Cue,Point{actor:string;offsetY:number;width:number;height:number;size:number;focus:boolean;born:number}
 const maxLabels=6;
-const max=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
-const finite=(n,fallback=0)=>Number.isFinite(n)?n:fallback;
-const shorten=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
-const pop=(n)=>1-(1-n)**2;
+const max=(n:number,lo:number,hi:number)=>Math.min(hi,Math.max(lo,n));
+const finite=(n:unknown,fallback=0)=>Number.isFinite(n)?n as number:fallback;
+const shorten=(s:string,n:number)=>s.length>n?s.slice(0,n-1)+'…':s;
+const pop=(n:number)=>1-(1-n)**2;
 const palette={ink:'#22160a',gold:'#ffdb72',bright:'#fff1aa',light:'#fff4cf'};
-function sizeOf(cue,crowd){return cue.priority>=4?(crowd?17:21):(crowd?15:18);}
-function candidateBox(cue,crowd){
+function sizeOf(cue:Cue,crowd:boolean){return cue.priority>=4?(crowd?17:21):(crowd?15:18);}
+function candidateBox(cue:Cue,crowd:boolean){
  const size=sizeOf(cue,crowd);
  return {width:Math.min(213,Math.max(44,cue.label.length*size*.53,cue.style.length*size*.33)),
    height:cue.style?31:21};
 }
-function chooseOffset(x,y,w,h,spots){
+function chooseOffset(x:number,y:number,w:number,h:number,spots:readonly Caption[]){
  // Keep each label close to its actor while separating simultaneous texts.
  // A fixed initial adjustment avoids later jitter as another caption expires.
- const occupied=(dx,dy)=>spots.some(p=>Math.abs(p.x-(x+dx))<(p.width+w)*.47&&
+ const occupied=(dx:number,dy:number)=>spots.some(p=>Math.abs(p.x-(x+dx))<(p.width+w)*.47&&
    Math.abs(p.y+p.offsetY-(y+dy))<(p.height+h)*.51);
  for(const dy of [0,-19,-35,19,35]){
    if(!occupied(0,dy))return {x:0,y:dy};
  }
  return null;
 }
-function visibleAlpha(age,life){
+function visibleAlpha(age:number,life:number){
  const tail=Math.min(.32,life*.45);
  return max((life-age)/tail,0,1);
 }
-function labelAt(f,e){
+function labelAt(f:CueActor|undefined,e:CueEvent){
  if(f&&Number.isFinite(f.x)&&Number.isFinite(f.y)){
    return {x:f.x,y:f.y-finite(f.airHeight)-83};
  }
- if(Number.isFinite(e.x)&&Number.isFinite(e.y))return {x:e.x,y:e.y-75};
+ if(Number.isFinite(e.x)&&Number.isFinite(e.y))return {x:e.x as number,y:(e.y as number)-75};
  return null;
 }
 /** Read-only combat event view. Call update with wall-clock seconds and draw
  * in the existing world transform after the fighters. No DOM or sim writes. */
 export function createArcadeFloatingText(){
  let lastId=0,time=0;
- const active=[], seen=new Map(), cooldown=new Map(), promoted=new Set();
+ const active:Caption[]=[], seen=new Map<string,number>(), cooldown=new Map<string,number>(), promoted=new Set<string>();
  return {
    reset(){lastId=time=0;active.length=0;seen.clear();cooldown.clear();promoted.clear();},
-   update(dt,events=[],fighters=[],{focusId,crowd=fighters.length>6}={}){
+   update(dt:number,events:readonly CueEvent[]=[],fighters:readonly CueActor[]=[],{focusId,crowd=fighters.length>6}:{focusId?:string|null;crowd?:boolean}={}){
      time+=max(finite(dt),0,.25);
      for(let i=active.length-1;i>=0;i--)if(time>=active[i].born+active[i].life)active.splice(i,1);
-     if(!events.length||events.at(-1).id<=lastId)return active.length;
+     if(!events.length||events[events.length-1].id<=lastId)return active.length;
      for(const [key,end] of seen)if(time>=end)seen.delete(key);
      for(const [key,end] of cooldown)if(time>=end)cooldown.delete(key);
      const byId=new Map(fighters.map(f=>[f.id,f]));
@@ -52,11 +56,11 @@ export function createArcadeFloatingText(){
      for(const event of events){
        if(!Number.isSafeInteger(event.id)||event.id<=lastId)continue;
        lastId=event.id;
-       const f=byId.get(event.fighterId);
+       const f=byId.get(event.fighterId as string);
        const focus=f?.control===true||f?.id===focusId&&focusId!=null;
        const at=labelAt(f,event),actor=event.fighterId;
        if(!at||typeof actor!=='string')continue;
-       let cue=combatCallout(event,f,focus);
+       let cue:Cue|null=combatCallout(event,f,focus);
        if(f?.chessStyle==='pawn'&&f.chessPawn?.promoted&&!promoted.has(actor)&&['hit','launch'].includes(event.kind)){
          promoted.add(actor);
          cue={label:'PAWN PROMOTED',style:'QUEEN RANGE',priority:4,tone:'promotion',life:1.05,key:'promotion:'+actor};
@@ -88,7 +92,7 @@ export function createArcadeFloatingText(){
      }
      return active.length;
    },
-   draw(ctx,{reducedMotion=false}={}){
+   draw(ctx:CanvasRenderingContext2D,{reducedMotion=false}={}){
      if(!active.length)return;
      ctx.save();
      ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.lineJoin='round';

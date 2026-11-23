@@ -1,17 +1,18 @@
-// @ts-nocheck
+import type {SyncResult} from './arcade-cloud-sync.js';
+import type {StorageReader} from './arcade-save-types.js';
 import * as files from './arcade-backup.js?v=3.3.0';
 import {createCloudSync,createBrowserCloudTransport,storeCloudRecovery,cloudDigest} from './arcade-cloud-sync.js?v=3.3.0';
 const unavailable={getItem:()=>null,setItem:()=>{throw Error('Site storage is disabled.');},removeItem:()=>{}};
 const storage=(()=>{try{return globalThis.localStorage??unavailable;}catch{return unavailable;}})();
 // Gauntlet is supported by manual file backup only. Cloud retains its
 // existing formats, schema, and digests.
-const backup={...files,exportArcadeBackup:storage=>files.exportArcadeBackup(storage,{sections:['duel','squad','quest']})};
+const backup={...files,exportArcadeBackup:(storage?: StorageReader)=>files.exportArcadeBackup(storage,{sections:['duel','squad','quest']})};
 export const browserSync=createCloudSync({storage,transport:createBrowserCloudTransport(),
   backup,preserve:storeCloudRecovery});
 let timer=0;
-function promptIfNeeded(result){
-  if(!['changed','conflict','cloud-newer','reset'].includes(result?.status))return;
-  for(const a of document.querySelectorAll('a[href="./backup.html"]')){
+function promptIfNeeded(result: SyncResult | null | undefined){
+  if(!['changed','conflict','cloud-newer','reset'].includes(result?.status as string))return;
+  for(const a of document.querySelectorAll<HTMLAnchorElement>('a[href="./backup.html"]')){
     a.textContent='Manage saves · review sync';
     a.title='Progress needs review before syncing';
   }

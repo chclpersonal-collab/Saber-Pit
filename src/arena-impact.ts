@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** World-space impact accents, entirely separate from the combat simulation.
  * Observe the engine's ID-ordered effects after each step and advance on
  * presentation time so impact animation keeps moving during hit-stop.
@@ -15,11 +14,15 @@ const SPECS = {
   barrier: { duration: .36, reach: 34, trails: 0, priority: 2 },
 };
 
-function classify(event) {
+type ImpactKind=keyof typeof SPECS;
+interface ImpactEvent{id:number;type:string;outcome?:string|null;damage?:number;isCounter?:boolean;counter?:boolean;abilityId?:string;targetId?:string|number|null;x?:number;y?:number;x2?:number;y2?:number;team?:number}
+interface ImpactSlot{kind:ImpactKind|null;born:number;id:number;team:0|1;x:number;y:number;heading:number}
+const finite=(n:unknown):n is number=>Number.isFinite(n);
+function classify(event:ImpactEvent):ImpactKind|null {
   if (event.type === 'death') return 'ko';
   if (event.type === 'saber') {
     if (event.outcome === 'blocked') return 'clash';
-    if (event.outcome === 'hit' && event.damage > 0) return event.isCounter || event.counter ? 'counter' : 'hit';
+    if (event.outcome === 'hit' && (event.damage??0) > 0) return event.isCounter || event.counter ? 'counter' : 'hit';
   }
   if (event.type === 'force') {
     if (event.abilityId === 'force_barrier') return 'barrier';
@@ -28,11 +31,11 @@ function classify(event) {
   return null;
 }
 
-function pathRing(ctx, x, y, radius, from = 0, to = TAU) {
+function pathRing(ctx:CanvasRenderingContext2D, x:number, y:number, radius:number, from = 0, to = TAU) {
   ctx.beginPath(); ctx.arc(x, y, radius, from, to); ctx.stroke();
 }
 
-function spokes(ctx, effect, spec, p, expansion) {
+function spokes(ctx:CanvasRenderingContext2D, effect:ImpactSlot, spec:(typeof SPECS)[ImpactKind], p:number, expansion:number) {
   const rays = spec.trails;
   if (!rays) return;
   const fan = effect.kind === 'hit' || effect.kind === 'counter' || effect.kind === 'force';
@@ -53,17 +56,17 @@ function spokes(ctx, effect, spec, p, expansion) {
 
 export function createArenaImpact() {
   // Fixed reusable slots; authoritative effects are emitted with monotonic ids.
-  const slots = Array.from({ length: LIMIT }, () => ({ kind: null }));
+  const slots = Array.from({ length: LIMIT }, ():ImpactSlot => ({ kind:null,born:0,id:0,team:0,x:0,y:0,heading:0 }));
   let now = 0, newest = 0, enabled = true, active = 0;
   function clear() {
     for (const slot of slots) slot.kind = null;
     active = 0;
   }
-  function reset(existing = []) {
+  function reset(existing:readonly ImpactEvent[]|null = []) {
     now = 0; newest = 0; clear();
     for (const event of existing ?? []) if (Number.isSafeInteger(event?.id)) newest = Math.max(newest, event.id);
   }
-  function advance(seconds, { reducedMotion = false, fullEffects = true, paused = false, visible = true } = {}) {
+  function advance(seconds:number, { reducedMotion = false, fullEffects = true, paused = false, visible = true } = {}) {
     enabled = !!fullEffects && !reducedMotion && !paused && visible;
     if (!enabled) { if (active) clear(); return; }
     now += Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
@@ -72,24 +75,24 @@ export function createArenaImpact() {
       if (slot.kind && now - slot.born >= SPECS[slot.kind].duration) { slot.kind = null; active--; }
     }
   }
-  function observe(events = []) {
+  function observe(events:readonly ImpactEvent[]|null = []) {
     for (const event of events ?? []) {
       if (!Number.isSafeInteger(event?.id) || event.id <= newest) continue;
       newest = event.id;
-      if (!enabled || !Number.isFinite(event.x) || !Number.isFinite(event.y)) continue;
+      if (!enabled || !finite(event.x) || !finite(event.y)) continue;
       const kind = classify(event);
       if (!kind) continue;
       let slot = null;
       for (const candidate of slots) {
         if (!candidate.kind) { slot = candidate; break; }
         if (SPECS[candidate.kind].priority > SPECS[kind].priority) continue;
-        if (!slot || SPECS[candidate.kind].priority < SPECS[slot.kind].priority ||
-            (SPECS[candidate.kind].priority === SPECS[slot.kind].priority && candidate.id < slot.id)) slot = candidate;
+        if (!slot || SPECS[candidate.kind].priority < SPECS[slot.kind!].priority ||
+            (SPECS[candidate.kind].priority === SPECS[slot.kind!].priority && candidate.id < slot.id)) slot = candidate;
       }
       if (!slot) continue;
       if (!slot.kind) active++;
-      const dx = Number.isFinite(event.x2) ? event.x2 - event.x : 0;
-      const dy = Number.isFinite(event.y2) ? event.y2 - event.y : 0;
+      const dx = finite(event.x2) ? event.x2 - event.x : 0;
+      const dy = finite(event.y2) ? event.y2 - event.y : 0;
       slot.kind = kind; slot.born = now; slot.id = event.id; slot.team = event.team === 1 ? 1 : 0;
       // Start a clash between the fighters. The other marks stay on the event target.
       const weight = kind === 'clash' ? .74 : (kind === 'ko' || kind === 'barrier' ? 0 : 1);
@@ -97,7 +100,7 @@ export function createArenaImpact() {
       slot.heading = dx || dy ? Math.atan2(dy, dx) : (event.id % 31) * TAU / 31;
     }
   }
-  function draw(ctx, colors) {
+  function draw(ctx:CanvasRenderingContext2D, colors?:{enemy?:string;player?:string}) {
     if (!enabled || !active) return;
     ctx.save();
     try {

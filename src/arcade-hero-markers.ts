@@ -1,15 +1,17 @@
-// @ts-nocheck
-const bound=(n,min,max)=>Math.max(min,Math.min(max,n));
-const overlaps=(a,b)=>Math.abs(a.x-b.x)<44&&Math.abs(a.y-b.y)<20;
+import type { CameraPoint, CameraTransform } from './arcade-camera.js';
+interface HeroMarkerPose{pose:{alive?:boolean;heroId?:string|null;team:number;id:string};anchor?:CameraPoint|null}
+interface HeroMarker extends CameraPoint{team:number;id:string;anchorX:number;anchorY:number}
+const bound=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
+const overlaps=(a:CameraPoint,b:CameraPoint)=>Math.abs(a.x-b.x)<44&&Math.abs(a.y-b.y)<20;
 
 // Pure screen-space placement. Only deployed, still-active Saved Heroes have
 // the simulation's heroId; a name, Elo, or rank alone never earns a badge.
-export function arcadeHeroMarkers(poses,tx,width,height,pixelScale=1){
-  const points=[];
+export function arcadeHeroMarkers(poses:readonly HeroMarkerPose[],tx:CameraTransform,width:number,height:number,pixelScale=1){
+  const points:HeroMarker[]=[];
   if(width<54||height<48)return points;
   const floor=24,ceil=height-12,top=Math.min(66,height*.33);
   for(const {pose,anchor} of poses){
-    if(!pose.alive||!pose.heroId||!Number.isFinite(anchor?.x)||!Number.isFinite(anchor?.y))continue;
+    if(!pose.alive||!pose.heroId||!anchor||!Number.isFinite(anchor.x)||!Number.isFinite(anchor?.y))continue;
     const x=(anchor.x*tx.scale+tx.x)/pixelScale;
     const y=(anchor.y*(tx.scaleY??tx.scale)+tx.y)/pixelScale;
     if(x< -18||x>width+18||y< -18||y>height+18)continue;
@@ -22,7 +24,7 @@ export function arcadeHeroMarkers(poses,tx,width,height,pixelScale=1){
   return points;
 }
 
-export function drawArcadeHeroMarkers(ctx,points,pixelScale){
+export function drawArcadeHeroMarkers(ctx:CanvasRenderingContext2D,points:readonly HeroMarker[],pixelScale:number){
   if(!points.length)return;
   ctx.save();ctx.setTransform(pixelScale,0,0,pixelScale,0,0);
   ctx.font='800 10px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';

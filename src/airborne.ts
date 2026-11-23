@@ -1,13 +1,12 @@
-// @ts-nocheck
 /** Deterministic 60 Hz ballistic arcs shared by rendering and combat hit tests.
  * Height never grants invulnerability: melee compares height; Force can track it.
  * Horizontal movement uses the simulation's swept collision callback. */
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
-const smooth = value => { const p = clamp(value, 0, 1); return p * p * (3 - 2 * p); };
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const finite = (value: number | undefined, fallback: number) => Number.isFinite(value) ? value! : fallback;
+const smooth = (value: number) => { const p = clamp(value, 0, 1); return p * p * (3 - 2 * p); };
 // Presentation only: fractional authored turns settle onto planted feet rather
 // than snapping a quarter/half-turned silhouette upright when the arc expires.
-const settledRotation = (rotations, progress) => {
+const settledRotation = (rotations: number, progress: number) => {
   const turns = finite(rotations, 0);
   const whole = Math.sign(turns) * Math.round(Math.abs(turns));
   return (progress * turns + (whole - turns) * smooth((progress - .6) / .4)) * Math.PI * 2;
@@ -18,11 +17,29 @@ const TRAJECTORIES = Object.freeze({
   'low-vault': { travelScale: 1, lateralScale: .18, axis: 'pitch', bank: .25, tuck: .55 },
   retreat: { travelScale: -1, lateralScale: .12, axis: 'pitch', bank: -.2, tuck: .45 },
 });
-const trajectoryFor = name => TRAJECTORIES[name] || TRAJECTORIES.somersault;
-const rotationAxisFor = (axis, fallback) => ({ pitch: 'pitch', roll: 'roll', yaw: 'yaw', somersault: 'pitch', cartwheel: 'roll', twist: 'yaw' })[axis] || fallback;
+type Trajectory = keyof typeof TRAJECTORIES;
+const trajectoryFor = (name: Trajectory) => TRAJECTORIES[name] || TRAJECTORIES.somersault;
+const axes = { pitch: 'pitch', roll: 'roll', yaw: 'yaw', somersault: 'pitch', cartwheel: 'roll', twist: 'yaw' } as const;
+const rotationAxisFor = (axis: string | undefined, fallback: string) => axes[axis as keyof typeof axes] || fallback;
+export interface JumpSpec {
+  directionX?: number; directionY?: number; durationTicks?: number; recoveryTicks?: number;
+  trajectory?: string; distance?: number; side?: number; lateralDistance?: number;
+  rotationAxis?: string; rollAxis?: string; travelScale?: number; height?: number; rotations?: number;
+}
+export interface AirborneArc {
+  trajectory: string; rotationAxis: string; travelScale: number; lateralDistance: number;
+  bankScale: number; tuckScale: number; startTick: number; endTick: number; originX: number; originY: number;
+  directionX: number; directionY: number; distance: number; height: number; recoveryTicks: number;
+  rotations: number; appliedProgress: number;
+}
+export interface AirborneActor {
+  x: number; y: number; facing?: number; airborne?: AirborneArc | null;
+  landingRecoveryUntil?: number; airborneHeight?: number;
+}
+type OptionalActor = AirborneActor | null | undefined;
 // Curved displacement is sampled in world space and its incremental delta is
 // sent through the exact same swept collider as a straight ballistic leap.
-const displacement = (a, progress) => {
+const displacement = (a: AirborneArc, progress: number) => {
   const forward = a.distance * (a.travelScale ?? 1) * progress;
   const lateral = (a.lateralDistance || 0) * Math.sin(Math.PI * progress);
   return { x: a.directionX * forward - a.directionY * lateral,
@@ -31,7 +48,7 @@ const displacement = (a, progress) => {
 /** Voluntary acrobatics gain efficient timing, never extra height or distance.
  * Call this for an authored saber/dash jump, not an enemy-imposed Force lift.
  * The simulator must use the same spec for windup and the actual trajectory. */
-export function trainedJumpSpec(spec, skill = 0) {
+export function trainedJumpSpec<T extends JumpSpec>(spec: T | null | undefined, skill: number | {skill?: number} = 0) {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return null;
   const training = clamp(finite(typeof skill === 'number' ? skill : skill?.skill, 0), 0, 1);
   const duration = clamp(finite(spec.durationTicks, 36), 12, 90);
@@ -41,12 +58,12 @@ export function trainedJumpSpec(spec, skill = 0) {
     recoveryTicks: Math.round(recovery * (1 - (2 / 3) * training)),
   });
 }
-export function startAirborne(soldier, tick, spec = {}, direction = null) {
-  if (!soldier || soldier.airborne || soldier.landingRecoveryUntil > tick) return false;
+export function startAirborne(soldier: OptionalActor, tick: number, spec: JumpSpec = {}, direction: {x?: number; y?: number} | null = null) {
+  if (!soldier || soldier.airborne || soldier.landingRecoveryUntil! > tick) return false;
   const dx = finite(direction?.x ?? spec.directionX, soldier.facing || 1), dy = finite(direction?.y ?? spec.directionY, 0);
   const length = Math.hypot(dx, dy) || 1;
   const duration = Math.round(clamp(finite(spec.durationTicks, 36), 12, 90));
-  const trajectory = Object.hasOwn(TRAJECTORIES, spec.trajectory) ? spec.trajectory : 'somersault';
+  const trajectory = Object.hasOwn(TRAJECTORIES, spec.trajectory!) ? spec.trajectory as Trajectory : 'somersault';
   const profile = trajectoryFor(trajectory);
   const distance = clamp(finite(spec.distance, 0), 0, 180);
   const side = finite(spec.side, 1) < 0 ? -1 : 1;
@@ -63,7 +80,7 @@ export function startAirborne(soldier, tick, spec = {}, direction = null) {
   soldier.airborneHeight = 0;
   return true;
 }
-export function sampleAirborne(soldier, tick) {
+export function sampleAirborne(soldier: OptionalActor, tick: number) {
   const a = soldier?.airborne;
   if (!a) return { height: 0, progress: 0, rotation: 0, visualRotation: 0, twist: 0, visualTwist: 0,
     landingCompression: smooth((finite(soldier?.landingRecoveryUntil, 0) - tick) / 10),
@@ -82,7 +99,7 @@ export function sampleAirborne(soldier, tick) {
     x: a.originX + offset.x, y: a.originY + offset.y,
     dx: offset.x - previous.x, dy: offset.y - previous.y };
 }
-export function advanceAirborne(soldier, tick, move = null) {
+export function advanceAirborne<T extends AirborneActor>(soldier: T | null | undefined, tick: number, move: ((soldier: T, dx: number, dy: number) => void) | null = null) {
   const sample = sampleAirborne(soldier, tick);
   if (!soldier?.airborne) return sample;
   if (move) move(soldier, sample.dx, sample.dy);
@@ -95,6 +112,6 @@ export function advanceAirborne(soldier, tick, move = null) {
   }
   return sample;
 }
-export function airborneHeight(soldier, tick) { return sampleAirborne(soldier, tick).height; }
-export function verticalSeparation(a, b, tick) { return Math.abs(airborneHeight(a, tick) - airborneHeight(b, tick)); }
-export function canMeleeHit(a, b, tick, maxVertical = 32) { return verticalSeparation(a, b, tick) <= maxVertical; }
+export function airborneHeight(soldier: OptionalActor, tick: number) { return sampleAirborne(soldier, tick).height; }
+export function verticalSeparation(a: OptionalActor, b: OptionalActor, tick: number) { return Math.abs(airborneHeight(a, tick) - airborneHeight(b, tick)); }
+export function canMeleeHit(a: OptionalActor, b: OptionalActor, tick: number, maxVertical = 32) { return verticalSeparation(a, b, tick) <= maxVertical; }

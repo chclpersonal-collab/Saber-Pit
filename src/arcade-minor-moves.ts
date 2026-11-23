@@ -1,7 +1,8 @@
-// @ts-nocheck
+type MinorFlags={deflect?:boolean;air?:string;launch?:boolean};
+type MinorRow=[string,string,string,number,string,string,string,[string,...number[]],[number,number,number,number,number,number,number,number,number],number,string,MinorFlags?];
 /** Seven optional v3.01 saber phrases. Timings and choreography describe the same
  * in-game swing; none of these entries changes a form's base stats. */
-const rows=[
+const rows:MinorRow[]=[
   ['m301_sc_threshold_fan','Threshold Fan','shii_cho',4,'crowd','sweep','inside',
     ['arc',-.78,2.03,.51,-3,4,3,1,7,.46,1],
     [.328,.787,91,1.74,18,17,96,119,.22],2,

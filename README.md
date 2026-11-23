@@ -36,7 +36,8 @@ Use Node 22 or newer:
 ```sh
 npm ci
 npm start                 # Builds and serves build/dist/ on localhost:4173
-npm run typecheck         # Strict checking where migration is complete
+npm run typecheck         # Strict checking for current browser source
+npm run typecheck:all     # CI gate: requires zero migration exceptions
 npm test                  # Tests run against generated code, not the 4.00.0 fixture
 npm run verify:parity     # Compare seeded outcomes against exact 4.00.0
 ```
@@ -49,11 +50,12 @@ images, and attribution files. Existing ES module filenames and browser cache
 queries intentionally stay unchanged. The strict checker resolves those same
 imports without the cache query; the runtime still uses the original URLs.
 
-An explicit `@ts-nocheck` denotes a behavior-preserving port still awaiting
-domain typing. This is an incremental rewrite, not a claim that every fighter,
-renderer, or legacy replay type is strict yet. Do not add a check exception to
-new code. Do not modify `dist/*.js` to match future source changes; the reference
-is deliberately frozen for replay parity checks.
+Arena, Classic, tournament, career, save and replay controllers, and both
+animation labs pass strict checking with no exceptions. The Animation Lab's
+controller is emitted from TypeScript like the other browser entries. No
+new check exceptions or line suppressions are allowed. Do not modify
+`dist/*.js` or archived replay engines to match future source changes; those
+are frozen regression inputs, not maintained browser source.
 
 Rust/Wasm is not required. Benchmark actual compute plus JS/Wasm transfer,
 GC, and browser rendering before extracting a deterministic subsystem; retain

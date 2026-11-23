@@ -1,19 +1,33 @@
-// @ts-nocheck
+import type { Point } from './terrain.js';
 /** Relic objective rules. All decisions use public objective state and no RNG. */
+type Team = 0 | 1;
+interface RelicSoldier extends Point {
+  id: string; name: string; team: Team; alive: boolean; pinned?: boolean; rallying?: boolean;
+  attack?: unknown; staggerUntil: number; dashUntil: number;
+}
+export interface RelicObjective extends Point {
+  id: string; name: string; radius: number; capture: number; owner: Team | null;
+  points: number[]; targetScore: number; contested: boolean; presence: number[]; kind: 'relic';
+  carrierId: string | null; state: 'carried' | 'available' | 'resetting'; home: Point; unlockTick: number;
+  extractionZones: (Point & {team: number; radius: number})[];
+}
+interface ObjectiveGame {config?: {matchMode?: string}; objective?: {kind?: string} | null}
+interface RelicGame extends ObjectiveGame {tick: number; soldiers: RelicSoldier[]}
+type RelicEvent = {type: 'relic-drop' | 'relic-delivery' | 'relic-ready' | 'relic-pickup'; team: Team | null; text: string};
 export const RELIC_TARGET = 3;
 export const RELIC_PICKUP_RADIUS = 22;
 export const RELIC_EXTRACTION_RADIUS = 48;
 export const RELIC_CARRIER_SPEED = .72;
 export const RELIC_RESET_SECONDS = 2;
 export const RELIC_DROP_LOCK_SECONDS = .5;
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const ready = (g, s) => s.alive && !s.pinned && !s.rallying && !s.attack && s.staggerUntil <= g.tick;
-const byDistance = point => (a, b) => distance(a, point) - distance(b, point) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-export const isRelic = g => g?.config?.matchMode === 'relic' && g.objective?.kind === 'relic';
-export const isRelicCarrier = (g, s) => isRelic(g) && g.objective.state === 'carried' && g.objective.carrierId === s?.id;
-export const carrierMoveMultiplier = (g, s) => isRelicCarrier(g, s) ? RELIC_CARRIER_SPEED : 1;
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const ready = (g: Pick<RelicGame, 'tick'>, s: RelicSoldier) => s.alive && !s.pinned && !s.rallying && !s.attack && s.staggerUntil <= g.tick;
+const byDistance = (point: Point) => (a: RelicSoldier, b: RelicSoldier) => distance(a, point) - distance(b, point) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+export const isRelic = <T extends ObjectiveGame>(g: T | null | undefined): g is T & {objective: RelicObjective} => g?.config?.matchMode === 'relic' && g.objective?.kind === 'relic';
+export const isRelicCarrier = (g: ObjectiveGame | null | undefined, s: Pick<RelicSoldier, 'id'> | null | undefined) => isRelic(g) && g.objective.state === 'carried' && g.objective.carrierId === s?.id;
+export const carrierMoveMultiplier = (g: ObjectiveGame | null | undefined, s: Pick<RelicSoldier, 'id'> | null | undefined) => isRelicCarrier(g, s) ? RELIC_CARRIER_SPEED : 1;
 
-export function createRelicObjective(terrain, targetScore = RELIC_TARGET) {
+export function createRelicObjective(terrain: {controlPoints: readonly Point[]; width: number; height: number}, targetScore = RELIC_TARGET): RelicObjective {
   const center = terrain.controlPoints[0], home = { x: center.x, y: center.y };
   return { id: 'relic', name: 'Relic', ...home, radius: RELIC_PICKUP_RADIUS, capture: 0, owner: null,
     points: [0, 0], targetScore, contested: false, presence: [0, 0], kind: 'relic',
@@ -22,21 +36,21 @@ export function createRelicObjective(terrain, targetScore = RELIC_TARGET) {
 }
 
 /** Called at the death site after knockback has settled, including direct damage callers. */
-export function dropRelic(g, s, tickRate = 60) {
+export function dropRelic(g: RelicGame, s: RelicSoldier, tickRate = 60): RelicEvent | null {
   if (!isRelicCarrier(g, s)) return null;
-  Object.assign(g.objective, { x: s.x, y: s.y, state: 'available', carrierId: null, owner: null,
+  Object.assign(g.objective!, { x: s.x, y: s.y, state: 'available', carrierId: null, owner: null,
     contested: false, presence: [0, 0], unlockTick: g.tick + Math.round(RELIC_DROP_LOCK_SECONDS * tickRate) });
   return { type: 'relic-drop', team: s.team, text: `${s.name} dropped the relic` };
 }
 
 /** Advance the objective and end a pickup dash; the engine owns events, merit and the clock. */
-export function advanceRelic(g, tickRate = 60) {
+export function advanceRelic(g: RelicGame, tickRate = 60): RelicEvent[] {
   if (!isRelic(g)) return [];
-  const o = g.objective, events = [];
+  const o = g.objective, events: RelicEvent[] = [];
   if (o.state === 'carried') {
     const carrier = g.soldiers.find(s => s.id === o.carrierId);
     if (!carrier?.alive) {
-      if (carrier) events.push(dropRelic(g, carrier, tickRate));
+      if (carrier) events.push(dropRelic(g, carrier, tickRate)!);
       return events;
     }
     o.x = carrier.x; o.y = carrier.y; o.owner = carrier.team;
@@ -69,7 +83,7 @@ export function advanceRelic(g, tickRate = 60) {
 }
 
 /** Stable roles avoid every ally chasing a carrier or fighting over one pickup spot. */
-export function relicAssignment(g, s) {
+export function relicAssignment(g: RelicGame, s: RelicSoldier | null | undefined) {
   if (!isRelic(g) || !s?.alive) return null;
   const o = g.objective, carrier = o.state === 'carried' ? g.soldiers.find(other => other.id === o.carrierId && other.alive) : null;
   const friends = g.soldiers.filter(other => other.alive && other.team === s.team).sort(byDistance(o));

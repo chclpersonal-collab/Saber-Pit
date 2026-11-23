@@ -1,8 +1,18 @@
-// @ts-nocheck
 import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=4.0.0';
 /** Original ink-cutout art for Saber Pit. Sampled rig is read-only: hands,
  * shoes and all blade tips come from the same motion/contact calculation. */
-const TAU=Math.PI*2, clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+import type {FighterPaintIdentity,FighterPaintOptions,FighterPreviewOptions} from './arcade-painter.js';
+interface PaintPoint{x:number;y:number}
+interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;side?:number}
+interface InkActor extends FighterPaintIdentity{action?:string;attack?:unknown;vx?:number}
+interface HairRig{styleSpin?:{face:number;cloth?:number;clothSide?:number};torsoTurn?:number}
+interface RobeRig extends HairRig{shoulder:PaintPoint;waist:PaintPoint;pelvis?:PaintPoint;legs:readonly PaintLeg[];forward?:number;airPhase?:string}
+interface PaintRig extends RobeRig{
+ hand?:PaintPoint;backHand?:PaintPoint;blade?:PaintPoint;offBlade?:PaintPoint|null;head?:PaintPoint;
+ chest?:PaintPoint;roll:number;trick?:{angle?:number}|null;flightSide?:number;hdx:number;
+ action?:string;t:number;emitter?:PaintPoint;offEmitter?:PaintPoint;staff?:boolean;freeHandAction:boolean;freeHandExtension:number;
+}
+const TAU=Math.PI*2, clamp=(x:number,a:number,b:number)=>Math.min(b,Math.max(a,x));
 const ink='#211c1a', deep='#160f11';
 const coats=[
  ['#50515b','#72727b','#38393f','#b3a494'],
@@ -14,20 +24,20 @@ const coats=[
 ];
 const hairInks=['#27272b','#393639','#34343a','#494345','#272b2c','#57565a'];
 const faces=[['#f1dfd8','#d6b8b1'],['#e7d1c5','#c6a39a'],['#e4c0b4','#ba978f'],['#f0d4ca','#c9a59f']];
-const pt=(v,x,y)=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)?v:{x,y};
-const cap=(c,x,y,w,h,a,fill,stroke=ink,lw=2)=>{
+const pt=(v:PaintPoint|null|undefined,x:number,y:number)=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)?v:{x,y};
+const cap=(c:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,a:number,fill:string,stroke:string|null=ink,lw=2)=>{
  c.beginPath();c.ellipse(x,y,w,h,a,0,TAU);c.fillStyle=fill;c.fill();
  if(stroke){c.lineWidth=lw;c.strokeStyle=stroke;c.stroke();}
 };
-const stroke=(c,clr,width,...xy)=>{
+const stroke=(c:CanvasRenderingContext2D,clr:string,width:number,...xy:number[])=>{
  c.beginPath();c.moveTo(xy[0],xy[1]);for(let i=2;i<xy.length;i+=2)c.lineTo(xy[i],xy[i+1]);
  c.strokeStyle=clr;c.lineWidth=width;c.stroke();
 };
-function path(c,fill,outline,fn,width=2){
+function path(c:CanvasRenderingContext2D,fill:string,outline:string|null,fn:(ctx:CanvasRenderingContext2D)=>void,width=2){
  c.beginPath();fn(c);c.closePath();c.fillStyle=fill;c.fill();
  if(outline){c.strokeStyle=outline;c.lineWidth=width;c.stroke();}
 }
-function head(c,r,f,p,seed,roll){
+function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:number,roll:number){
  const rabbit=f.body==='rabbit', variant=seed%6;
  const [face,shade]=faces[(seed>>>10)%faces.length], hair=hairInks[(seed>>>4)%hairInks.length];
  const bearing=r.styleSpin?.face??f.face??0;
@@ -87,11 +97,11 @@ function head(c,r,f,p,seed,roll){
  }
  c.restore();
 }
-export function peasantBootBearing(leg){
+export function peasantBootBearing(leg:PaintLeg){
  const p=leg.foot,t=leg.toes;
  return Math.hypot(t.x-p.x,t.y-p.y)>.01?Math.atan2(t.y-p.y,t.x-p.x):0;
 }
-function boot(c,leg,coat,tint){
+function boot(c:CanvasRenderingContext2D,leg:PaintLeg,coat:readonly string[],tint?:string){
  const p=leg.foot,front=leg.side===1,leather=front?'#67564c':'#4a3e3b';
  c.save();c.translate(p.x,p.y);
  const knee=leg.k??{x:p.x,y:p.y-16};
@@ -117,7 +127,7 @@ function boot(c,leg,coat,tint){
  if(!tint)stroke(c,'#362b29',.87,-4.4,2.7,length-1.3,3.2);
  c.restore();
 }
-function glove(c,p,back,aim,coat,open=false){
+function glove(c:CanvasRenderingContext2D,p:PaintPoint,back:boolean,aim:number,coat:readonly string[],open=false){
  c.save();c.translate(p.x,p.y);c.rotate(aim);
  const pale=back?'#d5c5bf':'#f1ddd4';
  path(c,pale,ink,q=>{
@@ -131,7 +141,7 @@ function glove(c,p,back,aim,coat,open=false){
  if(open)for(const [i,y] of [-4,-1.7,.7,3.1].entries())stroke(c,pale,1.85,4.7,y,9.85+Math.sin(i)*1.8,y-.47);
  c.restore();
 }
-function robe(c,r,kit,seed,team,outlined,tint){
+function robe(c:CanvasRenderingContext2D,r:RobeRig,kit:readonly string[],seed:number,team:string,outlined:boolean,tint?:string){
  const high=r.shoulder, belt=r.waist, pelvic=r.pelvis??{x:belt.x,y:belt.y+10};
  const spin=r.styleSpin, drift=clamp(r.torsoTurn??0,-1.45,1.45)*4.4+(spin?.cloth??0)*(spin?.clothSide??1)*.78;
  const shape=seed%3, bias=clamp((spin?Math.cos(spin.face):r.forward??0),-1,1);
@@ -177,7 +187,7 @@ function robe(c,r,kit,seed,team,outlined,tint){
  }
  if(outlined)stroke(c,team,1.15,high.x-shoulder-1,high.y+.1,high.x-shoulder+2,high.y+4.2);
 }
-function blade(c,hand,tip,tint,alive,bloom){
+function blade(c:CanvasRenderingContext2D,hand:PaintPoint,tip:PaintPoint,tint:string,alive:boolean,bloom:boolean){
  const angle=Math.atan2(tip.y-hand.y,tip.x-hand.x),len=Math.hypot(tip.x-hand.x,tip.y-hand.y);
  if(len<2)return;
  c.save();c.translate(hand.x,hand.y);c.rotate(angle);
@@ -190,10 +200,10 @@ function blade(c,hand,tip,tint,alive,bloom){
  stroke(c,'#dfa869',2.5,6,-3.8,6,3.8);
  c.restore();
 }
-export function drawArcadePeasantFighter(c,f,time=0,options={}){
+export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,time=0,options:FighterPaintOptions={}){
  const {ghost=false,reducedMotion=false,outline=true,selected=false,hideSabers=false,lowDetail=false}=options;
  const physical=options.rig??sampleArcadeFighter(f,time,options);
- const r=sampleArcadeRenderRig(f,physical,time,options);
+ const r=sampleArcadeRenderRig(f,physical,time,options as FighterPaintOptions & {ghost?:boolean}) as unknown as PaintRig;
  const seed=(Number(f.appearanceSeed)||0)>>>0, kit=coats[seed%coats.length], faced=Math.cos(f.face??0)<0?-1:1;
  const team=f.team===1?'#ed886b':'#6ac7bf', edge=f.team===1?'#e6ad84':'#a4d0bd';
  const hand=pt(r.hand,18,-42), rear=pt(r.backHand,-24,-30), tip=pt(r.blade,hand.x+50*faced,hand.y),tip2=r.offBlade;
@@ -240,7 +250,7 @@ export function drawArcadePeasantFighter(c,f,time=0,options={}){
  return physical;
 }
 
-export function drawArcadePeasantFighterPreview(ctx,f={},options={}){
+export function drawArcadePeasantFighterPreview(ctx:CanvasRenderingContext2D,f:InkActor={},options:FighterPreviewOptions={}){
  const width=options.width??ctx.canvas.width,height=options.height??ctx.canvas.height;
  const portrait=options.framing==='portrait', scale=Math.min(width/(portrait?83:160),height/(portrait?83:171));
  const preview={face:portrait?.43:-.04,action:portrait?'idle':'guard',actionTime:.28,actionDuration:.65,...f,

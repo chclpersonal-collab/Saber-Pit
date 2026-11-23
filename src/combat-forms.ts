@@ -1,7 +1,6 @@
-// @ts-nocheck
 /** Authored game choreography. Labels and balance values are game adaptations,
  * not claims that these exact combinations occur in canon or Legends. */
-const freeze = value => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
+const freeze = <T,>(value: T): T => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
 // Paths are authored presentation cues, not new collision volumes or bonus hits.
 const PATHS = {
   left_sweep: { plane: 'horizontal', direction: 1, chamber: -2.5, finish: 1.2, lean: 4, crouch: 1, depth: -3, footwork: 3, roll: -.08, twist: -.6, handHeight: 0, stance: 'wide' },
@@ -27,10 +26,18 @@ const ORIGINAL_PATHS = {
   converging_weave: 'outside_point', balanced_cross: 'left_sweep', opening_point: 'direct_point',
   relentless_flurry: 'left_sweep', broken_rhythm: 'low_return', fierce_finish: 'overhead',
   reversal_spiral: 'spiral_cut', returning_flurry: 'right_sweep', controlled_reversal: 'inside_point',
-};
-const animation = path => ({ path, ...PATHS[path] });
-const move = (id, name, motion, options = {}) => ({ id, name, motion, damageMultiplier: 1, windupMultiplier: 1, recoveryMultiplier: 1, reachBonus: 0, energyCost: 8, arc: 1.2, staggerMultiplier: 1, pressure: 10, jump: null, ...options, animation: animation(options.path || ORIGINAL_PATHS[id] || 'left_sweep') });
-const jump = (durationTicks, height, distance, rotations = 1, recoveryTicks = 10, style = 'vault', lateral = 0, apex = .5) => ({ durationTicks, height, distance, rotations, recoveryTicks, style, lateral, apex, trajectory: style === 'side-aerial' ? 'side-vault' : style === 'low-bound' ? 'low-vault' : style === 'somersault' ? 'somersault' : 'somersault', lateralDistance: lateral, travelScale: style === 'side-aerial' ? .7 : 1, rotationAxis: style === 'corkscrew' ? 'yaw' : style === 'side-aerial' ? 'roll' : 'pitch', rollAxis: style === 'corkscrew' ? 'twist' : style === 'side-aerial' ? 'cartwheel' : 'somersault' });
+} as const;
+type MovePath = keyof typeof PATHS;
+const animation = (path: MovePath) => ({ path, ...PATHS[path] });
+import type { JumpSpec } from './airborne.js';
+interface MoveOptions {
+  path?: MovePath; role?: string; damageMultiplier?: number; windupMultiplier?: number; recoveryMultiplier?: number;
+  reachBonus?: number; energyCost?: number; arc?: number; staggerMultiplier?: number; pressure?: number;
+  jump?: JumpSpec & {style: string; lateral: number; apex: number};
+}
+export type FormMotion = 'sweep' | 'thrust' | 'orbit' | 'leap' | 'redirect' | 'cleave' | 'weave' | 'flurry' | 'riposte';
+const move = (id: string, name: string, motion: FormMotion, options: MoveOptions = {}) => ({ id, name, motion, damageMultiplier: 1, windupMultiplier: 1, recoveryMultiplier: 1, reachBonus: 0, energyCost: 8, arc: 1.2, staggerMultiplier: 1, pressure: 10, jump: null, ...options, animation: animation(options.path || ORIGINAL_PATHS[id as keyof typeof ORIGINAL_PATHS] || 'left_sweep') });
+const jump = (durationTicks: number, height: number, distance: number, rotations = 1, recoveryTicks = 10, style = 'vault', lateral = 0, apex = .5) => ({ durationTicks, height, distance, rotations, recoveryTicks, style, lateral, apex, trajectory: style === 'side-aerial' ? 'side-vault' : style === 'low-bound' ? 'low-vault' : style === 'somersault' ? 'somersault' : 'somersault', lateralDistance: lateral, travelScale: style === 'side-aerial' ? .7 : 1, rotationAxis: style === 'corkscrew' ? 'yaw' : style === 'side-aerial' ? 'roll' : 'pitch', rollAxis: style === 'corkscrew' ? 'twist' : style === 'side-aerial' ? 'cartwheel' : 'somersault' });
 export const FORM_MOVESETS = freeze({
   shii_cho: { id: 'shii_cho', identity: 'Broad control, simple linked cuts', comboSteps: [
     move('opening_sweep', 'Opening sweep', 'sweep', { arc: 2.1, reachBonus: 3 }),
@@ -98,10 +105,14 @@ export const FORM_MOVESETS = freeze({
     move('falling_reversal', 'Falling reversal', 'cleave', { path: 'falling_diagonal', energyCost: 13, damageMultiplier: 1.16, pressure: 15, recoveryMultiplier: 1.12 }),
     move('receding_spiral', 'Receding spiral', 'riposte', { path: 'circular_return', energyCost: 12, arc: 2.2, damageMultiplier: 1.08, recoveryMultiplier: 1.1 })] },
 });
-export function combatFormProfile(form) { return FORM_MOVESETS[typeof form === 'string' ? form : form?.id] || FORM_MOVESETS.shii_cho; }
-export function getFormMoves(form) { return combatFormProfile(form).comboSteps; }
-export function selectFormMove(form, comboIndex = 0) { const moves = getFormMoves(form); const index = Number.isFinite(comboIndex) ? Math.max(0, Math.floor(comboIndex)) : 0; return moves[index % moves.length]; }
-export function moveSummary(form) { return getFormMoves(form).map(move => move.name).join(' → '); }
+export type ClassicFormId = keyof typeof FORM_MOVESETS;
+export type FormMove = ReturnType<typeof move>;
+export interface CombatFormProfile {id: string; identity: string; comboSteps: FormMove[]; dashJump?: ReturnType<typeof jump>}
+type FormSubject = string | {id?: string} | null | undefined;
+export function combatFormProfile(form: FormSubject): CombatFormProfile { return FORM_MOVESETS[(typeof form === 'string' ? form : form?.id) as ClassicFormId] || FORM_MOVESETS.shii_cho; }
+export function getFormMoves(form: FormSubject) { return combatFormProfile(form).comboSteps; }
+export function selectFormMove(form: FormSubject, comboIndex = 0) { const moves = getFormMoves(form); const index = Number.isFinite(comboIndex) ? Math.max(0, Math.floor(comboIndex)) : 0; return moves[index % moves.length]; }
+export function moveSummary(form: FormSubject) { return getFormMoves(form).map(move => move.name).join(' → '); }
 
 // Resolve recorded IDs directly so renderers never reinterpret a saved move as a new one.
-export function formMoveById(form, id) { return getFormMoves(form).find(move => move.id === id) || null; }
+export function formMoveById(form: FormSubject, id: string) { return getFormMoves(form).find(move => move.id === id) || null; }

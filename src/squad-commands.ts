@@ -1,5 +1,6 @@
-// @ts-nocheck
 /** Pure deployment and public-objective orders. The simulation owns all motion. */
+import type { FormationTerrain } from './formations.js';
+import type { Point } from './terrain.js';
 import { formationDestination, formationObjectiveDestination } from './formations.js?v=1.4.0';
 import { canOccupy, getBounds, UNIT_RADIUS } from './terrain.js?v=1.4.0';
 
@@ -7,26 +8,26 @@ export const DEPLOYMENTS = Object.freeze(Object.fromEntries([
   ['standard', 'Standard', 'Start in the usual rear cover formation.'],
   ['forward', 'Forward', 'Start at the next cover bank, closer to the objective.'],
   ['reserve', 'Reserve', 'Start behind the usual cover formation.'],
-].map(([id, name, description]) => [id, Object.freeze({ id, name, description })])));
+].map(([id, name, description]) => [id, Object.freeze({ id, name, description })] as const)));
 export const SQUAD_ORDERS = Object.freeze(Object.fromEntries([
   ['advance', 'Advance', 'Move toward the objective and engage visible enemies.'],
   ['hold', 'Hold', 'Stay near the current cover bank and defend.'],
   ['flank', 'Flank', 'Approach the upper side of the objective, then advance.'],
   ['regroup', 'Regroup', 'Gather around a fixed point behind the squad.'],
   ['retreat', 'Retreat', 'Withdraw to the home cover bank.'],
-].map(([id, name, description]) => [id, Object.freeze({ id, name, description })])));
+].map(([id, name, description]) => [id, Object.freeze({ id, name, description })] as const)));
 
-const point = p => p && Number.isFinite(p.x) && Number.isFinite(p.y);
-const validTeam = team => team === 0 || team === 1;
-const validLane = lane => Number.isInteger(lane) && lane >= 0 && lane < 15;
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const direction = team => team === 0 ? 1 : -1;
-const clearOf = (p, occupied) => occupied.every(q => distance(p, q) >= UNIT_RADIUS * 2 + .01);
+const point = (p: Point | null | undefined): p is Point => !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
+const validTeam = (team?: number): team is 0 | 1 => team === 0 || team === 1;
+const validLane = (lane?: number): lane is number => Number.isInteger(lane) && lane! >= 0 && lane! < 15;
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const direction = (team: number) => team === 0 ? 1 : -1;
+const clearOf = (p: Point, occupied: readonly Point[]) => occupied.every(q => distance(p, q) >= UNIT_RADIUS * 2 + .01);
 
 // At most 81 candidates: center plus four square rings. Independent
 // x/y reflection preserves equal-team symmetry even when obstacles force a tie.
 // Fixed order and no A* make this suitable for orders as well as round setup.
-function safeGoal(terrain, desired, team, occupied = []) {
+function safeGoal(terrain: FormationTerrain, desired: Point | null | undefined, team: number, occupied: readonly Point[] = []) {
   if (!point(desired)) return null;
   const b = getBounds(terrain), origin = { x: Math.max(b.minX, Math.min(b.maxX, desired.x)), y: Math.max(b.minY, Math.min(b.maxY, desired.y)) };
   for (let ring = 0; ring <= 4; ring++) {
@@ -38,9 +39,9 @@ function safeGoal(terrain, desired, team, occupied = []) {
   }
   return null;
 }
-function layoutLegal(terrain, layout) {
-  const placed = [];
-  for (const p of layout.values()) { if (!canOccupy(terrain, p) || !clearOf(p, placed)) return false; placed.push(p); }
+function layoutLegal(terrain: FormationTerrain, layout: ReadonlyMap<number, Point | null>) {
+  const placed: Point[] = [];
+  for (const p of layout.values()) { if (!canOccupy(terrain, p) || !clearOf(p!, placed)) return false; placed.push(p!); }
   return true;
 }
 
@@ -50,8 +51,9 @@ function layoutLegal(terrain, layout) {
  * Other presets search at most 81 locations per actor, then fall back as a whole
  * to the legal standard layout; they never return an incomplete deployment.
  */
-export function deploymentPositions({ terrain, team, formation = 'line', preset = 'standard' } = {}) {
-  const empty = new Map();
+interface DeploymentInput {terrain?: FormationTerrain | null; team?: number; formation?: string; preset?: string}
+export function deploymentPositions({ terrain, team, formation = 'line', preset = 'standard' }: DeploymentInput = {}) {
+  const empty = new Map<number, Point>();
   if (!terrain || !validTeam(team)) return empty;
   const lanes = (terrain.coverNodes || []).filter(n => n.team === team && n.bank === 0 && validLane(n.lane)).map(n => n.lane).sort((a, b) => a - b);
   if (!lanes.length || lanes.length > 15 || new Set(lanes).size !== lanes.length) return empty;
@@ -59,7 +61,7 @@ export function deploymentPositions({ terrain, team, formation = 'line', preset 
   if ([...baseline.values()].some(p => !point(p))) return empty;
   const fallback = layoutLegal(terrain, baseline) ? baseline : empty;
   if (terrain.cosmeticTerrainOnly || !Object.hasOwn(DEPLOYMENTS, preset) || preset === 'standard') return fallback;
-  const result = new Map(), occupied = [];
+  const result = new Map<number, Point>(), occupied: Point[] = [];
   for (const lane of lanes) {
     const base = preset === 'forward' ? formationDestination(terrain, team, 1, lane, formation) : baseline.get(lane);
     if (!point(base)) return fallback;
@@ -77,14 +79,15 @@ export function deploymentPositions({ terrain, team, formation = 'line', preset 
  * so ordinary advance resumes. stageComplete does not move or mutate an actor.
  * Callers preserve manual, committed, emergency defense and relic priorities.
  */
-export function commandDestination({ terrain, team, lane, formation = 'line', order, actor, anchor, flankReady = false } = {}) {
-  if (!terrain || !validTeam(team) || !validLane(lane) || !point(actor) || !point(anchor) || !['flank', 'regroup'].includes(order)) return null;
+interface CommandInput extends DeploymentInput { lane?: number; order?: string; actor?: Point | null; anchor?: (Point & {radius?: number}) | null; flankReady?: boolean }
+export function commandDestination({ terrain, team, lane, formation = 'line', order, actor, anchor, flankReady = false }: CommandInput = {}) {
+  if (!terrain || !validTeam(team) || !validLane(lane) || !point(actor) || !point(anchor) || !['flank', 'regroup'].includes(order!)) return null;
   if (order === 'flank' && flankReady) return null;
   const column = Math.floor(lane / 5), row = lane % 5;
   let desired;
   if (order === 'flank') {
     // Public side approach, never a guessed hidden-enemy position.
-    const radius = Number.isFinite(anchor.radius) ? Math.max(0, anchor.radius) : 108;
+    const radius = Number.isFinite(anchor.radius) ? Math.max(0, anchor.radius!) : 108;
     const bounds = getBounds(terrain);
     const side = { x: anchor.x - direction(team) * 45,
       y: Math.max(bounds.minY + 70, anchor.y - radius - 70) };

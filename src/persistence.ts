@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** One browser-local campaign slot. No network, account or downloaded file required. */
 import { createGame, normalizeConfig, clearPlayerInput, resetRenderSnapshots, MAX_FIGHTER_HP, WEAPONS, KNIVES, MAPS, DOCTRINES } from './sim.js?v=1.4.0';
 import { progressionSummary, legacyProgressionSummary, LEGACY_MAX_MERIT, MAX_MERIT } from './progression.js?v=1.4.0';
@@ -13,6 +12,87 @@ import { forceAbilityById } from './force-abilities.js?v=1.4.0';
 import { getFormMoves } from './combat-forms.js?v=1.4.0';
 import { usesDualSabers, DUAL_SABER_PROFILE } from './dual-sabers.js?v=1.4.0';
 
+import type {SaveStorage, StorageReader, StorageWriter} from './arcade-save-types.js';
+type Props = Record<string, unknown>;
+type CombatKind = 'saber' | 'force';
+type Side = 0 | 1 | null;
+type Order = 'advance' | 'hold' | 'retreat' | 'flank' | 'regroup';
+interface Position { x: number; y: number }
+interface ConfigWire extends Props {
+  terrain: string; teamSizes: number[]; matchMode: string; roundDuration: number;
+  targetScore: number; mapSize: string; mode: string; playerSlot: number;
+  modifier?: string; startingDualSabers?: boolean[]; deployments?: string[];
+}
+interface TerrainWire { id: string; width: number; height: number; objective: Props }
+interface CareerWire extends Props { merit: number }
+interface MasteryWire extends Props { lastSettledRound: number; forms: Record<string,Record<string,number> & {kills: number}>; commendations: Record<string,number> }
+interface PracticeWire extends Props { ticks: number; kills: number; damage: number; blocks: number; objectiveSeconds: number }
+interface DeathTotals extends Props { kills: number; deaths: number; assists: number; environmentDeaths: number }
+interface AttackWire extends Props {
+  kind: CombatKind; target: string; startedTick: number; resolveTick: number; form: string; weapon: string;
+  counter: boolean; abilityId?: string | null; moveId?: string | null; comboIndex?: number;
+  dual?: boolean; offhand?: boolean; offhandResolveTick?: number;
+}
+interface ForceControl { targetId: string; kind: string; releaseTick: number; untilTick: number }
+interface AirborneWire extends Props {
+  startTick: number; endTick: number; directionX: number; directionY: number; distance: number; height: number;
+  recoveryTicks: number; rotations: number; appliedProgress: number; trajectory?: string; rotationAxis?: string; controlSourceId?: string;
+}
+interface SoldierWire extends DeathTotals, Position {
+  id: string; name: string; team: number; lane: number; alive: boolean; dashUntil: number;
+  weapon: string; meleeWeapon: string; maxHp: number; hp: number; rank: number; xp: number;
+  bank: number; holdBank: number; morale: number; suppression: number; target: string | null; form: string;
+  maxEnergy: number; energy: number; attack: AttackWire | null; formPractice: Record<string,PracticeWire>;
+  contributors: {source: string; form?: string; damage: number; tick: number}[];
+  combatState: string; tacticalReason: string;
+  lastOutcome: {outcome: string; damage: number; kind: CombatKind; isCounter: boolean; tick: number; targetId: string | null} | null;
+  damageDealt: number; suppressionDealt: number; objectiveSeconds: number; career: CareerWire;
+  comboIndex: number; forceAbilitySequence: number; barrierEnergy: number;
+  airborneHeight: number; barrierUntil: number; lastForceAbility: string | null; lastSaberMoveId?: string | null;
+  observation: ({targetId: string; tick: number; vx: number; vy: number} & Position) | null;
+  forceControl: ForceControl | null; airborne: AirborneWire | null;
+}
+interface ObjectiveWire extends Props, Position {
+  kind?: string; id: string; name: string; capture: number; owner: Side; radius: number; targetScore: number;
+  points: number[]; presence: number[]; contested: boolean; state: string; unlockTick: number;
+  carrierId: string | null; home: Position; extractionZones: unknown;
+}
+interface EffectWire extends Props {
+  id: number; type: string; team: number; maxTtl: number; ttl: number; form: string; soldierId: string;
+  abilityId: string | null; kind: string; outcome: string; damage: number; isCounter: boolean;
+  targetId: string | null; motion: string; family: string; moveId: string | null;
+}
+interface RoundHistory { round: number; winner: Side; reason: string; time: number; terrain: string; survivors: number[]; health: number[]; objective: number[] }
+interface RoundReport {
+  round: number; doctrines: string[]; recap: {status: string; round: number; winner: Side; reason: string; duration: number} | null;
+  mastery: {team: number; lane: number; soldierId: string; before: MasteryWire; after: MasteryWire}[];
+  commendations: {id: string; soldierIds: string[]}[];
+  careers: {soldierId: string; team: number; lane: number; name: string; before: CareerWire; after: CareerWire; earned: number; promoted: boolean}[];
+}
+export interface CampaignWireState extends Props {
+  seed: string | number; terrainChoice: string | null; config: ConfigWire;
+  terrain: TerrainWire; objective: ObjectiveWire; rngState: number; round: number; draws: number; score: number[];
+  status: string; winner: Side; roundDuration: number; tick: number; time: number; timeLeft: number; _accumulator: number;
+  playerOrder: Order; enemyOrder: Order; autoCommand: boolean;
+  squads: {team: number; doctrine: string; order: Order}[]; doctrines: string[];
+  commandState: {issuedTick: number; manual: boolean; flankUsed: boolean; flankReached: string[]; anchor: Position | null}[];
+  battleLog: unknown;
+  stats: Record<string,number[]>; careers: CareerWire[][]; veterans: number[][]; mastery: MasteryWire[][];
+  records: {origin: string; teams: DeathTotals[]; soldiers: (DeathTotals & {id: string; team: number; lane: number})[]};
+  loadouts: {roster: {weapon: string; meleeWeapon: string}[]}[]; forms: string[][]; soldiers: SoldierWire[];
+  history: RoundHistory[]; events: {id: number; team: Side; time: number; type: string}[];
+  effects: EffectWire[]; nextEffectId: number; nextEventId: number;
+  mutations: {kind: string; slot: string; from: string; to: string; soldierId: string; team: number}[];
+  roundReport: RoundReport | null;
+  control: {soldierId: string | null; input: {moveX: number; moveY: number; attack: boolean; force: boolean; guard: boolean; dash: boolean; targetId: string | null}};
+}
+interface ShapeGame extends Props {
+  config?: Props; control?: unknown; commandState?: unknown; battleLog?: unknown; mastery?: unknown;
+  soldiers: (Props & { id: string; team: number; lane: number; name: string; formPractice?: unknown; career: Props })[];
+  terrain: { width?: number; height?: number }; events: unknown[];
+}
+interface CampaignEnvelope { version: number; rulesVersion?: number; game: CampaignWireState }
+
 export const SAVE_KEY = 'trenchline-campaign-v2';
 const FORMAT = 2, MAX_BYTES = 1500000;
 export const RULES_VERSION = 11;
@@ -22,20 +102,20 @@ const V10_CONFIG_KEYS = ['startingDualSabers'];
 const V11_CONFIG_KEYS = ['deployments'];
 const UPGRADE_NOTICE = 'Save updated for battlefield commands. The battle, attacks in progress, careers, equipment and records were kept. Existing deployments stay unchanged until the next round. Older event history is marked partial; no missing actions are reconstructed. Combat and mastery metadata receives neutral defaults only when absent from its source version.';
 const fail = () => { throw new Error('This campaign save is damaged or incompatible. Your current battle and stored save are unchanged.'); };
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const number = (value, lo, hi) => typeof value === 'number' && Number.isFinite(value) && value >= lo && value <= hi;
-const integer = (value, lo, hi) => Number.isInteger(value) && number(value, lo, hi);
-const check = condition => { if (!condition) fail(); };
+const object = (value: unknown): value is Props => value !== null && typeof value === 'object' && !Array.isArray(value);
+const number = (value: unknown, lo: number, hi: number): value is number => typeof value === 'number' && Number.isFinite(value) && value >= lo && value <= hi;
+const integer = (value: unknown, lo: number, hi: number): value is number => Number.isInteger(value) && number(value, lo, hi);
+const check: (condition: unknown) => asserts condition = condition => { if (!condition) fail(); };
 
 // Interpolation is disposable presentation state, never part of campaign validity.
 // Copy only the containing objects so even malformed/cyclic metadata can be
 // ignored without touching the running game or masking authoritative corruption.
-function withoutRenderSnapshots(game) {
+function withoutRenderSnapshots(game: unknown): unknown {
   if (!object(game)) return game;
   const copy = { ...game };
   delete copy.alpha;
   delete copy.prevFrontLine;
-  const position = entity => {
+  const position = (entity: unknown) => {
     if (!object(entity)) return entity;
     const copy = { ...entity };
     delete copy.prevX; delete copy.prevY;
@@ -46,7 +126,7 @@ function withoutRenderSnapshots(game) {
   return copy;
 }
 
-function safeTree(value, depth = 0) {
+function safeTree(value: unknown, depth = 0) {
   check(depth < 12);
   if (typeof value === 'number') check(Number.isFinite(value) && Math.abs(value) < 1e12);
   else if (typeof value === 'string') check(value.length <= 1000);
@@ -58,7 +138,7 @@ function safeTree(value, depth = 0) {
     }
   } else check(value === null || typeof value === 'boolean');
 }
-function shape(value, template) {
+function shape(value: unknown, template: unknown) {
   if (template === null) return;
   if (Array.isArray(template)) {
     check(Array.isArray(value));
@@ -68,15 +148,15 @@ function shape(value, template) {
     for (const [key, example] of Object.entries(template)) { check(Object.hasOwn(value, key)); shape(value[key], example); }
   } else check(typeof value === typeof template);
 }
-function pair(values, maximum = 1e9) { check(Array.isArray(values) && values.length === 2 && values.every(v => number(v, 0, maximum))); }
-function collection(list, max, template) {
+function pair(values: unknown, maximum = 1e9) { check(Array.isArray(values) && values.length === 2 && values.every(v => number(v, 0, maximum))); }
+function collection(list: unknown, max: number, template: unknown) {
   check(Array.isArray(list) && list.length <= max);
   for (const item of list) shape(item, template);
 }
-function point(item, x = 'x', y = 'y', margin = 0, width = 960, height = 540) {
-  check(number(item[x], -margin, width + margin) && number(item[y], -margin, height + margin));
+function point(item: object, x = 'x', y = 'y', margin = 0, width = 960, height = 540) {
+  check(number((item as Props)[x], -margin, width + margin) && number((item as Props)[y], -margin, height + margin));
 }
-function recordIds(list, nextId) {
+function recordIds(list: readonly {id: number}[], nextId: number) {
   check(integer(nextId, 1, 1e9));
   const seen = new Set();
   for (const item of list) {
@@ -86,9 +166,9 @@ function recordIds(list, nextId) {
 }
 
 /** Validate a detached JSON object before it can replace a running game. */
-export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VERSION } = {}) {
-  const originalGame = game;
-  game = withoutRenderSnapshots(game);
+export function validateCampaign<T>(raw: T, { legacy = false, rulesVersion = RULES_VERSION } = {}) {
+  const originalGame = raw;
+  const game = withoutRenderSnapshots(raw) as CampaignWireState;
   // v0.7 introduced mastery and extended careers. A v0.7 save already owns
   // these fields; adding optional v0.8 rules must never reset them.
   const oldRules = legacy || rulesVersion < 7;
@@ -97,7 +177,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
   const beforeV10 = legacy || rulesVersion < 10;
   const beforeV11 = legacy || rulesVersion < 11;
   const maxHp = oldRules ? 158.401 : MAX_FIGHTER_HP + .001;
-  const validCareerSnapshot = (snapshot, career = snapshot) => {
+  const validCareerSnapshot = (snapshot: CareerWire, career = snapshot) => {
     if (JSON.stringify(snapshot) === JSON.stringify(oldRules ? legacyProgressionSummary(career) : progressionSummary(career))) return true;
     return !oldRules && career.merit <= LEGACY_MAX_MERIT && JSON.stringify(snapshot) === JSON.stringify(legacyProgressionSummary(career));
   };
@@ -113,7 +193,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
     if (object(game.roundReport)) check(!Object.hasOwn(game.roundReport, 'mastery') && !Object.hasOwn(game.roundReport, 'commendations'));
   }
   check((typeof game.seed === 'string' && game.seed.length <= 100) || number(game.seed, 0, 0xffffffff));
-  const config = legacy ? normalizeConfig({ terrain: game.terrainChoice, mapSize: 'legacy' }) : normalizeConfig(game.config);
+  const config = (legacy ? normalizeConfig({ terrain: game.terrainChoice, mapSize: 'legacy' }) : normalizeConfig(game.config)) as unknown as ConfigWire;
   if (!legacy) {
     const omittedKeys = [...(oldRules ? V7_CONFIG_KEYS : []), ...(beforeV8 ? V8_CONFIG_KEYS : []), ...(beforeV10 ? V10_CONFIG_KEYS : []), ...(beforeV11 ? V11_CONFIG_KEYS : [])];
     const expectedConfig = Object.fromEntries(Object.entries(config).filter(([key]) => !omittedKeys.includes(key)));
@@ -122,16 +202,16 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
   }
   if (beforeV8) check(config.matchMode !== 'relic');
   const sizes = config.teamSizes, total = sizes[0] + sizes[1];
-  const fresh = withoutRenderSnapshots(createGame(game.seed, config));
+  const fresh = withoutRenderSnapshots((createGame as unknown as (seed: string | number, config: ConfigWire) => CampaignWireState)(game.seed, config)) as ShapeGame;
   if (legacy) { delete fresh.config; delete fresh.control; }
-  else if (oldRules) for (const key of V7_CONFIG_KEYS) delete fresh.config[key];
-  if (!legacy && beforeV8) for (const key of V8_CONFIG_KEYS) delete fresh.config[key];
-  if (!legacy && beforeV10) for (const key of V10_CONFIG_KEYS) delete fresh.config[key];
-  if (!legacy && beforeV11) for (const key of V11_CONFIG_KEYS) delete fresh.config[key];
+  else if (oldRules) for (const key of V7_CONFIG_KEYS) delete fresh.config![key];
+  if (!legacy && beforeV8) for (const key of V8_CONFIG_KEYS) delete fresh.config![key];
+  if (!legacy && beforeV10) for (const key of V10_CONFIG_KEYS) delete fresh.config![key];
+  if (!legacy && beforeV11) for (const key of V11_CONFIG_KEYS) delete fresh.config![key];
   if (beforeV11) { delete fresh.commandState; delete fresh.battleLog; }
   if (oldRules) { delete fresh.mastery; fresh.soldiers.forEach(s => { delete s.formPractice; }); }
   if (beforeV9) fresh.soldiers.forEach(s => { for (const key of Object.keys(V9_SOLDIER_DEFAULTS)) delete s[key]; });
-  const width = fresh.terrain.width, height = fresh.terrain.height;
+  const width = fresh.terrain.width!, height = fresh.terrain.height!;
   // These arrays grow during a battle; validate their item shapes below.
   fresh.events = [];
   fresh.terrain = {};
@@ -147,7 +227,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
   check(Math.abs(game.timeLeft - Math.max(0, duration - game.time)) < 1e-6);
   check(number(game._accumulator, 0, duration));
   for (const key of ['forceCooldown', 'guardCooldown', 'aiForceCooldown', 'aiGuardCooldown']) check(number(game[key], 0, 7));
-  for (const key of ['playerOrder', 'enemyOrder']) check((beforeV11 ? ['advance', 'hold', 'retreat'] : Object.keys(SQUAD_ORDERS)).includes(game[key]));
+  for (const key of ['playerOrder', 'enemyOrder']) check((beforeV11 ? ['advance', 'hold', 'retreat'] : Object.keys(SQUAD_ORDERS)).includes(game[key] as string));
   if (!beforeV11) {
     check(Array.isArray(game.commandState) && game.commandState.length === 2);
     for (const team of [0, 1]) {
@@ -166,10 +246,10 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
     check(isValidBattleLog(game.battleLog, { time: game.time, nextEventId: game.nextEventId }));
   }
   check(game.doctrines.every(id => Object.hasOwn(DOCTRINES, id)));
-  check(game.terrainChoice === null || MAPS.some(map => map.id === game.terrainChoice));
-  check(MAPS.some(map => map.id === game.terrain.id));
+  check(game.terrainChoice === null || MAPS.some((map: {id: string}) => map.id === game.terrainChoice));
+  check(MAPS.some((map: {id: string}) => map.id === game.terrain.id));
   // The board is content, not editable save data. Canonical geometry also prevents missing-cover crashes.
-  const canonical = createGame(game.seed, { ...config, terrain: game.terrain.id });
+  const canonical = (createGame as unknown as (seed: string | number, config: ConfigWire) => CampaignWireState)(game.seed, { ...config, terrain: game.terrain.id }) as unknown as {terrain: TerrainWire; objective: ObjectiveWire};
   const map = canonical.terrain;
   check(JSON.stringify(game.terrain) === JSON.stringify(map));
   if (config.matchMode === 'relic') validateRelic(game, canonical.objective, width, height);
@@ -197,7 +277,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
         const mastery = game.mastery[team][lane];
         check(isValidMastery(mastery) && mastery.lastSettledRound <= game.round);
         const careerKills = game.records.soldiers.find(r => r.team === team && r.lane === lane)?.kills;
-        if (careerKills < 1e9) check(Object.values(mastery.forms).reduce((sum, row) => sum + row.kills, 0) <= careerKills);
+        if (careerKills! < 1e9) check(Object.values(mastery.forms).reduce((sum, row) => sum + row.kills, 0) <= careerKills!);
         if (game.status === 'playing') check(mastery.lastSettledRound < game.round || game.round === 1e9);
       }
       check(Object.hasOwn(WEAPONS, loadout.weapon) && Object.hasOwn(KNIVES, loadout.meleeWeapon));
@@ -234,12 +314,12 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
       check(integer(a.startedTick, 0, game.tick) && integer(a.resolveTick, a.startedTick, game.tick + 300));
       check(Object.hasOwn(FORMS, a.form) && typeof a.counter === 'boolean');
       check(Object.hasOwn(a.kind === 'saber' ? KNIVES : WEAPONS, a.weapon));
-      if (Object.hasOwn(a, 'abilityId')) check(a.abilityId === null || a.kind === 'force' && !!forceAbilityById(a.abilityId));
-      if (Object.hasOwn(a, 'moveId')) check(a.moveId === null || a.kind === 'saber' && getFormMoves(a.form).some(move => move.id === a.moveId));
+      if (Object.hasOwn(a, 'abilityId')) check(a.abilityId === null || a.kind === 'force' && !!forceAbilityById(a.abilityId!));
+      if (Object.hasOwn(a, 'moveId')) check(a.moveId === null || a.kind === 'saber' && getFormMoves(a.form).some((move: {id: string}) => move.id === a.moveId));
       if (Object.hasOwn(a, 'aimX') || Object.hasOwn(a, 'aimY')) point(a, 'aimX', 'aimY', 100, width, height);
       if (Object.hasOwn(a, 'comboIndex')) {
         check(integer(a.comboIndex, 0, getFormMoves(a.form).length - 1));
-        if (a.moveId !== null && a.moveId !== undefined) check(getFormMoves(a.form)[a.comboIndex].id === a.moveId);
+        if (a.moveId !== null && a.moveId !== undefined) check(getFormMoves(a.form)[a.comboIndex!].id === a.moveId);
       }
       if (['dual', 'offhand', 'offhandResolveTick'].some(key => Object.hasOwn(a, key))) {
         check(!beforeV10 && a.kind === 'saber' && usesDualSabers(config, soldier));
@@ -247,7 +327,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
         check(integer(a.offhandResolveTick, a.startedTick + DUAL_SABER_PROFILE.offhandDelayTicks, game.tick + 300));
         if (a.offhand) {
           check(a.resolveTick === a.offhandResolveTick);
-          check(a.offhandResolveTick - DUAL_SABER_PROFILE.offhandDelayTicks <= game.tick);
+          check(a.offhandResolveTick! - DUAL_SABER_PROFILE.offhandDelayTicks <= game.tick);
         } else check(a.offhandResolveTick === a.resolveTick + DUAL_SABER_PROFILE.offhandDelayTicks);
       }
     }
@@ -262,7 +342,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
     collection(soldier.contributors, 160, { source: '', damage: 0, tick: 0 });
     for (const c of soldier.contributors) {
       check(game.soldiers.some(other => other.id === c.source && other.team !== soldier.team));
-      if (Object.hasOwn(c, 'form')) check(!oldRules && Object.hasOwn(FORMS, c.form));
+      if (Object.hasOwn(c, 'form')) check(!oldRules && Object.hasOwn(FORMS, c.form!));
       check(number(c.damage, Number.MIN_VALUE, maxHp) && integer(c.tick, Math.max(0, game.tick - 360), game.tick));
     }
     check(['ready', 'saber', 'force', 'guard', 'counter', 'stagger', 'recover', 'dead'].includes(soldier.combatState));
@@ -296,18 +376,18 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
     // A resolved area cast can have no legal recipients. The engine records a
     // zero-damage, targetless out-of-range effect, not a contact with an actor.
     const emptyAreaCast = !beforeV9 && ['force', 'feedback'].includes(effect.type) && effect.kind === 'force'
-      && ['repulse', 'sweep'].includes(forceAbilityById(effect.abilityId)?.mechanic)
+      && ['repulse', 'sweep'].includes(forceAbilityById(effect.abilityId!)?.mechanic!)
       && effect.outcome === 'out-of-range' && effect.damage === 0 && effect.isCounter === false
       && game.soldiers.some(s => s.id === effect.soldierId && s.team === effect.team);
     if (Object.hasOwn(effect, 'targetId')) check((['feedback', 'saber', 'force'].includes(effect.type) && effect.targetId === null && (['target-lost', 'interrupted'].includes(effect.outcome) || emptyAreaCast)) || game.soldiers.some(s => s.id === effect.targetId && s.team !== effect.team));
-    if (Object.hasOwn(effect, 'motion')) check(Object.values(FORMS).some(f => f.technique.motion === effect.motion));
+    if (Object.hasOwn(effect, 'motion')) check((Object.values(FORMS) as {technique: {motion: string}}[]).some(f => f.technique.motion === effect.motion));
     if (Object.hasOwn(effect, 'family')) check(effect.family === 'saber' || ['force_push', 'force_burst', 'force_pulse'].includes(effect.family));
     if (Object.hasOwn(effect, 'kind')) check(['saber', 'force'].includes(effect.kind));
     if (Object.hasOwn(effect, 'dual')) check(typeof effect.dual === 'boolean');
     if (Object.hasOwn(effect, 'offhand')) check(typeof effect.offhand === 'boolean' && (!effect.offhand || effect.dual === true && effect.kind === 'saber'));
     if (Object.hasOwn(effect, 'comboIndex')) check(integer(effect.comboIndex, 0, Math.max(...Object.keys(FORMS).map(id => getFormMoves(id).length)) - 1));
     if (Object.hasOwn(effect, 'abilityId')) check(effect.abilityId === null || !!forceAbilityById(effect.abilityId));
-    if (Object.hasOwn(effect, 'moveId')) check(effect.moveId === null || getFormMoves(effect.form).some(move => move.id === effect.moveId));
+    if (Object.hasOwn(effect, 'moveId')) check(effect.moveId === null || getFormMoves(effect.form).some((move: {id: string}) => move.id === effect.moveId));
     if (Object.hasOwn(effect, 'outcome')) check(validOutcome(effect.outcome));
     if (Object.hasOwn(effect, 'damage')) check(number(effect.damage, 0, maxHp));
     if (Object.hasOwn(effect, 'text')) check(typeof effect.text === 'string' && effect.text.length <= 40);
@@ -323,7 +403,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
   let previousRound = 0;
   for (const h of game.history) {
     check(integer(h.round, previousRound + 1, game.round) && [null, 0, 1].includes(h.winner));
-    check(number(h.time, 0, oldRules ? 90 : 150) && MAPS.some(map => map.id === h.terrain));
+    check(number(h.time, 0, oldRules ? 90 : 150) && MAPS.some((map: {id: string}) => map.id === h.terrain));
     pair(h.survivors, Math.max(...sizes)); pair(h.health, Math.max(...sizes) * maxHp);
     h.survivors.forEach((n, team) => check(integer(n, 0, sizes[team]))); h.health.forEach((n, team) => check(n <= sizes[team] * maxHp)); pair(h.objective, 30.000001);
     previousRound = h.round;
@@ -346,7 +426,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
         check(isValidBattleRecap(recap, { round: game.roundReport.round, teamSizes: sizes }) && recap.status === 'ended');
         const summary = game.history.find(h => h.round === recap.round);
         check(summary && recap.winner === summary.winner && recap.reason === summary.reason && recap.duration === summary.time);
-        if (recap.round === game.round) check(JSON.stringify(recap) === JSON.stringify(buildBattleRecap(game)));
+        if (recap.round === game.round) check(JSON.stringify(recap) === JSON.stringify(buildBattleRecap(game as CampaignWireState & {roundReport: RoundReport})));
       }
     }
     check(game.roundReport.careers.length === total);
@@ -358,13 +438,13 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
       for (const row of rows) {
         check(object(row) && integer(row.team, 0, 1) && integer(row.lane, 0, sizes[row.team] - 1));
         const soldier = game.soldiers.find(s => s.team === row.team && s.lane === row.lane);
-        check(row.soldierId === soldier.id && !seen.has(row.soldierId)); seen.add(row.soldierId);
+        check(row.soldierId === soldier!.id && !seen.has(row.soldierId)); seen.add(row.soldierId);
         check(isValidMastery(row.before) && isValidMastery(row.after));
         check(row.before.lastSettledRound <= row.after.lastSettledRound && row.after.lastSettledRound <= game.roundReport.round);
         check(JSON.stringify(row.after) === JSON.stringify(game.mastery[row.team][row.lane]));
         if (game.roundReport.round === game.round && row.after.lastSettledRound === game.roundReport.round && row.before.lastSettledRound < game.roundReport.round) {
-          const awards = game.roundReport.commendations.filter(award => award.soldierIds.includes(soldier.id)).map(award => award.id);
-          check(JSON.stringify(row.after) === JSON.stringify(settleMastery(row.before, game.roundReport.round, soldier.formPractice, awards)));
+          const awards = game.roundReport.commendations.filter(award => award.soldierIds.includes(soldier!.id)).map(award => award.id);
+          check(JSON.stringify(row.after) === JSON.stringify((settleMastery as unknown as (prior: MasteryWire, round: number, practice: Record<string,PracticeWire>, awards: string[]) => MasteryWire)(row.before, game.roundReport.round, soldier!.formPractice, awards)));
         }
         for (const form of Object.keys(FORMS)) for (const key of Object.keys(row.before.forms[form])) check(row.after.forms[form][key] >= row.before.forms[form][key]);
         for (const key of Object.keys(row.before.commendations)) check(row.after.commendations[key] >= row.before.commendations[key]);
@@ -375,7 +455,7 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
       shape(item, { soldierId: '', team: 0, lane: 0, name: '', before: {}, after: {}, earned: 0, promoted: false });
       check(integer(item.team, 0, 1) && integer(item.lane, 0, sizes[item.team] - 1));
       const soldier = game.soldiers.find(soldier => soldier.team === item.team && soldier.lane === item.lane);
-      check(item.soldierId === soldier.id && item.name === soldier.name && !reported.has(item.soldierId));
+      check(item.soldierId === soldier!.id && item.name === soldier!.name && !reported.has(item.soldierId));
       reported.add(item.soldierId);
       check(integer(item.earned, 0, 180));
       check(validCareerSnapshot(item.before));
@@ -387,13 +467,13 @@ export function validateCampaign(game, { legacy = false, rulesVersion = RULES_VE
     const input = game.control.input;
     check(game.control.soldierId === (config.mode === 'play' ? `blue-${config.playerSlot}` : null));
     check(number(input.moveX, -1, 1) && number(input.moveY, -1, 1));
-    for (const key of ['attack', 'force', 'guard', 'dash']) check(typeof input[key] === 'boolean');
+    for (const key of ['attack', 'force', 'guard', 'dash'] as const) check(typeof input[key] === 'boolean');
     check(input.targetId === null || game.soldiers.some(s => s.team === 1 && s.id === input.targetId));
   }
   return originalGame;
 }
 
-function validateRelic(game, expected, width, height) {
+function validateRelic(game: CampaignWireState, expected: ObjectiveWire, width: number, height: number) {
   const relic = game.objective;
   check(relic.kind === 'relic' && relic.id === expected.id && relic.name === expected.name);
   check(relic.radius === expected.radius && relic.capture === 0);
@@ -419,12 +499,12 @@ function validateRelic(game, expected, width, height) {
   }
 }
 
-function validateV9Soldier(game, s, width, height) {
+function validateV9Soldier(game: CampaignWireState, s: SoldierWire, width: number, height: number) {
   for (const key of Object.keys(V9_SOLDIER_DEFAULTS)) check(Object.hasOwn(s, key));
   if (Object.hasOwn(s, 'comboBeat')) check(integer(s.comboBeat, 0, 20));
   if (Object.hasOwn(s, 'saberSequence')) check(integer(s.saberSequence, 0, 1000000));
-  if (Object.hasOwn(s, 'lastSaberMoveId')) check(s.lastSaberMoveId === null || getFormMoves(s.form).some(move => move.id === s.lastSaberMoveId));
-  const enemyId = id => game.soldiers.some(other => other.id === id && other.team !== s.team);
+  if (Object.hasOwn(s, 'lastSaberMoveId')) check(s.lastSaberMoveId === null || getFormMoves(s.form).some((move: {id: string}) => move.id === s.lastSaberMoveId));
+  const enemyId = (id: unknown) => game.soldiers.some(other => other.id === id && other.team !== s.team);
   check(integer(s.comboIndex, 0, getFormMoves(s.form).length - 1) && integer(s.forceAbilitySequence, 0, 1e9));
   for (const key of ['comboUntil', 'barrierUntil', 'landingRecoveryUntil']) check(integer(s[key], 0, game.tick + 300));
   for (const key of ['guardStartedTick', 'lastGuardTick']) check(integer(s[key], -1000, game.tick));
@@ -451,22 +531,22 @@ function validateV9Soldier(game, s, width, height) {
     check(number(a.directionX, -1.001, 1.001) && number(a.directionY, -1.001, 1.001));
     check(number(a.distance, 0, 180) && number(a.height, 0, 100));
     check(integer(a.recoveryTicks, 0, 45) && number(a.rotations, -3, 3) && number(a.appliedProgress, 0, 1));
-    for (const [key, lo, hi] of [['lateralDistance', -48, 48], ['bankScale', -1, 1], ['tuckScale', 0, 1], ['travelScale', -1, 1]]) if (Object.hasOwn(a, key)) check(number(a[key], lo, hi));
-    if (Object.hasOwn(a, 'trajectory')) check(['somersault', 'side-vault', 'low-vault', 'retreat'].includes(a.trajectory));
-    if (Object.hasOwn(a, 'rotationAxis')) check(['pitch', 'roll', 'yaw'].includes(a.rotationAxis));
+    for (const [key, lo, hi] of [['lateralDistance', -48, 48], ['bankScale', -1, 1], ['tuckScale', 0, 1], ['travelScale', -1, 1]] as const) if (Object.hasOwn(a, key)) check(number(a[key], lo, hi));
+    if (Object.hasOwn(a, 'trajectory')) check(['somersault', 'side-vault', 'low-vault', 'retreat'].includes(a.trajectory!));
+    if (Object.hasOwn(a, 'rotationAxis')) check(['pitch', 'roll', 'yaw'].includes(a.rotationAxis!));
     if (Object.hasOwn(a, 'controlSourceId')) {
       check(permitsForceAttacks(game.config) && enemyId(a.controlSourceId));
       const source = game.soldiers.find(other => other.id === a.controlSourceId);
-      check(source.forceControl?.kind === 'force_grip' && source.forceControl.targetId === s.id);
-      check(source.forceControl.releaseTick === a.endTick && source.forceControl.untilTick === a.endTick);
-      check(a.endTick - a.startTick === forceAbilityById('force_grip').controlTicks);
+      check(source!.forceControl?.kind === 'force_grip' && source!.forceControl!.targetId === s.id);
+      check(source!.forceControl!.releaseTick === a.endTick && source!.forceControl!.untilTick === a.endTick);
+      check(a.endTick - a.startTick === forceAbilityById('force_grip')!.controlTicks);
       check(a.distance === 0 && a.rotations === 0 && a.height === 42 && a.recoveryTicks === 8);
     }
   }
 }
 
-function validateRecords(game, total) {
-  const records = game.records, counters = ['kills', 'deaths', 'assists', 'environmentDeaths'];
+function validateRecords(game: CampaignWireState, total: number) {
+  const records = game.records, counters = ['kills', 'deaths', 'assists', 'environmentDeaths'] as const;
   check(object(records) && ['saberfront', 'migration-v0.3'].includes(records.origin));
   check(Array.isArray(records.teams) && records.teams.length === 2 && Array.isArray(records.soldiers) && records.soldiers.length === total);
   for (let i = 0; i < total; i++) {
@@ -487,9 +567,9 @@ function validateRecords(game, total) {
   }
 }
 
-function validOutcome(outcome) { return ['hit', 'blocked', 'miss', 'out-of-range', 'target-lost', 'interrupted'].includes(outcome); }
+function validOutcome(outcome: string) { return ['hit', 'blocked', 'miss', 'out-of-range', 'target-lost', 'interrupted'].includes(outcome); }
 
-export function saveCampaign(game, storage) {
+export function saveCampaign(game: unknown, storage?: StorageWriter | null) {
   try {
     const detached = JSON.parse(JSON.stringify(withoutRenderSnapshots(game)));
     addV9Defaults(detached);
@@ -499,23 +579,23 @@ export function saveCampaign(game, storage) {
     check(encoded.length <= MAX_BYTES);
     (storage ?? globalThis.localStorage).setItem(SAVE_KEY, encoded);
     return { ok: true, error: null };
-  } catch (error) { return { ok: false, error: error.message?.includes('campaign save') ? error.message : 'Browser storage is unavailable or full. Your battle is still running.' }; }
+  } catch (error) { return { ok: false, error: (error as Error).message?.includes('campaign save') ? (error as Error).message : 'Browser storage is unavailable or full. Your battle is still running.' }; }
 }
-export function loadCampaign(storage) {
+export function loadCampaign(storage?: StorageReader | null) {
   try {
     const target = storage ?? globalThis.localStorage;
     const modern = target.getItem(SAVE_KEY);
     const encoded = modern ?? target.getItem(LEGACY_SAVE_KEY);
     if (!encoded) return { game: null, error: 'No saved campaign in this browser yet.' };
     check(encoded.length <= MAX_BYTES);
-    const envelope = JSON.parse(encoded);
-    if (object(envelope)) envelope.game = withoutRenderSnapshots(envelope.game);
+    const envelope = JSON.parse(encoded) as CampaignEnvelope;
+    if (object(envelope)) envelope.game = withoutRenderSnapshots(envelope.game) as CampaignWireState;
     safeTree(envelope);
     check(envelope?.version === (modern !== null ? FORMAT : 1));
     const migrated = modern === null;
-    const upgraded = !migrated && (!Object.hasOwn(envelope, 'rulesVersion') || [5, 6, 7, 8, 9, 10].includes(envelope.rulesVersion));
-    let game;
-    if (migrated) game = migrateLegacyCampaign(envelope.game);
+    const upgraded = !migrated && (!Object.hasOwn(envelope, 'rulesVersion') || [5, 6, 7, 8, 9, 10].includes(envelope.rulesVersion!));
+    let game: CampaignWireState;
+    if (migrated) game = migrateLegacyCampaign(envelope.game) as unknown as CampaignWireState;
     else if (upgraded) {
       // Only absent v0.4 observation fields may be supplied. All original state
       // is validated against its strict five-slot geometry before adding metadata.
@@ -526,10 +606,10 @@ export function loadCampaign(storage) {
           if (!Object.hasOwn(soldier, 'lastOutcome')) soldier.lastOutcome = null;
         }
       }
-      const legacy = ![6, 7, 8, 9, 10].includes(envelope.rulesVersion);
+      const legacy = ![6, 7, 8, 9, 10].includes(envelope.rulesVersion!);
       validateCampaign(envelope.game, { legacy, rulesVersion: envelope.rulesVersion ?? 4 });
       game = envelope.game;
-      game.config = normalizeConfig(legacy ? { terrain: game.terrainChoice, mapSize: 'legacy', teamSizes: [5, 5], opponentMode: 'mixed' } : game.config);
+      game.config = normalizeConfig(legacy ? { terrain: game.terrainChoice, mapSize: 'legacy', teamSizes: [5, 5], opponentMode: 'mixed' } : game.config) as unknown as ConfigWire;
       if (legacy) game.control = { soldierId: null, input: { moveX: 0, moveY: 0, attack: false, force: false, guard: false, dash: false, targetId: null } };
       if ((envelope.rulesVersion ?? 4) < 7) addV7ProgressionDefaults(game);
       addV8Defaults(game);
@@ -545,10 +625,10 @@ export function loadCampaign(storage) {
     return { game, error: null, migrated, upgraded, notice: migrated ? MIGRATION_NOTICE : upgraded ? UPGRADE_NOTICE : null };
   } catch { return { game: null, error: 'This campaign save is damaged, incompatible, or unavailable. Your current battle and stored save are unchanged.' }; }
 }
-export function hasSavedCampaign(storage) {
+export function hasSavedCampaign(storage?: StorageReader | null) {
   try { const target = storage ?? globalThis.localStorage; return !!(target.getItem(SAVE_KEY) || target.getItem(LEGACY_SAVE_KEY)); } catch { return false; }
 }
-export function clearSavedCampaign(storage) {
+export function clearSavedCampaign(storage?: Pick<SaveStorage, 'removeItem'> | null) {
   try { (storage ?? globalThis.localStorage).removeItem(SAVE_KEY); return true; } catch { return false; }
 }
 

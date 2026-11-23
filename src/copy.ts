@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Player-facing wording only. Never rewrite saved state or simulation messages. */
 export const DISPLAY_COPY = Object.freeze({
   "Carry relic to extraction": "Carrying the relic home",
@@ -104,23 +103,23 @@ export const DISPLAY_COPY = Object.freeze({
   "Most recorded blocks. Equal leaders share this round commendation.": "Most attacks blocked. Equal leaders share the award.",
   "Most recorded eligible objective seconds. Equal leaders share this round commendation.": "Most time holding the signal or carrying the relic. Equal leaders share the award."
 });
-const escapePattern = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapePattern = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const pattern = new RegExp(Object.keys(DISPLAY_COPY).sort((a, b) => b.length - a.length).map(escapePattern).join('|'), 'g');
 
 /** Accept a display string and leave unknown text, IDs and proper names unchanged. */
-export function displayText(value) {
+export function displayText(value: unknown) {
   if (typeof value !== 'string') return '';
-  return value.replace(pattern, text => DISPLAY_COPY[text]);
+  return value.replace(pattern, text => DISPLAY_COPY[text as keyof typeof DISPLAY_COPY]);
 }
 
 /** Palette-independent labels for canonical event/mutation text, display only. */
-export function displayBattleText(value) {
+export function displayBattleText(value: unknown) {
   if (typeof value !== 'string') return '';
   const teams = { Blue: 'Your team', Red: 'Enemy team' };
   const fighters = { Blue: 'Your fighter', Red: 'Enemy fighter' };
   return displayText(value
-    .replace(/^(Blue|Red) doctrine:/, (_, team) => `${teams[team]} style:`)
-    .replace(/\b(Blue|Red) ([1-9]\d*)\b/g, (_, team, lane) => `${fighters[team]} ${lane}`)
+    .replace(/^(Blue|Red) doctrine:/, (_, team) => `${teams[team as keyof typeof teams]} style:`)
+    .replace(/\b(Blue|Red) ([1-9]\d*)\b/g, (_, team, lane) => `${fighters[team as keyof typeof fighters]} ${lane}`)
     .replace(/^(Blue|Red)(?=:| (?:formation:|target priority:|captured the signal post|won:))/,
-      team => teams[team]));
+      team => teams[team as keyof typeof teams]));
 }

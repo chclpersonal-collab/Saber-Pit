@@ -1,21 +1,38 @@
-// @ts-nocheck
 /** Deterministic flat-world geometry. Rectangles use top-left x/y and width/height.
  * Solids and zones are canonical content, not moving actors. Navigation caches
  * are derived only: rebuilding them cannot change a query's answer or use RNG.
  */
 export const UNIT_RADIUS = 9;
 const EPS = 1e-7, CLEARANCE = 1e-4, CELL_SIZE = 20, MAX_SEARCH = 6000;
-const caches = new WeakMap();
-const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const solidRects = terrain => (terrain?.solids || []).filter(s => s && s.blocksMovement !== false).map(rect);
-const rect = r => ({ id: r.id, kind: r.kind, x: finite(r.x), y: finite(r.y), width: Math.max(0, finite(r.width, finite(r.w))), height: Math.max(0, finite(r.height, finite(r.h))) });
-const inflate = (r, radius) => ({ ...r, x: r.x - radius, y: r.y - radius, width: r.width + radius * 2, height: r.height + radius * 2 });
-const inside = (r, p) => p.x > r.x + EPS && p.x < r.x + r.width - EPS && p.y > r.y + EPS && p.y < r.y + r.height - EPS;
+export interface Point {x: number; y: number}
+export interface Bounds {minX: number; minY: number; maxX: number; maxY: number}
+interface FlexibleBounds extends Partial<Bounds> {x?: number; y?: number; width?: number; height?: number}
+export interface TerrainRect extends Point {id?: string; kind?: string; width?: number; height?: number; w?: number; h?: number}
+export interface TerrainSolid extends TerrainRect {blocksMovement?: boolean; blocksSaber?: boolean; blocksSight?: boolean; coverDistance?: number}
+export interface TerrainZone extends TerrainRect {moveCost?: number; damagePerSecond?: number}
+export interface TerrainGeometry {
+  playBounds?: FlexibleBounds; bounds?: FlexibleBounds; width?: number; height?: number;
+  solids?: readonly TerrainSolid[]; zones?: readonly TerrainZone[];
+}
+export type OptionalTerrain = TerrainGeometry | null | undefined;
+export interface PathOptions {radius?: number; maxNodes?: number}
+interface Navigation {
+  key: string; bounds: Bounds; cols: number; rows: number; sx: number; sy: number;
+  points: Point[]; valid: Uint8Array; paths: Map<string, number[]>;
+}
+interface HeapEntry {f: number; h: number; i: number}
+const caches = new WeakMap<TerrainGeometry, Navigation>();
+const finite = (n: number | undefined, fallback = 0) => Number.isFinite(n) ? n! : fallback;
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const solidRects = (terrain: OptionalTerrain) => (terrain?.solids || []).filter(s => s && s.blocksMovement !== false).map(rect);
+const rect = (r: TerrainRect) => ({ id: r.id, kind: r.kind, x: finite(r.x), y: finite(r.y), width: Math.max(0, finite(r.width, finite(r.w))), height: Math.max(0, finite(r.height, finite(r.h))) });
+type Rect = ReturnType<typeof rect>;
+const inflate = (r: Rect, radius: number) => ({ ...r, x: r.x - radius, y: r.y - radius, width: r.width + radius * 2, height: r.height + radius * 2 });
+const inside = (r: Rect, p: Point) => p.x > r.x + EPS && p.x < r.x + r.width - EPS && p.y > r.y + EPS && p.y < r.y + r.height - EPS;
 
 /** playBounds describe outer playable edges; returned bounds are actor centers. */
-export function getBounds(terrain, radius = UNIT_RADIUS) {
+export function getBounds(terrain: OptionalTerrain, radius = UNIT_RADIUS) {
   const b = terrain?.playBounds || terrain?.bounds || {};
   const w = Math.max(1, finite(terrain?.width, 960)), h = Math.max(1, finite(terrain?.height, 540));
   const r = Math.max(0, finite(radius, UNIT_RADIUS));
@@ -25,11 +42,11 @@ export function getBounds(terrain, radius = UNIT_RADIUS) {
   return { minX: Math.min(minX + r, (minX + maxX) / 2), minY: Math.min(minY + r, (minY + maxY) / 2),
     maxX: Math.max(maxX - r, (minX + maxX) / 2), maxY: Math.max(maxY - r, (minY + maxY) / 2) };
 }
-function clampPoint(terrain, point, radius) {
+function clampPoint(terrain: OptionalTerrain, point: Point | null | undefined, radius: number) {
   const b = getBounds(terrain, radius);
   return { x: clamp(finite(point?.x, b.minX), b.minX, b.maxX), y: clamp(finite(point?.y, b.minY), b.minY, b.maxY) };
 }
-export function canOccupy(terrain, point, radius = UNIT_RADIUS) {
+export function canOccupy(terrain: OptionalTerrain, point: Point | null | undefined, radius = UNIT_RADIUS) {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return false;
   const b = getBounds(terrain, radius);
   if (point.x < b.minX - EPS || point.x > b.maxX + EPS || point.y < b.minY - EPS || point.y > b.maxY + EPS) return false;
@@ -42,7 +59,7 @@ export function canOccupy(terrain, point, radius = UNIT_RADIUS) {
 }
 
 /** Slab interval, excluding boundary-only contact so sliding is legal. */
-function segmentRect(a, b, r) {
+function segmentRect(a: Point, b: Point, r: Rect) {
   const dx = b.x - a.x, dy = b.y - a.y;
   let enter = -Infinity, exit = Infinity, nx = 0, ny = 0;
   for (const [p, d, lo, hi, axis] of [[a.x, dx, r.x, r.x + r.width, 0], [a.y, dy, r.y, r.y + r.height, 1]]) {
@@ -55,7 +72,7 @@ function segmentRect(a, b, r) {
   if (exit <= 0 || enter >= 1) return null;
   return { enter: Math.max(0, enter), exit: Math.min(1, exit), nx, ny };
 }
-function segmentFree(terrain, a, b, radius) {
+function segmentFree(terrain: OptionalTerrain, a: Point, b: Point, radius: number) {
   const minX = Math.min(a.x, b.x), maxX = Math.max(a.x, b.x), minY = Math.min(a.y, b.y), maxY = Math.max(a.y, b.y);
   for (const raw of terrain?.solids || []) {
     if (raw.blocksMovement === false) continue;
@@ -65,10 +82,10 @@ function segmentFree(terrain, a, b, radius) {
   }
   return true;
 }
-function clearMovement(terrain, a, b, radius) {
+function clearMovement(terrain: OptionalTerrain, a: Point, b: Point, radius: number) {
   return canOccupy(terrain, a, radius) && canOccupy(terrain, b, radius) && segmentFree(terrain, a, b, radius);
 }
-export function traceAttack(terrain, from, to, kind = 'force') {
+export function traceAttack(terrain: OptionalTerrain, from: Point | null | undefined, to: Point | null | undefined, kind = 'force') {
   if (!from || !to || ![from.x, from.y, to.x, to.y].every(Number.isFinite)) return { clear: false, blocker: null, point: null };
   let first = null;
   for (const raw of terrain?.solids || []) {
@@ -79,8 +96,8 @@ export function traceAttack(terrain, from, to, kind = 'force') {
   }
   return first ? { clear: false, blocker: first.blocker, point: { x: from.x + (to.x - from.x) * first.t, y: from.y + (to.y - from.y) * first.t } } : { clear: true, blocker: null, point: null };
 }
-export function lineOfSight(terrain, from, to, kind = 'force') { return traceAttack(terrain, from, to, kind).clear; }
-export function coverMultiplier(terrain, attacker, target) {
+export function lineOfSight(terrain: OptionalTerrain, from: Point | null | undefined, to: Point | null | undefined, kind = 'force') { return traceAttack(terrain, from, to, kind).clear; }
+export function coverMultiplier(terrain: OptionalTerrain, attacker: Point, target: Point) {
   for (const raw of terrain?.solids || []) {
     if (raw.kind !== 'barricade') continue;
     const r = rect(raw), nearest = { x: clamp(target.x, r.x, r.x + r.width), y: clamp(target.y, r.y, r.y + r.height) };
@@ -88,7 +105,7 @@ export function coverMultiplier(terrain, attacker, target) {
   }
   return 1;
 }
-export function terrainAt(terrain, point) {
+export function terrainAt(terrain: OptionalTerrain, point: Point) {
   let moveCost = 1, damagePerSecond = 0;
   const zoneIds = [];
   for (const raw of terrain?.zones || []) {
@@ -101,8 +118,8 @@ export function terrainAt(terrain, point) {
 }
 
 /** Conservative square footprint, shared by navigation and swept movement. */
-export function moveSwept(terrain, start, desired, radius = UNIT_RADIUS) {
-  let p = clampPoint(terrain, start, radius), goal = clampPoint(terrain, desired, radius), blocked = distance(goal, desired) > EPS, collisionId = null;
+export function moveSwept(terrain: OptionalTerrain, start: Point, desired: Point, radius = UNIT_RADIUS) {
+  let p = clampPoint(terrain, start, radius), goal = clampPoint(terrain, desired, radius), blocked = distance(goal, desired) > EPS, collisionId: string | null = null;
   if (!canOccupy(terrain, p, radius)) return { ...p, blocked: true, collisionId: 'invalid-start' };
   const solids = solidRects(terrain).map(r => inflate(r, radius));
   for (let pass = 0; pass < 3; pass++) {
@@ -127,7 +144,7 @@ export function moveSwept(terrain, start, desired, radius = UNIT_RADIUS) {
   return { ...p, blocked, collisionId };
 }
 
-function zoneParts(terrain, a, b) {
+function zoneParts(terrain: OptionalTerrain, a: Point, b: Point) {
   const breaks = [0, 1];
   for (const z of terrain?.zones || []) { const hit = segmentRect(a, b, rect(z)); if (hit) breaks.push(hit.enter, hit.exit); }
   breaks.sort((x, y) => x - y);
@@ -140,11 +157,11 @@ function zoneParts(terrain, a, b) {
   return parts;
 }
 /** Cost uses world-distance equivalents; 1 DPS adds .35 avoidance cost. */
-function segmentCost(terrain, a, b, hazards = true) {
+function segmentCost(terrain: OptionalTerrain, a: Point, b: Point, hazards = true) {
   const length = distance(a, b);
   return zoneParts(terrain, a, b).reduce((sum, p) => sum + length * (p.to - p.from) * (p.moveCost + (hazards ? p.damagePerSecond * .35 : 0)), 0);
 }
-function pointWithinBudget(terrain, a, b, budget) {
+function pointWithinBudget(terrain: OptionalTerrain, a: Point, b: Point, budget: number) {
   const length = distance(a, b); if (length < EPS) return { ...b };
   for (const p of zoneParts(terrain, a, b)) {
     const cost = length * (p.to - p.from) * p.moveCost;
@@ -153,18 +170,18 @@ function pointWithinBudget(terrain, a, b, budget) {
   }
   return { ...b };
 }
-function signature(terrain, radius) {
+function signature(terrain: OptionalTerrain, radius: number) {
   return JSON.stringify([getBounds(terrain, radius), terrain?.solids || [], terrain?.zones || [], radius]);
 }
-function navigation(terrain, radius) {
-  const key = signature(terrain, radius); let cached = caches.get(terrain);
+function navigation(terrain: OptionalTerrain, radius: number): Navigation {
+  const key = signature(terrain, radius); let cached = caches.get(terrain!);
   if (cached?.key === key) return cached;
   const bounds = getBounds(terrain, radius), cols = Math.max(2, Math.ceil((bounds.maxX - bounds.minX) / CELL_SIZE) + 1), rows = Math.max(2, Math.ceil((bounds.maxY - bounds.minY) / CELL_SIZE) + 1);
   const sx = (bounds.maxX - bounds.minX) / (cols - 1), sy = (bounds.maxY - bounds.minY) / (rows - 1), points = [], valid = new Uint8Array(cols * rows);
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) { const i = y * cols + x, p = { x: bounds.minX + x * sx, y: bounds.minY + y * sy }; points.push(p); valid[i] = Number(canOccupy(terrain, p, radius)); }
-  cached = { key, bounds, cols, rows, sx, sy, points, valid, paths: new Map() }; caches.set(terrain, cached); return cached;
+  cached = { key, bounds, cols, rows, sx, sy, points, valid, paths: new Map() }; caches.set(terrain!, cached); return cached;
 }
-function nearestNode(terrain, nav, point, radius) {
+function nearestNode(terrain: OptionalTerrain, nav: Navigation, point: Point, radius: number) {
   const x = clamp(Math.round((point.x - nav.bounds.minX) / nav.sx), 0, nav.cols - 1), y = clamp(Math.round((point.y - nav.bounds.minY) / nav.sy), 0, nav.rows - 1);
   for (let ring = 0; ring <= 4; ring++) {
     const candidates = [];
@@ -178,13 +195,14 @@ function nearestNode(terrain, nav, point, radius) {
   return -1;
 }
 class Heap {
+  declare data: HeapEntry[];
   constructor() { this.data = []; }
-  less(a, b) { return a.f < b.f || (a.f === b.f && (a.h < b.h || (a.h === b.h && a.i < b.i))); }
-  push(item) { const a = this.data; a.push(item); let i = a.length - 1; while (i) { const p = (i - 1) >> 1; if (!this.less(a[i], a[p])) break; [a[i], a[p]] = [a[p], a[i]]; i = p; } }
-  pop() { const a = this.data, first = a[0], end = a.pop(); if (a.length) { a[0] = end; let i = 0; for (;;) { let n = i, l = i * 2 + 1, r = l + 1; if (l < a.length && this.less(a[l], a[n])) n = l; if (r < a.length && this.less(a[r], a[n])) n = r; if (n === i) break; [a[i], a[n]] = [a[n], a[i]]; i = n; } } return first; }
+  less(a: HeapEntry, b: HeapEntry) { return a.f < b.f || (a.f === b.f && (a.h < b.h || (a.h === b.h && a.i < b.i))); }
+  push(item: HeapEntry) { const a = this.data; a.push(item); let i = a.length - 1; while (i) { const p = (i - 1) >> 1; if (!this.less(a[i], a[p])) break; [a[i], a[p]] = [a[p], a[i]]; i = p; } }
+  pop() { const a = this.data, first = a[0], end = a.pop(); if (a.length) { a[0] = end!; let i = 0; for (;;) { let n = i, l = i * 2 + 1, r = l + 1; if (l < a.length && this.less(a[l], a[n])) n = l; if (r < a.length && this.less(a[r], a[n])) n = r; if (n === i) break; [a[i], a[n]] = [a[n], a[i]]; i = n; } } return first; }
 }
 const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]];
-export function findPath(terrain, start, goal, options = {}) {
+export function findPath(terrain: OptionalTerrain, start: Point, goal: Point, options: PathOptions = {}) {
   const radius = Math.max(0, finite(options.radius, UNIT_RADIUS));
   if (!canOccupy(terrain, start, radius) || !canOccupy(terrain, goal, radius)) return [];
   if (distance(start, goal) < EPS) return [{ ...goal }];
@@ -214,7 +232,7 @@ export function findPath(terrain, start, goal, options = {}) {
     }
     indices = [];
     if (found) { for (let i = target; i !== -1; i = previous[i]) indices.push(i); indices.reverse(); }
-    if (nav.paths.size >= 512) nav.paths.delete(nav.paths.keys().next().value);
+    if (nav.paths.size >= 512) nav.paths.delete(nav.paths.keys().next().value!);
     nav.paths.set(cacheKey, indices);
   }
   if (!indices.length) return direct ? [{ ...goal }] : [];
@@ -222,7 +240,7 @@ export function findPath(terrain, start, goal, options = {}) {
   let pathCost = 0, last = start; for (const p of points) { pathCost += segmentCost(terrain, last, p); last = p; }
   return directCost <= pathCost + EPS ? [{ ...goal }] : points;
 }
-export function nearestWalkablePoint(terrain, point, radius = UNIT_RADIUS) {
+export function nearestWalkablePoint(terrain: OptionalTerrain, point: Point | null | undefined, radius = UNIT_RADIUS) {
   const p = clampPoint(terrain, point, radius); if (canOccupy(terrain, p, radius)) return p;
   const candidates = [];
   for (const raw of solidRects(terrain)) {
@@ -235,7 +253,7 @@ export function nearestWalkablePoint(terrain, point, radius = UNIT_RADIUS) {
   valid.sort((a, b) => distance(p, a) - distance(p, b) || a.y - b.y || a.x - b.x);
   return valid[0] || null;
 }
-export function nextWaypoint(terrain, start, goal, options = {}) {
+export function nextWaypoint(terrain: OptionalTerrain, start: Point, goal: Point, options: PathOptions = {}) {
   const path = findPath(terrain, start, goal, options); if (!path.length) return null;
   let selected = path[0], cost = 0, last = start;
   for (const point of path.slice(0, 12)) {
@@ -244,7 +262,7 @@ export function nextWaypoint(terrain, start, goal, options = {}) {
   }
   return { ...selected };
 }
-export function moveToward(terrain, start, goal, maxDistance, options = {}) {
+export function moveToward(terrain: OptionalTerrain, start: Point, goal: Point, maxDistance: number, options: PathOptions = {}) {
   const radius = options.radius ?? UNIT_RADIUS, destination = nearestWalkablePoint(terrain, goal, radius);
   if (!destination || !Number.isFinite(maxDistance) || maxDistance <= 0) return { x: start.x, y: start.y, blocked: false, reachable: !!destination };
   const waypoint = nextWaypoint(terrain, start, destination, options);

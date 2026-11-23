@@ -1,10 +1,10 @@
-// @ts-nocheck
 /** Reproducible opponent variety, independent of the combat RNG and careers. */
+import type { ClassicFormId } from "./combat-forms.js";
 import { FORMS } from './content.js?v=1.4.0';
 
-const FORM_IDS = Object.freeze(Object.keys(FORMS));
+const FORM_IDS = Object.freeze(Object.keys(FORMS) as ClassicFormId[]);
 
-function seedNumber(seed) {
+function seedNumber(seed: unknown) {
   if (typeof seed === 'number' && Number.isFinite(seed)) return (seed >>> 0) || 0x9e3779b9;
   let value = 2166136261;
   for (const char of String(seed)) value = Math.imul(value ^ char.charCodeAt(0), 16777619);
@@ -20,12 +20,12 @@ function seedNumber(seed) {
  * A fixed form is an explicit scenario override. Neither this helper nor loading
  * a save changes an active round; the engine invokes it only at spawn boundaries.
  */
-export function enemyFormsForRound(seed, round = 1, size = 5, fixedForm = null) {
+export function enemyFormsForRound(seed: unknown, round = 1, size = 5, fixedForm: unknown = null) {
   if (!Number.isSafeInteger(round) || round < 1) throw new RangeError('Opponent round must be a positive integer');
   if (!Number.isSafeInteger(size) || size < 1) throw new RangeError('Opponent roster size must be a positive integer');
   if (fixedForm !== null && fixedForm !== undefined) {
     if (typeof fixedForm !== 'string' || !Object.hasOwn(FORMS, fixedForm)) throw new RangeError('Unknown fixed opponent form');
-    return Array(size).fill(fixedForm);
+    return Array<ClassicFormId>(size).fill(fixedForm as ClassicFormId);
   }
   const order = [...FORM_IDS];
   let state = seedNumber(seed);

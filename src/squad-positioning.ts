@@ -1,10 +1,13 @@
-// @ts-nocheck
 /** Derived approach geometry only: no targets, combat decisions, RNG or saved state. */
+import type { FormationTerrain } from './formations.js';
+import type { Point } from './terrain.js';
 import { canOccupy, lineOfSight, terrainAt, UNIT_RADIUS } from './terrain.js?v=1.4.0';
 
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const point = p => p && Number.isFinite(p.x) && Number.isFinite(p.y);
-const valid = a => a && typeof a.id === 'string' && Number.isInteger(a.lane) && a.lane >= 0 && a.lane < 15 &&
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const point = (p: Point | null | undefined) => p && Number.isFinite(p.x) && Number.isFinite(p.y);
+export interface EngagementActor extends Point {id: string; lane: number; reach: number; target: Point & {id: string}}
+export interface EngagementGoal extends Point {role: 'engage' | 'flank'; reason: string}
+const valid = (a: EngagementActor) => a && typeof a.id === 'string' && Number.isInteger(a.lane) && a.lane >= 0 && a.lane < 15 &&
   point(a) && Number.isFinite(a.reach) && a.reach >= UNIT_RADIUS * 2 && typeof a.target?.id === 'string' && point(a.target);
 
 /**
@@ -21,11 +24,11 @@ const valid = a => a && typeof a.id === 'string' && Number.isInteger(a.lane) && 
  * wrong side. Reject blocked saber lines and overlapping reserved destinations;
  * do not run an A* search per candidate. Reachability remains the router's job.
  */
-export function planEngagementPositions({ terrain, formation = 'line', team, actors = [] } = {}) {
-  const plans = new Map();
-  if (!terrain || terrain.cosmeticTerrainOnly || ![0, 1].includes(team) || !Array.isArray(actors)) return plans;
-  const ordered = actors.filter(valid).slice(0, 15).sort((a, b) => a.lane - b.lane || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const reserved = [], seenLanes = new Set();
+export function planEngagementPositions({ terrain, formation = 'line', team, actors = [] }: {terrain?: FormationTerrain | null; formation?: string; team?: number; actors?: readonly EngagementActor[]} = {}) {
+  const plans = new Map<string, EngagementGoal>();
+  if (!terrain || terrain.cosmeticTerrainOnly || ![0, 1].includes(team!) || !Array.isArray(actors)) return plans;
+  const ordered = (actors as readonly EngagementActor[]).filter(valid).slice(0, 15).sort((a, b) => a.lane - b.lane || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const reserved: Point[] = [], seenLanes = new Set<number>();
   for (const actor of ordered) {
     if (plans.has(actor.id) || seenLanes.has(actor.lane)) continue;
     seenLanes.add(actor.lane);
@@ -55,7 +58,7 @@ export function planEngagementPositions({ terrain, formation = 'line', team, act
     }
     if (best) {
       const role = inner ? 'engage' : 'flank';
-      const result = { ...best, role, reason: inner ? 'Take a clear squad approach' : 'Use a separate attack angle' };
+      const result: EngagementGoal = { ...best, role, reason: inner ? 'Take a clear squad approach' : 'Use a separate attack angle' };
       plans.set(actor.id, result); reserved.push(result);
     }
   }

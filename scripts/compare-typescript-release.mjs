@@ -65,6 +65,50 @@ async function snapshot(api){
 const [before,after]=await Promise.all([load(original),load(generated)]);
 const a=await snapshot(before), b=await snapshot(after);
 for(const k of Object.keys(a)){assert.deepEqual(b[k],a[k],k+' differed from v4.0 JavaScript');console.log(k+' parity: OK');}
+
+// Check crowded fights at the same ticks, rather than just comparing the
+// winner. Separation is order-dependent: resolving one pair can create a
+// new overlap with a fighter that has not yet been visited.
+const crowdFlags=Object.fromEntries(
+ 'perfectParryStamina continuousCombat anticipatingCombat arenaCuts activeFootwork styleTravel repertoireSupport styleChoreo peasantMotion exchangeVariety fluidFootwork eloReads stanceFlow liveEntry impactPhysics recoveryFlow balancePass closeChoice guardCounterplay minorMoves forceVariants weaponFlow expandedCombat circuitCuts ratingSkill customHeroTactics advancedArena'
+ .split(' ').map(key=>[key,true]));
+const crowdScenes=[
+ {label:'24v24 seed 9',seed:9,terrain:'crossroads'},
+ {label:'24v24 seed 29',seed:29,terrain:'crossroads'},
+ {label:'24v24 packed wall',seed:29,terrain:'open',packed:true}
+];
+const crowdSnapshot=(game)=>JSON.stringify({
+ tick:game.tick,time:game.time,rng:game.rng,eventId:game.eventId,
+ stats:game.stats,objective:game.objective,phase:game.phase,events:game.events,
+ fighters:game.fighters
+},(_key,value)=>value instanceof Set?{set:[...value]}:value instanceof Map?{map:[...value]}:value);
+const checkpoints=new Set([0,1,2,3,6,12,24,48,120,240,360,600]);
+for(const {label,seed,terrain,packed} of crowdScenes){
+ const spawn=({engine})=>{
+  const game=engine.createArcade({mode:'watch',teamSizes:[24,24],limit:90,terrain,seed,
+   startingRanks:['SSS+V','SSS+V'],chessStyles:['mixed','mixed'],...crowdFlags});
+  if(packed){
+   for(let i=0;i<game.fighters.length;i++){
+    const fighter=game.fighters[i];
+    const slot=i%24,side=Math.floor(i/24);
+    fighter.x=game.bounds.minX+30+(slot%8)*18+side*5;
+    fighter.y=game.bounds.minY+28+Math.floor(slot/8)*17+side*3;
+    fighter.face=side?Math.PI:0;
+   }
+   assert.ok(game.fighters.every(f=>Number.isFinite(f.x)&&Number.isFinite(f.y)));
+  }
+  return game;
+ };
+ const old=spawn(before),next=spawn(after);
+ for(let tick=0;tick<=600;tick++){
+  if(checkpoints.has(tick)){
+   const digest=game=>createHash('sha256').update(crowdSnapshot(game)).digest('hex');
+   assert.equal(digest(next),digest(old),label+' differed at tick '+tick);
+  }
+  if(tick<600){before.engine.stepArcade(old,1/120);after.engine.stepArcade(next,1/120);}
+ }
+ console.log(label+' parity: OK');
+}
 for(const [target,text] of [[before,b.backup],[after,a.backup]]){
  const inspected=target.backup.inspectArcadeBackup(text), storage=fresh();
  assert.ok(inspected.ok,inspected.error);

@@ -77,6 +77,8 @@ interface IdleBattleConfig {
 interface IdleBattleState {
   fighters: [{displayName: string; gear: Readonly<{saberQuality: string; forceQuality: string}>}, object];
   limit: number; config: {limit: number}; questCarry?: number;
+  phase: string; endReason?: string; time: number; events: {kind: string; phase?: string}[];
+  stats: {kills: number[]; deaths: number[]};
   elitePacing?: {active: true; stage: 'measured'; measuredUntil: number; fullAt: number};
 }
 

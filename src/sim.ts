@@ -1,5 +1,99 @@
-// @ts-nocheck
 /** Deterministic saber combat; all persistent state is plain JSON. */
+import type { ClassicFormId, FormMove, FormMotion } from './combat-forms.js';
+import type { AirborneArc } from './airborne.js';
+import type { FormationTerrain, ClassicCoverNode } from './formations.js';
+import type { Point, Bounds, TerrainSolid, TerrainZone } from './terrain.js';
+import type { EngagementGoal } from './squad-positioning.js';
+import type { MatchRulesInput } from './match-rules.js';
+import type { RelicObjective } from './relic.js';
+import type { Mastery, RoundPractice, RoundCommendation } from './mastery.js';
+type ClassicTeam = 0 | 1;
+type AttackKind = 'saber' | 'force';
+type AttackOutcome = 'hit' | 'blocked' | 'miss' | 'out-of-range' | 'target-lost' | 'interrupted';
+type Order = 'advance' | 'hold' | 'flank' | 'regroup' | 'retreat';
+type Support = 'force' | 'guard';
+type SupportCooldown = 'forceCooldown' | 'guardCooldown' | 'aiForceCooldown' | 'aiGuardCooldown';
+type Doctrine = keyof typeof DOCTRINES;
+type RecordCount = ReturnType<typeof record>;
+type CommandState = {issuedTick: number; anchor: Point | null; flankReached: string[]; manual: boolean; flankUsed: boolean};
+type PlayerInput = {moveX: number; moveY: number; attack: boolean; force: boolean; guard: boolean; dash: boolean; targetId: string | null};
+interface Attack {
+  kind: AttackKind; target: string; startedTick: number; resolveTick: number; counter: boolean;
+  form: ClassicFormId; weapon: string; moveId: string | null; comboIndex: number; abilityId: string | null;
+  aimX: number; aimY: number; dual?: boolean; offhand?: boolean; offhandResolveTick?: number; move?: Pick<FormMove, "id" | "animation" | "motion">; x2?: number; y2?: number;
+}
+interface Impact {
+  target: string; source?: string; amount: number; suppression?: number; push?: number; stagger?: number;
+  energyDrain?: number; kind?: AttackKind; feedback?: {attack: Attack; outcome: AttackOutcome};
+}
+interface Feedback {
+  outcome: AttackOutcome; damage: number; kind: AttackKind; targetId: string | null; tick: number; isCounter: boolean;
+}
+export interface ClassicSoldier extends Point, RecordCount {
+  id: string; team: ClassicTeam; lane: number; name: string; role: string; technique: string;
+  form: ClassicFormId; formPractice: RoundPractice; career: ReturnType<typeof progressionSummary>;
+  hp: number; maxHp: number; alive: boolean; weapon: string; meleeWeapon: string;
+  rank: number; xp: number; damageDealt: number; suppression: number; morale: number; objectiveSeconds: number;
+  suppressionDealt: number; meritEarned: number; contributors: {source: string; damage: number; tick: number; form: ClassicFormId}[];
+  energy: number; maxEnergy: number; guard: boolean; guardUntil: number; counterUntil: number; staggerUntil: number;
+  staggerImmuneUntil: number; observation: {targetId: string; x: number; y: number; tick: number; vx: number; vy: number} | null;
+  comboIndex: number; comboBeat?: number; comboUntil: number; guardStartedTick: number; lastGuardTick: number;
+  airborne: (AirborneArc & {controlSourceId?: string}) | null; airborneHeight: number; landingRecoveryUntil: number;
+  forceBarrierUntil?: number; forceControl: {targetId: string; untilTick: number; releaseTick: number; kind: string} | null;
+  lastForceAbility: string | null; forceAbilitySequence: number; barrierUntil: number; barrierEnergy: number;
+  dashUntil: number; dashReadyTick: number; saberReadyTick: number; forceReadyTick: number; forceRequestedUntil: number;
+  attack: Attack | null; attackCooldown: number; forceCooldown: number; combatState: string; tacticalReason: string;
+  lastOutcome: Feedback | null; pinned: boolean; rallying: boolean; pinnedAtTick: number; stance: string;
+  cover: boolean; state: string; melee: boolean; target: string | null; targetUntil: number; facing: number;
+  moving: boolean; bank: number; holdBank: number; destinationX: number; destinationY: number; nextMoveTick: number;
+  lastShotTick: number; prevX?: number; prevY?: number; lastSaberMoveId?: string | null; saberSequence?: number; aerialAttackReadyTick?: number;
+}
+export interface ClassicConfigInput extends MatchRulesInput {
+  teamSizes?: number[]; mapSize?: string; terrain?: string | null; environment?: string;
+  mode?: string; playerSlot?: number; opponentMode?: string; opponentForm?: string | null;
+  enemyForm?: string | null; formations?: string[]; targetPriorities?: string[]; deployments?: string[];
+  startingRanks?: string[]; startingSaberQuality?: string[]; startingForceFamily?: string[];
+  startingForceQuality?: string[]; startingDualSabers?: boolean[]; modifier?: string;
+  forms?: string[][]; form?: string; doctrine?: string; enemyDoctrine?: string; autoCommand?: boolean;
+}
+type ClassicTerrain = FormationTerrain & {id: string; name: string; environment?: string; width: number; height: number;
+  bounds?: Bounds; solids?: (TerrainSolid & {width: number; height: number})[]; zones?: (TerrainZone & {width: number; height: number})[];
+  decorations: (Point & {type: string; radius: number})[]; controlPoints: {id: string; name: string; radius: number; x: number; y: number}[];
+  objective: {id: string; name: string; radius: number; x: number; y: number}; coverNodes: ClassicCoverNode[]};
+type Objective = (Omit<RelicObjective, 'kind' | 'carrierId' | 'state' | 'home' | 'unlockTick' | 'extractionZones'> &
+  Partial<Pick<RelicObjective, 'kind' | 'carrierId' | 'state' | 'home' | 'unlockTick' | 'extractionZones'>>) & {prevX?: number; prevY?: number};
+type CombatEffect = Point & {id: number; type: string; x2: number; y2: number; team: number; ttl: number; maxTtl: number;
+  soldierId?: string; form?: ClassicFormId; motion?: FormMotion; family?: string; abilityId?: string | null;
+  aimX?: number; aimY?: number; offhand?: boolean; dual?: boolean; moveId?: string | null; comboIndex?: number;
+  text?: string; counter?: boolean} & Partial<Feedback>;
+type BattleEvent = {id: number; time: number; type: string; team: number | null; text: string};
+type CareerReport = {soldierId: string; team: ClassicTeam; lane: number; name: string; before: ReturnType<typeof progressionSummary>; after: ReturnType<typeof progressionSummary>; earned: number; promoted: boolean};
+type MatchSummary = {round: number; winner: ClassicTeam | null; reason: string; time: number; terrain: string; survivors: number[]; health: number[]; objective: number[]};
+type SavedRecords = {teams: RecordCount[]; soldiers: (RecordCount & {id: string; team: number; lane: number})[]};
+type RoundReport = {round: number; doctrines: Doctrine[]; careers: CareerReport[]; mastery: {soldierId: string; team: ClassicTeam; lane: number; before: Mastery; after: Mastery}[];
+  commendations: RoundCommendation[]; records: SavedRecords; recap?: ReturnType<typeof buildBattleRecap>};
+type Squad = {team: number; doctrine: Doctrine; order: Order; tactic: string; morale: number; suppression: number; readiness: number; rallyUntil: number};
+export interface ClassicGame {
+  config: ReturnType<typeof normalizeConfig>; seed: number | string; rngState: number; round: number; score: number[]; draws: number;
+  history: MatchSummary[]; mutations: (ReturnType<typeof evolveLoadout>['changes'][number] & {team: number; soldierId: string})[];
+  terrainChoice: string | null; autoCommand: boolean; doctrines: Doctrine[]; mastery: Mastery[][]; forms: ClassicFormId[][];
+  careers: ReturnType<typeof createCareer>[][]; records: SavedRecords & {origin: string}; roundReport: RoundReport | null;
+  loadouts: {weaponTier: number; knifeTier: number; roster: {weapon: string; meleeWeapon: string}[]}[];
+  veterans: number[][]; terrain: ClassicTerrain; tick: number; time: number; timeLeft: number; roundDuration: number;
+  status: 'playing' | 'ended'; winner: ClassicTeam | null; reason: string; playerOrder: Order; enemyOrder: Order;
+  playerTactic: string; enemyTactic: string; forceCooldown: number; aiForceCooldown: number; guardCooldown: number; aiGuardCooldown: number;
+  effects: CombatEffect[]; events: BattleEvent[]; battleLog: ReturnType<typeof createBattleLog>; commandState: CommandState[];
+  frontLine: number; prevFrontLine?: number; alpha: number; _accumulator: number; _nextAiDecision: number; nextEffectId: number; nextEventId: number;
+  stats: Record<string, number[]>; objective: Objective; squads: Squad[]; soldiers: ClassicSoldier[];
+  control: {soldierId: string | null; input: PlayerInput};
+}
+interface Decision {action: string; move: string; dash: boolean; reason: string; reserve: number; targetId?: string | null; moveIndex?: number; abilityId?: string | null}
+type Context = ReturnType<typeof tacticalContext>;
+type Plan = EngagementGoal & {targetId?: string};
+type ForceEquipment = ReturnType<typeof forceAbilityWeapon<(typeof WEAPONS)[string]>>;
+type SaberEquipment = (typeof KNIVES)[string];
+type ContactWeapon = Pick<ForceEquipment, 'range' | 'interval' | 'damage'> &
+  Partial<Pick<ForceEquipment, 'energyCost' | 'windup' | 'accuracy' | 'suppression' | 'stagger' | 'knockback' | 'mechanic' | 'radius' | 'cone'>>;
 import { WEAPONS, KNIVES, FORMS, MAPS, QUALITY_LEVELS, FORCE_FAMILIES, createTerrain, evolveLoadout, startingLoadout } from './content.js?v=1.4.0';
 import { createCareer, awardMerit, meritForRound, progressionSummary, combatSkillProfile, SOLDIER_GRADES, MAX_HEALTH_MULTIPLIER } from './progression.js?v=1.4.0';
 import { combatFormProfile, selectFormMove, getFormMoves } from './combat-forms.js?v=1.4.0';
@@ -31,19 +125,24 @@ export const DOCTRINES = Object.freeze({
   guard: Object.freeze({ id: 'guard', name: 'Guard', description: 'Precision +3.5 points and incoming pressure -18%; move 12% slower. Auto holds earlier under pressure.', moveMultiplier: .88, accuracyBonus: .035, suppressionMultiplier: .82 }),
 });
 const DT = 1 / TICK_RATE, BASE_HP = 120, MAX_EFFECTS = 160, MAX_EVENTS = 32;
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const rounded = n => Math.round(n * 1000) / 1000;
-const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const ticks = seconds => Math.max(1, Math.round(seconds * TICK_RATE));
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const rounded = (n: number) => Math.round(n * 1000) / 1000;
+const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const ticks = (seconds: number) => Math.max(1, Math.round(seconds * TICK_RATE));
 // Presentation metadata only: gameplay always reads the authoritative x/y.
-const snapshotPosition = entity => { entity.prevX = entity.x; entity.prevY = entity.y; };
-function captureRenderPositions(g) {
+type SnapshotPosition = Point & {prevX?: number; prevY?: number};
+interface RenderSnapshotState {
+  soldiers: readonly SnapshotPosition[]; objective?: (SnapshotPosition & {kind?: string}) | null;
+  frontLine?: number; prevFrontLine?: number; alpha?: number; _accumulator?: number;
+}
+const snapshotPosition = (entity: SnapshotPosition) => { entity.prevX = entity.x; entity.prevY = entity.y; };
+function captureRenderPositions(g: RenderSnapshotState) {
   g.prevFrontLine = g.frontLine;
   for (const soldier of g.soldiers) snapshotPosition(soldier);
   if (g.objective?.kind === 'relic') snapshotPosition(g.objective);
 }
 /** Collapse interpolation after loading or an explicit teleport, preserving simulation time. */
-export function resetRenderSnapshots(g) {
+export function resetRenderSnapshots<T extends RenderSnapshotState | null | undefined>(g: T) {
   if (!g) return g;
   captureRenderPositions(g);
   g.alpha = (g._accumulator ?? 0) / DT;
@@ -51,22 +150,27 @@ export function resetRenderSnapshots(g) {
 }
 // Phase-local caches are discarded before any damage/death settlement. They
 // never enter saves and cannot outlive a moved position or committed attack.
-const phaseCaches = new WeakMap();
-function resetPhase(g) { phaseCaches.set(g, { living: [g.soldiers.filter(s => s.alive && s.team === 0), g.soldiers.filter(s => s.alive && s.team === 1)], targets: new Map(), contexts: new Map(), threats: new Map(), sight: new Map(), lines: new Map(), squadPlans: new Map() }); }
-const aliveTeam = (g, team) => phaseCaches.get(g)?.living[team] ?? g.soldiers.filter(s => s.alive && s.team === team);
-const average = (list, key) => list.length ? list.reduce((n, s) => n + s[key], 0) / list.length : 0;
-const validDoctrine = id => typeof id === 'string' && Object.hasOwn(DOCTRINES, id);
-const validForm = id => typeof id === 'string' && Object.hasOwn(FORMS, id);
-const doctrineFor = (g, team) => DOCTRINES[g.doctrines[team]];
-const formFor = s => FORMS[s.form];
-const rankForXP = xp => xp >= 150 ? 3 : xp >= 90 ? 2 : xp >= 40 ? 1 : 0;
+interface PhaseCache {
+  living: ClassicSoldier[][]; targets: Map<string, ClassicSoldier | null>; contexts: Map<string, Context>;
+  threats: Map<string, ClassicSoldier[]>; sight: Map<ClassicSoldier, Map<ClassicSoldier, boolean>>;
+  lines: Map<string, boolean>; squadPlans: Map<number, Map<string, Plan>>;
+}
+const phaseCaches = new WeakMap<ClassicGame, PhaseCache>();
+function resetPhase(g: ClassicGame) { phaseCaches.set(g, { living: [g.soldiers.filter(s => s.alive && s.team === 0), g.soldiers.filter(s => s.alive && s.team === 1)], targets: new Map(), contexts: new Map(), threats: new Map(), sight: new Map(), lines: new Map(), squadPlans: new Map() }); }
+const aliveTeam = (g: ClassicGame, team: number) => phaseCaches.get(g)?.living[team] ?? g.soldiers.filter(s => s.alive && s.team === team);
+const average = (list: ClassicSoldier[], key: "x" | "y" | "morale" | "suppression" | "energy") => list.length ? list.reduce((n, s) => n + s[key], 0) / list.length : 0;
+const validDoctrine = (id: unknown): id is Doctrine => typeof id === 'string' && Object.hasOwn(DOCTRINES, id);
+const validForm = (id: unknown): id is ClassicFormId => typeof id === 'string' && Object.hasOwn(FORMS, id);
+const doctrineFor = (g: ClassicGame, team: number) => DOCTRINES[g.doctrines[team]];
+const formFor = (s: ClassicSoldier) => FORMS[s.form];
+const rankForXP = (xp: number) => xp >= 150 ? 3 : xp >= 90 ? 2 : xp >= 40 ? 1 : 0;
 const record = () => ({ kills: 0, deaths: 0, assists: 0, environmentDeaths: 0 });
-const soldierId = (team, lane) => `${team === 0 ? 'blue' : 'red'}-${lane}`;
-const increment = (r, key) => { r[key] = Math.min(MAX_RECORD_COUNT, r[key] + 1); };
+const soldierId = (team: number, lane: number) => `${team === 0 ? 'blue' : 'red'}-${lane}`;
+const increment = (r: RecordCount, key: keyof RecordCount) => { r[key] = Math.min(MAX_RECORD_COUNT, r[key] + 1); };
 // Observation only: these counters never feed damage, cooldowns, HP or movement.
-const practice = (s, form, metric, amount = 1) => { if (validForm(form)) s.formPractice[form][metric] = Math.min(MAX_RECORD_COUNT, s.formPractice[form][metric] + amount); };
+const practice = (s: ClassicSoldier, form: string, metric: keyof RoundPractice[ClassicFormId], amount = 1) => { if (validForm(form)) s.formPractice[form][metric] = Math.min(MAX_RECORD_COUNT, s.formPractice[form][metric] + amount); };
 /** Stable campaign slots are independent of the map's formation rows. */
-export function normalizeConfig(options = {}) {
+export function normalizeConfig(options: ClassicConfigInput = {}) {
   const sizes = options.teamSizes ?? [5, 5];
   if (!Array.isArray(sizes) || sizes.length !== 2 || sizes.some(n => !Number.isInteger(n) || n < 1 || n > MAX_TEAM_SIZE)) throw new RangeError('Each team must have 1–15 fighters');
   const mapSize = options.mapSize ?? (options.teamSizes ? 'medium' : 'legacy');
@@ -86,7 +190,7 @@ export function normalizeConfig(options = {}) {
   if (!['mixed', 'fixed'].includes(opponentMode)) throw new RangeError('Unknown opponent policy');
   const formations = options.formations ?? ['line', 'line'], targetPriorities = options.targetPriorities ?? ['balanced', 'balanced'];
   const deployments = options.deployments ?? ['standard', 'standard'];
-  for (const [values, catalog, label] of [[formations, FORMATIONS, 'formation'], [targetPriorities, TARGET_PRIORITIES, 'target priority'], [deployments, DEPLOYMENTS, 'deployment']]) {
+  for (const [values, catalog, label] of [[formations, FORMATIONS, 'formation'], [targetPriorities, TARGET_PRIORITIES, 'target priority'], [deployments, DEPLOYMENTS, 'deployment']] as const) {
     if (!Array.isArray(values) || values.length !== 2 || values.some(id => typeof id !== 'string' || !Object.hasOwn(catalog, id))) throw new RangeError(`Unknown team ${label}`);
   }
   const startingRanks = options.startingRanks ?? ['F', 'F'];
@@ -106,44 +210,45 @@ export function normalizeConfig(options = {}) {
     startingDualSabers: normalizeDualSabers(options.startingDualSabers), deployments: [...deployments] };
 }
 /** Neutral per-round command metadata; goals remain derived, never stored paths. */
-export function createCommandState(g) {
+export function createCommandState(game: object): CommandState[] {
+  const g = game as Partial<Pick<ClassicGame, 'autoCommand'>>;
   return [0, 1].map(team => ({ issuedTick: 0, anchor: null, flankReached: [], manual: team === 0 && !g.autoCommand, flankUsed: false }));
 }
-const neutralInput = () => ({ moveX: 0, moveY: 0, attack: false, force: false, guard: false, dash: false, targetId: null });
-const controlled = (g, s) => g.config?.mode === 'play' && g.control?.soldierId === s.id && s.team === 0;
-const tacticalOrder = (g, s) => {
+const neutralInput = (): PlayerInput => ({ moveX: 0, moveY: 0, attack: false, force: false, guard: false, dash: false, targetId: null });
+const controlled = (g: ClassicGame, s: ClassicSoldier) => g.config?.mode === 'play' && g.control?.soldierId === s.id && s.team === 0;
+const tacticalOrder = (g: ClassicGame, s: ClassicSoldier) => {
   const order = s.team === 0 ? g.playerOrder : g.enemyOrder;
   return s.rallying || order === 'regroup' ? 'retreat' : order === 'flank' ? 'advance' : order;
 };
-export function clearPlayerInput(g) { if (g?.control) g.control.input = neutralInput(); return g; }
-export function setControlledFighter(g, id) {
+export function clearPlayerInput<T extends {control?: {input: PlayerInput}} | null | undefined>(g: T) { if (g?.control) g.control.input = neutralInput(); return g; }
+export function setControlledFighter(g: ClassicGame, id: string | null) {
   if (!g || g.status !== 'playing') return false;
   if (id === null) { clearPlayerInput(g); g.control.soldierId = null; g.config.mode = 'spectate'; g.autoCommand = true; g.commandState[0].manual = false; return true; }
   const s = g.soldiers.find(s => s.id === id && s.team === 0 && s.alive);
   if (!s) return false;
   clearPlayerInput(g); g.control.soldierId = id; g.config.mode = 'play'; g.config.playerSlot = s.lane; g.autoCommand = true; g.commandState[0].manual = false; return true;
 }
-export function setPlayerInput(g, input = {}) {
+export function setPlayerInput(g: ClassicGame, input: Partial<PlayerInput> = {}) {
   const s = g?.soldiers?.find(s => s.id === g.control?.soldierId && s.alive);
   if (!s || g.config.mode !== 'play' || g.status !== 'playing') { clearPlayerInput(g); return false; }
   const next = g.control.input;
-  for (const key of ['moveX', 'moveY']) if (Object.hasOwn(input, key)) next[key] = Number.isFinite(input[key]) ? clamp(input[key], -1, 1) : 0;
+  for (const key of ['moveX', 'moveY'] as const) if (Object.hasOwn(input, key)) next[key] = Number.isFinite(input[key]) ? clamp(input[key]!, -1, 1) : 0;
   if (Object.hasOwn(input, 'guard')) next.guard = !!input.guard;
-  for (const key of ['attack', 'force', 'dash']) if (input[key] === true) next[key] = true;
-  if (Object.hasOwn(input, 'targetId')) next.targetId = g.soldiers.some(t => t.alive && t.team === 1 && t.id === input.targetId) ? input.targetId : null;
+  for (const key of ['attack', 'force', 'dash'] as const) if (input[key] === true) next[key] = true;
+  if (Object.hasOwn(input, 'targetId')) next.targetId = g.soldiers.some(t => t.alive && t.team === 1 && t.id === input.targetId) ? input.targetId! : null;
   return true;
 }
-const worldBounds = g => g.config?.mapSize === 'legacy' ? { minX: 60, maxX: 900, minY: 68, maxY: 472 } : getBounds(g.terrain, UNIT_RADIUS);
-const environmentCache = new WeakMap();
-const defenseSnapshots = new WeakMap();
-export function getEnvironment(g) {
+const worldBounds = (g: ClassicGame) => g.config?.mapSize === 'legacy' ? { minX: 60, maxX: 900, minY: 68, maxY: 472 } : getBounds(g.terrain, UNIT_RADIUS);
+const environmentCache = new WeakMap<ClassicGame,{id: string; seed: string | number; round: number; tick: number; value: ReturnType<typeof environmentAt>}>();
+const defenseSnapshots = new WeakMap<ClassicGame, Map<string, {kind: string | null; threatCount: number}>>();
+export function getEnvironment(g: ClassicGame) {
   const id = g.config?.environment || 'clear', cached = environmentCache.get(g);
   if (cached && cached.id === id && cached.seed === g.seed && cached.round === g.round && cached.tick === g.tick) return cached.value;
   const value = Object.freeze(environmentAt(id, hashSeed(g.seed) + g.round - 1, g.tick));
   environmentCache.set(g, { id, seed: g.seed, round: g.round, tick: g.tick, value }); return value;
 }
 const perception = getEnvironment;
-const sees = (g, s, target) => {
+const sees = (g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier) => {
   if (g.config?.mapSize === 'legacy') return true;
   const cache = phaseCaches.get(g)?.sight;
   let row = cache?.get(s);
@@ -153,59 +258,66 @@ const sees = (g, s, target) => {
   return visible;
 };
 /** Visible living opponents, in stable roster order; consumes no RNG. */
-export function visibleEnemyTargets(g, id) {
+export function visibleEnemyTargets(g: ClassicGame, id: string | null | undefined) {
   const s = g?.soldiers?.find(s => s.id === id && s.alive);
   return s ? aliveTeam(g, 1 - s.team).filter(enemy => sees(g, s, enemy)) : [];
 }
-const unobstructed = (g, s, target, kind) => {
+const unobstructed = (g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier, kind: string) => {
   if (g.config?.mapSize === 'legacy') return true;
   const cache = phaseCaches.get(g)?.lines, key = `${s.id}:${target.id}:${kind}`;
-  if (cache?.has(key)) return cache.get(key);
+  if (cache?.has(key)) return cache.get(key)!;
   const clear = lineOfSight(g.terrain, s, target, kind); cache?.set(key, clear); return clear;
 };
-function inCover(g, s) {
+function inCover(g: ClassicGame, s: ClassicSoldier) {
   if (s.moving) return false;
   if (g.config.mapSize === 'legacy') return g.terrain.coverNodes.some(n => dist(s, n) < 19);
   const enemies = aliveTeam(g, 1 - s.team).filter(e => sees(g, s, e));
   if (enemies.length) return enemies.some(e => coverMultiplier(g.terrain, e, s) < 1);
-  return (g.terrain.solids || []).some(r => r.kind === 'barricade' && Math.hypot(s.x - clamp(s.x, r.x, r.x + r.width), s.y - clamp(s.y, r.y, r.y + r.height)) <= (r.coverDistance ?? 30));
+  return (g.terrain.solids || []).some(r => r.kind === 'barricade' && Math.hypot(s.x - clamp(s.x, r.x, r.x + r.width!), s.y - clamp(s.y, r.y, r.y + r.height!)) <= (r.coverDistance ?? 30));
 }
 
 
-function hashSeed(seed) {
+function hashSeed(seed: unknown) {
   if (typeof seed === 'number' && Number.isFinite(seed)) return (seed >>> 0) || 0x9e3779b9;
   let hash = 2166136261;
   for (const char of String(seed)) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   return (hash >>> 0) || 0x9e3779b9;
 }
-function random(g) { let x = g.rngState; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; g.rngState = x >>> 0; return g.rngState / 4294967296; }
-function event(g, type, team, text) {
+function random(g: ClassicGame) { let x = g.rngState; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; g.rngState = x >>> 0; return g.rngState / 4294967296; }
+function event(g: ClassicGame, type: string, team: number | null, text: string) {
   const entry = { id: g.nextEventId++, time: g.time, type, team, text };
   g.events.push(entry);
   recordBattleEvent(g.battleLog, entry);
   if (g.events.length > MAX_EVENTS) g.events.shift();
 }
-function effect(g, type, x, y, team, extras = {}) {
+function effect(g: ClassicGame, type: string, x: number, y: number, team: number, extras: Partial<CombatEffect> = {}) {
   const life = { saber: .28, force: .48, feedback: .7, block: .35, counter: .4, stagger: .4, dash: .3, impact: .25, death: .75, rank: .8 }[type] || .35;
   g.effects.push({ id: g.nextEffectId++, type, x, y, x2: x, y2: y, team, ttl: life, maxTtl: life, ...extras });
   if (g.effects.length > MAX_EFFECTS) g.effects.splice(0, g.effects.length - MAX_EFFECTS);
 }
-const formationNodeCache = new WeakMap();
-function node(g, team, bank, lane) {
+const formationNodeCache = new WeakMap<ClassicTerrain, Map<string, ReturnType<typeof formationDestination>>>();
+function node(g: ClassicGame, team: number, bank: number, lane: number) {
   let nodes = formationNodeCache.get(g.terrain);
   if (!nodes) { nodes = new Map(); formationNodeCache.set(g.terrain, nodes); }
   const key = `${team}/${bank}/${lane}/${g.config.formations[team]}`;
   if (!nodes.has(key)) nodes.set(key, formationDestination(g.terrain, team, bank, lane, g.config.formations[team]));
   return nodes.get(key);
 }
-function nearestBank(g, s) {
+function nearestBank(g: ClassicGame, s: ClassicSoldier) {
   let bank = 0;
-  for (let b = 1; b <= 2; b++) if (dist(s, node(g, s.team, b, s.lane)) < dist(s, node(g, s.team, bank, s.lane))) bank = b;
+  for (let b = 1; b <= 2; b++) if (dist(s, node(g, s.team, b, s.lane)!) < dist(s, node(g, s.team, bank, s.lane)!)) bank = b;
   return bank;
 }
-function populateRound(g) {
+type ClassicCampaign = Pick<ClassicGame,
+  'config' | 'seed' | 'rngState' | 'round' | 'score' | 'draws' | 'history' | 'mutations' |
+  'terrainChoice' | 'autoCommand' | 'doctrines' | 'mastery' | 'forms' | 'careers' | 'records' |
+  'roundReport' | 'loadouts' | 'veterans'>;
+function populateRound(campaign: ClassicCampaign): asserts campaign is ClassicGame {
+  // Round data is initialized here before any per-round query. Keeping the
+  // original object's identity preserves WeakMap caches and save behavior.
+  const g = campaign as ClassicGame;
   phaseCaches.delete(g);
-  g.terrain = createBattlefield(hashSeed(g.seed) + g.round - 1, { ...g.config, terrain: g.terrainChoice });
+  g.terrain = createBattlefield(hashSeed(g.seed) + g.round - 1, { ...g.config, terrain: g.terrainChoice }) as ClassicTerrain;
   g.terrain.objective = { ...g.terrain.controlPoints[0] };
   Object.assign(g, {
     tick: 0, time: 0, timeLeft: g.config.roundDuration, roundDuration: g.config.roundDuration,
@@ -218,8 +330,8 @@ function populateRound(g) {
     squads: [0, 1].map(team => ({ team, doctrine: g.doctrines[team], order: 'hold', tactic: 'guard', morale: 82, suppression: 0, readiness: 1, rallyUntil: 0 })),
   });
   const placements = [0, 1].map(team => deploymentPositions({ terrain: g.terrain, team, formation: g.config.formations[team], preset: g.config.deployments[team] }));
-  g.soldiers = [0, 1].flatMap(team => Array.from({ length: g.config.teamSizes[team] }, (_, lane) => {
-    const cover = placements[team].get(lane), loadout = g.loadouts[team].roster[lane];
+  g.soldiers = ([0, 1] as const).flatMap(team => Array.from({ length: g.config.teamSizes[team] }, (_, lane): ClassicSoldier => {
+    const cover = placements[team].get(lane)!, loadout = g.loadouts[team].roster[lane];
     const veteran = g.veterans[team][lane], rank = rankForXP(veteran), career = progressionSummary(g.careers[team][lane]);
     const maxHp = rounded((BASE_HP + rank * 4) * career.modifiers.healthMultiplier), form = g.forms[team][lane];
     return {
@@ -243,76 +355,76 @@ function populateRound(g) {
   g.control = { soldierId: g.config.mode === 'play' ? soldierId(0, g.config.playerSlot) : null, input: neutralInput() };
   event(g, 'round', null, `Round ${g.round}: ${g.config.matchMode === 'relic' ? 'deliver the relic three times or defeat the opposing squad' : g.config.matchMode === 'elimination' ? 'defeat the opposing squad' : 'hold the signal post or defeat the opposing squad'}`);
 }
-export function createGame(seed = 1, options = {}) {
+export function createGame(seed: string | number = 1, options: ClassicConfigInput = {}): ClassicGame {
   const config = normalizeConfig(options);
   const forms = config.teamSizes.map((size, team) => {
     const explicit = options.forms?.[team];
     if (explicit !== undefined) {
       if (!Array.isArray(explicit) || explicit.length !== size || explicit.some(id => !validForm(id))) throw new RangeError('Every fighter needs a valid form');
-      return [...explicit];
+      return [...explicit] as ClassicFormId[];
     }
     if (team === 1) return enemyFormsForRound(seed, 1, size, config.opponentForm);
-    return Array(size).fill(validForm(options.form) ? options.form : 'shii_cho');
+    return Array<ClassicFormId>(size).fill(validForm(options.form) ? options.form : 'shii_cho');
   });
-  const g = {
+  const g: ClassicCampaign = {
     config, seed, rngState: hashSeed(seed), round: 1, score: [0, 0], draws: 0, history: [], mutations: [],
     terrainChoice: config.terrain, autoCommand: options.mode === 'spectate' || options.mode === 'play' ? options.autoCommand !== false : !!options.autoCommand,
     doctrines: [options.doctrine, options.enemyDoctrine].map(id => validDoctrine(id) ? id : 'balanced'),
     mastery: config.teamSizes.map(size => Array.from({ length: size }, () => createMastery())),
-    forms, careers: config.teamSizes.map((size, team) => Array.from({ length: size }, () => createCareer(SOLDIER_GRADES.find(grade => grade.label === config.startingRanks[team]).threshold))),
+    forms, careers: config.teamSizes.map((size, team) => Array.from({ length: size }, () => createCareer(SOLDIER_GRADES.find(grade => grade.label === config.startingRanks[team])!.threshold))),
     records: { origin: 'saberfront', teams: [record(), record()], soldiers: [0, 1].flatMap(team => Array.from({ length: config.teamSizes[team] }, (_, lane) => ({ id: soldierId(team, lane), team, lane, ...record() }))) },
     roundReport: null, loadouts: config.teamSizes.map((size, team) => {
       const weapon = `${config.startingForceQuality[team] === 'standard' ? '' : config.startingForceQuality[team] + '_'}${config.startingForceFamily[team]}`;
       const meleeWeapon = `${config.startingSaberQuality[team] === 'standard' ? '' : config.startingSaberQuality[team] + '_'}saber`;
       return { weaponTier: WEAPONS[weapon].quality, knifeTier: KNIVES[meleeWeapon].quality, roster: Array.from({ length: size }, () => ({ weapon, meleeWeapon })) };
     }),
-    veterans: config.teamSizes.map(size => Array(size).fill(0)),
+    veterans: config.teamSizes.map(size => Array<number>(size).fill(0)),
   };
   populateRound(g); return g;
 }
 /** Migration supplies valid current persistent fields; no evolution or score increment. */
-export function rebuildRound(g) { populateRound(g); return g; }
-export function setDoctrine(g, id, team = 0) {
+export function rebuildRound(g: ClassicGame) { populateRound(g); return g; }
+export function setDoctrine(g: ClassicGame, id: string, team = 0) {
   if (!g || !['playing', 'ended'].includes(g.status) || !validDoctrine(id) || ![0, 1].includes(team)) return false;
   if (g.doctrines[team] === id) return true;
   g.doctrines[team] = id; g.squads[team].doctrine = id;
   if (g.status === 'playing') event(g, 'doctrine', team, `${team === 0 ? 'Blue' : 'Red'} doctrine: ${DOCTRINES[id].name}`);
   return true;
 }
-function setTeamTactic(g, key, catalog, id, team) {
+function setTeamTactic(g: ClassicGame, key: 'formations' | 'targetPriorities', catalog: Record<string, {name?: string}>, id: string, team: number) {
   if (!g || !['playing', 'ended'].includes(g.status) || ![0, 1].includes(team) || typeof id !== 'string' || !Object.hasOwn(catalog, id)) return false;
   if (g.config[key][team] === id) return true;
   g.config[key][team] = id;
   if (g.status === 'playing') event(g, 'tactics', team, `${team === 0 ? 'Blue' : 'Red'} ${key === 'formations' ? 'formation' : 'target priority'}: ${catalog[id].name ?? id}`);
   return true;
 }
-export function setFormation(g, id, team = 0) { return setTeamTactic(g, 'formations', FORMATIONS, id, team); }
-export function setTargetPriority(g, id, team = 0) { return setTeamTactic(g, 'targetPriorities', TARGET_PRIORITIES, id, team); }
+export function setFormation(g: ClassicGame, id: string, team = 0) { return setTeamTactic(g, 'formations', FORMATIONS, id, team); }
+export function setTargetPriority(g: ClassicGame, id: string, team = 0) { return setTeamTactic(g, 'targetPriorities', TARGET_PRIORITIES, id, team); }
 /** Deployment changes only affect the next round, never teleport a living squad. */
-export function setDeployment(g, id, team = 0) {
+export function setDeployment(g: ClassicGame, id: string, team = 0) {
   if (!g || g.status !== 'ended' || ![0, 1].includes(team) || !Object.hasOwn(DEPLOYMENTS, id)) return false;
   g.config.deployments[team] = id; return true;
 }
-export function setForm(g, lane, id, team = 0) {
+export function setForm(g: ClassicGame, lane: number, id: string, team = 0) {
   if (!g || !['playing', 'ended'].includes(g.status) || !validForm(id) || ![0, 1].includes(team) || !Number.isInteger(lane) || lane < 0 || lane >= g.config.teamSizes[team]) return false;
   if (team === 1) { g.config.opponentMode = 'fixed'; g.config.opponentForm = null; }
   if (g.forms[team][lane] === id) return true;
   g.forms[team][lane] = id;
-  const s = g.soldiers.find(s => s.team === team && s.lane === lane);
+  const s = g.soldiers.find(s => s.team === team && s.lane === lane)!;
   s.form = id; s.role = FORMS[id].trait; s.technique = FORMS[id].technique.name;
   // A changed form starts its own repertoire; an in-flight attack retains its recorded form.
   s.comboIndex = 0; s.comboBeat = 0; s.comboUntil = 0; s.lastSaberMoveId = null; s.saberSequence = 0;
   if (g.status === 'playing') event(g, 'form', team, `${s.name}: ${FORMS[id].name}`);
   return true;
 }
-export function setAutoCommand(g, enabled, team = 0) {
+export function setAutoCommand(g: ClassicGame, enabled: boolean, team = 0) {
   if (!g || g.status !== 'playing' || ![0, 1].includes(team)) return false;
   if (team === 0) g.autoCommand = !!enabled;
   g.commandState[team].manual = !enabled;
   g._nextAiDecision = Math.min(g._nextAiDecision, g.tick + 1);
   event(g, 'command', team, enabled ? 'Auto-command engaged' : 'Manual command engaged'); return true;
 }
-function setOrder(g, team, order, reissue = false) {
+function setOrder(g: ClassicGame, team: number, order: Order, reissue = false) {
   const key = team === 0 ? 'playerOrder' : 'enemyOrder', previous = g[key];
   g[key] = order; g.squads[team].order = order;
   if (previous === order && !reissue) return;
@@ -324,8 +436,8 @@ function setOrder(g, team, order, reissue = false) {
   for (const s of aliveTeam(g, team)) { s.bank = nearestBank(g, s); s.holdBank = s.bank; s.nextMoveTick = Math.min(s.nextMoveTick, g.tick + s.lane * 4); }
   event(g, 'order', team, `${team === 0 ? 'Blue' : 'Red'}: ${order}`);
 }
-const commandGoals = new WeakMap();
-function commandPlan(g, s) {
+const commandGoals = new WeakMap<ClassicGame,{state: CommandState; terrain: ClassicTerrain; formation: string; plans: Map<string, ReturnType<typeof commandDestination>>}[]>();
+function commandPlan(g: ClassicGame, s: ClassicSoldier) {
   const order = s.team === 0 ? g.playerOrder : g.enemyOrder;
   if (!['flank', 'regroup'].includes(order) || s.rallying || controlled(g, s)) return null;
   const state = g.commandState[s.team];
@@ -339,7 +451,7 @@ function commandPlan(g, s) {
     formation: cached.formation, order, actor: s, anchor: state.anchor, flankReady: false }));
   return cached.plans.get(s.id);
 }
-function updateCommandProgress(g) {
+function updateCommandProgress(g: ClassicGame) {
   for (const team of [0, 1]) {
     if ((team === 0 ? g.playerOrder : g.enemyOrder) !== 'flank') continue;
     const state = g.commandState[team];
@@ -353,7 +465,7 @@ function updateCommandProgress(g) {
   }
 }
 /** Read-only team status. Public anchor geometry reveals no hidden opponents. */
-export function commandIntent(g, team = 0) {
+export function commandIntent(g: ClassicGame, team = 0) {
   if (!g || ![0, 1].includes(team)) return null;
   const order = team === 0 ? g.playerOrder : g.enemyOrder, state = g.commandState[team];
   const actors = g.soldiers.filter(s => s.alive && s.team === team && !controlled(g, s));
@@ -364,7 +476,7 @@ export function commandIntent(g, team = 0) {
     eligible: g.status === 'playing' ? actors.length : 0, auto: team === 0 ? g.autoCommand : !state.manual,
     anchor: state.anchor ? { ...state.anchor } : null, completed, total: actors.length };
 }
-function supportActors(g, team, kind) {
+function supportActors(g: ClassicGame, team: number, kind: Support) {
   if (kind === 'force' && !permitsForceAttacks(g.config)) return [];
   return aliveTeam(g, team).filter(s => {
     if (controlled(g, s) || kind === 'force' && isRelicCarrier(g, s) || s.attack || s.staggerUntil > g.tick || s.pinned || s.rallying) return false;
@@ -376,17 +488,17 @@ function supportActors(g, team, kind) {
   });
 }
 /** Read-only command eligibility, shared by the UI and command execution. */
-export function commandReadiness(g, order, team = 0) {
+export function commandReadiness(g: ClassicGame, order: string, team = 0) {
   if (!g || g.status !== 'playing') return { ready: false, reason: 'Battle is not active', eligible: 0 };
   if (!['force', 'guard'].includes(order) || ![0, 1].includes(team)) return { ready: false, reason: 'Unknown support command', eligible: 0 };
   if (order === 'force' && !permitsForceAttacks(g.config)) return { ready: false, reason: 'Force attacks are disabled by Saber only', eligible: 0 };
-  const key = team === 0 ? `${order}Cooldown` : `ai${order[0].toUpperCase()}${order.slice(1)}Cooldown`;
+  const key = (team === 0 ? `${order}Cooldown` : `ai${order[0].toUpperCase()}${order.slice(1)}Cooldown`) as SupportCooldown;
   if (g[key] > 1e-8) return { ready: false, reason: `Ready in ${Math.ceil(g[key])}s`, eligible: 0 };
-  const eligible = supportActors(g, team, order).length;
+  const eligible = supportActors(g, team, order as Support).length;
   return { ready: eligible > 0, reason: eligible ? `${eligible} fighter${eligible === 1 ? '' : 's'} ready` : order === 'force' ? 'No safe, ready cast in range' : 'No ready fighter facing a threat', eligible };
 }
-function support(g, team, kind) {
-  const key = team === 0 ? `${kind}Cooldown` : `ai${kind[0].toUpperCase()}${kind.slice(1)}Cooldown`;
+function support(g: ClassicGame, team: number, kind: Support) {
+  const key = (team === 0 ? `${kind}Cooldown` : `ai${kind[0].toUpperCase()}${kind.slice(1)}Cooldown`) as SupportCooldown;
   if (g[key] > 1e-8) return false;
   const friends = supportActors(g, team, kind);
   if (!friends.length) return false;
@@ -398,15 +510,15 @@ function support(g, team, kind) {
   g[key] = kind === 'force' ? 6 : 7;
   event(g, kind, team, `${team === 0 ? 'Blue' : 'Red'}: ${kind === 'force' ? 'Force surge' : 'Guard stance'}`); return true;
 }
-export function command(g, order, team = 0) {
+export function command(g: ClassicGame, order: string, team = 0) {
   if (!g || g.status !== 'playing' || ![0, 1].includes(team) || !aliveTeam(g, team).some(s => !controlled(g, s))) return false;
   if (['force', 'wave', 'grenade'].includes(order)) return support(g, team, 'force');
   if (['guard', 'barrier', 'smoke'].includes(order)) return support(g, team, 'guard');
   if (!Object.hasOwn(SQUAD_ORDERS, order)) return false;
   if (team === 0) g.autoCommand = false;
-  g.commandState[team].manual = true; setOrder(g, team, order, true); return true;
+  g.commandState[team].manual = true; setOrder(g, team, order as Order, true); return true;
 }
-function selectTarget(g, s) {
+function selectTarget(g: ClassicGame, s: ClassicSoldier): ClassicSoldier | null | undefined {
   const cache = phaseCaches.get(g)?.targets; if (cache?.has(s.id)) return cache.get(s.id);
   let best = null, bestScore = Infinity;
   const priority = g.config.targetPriorities[s.team];
@@ -422,39 +534,39 @@ function selectTarget(g, s) {
   cache?.set(s.id, best); return best;
 }
 /** A threat must actually reach this actor; unrelated windups are not reads. */
-function incomingThreats(g, s, reactedOnly = false) {
-  const cache = phaseCaches.get(g)?.threats, key = `${s.id}:${reactedOnly}`; if (cache?.has(key)) return cache.get(key);
+function incomingThreats(g: ClassicGame, s: ClassicSoldier, reactedOnly = false): ClassicSoldier[] {
+  const cache = phaseCaches.get(g)?.threats, key = `${s.id}:${reactedOnly}`; if (cache?.has(key)) return cache.get(key)!;
   const skill = combatSkillProfile(s.career);
-  if (reactedOnly) { const read = incomingThreats(g, s).filter(enemy => g.tick - enemy.attack.startedTick >= skill.reactionTicks); cache?.set(key, read); return read; }
+  if (reactedOnly) { const read = incomingThreats(g, s).filter(enemy => g.tick - enemy.attack!.startedTick >= skill.reactionTicks); cache?.set(key, read); return read; }
   const result = [];
   for (const enemy of aliveTeam(g, 1 - s.team)) {
     const attack = enemy.attack;
     if (!attack || attack.resolveTick < g.tick || !sees(g, s, enemy)) continue;
-    const weapon = attack.kind === 'saber' ? KNIVES[attack.weapon] : forceAbilityWeapon(WEAPONS[attack.weapon], attack.abilityId);
-    const area = attack.kind === 'force' && ['repulse', 'sweep'].includes(weapon.mechanic);
+    const weapon: ContactWeapon = attack.kind === 'saber' ? KNIVES[attack.weapon] : forceAbilityWeapon(WEAPONS[attack.weapon], attack.abilityId);
+    const area = attack.kind === 'force' && ['repulse', 'sweep'].includes(weapon.mechanic!);
     if (attack.target !== s.id && !area) continue;
     const reach = attack.kind === 'saber' ? weapon.range + FORMS[attack.form].reachBonus + (attack.moveId ? selectFormMove(attack.form, attack.comboIndex || 0).reachBonus : 0) + 12 : weapon.range;
     if (dist(s, enemy) > reach || !unobstructed(g, enemy, s, attack.kind)) continue;
     if (area && !areaContains(enemy, s, attack, weapon)) continue;
     result.push(enemy);
   }
-  result.sort((a, b) => a.attack.resolveTick - b.attack.resolveTick || a.id.localeCompare(b.id)); cache?.set(key, result); return result;
+  result.sort((a, b) => a.attack!.resolveTick - b.attack!.resolveTick || a.id.localeCompare(b.id)); cache?.set(key, result); return result;
 }
-function recoveryTicks(g, enemy) {
+function recoveryTicks(g: ClassicGame, enemy: ClassicSoldier) {
   const form = formFor(enemy), skill = combatSkillProfile(enemy.career);
-  const energyWait = cost => Math.ceil(Math.max(0, cost - enemy.energy) / form.energyRegen * TICK_RATE);
-  return Math.max(0, enemy.staggerUntil - g.tick, enemy.attack ? enemy.attack.resolveTick - g.tick : 0,
+  const energyWait = (cost: number) => Math.ceil(Math.max(0, cost - enemy.energy) / form.energyRegen * TICK_RATE);
+  return Math.max(0, enemy.staggerUntil - g.tick, enemy.attack ? enemy.attack!.resolveTick - g.tick : 0,
     Math.min(Math.max(0, enemy.saberReadyTick - g.tick, energyWait(8 * skill.energyEfficiency)),
       permitsForceAttacks(g.config) ? Math.max(0, enemy.forceReadyTick - g.tick, energyWait(WEAPONS[enemy.weapon].energyCost * form.forceCostMultiplier * skill.energyEfficiency)) : Infinity));
 }
-function saberWindup(s, move, skill, counter) {
+function saberWindup(s: ClassicSoldier, move: FormMove | null | undefined, skill: ReturnType<typeof combatSkillProfile>, counter: boolean) {
   // An earned trained riposte uses the planted blade instead of spending its
   // short counter window on a fresh voluntary leap. Ordinary attacks still jump.
   const jump = counter && skill.skill >= .28 ? null : trainedJumpSpec(move?.jump, skill);
   return Math.max(jump ? jump.durationTicks / TICK_RATE * .90 : 0,
     (counter ? .16 : .30) * formFor(s).attackIntervalMultiplier * (move?.windupMultiplier ?? 1) * skill.attackWindupMultiplier);
 }
-function combatSequence(g, s, target, skill = combatSkillProfile(s.career)) {
+function combatSequence(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier | null | undefined, skill = combatSkillProfile(s.career)) {
   const wield = saberWieldProfile(g.config, s), efficiency = skill.energyEfficiency * wield.energyMultiplier;
   return chooseCombatSequence({ formId: s.form, comboIndex: s.comboIndex || 0, comboLength: skill.comboLength, repertoireLength: getFormMoves(s.form).length, attackSequence: s.saberSequence || 0,
     lastMoveId: s.lastSaberMoveId || null, aerialRecoveryActive: g.tick < (s.aerialAttackReadyTick || 0), targetDistance: target ? dist(s, target) : 0,
@@ -463,20 +575,20 @@ function combatSequence(g, s, target, skill = combatSkillProfile(s.career)) {
     targetStaggerTicks: target ? Math.max(0, target.staggerUntil - g.tick) : 0,
     targetRecoveryTicks: target ? recoveryTicks(g, target) : 0,
     nearbyEnemies: aliveTeam(g, 1 - s.team).filter(enemy => sees(g, s, enemy) && dist(s, enemy) < 125).length,
-    threatCount: incomingThreats(g, s, true).filter(enemy => enemy.attack.resolveTick - g.tick <= 24).length,
+    threatCount: incomingThreats(g, s, true).filter(enemy => enemy.attack!.resolveTick - g.tick <= 24).length,
     energy: s.energy / efficiency, energyReserve: skill.reserve / efficiency,
     lastOutcome: s.lastOutcome?.outcome, sameTarget: !s.lastOutcome || s.lastOutcome.targetId === target?.id,
     attackWindupMultiplier: skill.attackWindupMultiplier, combatSkill: skill.skill });
 }
-function tacticalContext(g, s, target) {
-  const cache = phaseCaches.get(g)?.contexts, cacheKey = `${s.id}:${target?.id}`; if (cache?.has(cacheKey)) return cache.get(cacheKey);
+function tacticalContext(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier | null | undefined): import("./tactics.js").TacticsContext & {guardCost: number; distance: number; saberRange: number; saberCost: number; forceRange: number; forceCost: number; saberMoveIndex: number; threatAgeTicks: number; reactionTicks: number; threatTicks: number; parryWindowTicks: number; nearbyEnemies: number; nearbyAllies: number; attackKind?: AttackKind | null; rankIndex: number} {
+  const cache = phaseCaches.get(g)?.contexts, cacheKey = `${s.id}:${target?.id}`; if (cache?.has(cacheKey)) return cache.get(cacheKey)!;
   const form = formFor(s), saber = KNIVES[s.meleeWeapon], skill = combatSkillProfile(s.career), wield = saberWieldProfile(g.config, s);
   const sequence = combatSequence(g, s, target, skill), move = selectFormMove(s.form, sequence.index);
   const forceSituation = target && permitsForceAttacks(g.config) ? forceContext(g, s, target) : null;
   const ability = target && permitsForceAttacks(g.config) ? selectForceAbility(s, forceSituation) : null;
   const force = forceAbilityWeapon(WEAPONS[s.weapon], ability?.id);
   const enemyForm = target ? formFor(target) : null;
-  const threats = incomingThreats(g, s), reacted = threats.filter(enemy => g.tick - enemy.attack.startedTick >= skill.reactionTicks);
+  const threats = incomingThreats(g, s), reacted = threats.filter(enemy => g.tick - enemy.attack!.startedTick >= skill.reactionTicks);
   // A fresh faster strike cannot mask an older secondary attack already read.
   const threat = (reacted[0] || threats[0])?.attack;
   const nearby = aliveTeam(g, 1 - s.team).filter(e => sees(g, s, e) && dist(s, e) < 125);
@@ -486,14 +598,14 @@ function tacticalContext(g, s, target) {
     saberRange: saber.range + form.reachBonus + move.reachBonus, forceRange: permitsForceAttacks(g.config) ? force.range : 0, distance: target ? dist(s, target) : Infinity,
     guardCost: form.blockCost * skill.energyEfficiency * skill.guardEnergyEfficiency * wield.blockCostMultiplier,
     forceCost: force.energyCost * form.forceCostMultiplier * skill.energyEfficiency, saberCost: move.energyCost * skill.energyEfficiency * wield.energyMultiplier, counterReady: s.counterUntil > g.tick,
-    enemySaberRange: target ? KNIVES[target.meleeWeapon].range + enemyForm.reachBonus : 0,
+    enemySaberRange: target ? KNIVES[target.meleeWeapon].range + enemyForm!.reachBonus : 0,
     enemyRecoveryTicks: target ? recoveryTicks(g, target) : 0, enemyStaggerTicks: target ? Math.max(0, target.staggerUntil - g.tick) : 0, forceWindupTicks: ticks(force.windup),
     saberMoveIndex: sequence.index,
     saberWindupTicks: ticks(saberWindup(s, move, skill, s.counterUntil > g.tick)),
-    threatCount: reacted.length, secondaryThreatTicks: secondary[0] ? secondary[0].attack.resolveTick - g.tick : Infinity,
+    threatCount: reacted.length, secondaryThreatTicks: secondary[0] ? secondary[0].attack!.resolveTick - g.tick : Infinity,
     crowdRecoveryTicks: otherRecovery.length ? Math.min(...otherRecovery) : Infinity,
     nearbyAllies: aliveTeam(g, s.team).filter(friend => friend.id !== s.id && dist(s, friend) < 125).length,
-    forceControlTargets: ability?.mechanic === 'repulse' ? forceSituation.repulseTargets : ability?.mechanic === 'sweep' ? forceSituation.sweepTargets : 0,
+    forceControlTargets: ability?.mechanic === 'repulse' ? forceSituation!.repulseTargets : ability?.mechanic === 'sweep' ? forceSituation!.sweepTargets : 0,
     guardOrdered: s.guardUntil > g.tick, forceRequested: s.forceRequestedUntil > g.tick,
     forceAbilityId: ability?.id ?? null, combatSkill: skill.skill, rankIndex: skill.rankIndex, reactionTicks: skill.reactionTicks,
     energyReserve: skill.reserve, parryWindowTicks: skill.parryWindowTicks,
@@ -506,7 +618,7 @@ function tacticalContext(g, s, target) {
   cache?.set(cacheKey, context); return context;
 }
 /** Derived tactical intent; never mutates the game or consumes RNG. */
-export function duelIntent(g, s) {
+export function duelIntent(g: ClassicGame, s: ClassicSoldier | null | undefined): Decision {
   if (s && controlled(g, s)) return playerIntent(g, s);
   if (!s?.alive) return { action: 'wait', move: 'hold', dash: false, reason: 'Fighter defeated', reserve: 0 };
   if (s.attack) return { action: 'wait', move: 'hold', dash: false, reason: 'Committed to attack', reserve: 0 };
@@ -530,12 +642,12 @@ export function duelIntent(g, s) {
   }
   return { ...chooseAction(context), targetId: target?.id ?? null };
 }
-function playerTarget(g, s) {
+function playerTarget(g: ClassicGame, s: ClassicSoldier) {
   const chosen = g.soldiers.find(t => t.id === g.control.input.targetId && t.alive && t.team !== s.team);
   return chosen && sees(g, s, chosen) ? chosen : selectTarget(g, s);
 }
-function playerIntent(g, s) {
-  const idle = { action: 'wait', move: 'manual', dash: false, reason: 'Player controlled', reserve: 0 };
+function playerIntent(g: ClassicGame, s: ClassicSoldier): Decision {
+  const idle: Decision = { action: 'wait', move: 'manual', dash: false, reason: 'Player controlled', reserve: 0 };
   if (!s.alive || s.attack || s.staggerUntil > g.tick || s.landingRecoveryUntil > g.tick || s.pinned) return { ...idle, reason: !s.alive ? 'Fighter defeated' : s.attack ? 'Committed to attack' : 'Recover from landing, stagger or pressure' };
   const input = g.control.input, target = playerTarget(g, s), form = formFor(s);
   const distance = target ? dist(s, target) : Infinity;
@@ -548,7 +660,7 @@ function playerIntent(g, s) {
   idle.reason = idle.action === 'wait' ? input.guard ? 'Player guard' : 'Player controlled' : `Player ${idle.action}`;
   return idle;
 }
-function summarize(g) {
+function summarize(g: ClassicGame) {
   for (const team of [0, 1]) {
     const friends = aliveTeam(g, team), squad = g.squads[team];
     squad.morale = average(friends, 'morale'); squad.suppression = average(friends, 'suppression');
@@ -557,7 +669,7 @@ function summarize(g) {
   const blue = aliveTeam(g, 0), red = aliveTeam(g, 1);
   if (blue.length && red.length) g.frontLine = clamp((average(blue, 'x') + average(red, 'x')) / 2, 80, g.terrain.width - 80);
 }
-function updateCommanders(g) {
+function updateCommanders(g: ClassicGame) {
   if (g.tick < g._nextAiDecision) return;
   g._nextAiDecision = g.tick + 60;
   for (const team of [0, 1]) {
@@ -595,7 +707,7 @@ function updateCommanders(g) {
     squad.tactic = tactic; if (team === 0) g.playerTactic = tactic; else g.enemyTactic = tactic;
   }
 }
-function physiology(g, s) {
+function physiology(g: ClassicGame, s: ClassicSoldier) {
   if (!s.alive) return;
   practice(s, s.form, 'ticks');
   const form = formFor(s), skill = combatSkillProfile(s.career);
@@ -613,7 +725,7 @@ function physiology(g, s) {
 }
 /** Local footwork scores real reachable directions. It never relocates an actor,
  * sees hidden foes, overrides retreat, or grants an invulnerable dodge. */
-function crowdFootwork(g, s, target, mode) {
+function crowdFootwork(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier, mode: string) {
   const enemies = aliveTeam(g, 1 - s.team).filter(enemy => sees(g, s, enemy) && dist(s, enemy) < 160);
   const length = Math.max(1, dist(s, target)), nx = (s.x - target.x) / length, ny = (s.y - target.y) / length;
   if (enemies.length < 2 && mode === 'evade') return { x: s.x + nx * 65, y: s.y + ny * 65 };
@@ -641,9 +753,9 @@ function crowdFootwork(g, s, target, mode) {
 }
 // Approach assignments share the movement phase's immutable positions and
 // decisions. Derived plans never enter saves or survive movement/death changes.
-function teamApproaches(g, team, decisions) {
+function teamApproaches(g: ClassicGame, team: number, decisions?: ReadonlyMap<string, Decision>): Map<string, Plan> {
   const cache = phaseCaches.get(g)?.squadPlans;
-  if (cache?.has(team)) return cache.get(team);
+  if (cache?.has(team)) return cache.get(team)!;
   const actors = [];
   const order = team === 0 ? g.playerOrder : g.enemyOrder;
   if (g.status === 'playing' && g.config.mapSize !== 'legacy' && !['retreat', 'regroup'].includes(order)) {
@@ -672,25 +784,25 @@ function teamApproaches(g, team, decisions) {
   return plans;
 }
 /** Current squad positioning readout; pure and independent of inspection order. */
-export function squadIntent(g, s) {
+export function squadIntent(g: ClassicGame, s: ClassicSoldier) {
   if (!g || !s?.alive || !g.soldiers.includes(s)) return null;
   const plan = teamApproaches(g, s.team).get(s.id);
   return plan ? { ...plan } : null;
 }
-function moveSoldier(g, s, decision) {
+function moveSoldier(g: ClassicGame, s: ClassicSoldier, decision: Decision) {
   if (!s.alive) return;
   if (s.airborne) { s.moving = true; s.stance = 'run'; return; }
   if (controlled(g, s)) return movePlayer(g, s, decision);
   const enemy = selectTarget(g, s), form = formFor(s); s.target = enemy?.id || null;
   const order = tacticalOrder(g, s);
-  let destination = node(g, s.team, order === 'retreat' ? 0 : s.holdBank, s.lane);
+  let destination: Point = node(g, s.team, order === 'retreat' ? 0 : s.holdBank, s.lane)!;
   // A compact selected cut needs a closer approach than the base blade measure.
   // Longer-reach moves may still use the ordinary conservative approach.
   const reach = KNIVES[s.meleeWeapon].range + form.reachBonus + Math.min(0, selectFormMove(s.form, decision.moveIndex || 0).reachBonus);
   if (order === 'advance') {
-    if (dist(s, node(g, s.team, s.bank, s.lane)) < 5 && s.bank < 2 && !s.pinned && g.tick >= s.nextMoveTick && (Math.floor(g.tick / 100) % 2 === s.lane % 2 || aliveTeam(g, s.team).length <= 2)) { s.bank++; s.nextMoveTick = g.tick + 110; }
-    destination = node(g, s.team, s.bank, s.lane); s.holdBank = s.bank;
-    if (!enemy && s.bank === 2 && g.config.mapSize !== 'legacy') destination = formationObjectiveDestination(g.terrain, g.objective, s.team, s.lane, g.config.formations[s.team]);
+    if (dist(s, node(g, s.team, s.bank, s.lane)!) < 5 && s.bank < 2 && !s.pinned && g.tick >= s.nextMoveTick && (Math.floor(g.tick / 100) % 2 === s.lane % 2 || aliveTeam(g, s.team).length <= 2)) { s.bank++; s.nextMoveTick = g.tick + 110; }
+    destination = node(g, s.team, s.bank, s.lane)!; s.holdBank = s.bank;
+    if (!enemy && s.bank === 2 && g.config.mapSize !== 'legacy') destination = formationObjectiveDestination(g.terrain, g.objective, s.team, s.lane, g.config.formations[s.team])!;
     if (enemy && (s.bank === 2 || dist(s, enemy) < 190)) destination = { x: enemy.x - (s.team === 0 ? 1 : -1) * reach * .72, y: enemy.y };
   } else if (order === 'hold' && enemy && dist(s, enemy) < 125) destination = { x: enemy.x - (s.team === 0 ? 1 : -1) * reach * .8, y: enemy.y };
   const approach = phaseCaches.get(g)?.squadPlans.get(s.team)?.get(s.id);
@@ -754,7 +866,7 @@ function moveSoldier(g, s, decision) {
   s.stance = s.staggerUntil > g.tick ? 'stagger' : s.attack ? s.attack.kind : s.moving ? 'run' : s.guard ? 'guard' : 'stand';
   s.state = s.staggerUntil > g.tick ? 'stagger' : s.attack ? 'firing' : s.moving ? 'moving' : s.cover ? 'covered' : 'ready';
 }
-function movePlayer(g, s, decision) {
+function movePlayer(g: ClassicGame, s: ClassicSoldier, decision: Decision) {
   if (!s.alive) return;
   const input = g.control.input, form = formFor(s), target = playerTarget(g, s), bounds = worldBounds(g);
   s.target = target?.id ?? null;
@@ -772,7 +884,7 @@ function movePlayer(g, s, decision) {
   s.destinationX = desired.x; s.destinationY = desired.y;
   s.cover = inCover(g, s);
   // A paid attack keeps its visible aim even if movement or target input changes.
-  const committedTarget = s.attack && g.soldiers.find(other => other.id === s.attack.target);
+  const committedTarget = s.attack && g.soldiers.find(other => other.id === s.attack!.target);
   if (committedTarget) s.facing = committedTarget.x >= s.x ? 1 : -1;
   else if (!s.attack && dx) s.facing = dx > 0 ? 1 : -1;
   else if (!s.attack && target) s.facing = target.x >= s.x ? 1 : -1;
@@ -781,7 +893,7 @@ function movePlayer(g, s, decision) {
   s.state = s.staggerUntil > g.tick ? 'stagger' : s.attack ? 'firing' : s.moving ? 'moving' : s.cover ? 'covered' : 'ready';
 }
 /** Simultaneous pair corrections avoid permanent crowd stacking; no RNG. */
-function separateFighters(g) {
+function separateFighters(g: ClassicGame) {
   if (g.config.mapSize === 'legacy') return;
   const active = g.soldiers.filter(s => s.alive);
   for (let pass = 0; pass < 2; pass++) {
@@ -800,27 +912,27 @@ function separateFighters(g) {
     active.forEach((s, i) => { const point = moveSwept(g.terrain, s, { x: s.x + offsets[i].x, y: s.y + offsets[i].y }); s.x = point.x; s.y = point.y; });
   }
 }
-function startAttack(g, s, target, kind, plannedAbilityId = undefined, plannedMoveIndex = undefined) {
+function startAttack(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier | null | undefined, kind: AttackKind, plannedAbilityId: string | null | undefined = undefined, plannedMoveIndex: number | undefined = undefined) {
   if (kind === 'force' && !permitsForceAttacks(g.config)) return false;
   if (!s.alive || !target?.alive || target.team === s.team || s.attack || s.pinned || s.staggerUntil > g.tick || s.landingRecoveryUntil > g.tick || !sees(g, s, target) || !unobstructed(g, s, target, kind)) return false;
   const form = formFor(s), skill = combatSkillProfile(s.career), wield = saberWieldProfile(g.config, s);
-  const comboIndex = kind === 'saber' ? Number.isInteger(plannedMoveIndex) && plannedMoveIndex >= 0 && plannedMoveIndex < getFormMoves(s.form).length ? plannedMoveIndex : combatSequence(g, s, target, skill).index : 0;
+  const comboIndex = kind === 'saber' ? Number.isInteger(plannedMoveIndex) && plannedMoveIndex! >= 0 && plannedMoveIndex! < getFormMoves(s.form).length ? plannedMoveIndex! : combatSequence(g, s, target, skill).index : 0;
   const move = kind === 'saber' ? selectFormMove(s.form, comboIndex) : null;
   // A new acrobatic move needs its own real arc, never a borrowed dash landing.
   if (s.airborne?.controlSourceId || (move?.jump && s.airborne)) return false;
   const ability = kind === 'force' ? plannedAbilityId === undefined ? selectForceAbility(s, forceContext(g, s, target)) : forceAbilityById(plannedAbilityId) : null;
-  const weapon = kind === 'saber' ? KNIVES[s.meleeWeapon] : forceAbilityWeapon(WEAPONS[s.weapon], ability?.id);
-  const cost = (kind === 'saber' ? (move?.energyCost ?? 8) * wield.energyMultiplier : weapon.energyCost * form.forceCostMultiplier) * skill.energyEfficiency;
+  const weapon: ContactWeapon = kind === 'saber' ? KNIVES[s.meleeWeapon] : forceAbilityWeapon(WEAPONS[s.weapon], ability?.id);
+  const cost = (kind === 'saber' ? (move?.energyCost ?? 8) * wield.energyMultiplier : weapon.energyCost! * form.forceCostMultiplier) * skill.energyEfficiency;
   if (s.energy < cost || (kind === 'saber' ? s.saberReadyTick : s.forceReadyTick) > g.tick || dist(s, target) > weapon.range + (kind === 'saber' ? form.reachBonus + (move?.reachBonus ?? 0) : 0)) return false;
   s.target = target.id; s.facing = target.x >= s.x ? 1 : -1;
   s.energy -= cost;
   const counter = kind === 'saber' && s.counterUntil > g.tick;
-  const windup = kind === 'saber' ? saberWindup(s, move, skill, counter) : weapon.windup;
+  const windup = kind === 'saber' ? saberWindup(s, move, skill, counter) : weapon.windup!;
   const observation = s.observation?.targetId === target.id ? s.observation : null;
   const lead = Math.min(windup, skill.predictionSeconds);
   s.attack = { kind, target: target.id, startedTick: g.tick, resolveTick: g.tick + ticks(windup), counter, form: s.form, weapon: kind === 'saber' ? s.meleeWeapon : s.weapon,
     moveId: move?.id ?? null, comboIndex, abilityId: ability?.id ?? null, aimX: target.x + (observation?.vx || 0) * lead, aimY: target.y + (observation?.vy || 0) * lead };
-  if (kind === 'saber' && wield.bladeCount === 2) Object.assign(s.attack, { dual: true, offhand: false, offhandResolveTick: s.attack.resolveTick + wield.offhandDelayTicks });
+  if (kind === 'saber' && wield.bladeCount === 2) Object.assign(s.attack!, { dual: true, offhand: false, offhandResolveTick: s.attack!.resolveTick + wield.offhandDelayTicks });
   if (kind === 'saber') { s.lastSaberMoveId = move?.id || null; s.saberSequence = ((s.saberSequence || 0) + 1) % 1000000; }
   if (move?.jump && !(counter && skill.skill >= .28) && !s.airborne && !isRelicCarrier(g, s)) { const length = Math.max(1, dist(s, target)), jump = trainedJumpSpec(move.jump, skill); if (startAirborne(s, g.tick, { ...jump, directionX: (target.x - s.x) / length, directionY: (target.y - s.y) / length })) s.aerialAttackReadyTick = g.tick + 110; }
   s.guard = false; s.combatState = kind; s.lastShotTick = g.tick;
@@ -828,10 +940,10 @@ function startAttack(g, s, target, kind, plannedAbilityId = undefined, plannedMo
   else { s.forceReadyTick = g.tick + ticks(weapon.interval * s.career.modifiers.reloadMultiplier); s.forceRequestedUntil = 0; s.lastForceAbility = ability?.id ?? 'force_push'; s.forceAbilitySequence = (s.forceAbilitySequence || 0) + 1; g.stats.forceCasts[s.team]++; g.stats.shots[s.team]++; }
   s.attackCooldown = Math.max(0, (s.saberReadyTick - g.tick) / TICK_RATE);
   s.forceCooldown = Math.max(0, (s.forceReadyTick - g.tick) / TICK_RATE);
-  effect(g, 'telegraph', s.x, s.y, s.team, { soldierId: s.id, targetId: target.id, form: s.form, kind, dual: !!s.attack.dual, offhand: false, comboIndex, moveId: move?.id ?? null, abilityId: ability?.id ?? null, motion: move?.motion ?? form.technique.motion, x2: s.attack.aimX, y2: s.attack.aimY, ttl: windup, maxTtl: windup });
+  effect(g, 'telegraph', s.x, s.y, s.team, { soldierId: s.id, targetId: target.id, form: s.form, kind, dual: !!s.attack!.dual, offhand: false, comboIndex, moveId: move?.id ?? null, abilityId: ability?.id ?? null, motion: move?.motion ?? form.technique.motion, x2: s.attack!.aimX, y2: s.attack!.aimY, ttl: windup, maxTtl: windup });
   return true;
 }
-function attackFeedback(g, s, attack, target, outcome, damage = 0) {
+function attackFeedback(g: ClassicGame, s: ClassicSoldier, attack: Attack, target: ClassicSoldier | null | undefined, outcome: AttackOutcome, damage = 0) {
   const isCounter = !!attack.counter && (outcome === 'hit' || outcome === 'blocked');
   const actual = rounded(Math.max(0, damage));
   const text = outcome === 'hit' ? `${isCounter ? 'Counter ' : ''}${actual}` : outcome === 'blocked' ? `Block ${actual}` :
@@ -844,21 +956,21 @@ function attackFeedback(g, s, attack, target, outcome, damage = 0) {
   if (outcome !== 'interrupted') effect(g, attack.kind, s.x, s.y, s.team, extras);
   effect(g, 'feedback', outcome === 'interrupted' ? s.x : target?.x ?? s.x, outcome === 'interrupted' ? s.y : target?.y ?? s.y, s.team, { ...extras, text });
 }
-function collectAttack(g, s, impacts, decision) {
+function collectAttack(g: ClassicGame, s: ClassicSoldier, impacts: Impact[], decision: Decision) {
   if (!s.alive || s.staggerUntil > g.tick) return;
   if (s.attack) {
     if (g.tick < s.attack.resolveTick) return;
     const attack = s.attack, target = g.soldiers.find(e => e.alive && e.id === attack.target);
-    s.attack = attack.dual && !attack.offhand ? { ...attack, offhand: true, resolveTick: attack.offhandResolveTick } : null;
+    s.attack = attack.dual && !attack.offhand ? { ...attack, offhand: true, resolveTick: attack.offhandResolveTick! } : null;
     if (s.attack) { g.stats.saberSwings[s.team]++; if (target) { s.attack.aimX = target.x; s.attack.aimY = target.y; } }
     if (attack.kind === 'force' && !permitsForceAttacks(g.config)) { attackFeedback(g, s, attack, target, 'interrupted'); return; }
     if (attack.kind === 'force' && attack.abilityId === 'force_barrier') {
       const ability = forceAbilityById(attack.abilityId);
-      effect(g, 'force', s.x, s.y, s.team, { soldierId: s.id, abilityId: ability.id, kind: 'force', x2: s.x, y2: s.y }); return;
+      effect(g, 'force', s.x, s.y, s.team, { soldierId: s.id, abilityId: ability!.id, kind: 'force', x2: s.x, y2: s.y }); return;
     }
-    if (attack.kind === 'force' && ['repulse', 'sweep'].includes(forceAbilityById(attack.abilityId)?.mechanic)) { collectAreaForce(g, s, attack, impacts); return; }
+    if (attack.kind === 'force' && ['repulse', 'sweep'].includes(forceAbilityById(attack.abilityId)?.mechanic!)) { collectAreaForce(g, s, attack, impacts); return; }
     if (!target || !sees(g, s, target)) { attackFeedback(g, s, attack, null, 'target-lost'); return; }
-    const form = FORMS[attack.form], saber = attack.kind === 'saber', weapon = saber ? KNIVES[attack.weapon] : forceAbilityWeapon(WEAPONS[attack.weapon], attack.abilityId);
+    const form = FORMS[attack.form], saber = attack.kind === 'saber', weapon: ContactWeapon = saber ? KNIVES[attack.weapon] : forceAbilityWeapon(WEAPONS[attack.weapon], attack.abilityId);
     const move = saber && attack.moveId ? selectFormMove(attack.form, attack.comboIndex || 0) : null;
     if (dist(s, target) > (saber ? weapon.range + form.reachBonus + (move?.reachBonus ?? 0) + 12 - (attack.offhand ? saberWieldProfile(g.config, s).offhandReachPenalty : 0) : weapon.range) || saber && !canMeleeHit(s, target, g.tick, 30 + (move?.reachBonus ?? 0))) { attackFeedback(g, s, attack, target, 'out-of-range'); return; }
     if (!unobstructed(g, s, target, attack.kind)) { attackFeedback(g, s, attack, target, 'out-of-range'); return; }
@@ -879,19 +991,19 @@ function collectAttack(g, s, impacts, decision) {
   else if (decision.action === 'recover') s.combatState = 'recover';
 }
 /** Real contacts share the same contested defense, resource and record path. */
-function resolveContact(g, s, target, attack, weapon, move, impacts) {
+function resolveContact(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier, attack: Attack, weapon: ContactWeapon, move: FormMove | null, impacts: Impact[]) {
   const saber = attack.kind === 'saber', form = FORMS[attack.form], skill = combatSkillProfile(s.career);
   if (saber && Number.isFinite(attack.aimX)) {
     const aimed = Math.atan2(attack.aimY - s.y, attack.aimX - s.x), actual = Math.atan2(target.y - s.y, target.x - s.x);
     const error = Math.abs(Math.atan2(Math.sin(actual - aimed), Math.cos(actual - aimed)));
     if (error > (move?.arc ?? 1.2) / 2 + Math.atan2(12, dist(s, target))) { attackFeedback(g, s, attack, target, 'miss'); return; }
   }
-  let accuracy = (saber ? .91 : weapon.accuracy) + s.career.modifiers.accuracyBonus + s.rank * .012 + doctrineFor(g, s.team).accuracyBonus - s.suppression * .0013;
+  let accuracy = (saber ? .91 : weapon.accuracy!) + s.career.modifiers.accuracyBonus + s.rank * .012 + doctrineFor(g, s.team).accuracyBonus - s.suppression * .0013;
   if (!saber) accuracy *= g.config.mapSize === 'legacy' ? (target.cover ? .86 : 1) : coverMultiplier(g.terrain, s, target);
   if (random(g) >= clamp(accuracy, .15, .97)) { attackFeedback(g, s, attack, target, 'miss'); return; }
   const wield = saberWieldProfile(g.config, s), targetWield = saberWieldProfile(g.config, target);
   let amount = weapon.damage * (saber ? form.damageMultiplier * (move?.damageMultiplier ?? 1) * (attack.counter ? form.counterMultiplier : 1) * (attack.dual ? attack.offhand ? wield.offhandDamageMultiplier : wield.primaryDamageMultiplier : 1) : 1);
-  let suppression = saber ? (move?.pressure ?? 10) : weapon.suppression;
+  let suppression = saber ? (move?.pressure ?? 10) : weapon.suppression!;
   const targetForm = formFor(target), targetSkill = combatSkillProfile(target.career), snapshot = defenseSnapshots.get(g)?.get(target.id);
   const kind = snapshot?.kind ?? target.attack?.kind;
   const read = g.tick - attack.startedTick >= targetSkill.reactionTicks && sees(g, target, s);
@@ -921,25 +1033,25 @@ function resolveContact(g, s, target, attack, weapon, move, impacts) {
   if (!saber) applyForceMechanic(g, s, target, attack, weapon, blocked, impacts);
   if (target.barrierUntil > g.tick && target.barrierEnergy > 0 && permitsForceAttacks(g.config)) { const absorbed = Math.min(target.barrierEnergy, amount * .4); target.barrierEnergy -= absorbed; amount -= absorbed; }
   impacts.push({ target: target.id, source: s.id, amount, suppression, kind: attack.kind, feedback: { attack, outcome: blocked ? 'blocked' : 'hit' },
-    stagger: !blocked && (!saber || attack.counter) ? (saber ? .24 * (move?.staggerMultiplier ?? 1) : weapon.stagger) : 0, push: !blocked && !saber ? weapon.knockback : 0 });
+    stagger: !blocked && (!saber || attack.counter) ? (saber ? .24 * (move?.staggerMultiplier ?? 1) : weapon.stagger!) : 0, push: !blocked && !saber ? weapon.knockback! : 0 });
 }
-function areaContains(s, target, attack, weapon) {
-  if (dist(s, target) > weapon.radius) return false;
+function areaContains(s: ClassicSoldier, target: ClassicSoldier, attack: Partial<Pick<Attack, 'aimX' | 'aimY'>>, weapon: {radius?: number; mechanic?: string; cone?: number}) {
+  if (dist(s, target) > weapon.radius!) return false;
   if (weapon.mechanic !== 'sweep') return true;
   const aimed = Math.atan2((attack.aimY ?? target.y) - s.y, (attack.aimX ?? target.x) - s.x), actual = Math.atan2(target.y - s.y, target.x - s.x);
-  return Math.abs(Math.atan2(Math.sin(actual - aimed), Math.cos(actual - aimed))) <= weapon.cone / 2;
+  return Math.abs(Math.atan2(Math.sin(actual - aimed), Math.cos(actual - aimed))) <= weapon.cone! / 2;
 }
-function collectAreaForce(g, s, attack, impacts) {
+function collectAreaForce(g: ClassicGame, s: ClassicSoldier, attack: Attack, impacts: Impact[]) {
   const weapon = forceAbilityWeapon(WEAPONS[attack.weapon], attack.abilityId);
   const targets = aliveTeam(g, 1 - s.team).filter(other => areaContains(s, other, attack, weapon) && sees(g, s, other) && unobstructed(g, s, other, 'force'));
   if (!targets.length) { attackFeedback(g, s, attack, null, 'out-of-range'); return; }
   for (const target of targets) resolveContact(g, s, target, attack, weapon, null, impacts);
 }
 /** Force effects share ordinary energy, range, sight, damage and stagger rules. */
-function forceContext(g, s, target) {
+function forceContext(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier) {
   const skill = combatSkillProfile(s.career), enemies = aliveTeam(g, 1 - s.team).filter(e => sees(g, s, e));
   const aimed = { aimX: target.x, aimY: target.y };
-  const count = id => { const ability = forceAbilityById(id); return enemies.filter(e => areaContains(s, e, aimed, ability) && unobstructed(g, s, e, 'force')).length; };
+  const count = (id: string) => { const ability = forceAbilityById(id); return enemies.filter(e => areaContains(s, e, aimed, ability!) && unobstructed(g, s, e, 'force')).length; };
   const threats = incomingThreats(g, s, true);
   return { distance: dist(s, target), nearbyEnemies: enemies.filter(e => dist(s, e) < 140).length,
     repulseTargets: count('force_repulse'), sweepTargets: count('force_sweep'), incomingThreats: threats.length,
@@ -947,21 +1059,21 @@ function forceContext(g, s, target) {
     enemyCarrier: isRelicCarrier(g, target), incomingAttack: threats.length > 0, targetGuarding: target.guard, targetRecovering: target.staggerUntil > g.tick,
     targetAirborne: airborneHeight(target, g.tick) > 15, forceRequested: s.forceRequestedUntil > g.tick };
 }
-function applyForceMechanic(g, s, target, attack, weapon, blocked, impacts) {
+function applyForceMechanic(g: ClassicGame, s: ClassicSoldier, target: ClassicSoldier, attack: Attack, weapon: ContactWeapon, blocked: boolean, impacts: Impact[]) {
   if (!permitsForceAttacks(g.config)) return;
   const ability = forceAbilityById(attack.abilityId);
   if (!ability) return;
-  if (ability.mechanic === 'barrier') { s.barrierUntil = g.tick + ability.barrierTicks; s.barrierEnergy = ability.barrierEnergy; }
+  if (ability.mechanic === 'barrier') { s.barrierUntil = g.tick + ability!.barrierTicks; s.barrierEnergy = ability!.barrierEnergy!; }
   if (ability.mechanic === 'throw') s.saberReadyTick = Math.max(s.saberReadyTick, g.tick + ability.saberDelayTicks);
   if (blocked) return;
   if (ability.mechanic === 'lightning') impacts.push({ target: target.id, source: s.id, amount: 0, energyDrain: ability.energyDrain });
   if (ability.mechanic === 'grip') {
     s.forceControl = { targetId: target.id, untilTick: g.tick + ability.controlTicks, releaseTick: g.tick + ability.controlTicks, kind: ability.id };
-    if (startAirborne(target, g.tick, { durationTicks: ability.controlTicks, height: 42, distance: 0, recoveryTicks: 8, rotations: 0 })) target.airborne.controlSourceId = s.id;
+    if (startAirborne(target, g.tick, { durationTicks: ability.controlTicks, height: 42, distance: 0, recoveryTicks: 8, rotations: 0 })) target.airborne!.controlSourceId = s.id;
   }
 
 }
-function pendingForce(g, impacts) {
+function pendingForce(g: ClassicGame, impacts: Impact[]) {
   for (const s of g.soldiers) {
     const control = s.forceControl;
     const releaseControl = () => {
@@ -976,7 +1088,7 @@ function pendingForce(g, impacts) {
     if (g.tick >= control.releaseTick) { impacts.push({ target: target.id, source: s.id, amount: 0, suppression: 4, push: ability.releaseKnockback, kind: 'force' }); s.forceControl = null; effect(g, 'force', s.x, s.y, s.team, { soldierId: s.id, targetId: target.id, abilityId: ability.id, x2: target.x, y2: target.y }); }
   }
 }
-function observeOpponent(g, s) {
+function observeOpponent(g: ClassicGame, s: ClassicSoldier) {
   if (!s.alive) return;
   const target = selectTarget(g, s), old = s.observation;
   if (!target) { s.observation = null; return; }
@@ -985,15 +1097,15 @@ function observeOpponent(g, s) {
     vx: continuous ? clamp((target.x - old.x) * TICK_RATE, -220, 220) : 0,
     vy: continuous ? clamp((target.y - old.y) * TICK_RATE, -220, 220) : 0 };
 }
-function creditRecord(g, s, key) {
-  increment(s, key); increment(g.records.teams[s.team], key); increment(g.records.soldiers.find(r => r.id === s.id), key);
+function creditRecord(g: ClassicGame, s: ClassicSoldier, key: keyof RecordCount) {
+  increment(s, key); increment(g.records.teams[s.team], key); increment(g.records.soldiers.find(r => r.id === s.id)!, key);
   g.stats[key][s.team] = Math.min(MAX_RECORD_COUNT, g.stats[key][s.team] + 1);
 }
 /** No RNG: batch HP settlement mutates g and returns deaths. Six seconds of actual
  * enemy damage chooses the killer (lexical ID ties); other recent contributors
  * assist. A lethal batch without enemy damage is environmental. Dead targets are
  * ignored; all HP commits before attribution, allowing mutual kills. */
-export function resolveDamage(g, impacts = []) {
+export function resolveDamage(g: ClassicGame, impacts: Impact[] = []) {
   if (!g || g.status !== 'playing' || !Array.isArray(impacts)) return { deaths: [] };
   const totals = new Map(), rewards = new Map(), clean = [];
   for (const hit of impacts) {
@@ -1003,10 +1115,10 @@ export function resolveDamage(g, impacts = []) {
     const source = g.soldiers.find(s => s.id === hit.source && s.team !== target.team);
     clean.push({ target, source, amount, pressure, feedback: hit.feedback });
     const total = totals.get(target.id) || { damage: 0, pressure: 0, enemyDamage: 0, stagger: 0, pushX: 0, pushY: 0, energyDrain: 0 };
-    total.energyDrain += Number.isFinite(hit.energyDrain) ? clamp(hit.energyDrain, 0, 100) : 0;
+    total.energyDrain += Number.isFinite(hit.energyDrain) ? clamp(hit.energyDrain!, 0, 100) : 0;
     total.damage += amount; total.pressure += pressure; if (source) total.enemyDamage += amount;
-    total.stagger = Math.max(total.stagger, Number.isFinite(hit.stagger) ? clamp(hit.stagger, 0, .65) : 0);
-    if (source && Number.isFinite(hit.push)) { const length = Math.max(1, dist(source, target)), push = clamp(hit.push, -32, 32); total.pushX += (target.x - source.x) / length * push; total.pushY += (target.y - source.y) / length * push; }
+    total.stagger = Math.max(total.stagger, Number.isFinite(hit.stagger) ? clamp(hit.stagger!, 0, .65) : 0);
+    if (source && Number.isFinite(hit.push)) { const length = Math.max(1, dist(source, target)), push = clamp(hit.push!, -32, 32); total.pushX += (target.x - source.x) / length * push; total.pushY += (target.y - source.y) / length * push; }
     totals.set(target.id, total);
   }
   for (const { target, source, amount, pressure, feedback } of clean) {
@@ -1028,7 +1140,7 @@ export function resolveDamage(g, impacts = []) {
     const total = totals.get(s.id); if (!s.alive || !total) continue;
     s.hp = Math.max(0, rounded(s.hp - total.damage)); s.energy = Math.max(0, s.energy - total.energyDrain); s.suppression = clamp(s.suppression + total.pressure, 0, 100); s.morale = clamp(s.morale - total.damage * .12, 0, 100);
     if (total.stagger > 0 && g.tick >= s.staggerImmuneUntil) {
-      if (s.attack) attackFeedback(g, s, s.attack, g.soldiers.find(other => other.id === s.attack.target), 'interrupted');
+      if (s.attack) attackFeedback(g, s, s.attack, g.soldiers.find(other => other.id === s.attack!.target), 'interrupted');
       s.staggerUntil = g.tick + ticks(total.stagger); s.staggerImmuneUntil = s.staggerUntil + 45; s.attack = null; s.guard = false; s.combatState = 'stagger'; effect(g, 'stagger', s.x, s.y, s.team, { soldierId: s.id });
     }
     const bounds = worldBounds(g), desired = { x: clamp(s.x + clamp(total.pushX, -32, 32), bounds.minX, bounds.maxX), y: clamp(s.y + clamp(total.pushY, -32, 32), bounds.minY, bounds.maxY) };
@@ -1037,7 +1149,7 @@ export function resolveDamage(g, impacts = []) {
   }
   const deaths = [];
   for (const { soldier: s, environmental } of dead) {
-    if (s.attack) attackFeedback(g, s, s.attack, g.soldiers.find(other => other.id === s.attack.target), 'interrupted');
+    if (s.attack) attackFeedback(g, s, s.attack, g.soldiers.find(other => other.id === s.attack!.target), 'interrupted');
     Object.assign(s, { alive: false, state: 'dead', stance: 'stand', cover: false, melee: false, moving: false, target: null, attack: null, guard: false, airborne: null, airborneHeight: 0, combatState: 'dead' }); creditRecord(g, s, 'deaths');
     snapshotPosition(s);
     const dropped = dropRelic(g, s, TICK_RATE);
@@ -1065,7 +1177,7 @@ export function resolveDamage(g, impacts = []) {
   }
   return { deaths };
 }
-function updateObjective(g) {
+function updateObjective(g: ClassicGame) {
   if (g.config.matchMode === 'elimination') return;
   if (g.config.matchMode === 'relic') {
     const carrier = g.soldiers.find(s => s.alive && isRelicCarrier(g, s));
@@ -1089,7 +1201,7 @@ function updateObjective(g) {
     for (const s of aliveTeam(g, o.owner)) if (!s.pinned && !s.rallying && s.staggerUntil <= g.tick && dist(s, o) <= o.radius) { s.objectiveSeconds += DT; practice(s, s.form, 'objectiveSeconds', DT); }
   }
 }
-function awardRoundCareers(g) {
+function awardRoundCareers(g: ClassicGame) {
   const careers = g.soldiers.map(s => {
     const before = progressionSummary(g.careers[s.team][s.lane]);
     const reward = meritForRound({ damageDealt: s.damageDealt, kills: s.kills, objectiveSeconds: s.objectiveSeconds, suppressionDealt: s.suppressionDealt, survived: s.alive, won: g.winner === s.team });
@@ -1107,7 +1219,7 @@ function awardRoundCareers(g) {
   });
   g.roundReport = { round: g.round, doctrines: [...g.doctrines], careers, mastery, commendations, records: { teams: g.records.teams.map(r => ({ ...r })), soldiers: g.records.soldiers.map(r => ({ ...r })) } };
 }
-function finishRound(g) {
+function finishRound(g: ClassicGame) {
   const outcome = resolveRoundOutcome(g);
   if (!outcome) return;
   const { survivors: counts, health } = outcome;
@@ -1116,12 +1228,12 @@ function finishRound(g) {
   awardRoundCareers(g);
   g.history.push({ round: g.round, winner: g.winner, reason: g.reason, time: g.time, terrain: g.terrain.id, survivors: counts, health: [...health], objective: [...g.objective.points] });
   if (g.history.length > 50) g.history.shift(); event(g, 'result', g.winner, g.winner === null ? 'Round drawn' : `${g.winner === 0 ? 'Blue' : 'Red'} won: ${g.reason.toLowerCase()}`);
-  g.roundReport.recap = buildBattleRecap(g);
+  g.roundReport!.recap = buildBattleRecap(g as ClassicGame & {roundReport: RoundReport});
 }
-function tick(g) {
+function tick(g: ClassicGame) {
   captureRenderPositions(g);
   g.tick++; g.time = g.tick / TICK_RATE; g.timeLeft = Math.max(0, g.roundDuration - g.time);
-  for (const key of ['forceCooldown', 'aiForceCooldown', 'guardCooldown', 'aiGuardCooldown']) g[key] = Math.max(0, g[key] - DT);
+  for (const key of ['forceCooldown', 'aiForceCooldown', 'guardCooldown', 'aiGuardCooldown'] as const) g[key] = Math.max(0, g[key] - DT);
   for (const e of g.effects) e.ttl -= DT; g.effects = g.effects.filter(e => e.ttl > 0);
   for (const s of g.soldiers) {
     if (s.airborne) advanceAirborne(s, g.tick, (unit, dx, dy) => {
@@ -1133,14 +1245,14 @@ function tick(g) {
   resetPhase(g);
   for (const s of g.soldiers) observeOpponent(g, s);
   summarize(g); updateCommanders(g); updateCommandProgress(g); resetPhase(g);
-  const positions = g.soldiers.map(s => ({ x: s.x, y: s.y })), moved = [], movementDecisions = g.soldiers.map(s => duelIntent(g, s));
+  const positions = g.soldiers.map(s => ({ x: s.x, y: s.y })), moved: Point[] = [], movementDecisions = g.soldiers.map(s => duelIntent(g, s));
   const approachDecisions = new Map(g.soldiers.map((s, i) => [s.id, movementDecisions[i]]));
   for (const team of [0, 1]) teamApproaches(g, team, approachDecisions);
   for (let i = 0; i < g.soldiers.length; i++) { const s = g.soldiers[i]; moveSoldier(g, s, movementDecisions[i]); moved.push({ x: s.x, y: s.y }); s.x = positions[i].x; s.y = positions[i].y; }
   g.soldiers.forEach((s, i) => { s.x = moved[i].x; s.y = moved[i].y; });
   separateFighters(g); resetPhase(g);
   for (const s of g.soldiers) if (s.alive) { s.cover = inCover(g, s); if (s.cover) g.stats.coverTime[s.team] += DT; }
-  const impacts = [], decisions = g.soldiers.map(s => duelIntent(g, s));
+  const impacts: Impact[] = [], decisions = g.soldiers.map(s => duelIntent(g, s));
   // Every decision sees the same attacks and positions. Committing actors give up
   // their idle defense before any strike resolves, regardless of iteration order.
   g.soldiers.forEach((s, i) => {
@@ -1159,7 +1271,7 @@ function tick(g) {
     const decision = decisions[i], kind = s.attack?.kind || (['saber', 'force'].includes(decision.action) ? decision.action : null);
     const window = combatSkillProfile(s.career).parryWindowTicks;
     let threatCount = 0;
-    for (const enemy of incomingThreats(g, s, true)) if (enemy.attack.resolveTick - g.tick <= window) threatCount++;
+    for (const enemy of incomingThreats(g, s, true)) if (enemy.attack!.resolveTick - g.tick <= window) threatCount++;
     defenses.set(s.id, { kind, threatCount });
   }
   defenseSnapshots.set(g, defenses);
@@ -1167,7 +1279,7 @@ function tick(g) {
   // Otherwise roster order decides whether a same-tick strike sees a barrier.
   if (permitsForceAttacks(g.config)) for (const s of g.soldiers) {
     if (s.alive && s.staggerUntil <= g.tick && s.attack?.abilityId === 'force_barrier' && s.attack.resolveTick <= g.tick) {
-      const ability = forceAbilityById('force_barrier'); s.barrierUntil = g.tick + ability.barrierTicks; s.barrierEnergy = ability.barrierEnergy;
+      const ability = forceAbilityById('force_barrier'); s.barrierUntil = g.tick + ability!.barrierTicks; s.barrierEnergy = ability!.barrierEnergy!;
     }
   }
   for (let i = 0; i < g.soldiers.length; i++) collectAttack(g, g.soldiers[i], impacts, decisions[i]);
@@ -1177,24 +1289,24 @@ function tick(g) {
   if (g.config.mapSize !== 'legacy') for (const s of g.soldiers) if (s.alive) { const hazard = terrainAt(g.terrain, s).damagePerSecond; if (hazard > 0) impacts.push({ target: s.id, amount: hazard * DT }); }
   defenseSnapshots.delete(g);
   resolveDamage(g, impacts); updateObjective(g); summarize(g); finishRound(g);
-  for (const key of ['attack', 'force', 'dash']) g.control.input[key] = false;
+  for (const key of ['attack', 'force', 'dash'] as const) g.control.input[key] = false;
 }
-export function step(g, dt) {
+export function step(g: ClassicGame, dt: number) {
   if (!g || g.status !== 'playing' || !Number.isFinite(dt) || dt <= 0) return g;
   g._accumulator += Math.min(dt, g.roundDuration);
   while (g._accumulator + 1e-9 >= DT && g.status === 'playing') { g._accumulator = Math.max(0, g._accumulator - DT); tick(g); }
-  if (g.status === 'ended' || g._accumulator < 1e-9) g._accumulator = 0;
-  if (g.status === 'ended') captureRenderPositions(g);
+  if ((g.status as ClassicGame['status']) === 'ended' || g._accumulator < 1e-9) g._accumulator = 0;
+  if ((g.status as ClassicGame['status']) === 'ended') captureRenderPositions(g);
   g.alpha = g._accumulator / DT;
   return g;
 }
-export function nextRound(g) {
+export function nextRound(g: ClassicGame) {
   if (!g || g.status !== 'ended') return g;
   g.mutations = [];
   for (const team of [0, 1]) for (let lane = 0; lane < g.config.teamSizes[team]; lane++) {
     const prior = g.soldiers.find(s => s.team === team && s.lane === lane); g.veterans[team][lane] = prior?.alive ? prior.xp : 0;
     const evolved = evolveLoadout(g.loadouts[team].roster[lane], { rng: () => random(g) }); g.loadouts[team].roster[lane] = { weapon: evolved.weapon, meleeWeapon: evolved.meleeWeapon };
-    for (const change of evolved.changes) g.mutations.push({ ...change, team, soldierId: prior.id, label: `${team === 0 ? 'Blue' : 'Red'} ${lane + 1}: ${change.label}` });
+    for (const change of evolved.changes) g.mutations.push({ ...change, team, soldierId: prior!.id, label: `${team === 0 ? 'Blue' : 'Red'} ${lane + 1}: ${change.label}` });
   }
   for (const team of [0, 1]) { g.loadouts[team].weaponTier = WEAPONS[g.loadouts[team].roster[0].weapon].quality; g.loadouts[team].knifeTier = KNIVES[g.loadouts[team].roster[0].meleeWeapon].quality; }
   g.round = Math.min(MAX_RECORD_COUNT, g.round + 1);

@@ -1,48 +1,49 @@
-// @ts-nocheck
 // Saber Pit's arena dressing. All positions are presentation-only; no game RNG,
 // terrain, hit geometry, or wall-clock state is read or mutated here.
-const buildPalette = (outer, deck, core, grid, ice, warm, conduit) => Object.freeze({
+interface StageBounds{minX?:number;minY?:number;maxX?:number;maxY?:number}
+interface ArenaStageOptions{width?:number;height?:number;mapId?:string;environment?:string;bounds?:StageBounds|null;colors?:{player?:string;enemy?:string};time?:number;fullEffects?:boolean;reducedMotion?:boolean}
+const buildPalette = (outer:string, deck:string, core:string, grid:string, ice:string, warm:string, conduit:string) => Object.freeze({
   outer, deck, core, grid, player: ice, enemy: warm, conduit,
   wallFace:'#202e42', wallEdge:'#546985', wallCap:'#adc8e4',
   barricadeFace:'#293852', barricadeEdge:'#768bad', roughFill:'#52759824',
   roughStroke:'#759ab4a0', hazardFill:'#ff9b3428', hazardStroke:'#f8af61',
   hazardHatch:'#ff9d5244', terrainLabel:'#ceddef',
 });
-const themes = Object.freeze({
+const themes:Readonly<Record<string,ReturnType<typeof buildPalette>>> = Object.freeze({
   crossroads: buildPalette('#080c18','#111d2d','#243651','#6a91ba','#63e5fc','#ff855d','#7ab0df'),
   zigzag: buildPalette('#0d0a1a','#1b162d','#36294c','#9e80bc','#76e3ef','#fca269','#bc9df6'),
   craterfield: buildPalette('#110a12','#251622','#44212c','#ad7c88','#7fe9ff','#ffa465','#ffa374'),
 });
-export function arenaPalette(mapId) { return Object.hasOwn(themes,mapId) ? themes[mapId] : themes.crossroads; }
-const rgba = (hex, a) => hex + Math.round(Math.max(0, Math.min(1,a)) * 255).toString(16).padStart(2,'0');
-const matchHex = (s, fallback) => typeof s === 'string' && /^#[a-f\d]{6}$/i.test(s) ? s : fallback;
-const clamp = (x, low, high) => Math.min(high, Math.max(low,x));
-const finite = (x, fallback) => Number.isFinite(x) ? x : fallback;
-const line = (ctx, x1,y1,x2,y2) => { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); };
-function poly(ctx, points, close = false) {
+export function arenaPalette(mapId:string|undefined) { return mapId!==undefined&&Object.hasOwn(themes,mapId) ? themes[mapId] : themes.crossroads; }
+const rgba = (hex:string, a:number) => hex + Math.round(Math.max(0, Math.min(1,a)) * 255).toString(16).padStart(2,'0');
+const matchHex = (s:unknown, fallback:string) => typeof s === 'string' && /^#[a-f\d]{6}$/i.test(s) ? s : fallback;
+const clamp = (x:number, low:number, high:number) => Math.min(high, Math.max(low,x));
+const finite = (x:number|undefined, fallback:number) => Number.isFinite(x) ? x as number : fallback;
+const line = (ctx:CanvasRenderingContext2D, x1:number,y1:number,x2:number,y2:number) => { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); };
+function poly(ctx:CanvasRenderingContext2D, points:readonly [number,number][], close = false) {
   ctx.moveTo(...points[0]);
   for (let i=1;i<points.length;i++) ctx.lineTo(...points[i]);
   if (close) ctx.closePath();
 }
-function dimensions(width, height, bounds) {
+function dimensions(width:number, height:number, bounds:StageBounds|null|undefined) {
   if (!(width >= 48 && width <= 5000 && height >= 48 && height <= 5000)) return null;
   const minX = clamp(finite(bounds?.minX,40),0,width-8), minY = clamp(finite(bounds?.minY,50),0,height-8);
   const maxX = clamp(finite(bounds?.maxX,width-40),minX+8,width), maxY = clamp(finite(bounds?.maxY,height-50),minY+8,height);
   return { minX, minY, maxX, maxY, spanX:maxX-minX, spanY:maxY-minY, centerX:width/2, centerY:height/2 };
 }
-function corners(ctx, x1,y1,x2,y2,inset) {
+function corners(ctx:CanvasRenderingContext2D, x1:number,y1:number,x2:number,y2:number,inset:number) {
   const c = Math.min(inset,(x2-x1)/3,(y2-y1)/3);
   poly(ctx, [[x1,y1+c],[x1+c,y1],[x2-c,y1],[x2,y1+c],[x2,y2-c],[x2-c,y2],[x1+c,y2],[x1,y2-c]],true);
 }
-function track(ctx, start, end, xMid, y, offset, skew) {
+function track(ctx:CanvasRenderingContext2D, start:number, end:number, xMid:number, y:number, offset:number, skew:number) {
   const shoulder=Math.abs(end-start)*.25;
   const direction=Math.sign(end-start);
   poly(ctx, [[start,y],[start+direction*shoulder,y],[xMid+direction*shoulder*.36,y+offset+skew],[end,y+offset+skew]]);
 }
-const rowsFor = d => [d.minY+d.spanY*.17,d.centerY,d.maxY-d.spanY*.17];
-const skewFor = (mapId, index) => mapId === 'zigzag' ? (index-1)*21 : mapId === 'craterfield' ? (index-1)*-17 : 0;
+const rowsFor = (d:NonNullable<ReturnType<typeof dimensions>>) => [d.minY+d.spanY*.17,d.centerY,d.maxY-d.spanY*.17];
+const skewFor = (mapId:string|undefined, index:number) => mapId === 'zigzag' ? (index-1)*21 : mapId === 'craterfield' ? (index-1)*-17 : 0;
 
-export function drawArenaStage(ctx,{width,height,mapId,environment,bounds,colors}={}) {
+export function drawArenaStage(ctx:CanvasRenderingContext2D,{width=NaN,height=NaN,mapId,environment,bounds,colors}:ArenaStageOptions={}) {
   const d=dimensions(width,height,bounds);
   if (!d) return;
   const {minX,minY,maxX,maxY,spanX,spanY,centerX,centerY}=d;
@@ -113,7 +114,7 @@ export function drawArenaStage(ctx,{width,height,mapId,environment,bounds,colors
   ctx.restore();
 }
 
-export function drawArenaCurrent(ctx,{width,height,mapId,bounds,time,fullEffects=true,reducedMotion=false,colors}={}) {
+export function drawArenaCurrent(ctx:CanvasRenderingContext2D,{width=NaN,height=NaN,mapId,bounds,time=NaN,fullEffects=true,reducedMotion=false,colors}:ArenaStageOptions={}) {
   if(!fullEffects || reducedMotion || !Number.isFinite(time)) return;
   const d=dimensions(width,height,bounds);
   if(!d || d.spanX<280 || d.spanY<100) return;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Derived repertoire: saved Force equipment IDs and quality remain unchanged.
  * These bounded arena adaptations are not claims about canonical power levels. */
 import { gradeForMerit } from './progression.js?v=1.4.0';
@@ -15,7 +14,16 @@ const lore = {
   force_sweep: ['Telekinesis adaptation', 'A forward arc of telekinetic pressure. This move name, arc and rank unlock are original game rules.', 'https://www.starwars.com/databank/the-force'],
 };
 
-const ability = (id, name, minGrade, mechanic, tuning) => Object.freeze({
+type ForceAbilityId = keyof typeof lore;
+type Mechanic = 'push' | 'pull' | 'barrier' | 'throw' | 'grip' | 'lightning' | 'repulse' | 'sweep';
+interface AbilityTuning {
+  damage: number; energyCost: number; windup: number; interval: number; range: number;
+  stagger: number; knockback: number; counterplay: string;
+  barrierTicks?: number; barrierReduction?: number; barrierEnergy?: number;
+  saberDelayTicks?: number; controlTicks?: number; releaseKnockback?: number; energyDrain?: number;
+  radius?: number; cone?: number;
+}
+const ability = (id: ForceAbilityId, name: string, minGrade: number, mechanic: Mechanic, tuning: AbilityTuning) => Object.freeze({
   id, name, minGrade, mechanic, energyDrain: 0, saberDelayTicks: 0,
   barrierTicks: 0, barrierReduction: 0, radius: 0, cone: 0,
   controlTicks: 0, releaseKnockback: 0,
@@ -30,14 +38,15 @@ export const FORCE_ABILITIES = Object.freeze(Object.fromEntries([
   ability('force_lightning', 'Force lightning', 10, 'lightning', { damage: 18, energyCost: 35, windup: .64, interval: 4.6, range: 310, stagger: .14, knockback: 0, energyDrain: 14, counterplay: 'Guard, move behind cover, or punish its long commitment and energy cost.' }),
   ability('force_repulse', 'Force repulse', 12, 'repulse', { damage: 9, energyCost: 40, windup: .42, interval: 5.8, range: 132, stagger: .24, knockback: 44, radius: 132, counterplay: 'Leave the short visible radius; guarding reduces impact and prevents displacement.' }),
   ability('force_sweep', 'Telekinetic sweep', 14, 'sweep', { damage: 10, energyCost: 36, windup: .46, interval: 4.9, range: 245, stagger: .22, knockback: 25, radius: 245, cone: Math.PI * .60, counterplay: 'Move outside the forward arc, close behind the caster, or guard.' }),
-].map(entry => [entry.id, entry])));
+].map(entry => [entry.id, entry] as const)) as Record<ForceAbilityId, ReturnType<typeof ability>>);
 
-export function forceAbilityById(id) { return Object.hasOwn(FORCE_ABILITIES, id) ? FORCE_ABILITIES[id] : null; }
-function rankIndex(subject) {
+export function forceAbilityById(id: string | null | undefined) { return Object.hasOwn(FORCE_ABILITIES, id!) ? FORCE_ABILITIES[id as ForceAbilityId] : null; }
+interface RankedSubject {rankIndex?: number; career?: {gradeIndex?: number; merit?: number}; merit?: number}
+function rankIndex(subject: number | RankedSubject | null | undefined) {
   if (typeof subject === 'number') return Math.max(0, Math.min(14, Math.floor(subject)));
   return subject?.rankIndex ?? subject?.career?.gradeIndex ?? gradeForMerit(subject?.career ?? subject?.merit ?? 0).index;
 }
-export function forceRepertoire(subject = 0) {
+export function forceRepertoire(subject: number | RankedSubject | null | undefined = 0) {
   const rank = rankIndex(subject);
   return Object.values(FORCE_ABILITIES).filter(entry => rank >= entry.minGrade).map(entry => entry.id);
 }
@@ -47,26 +56,34 @@ export function forceRepertoire(subject = 0) {
  * The engine supplies the same combined form/training cost multiplier and
  * equipment used at commitment. Optional area counts describe visible enemies
  * inside each actual clear radius/arc, rather than assuming a crowd is in front. */
-export function selectForceAbility(subject = {}, suppliedContext) {
+interface BaseForceWeapon { id: string; family: string; energyCost: number; range: number; quality?: number; accuracy?: number }
+interface ForceContext extends RankedSubject {
+  energy?: number; distance?: number; formId?: string; sequence?: number; lastAbility?: string | null;
+  nearbyEnemies?: number; repulseTargets?: number; sweepTargets?: number; forceCostMultiplier?: number;
+  baseWeapon?: BaseForceWeapon; barrierActive?: boolean; enemyCarrier?: boolean; incomingAttack?: boolean;
+  incomingThreats?: number; targetRecovering?: boolean; targetAirborne?: boolean; targetGuarding?: boolean;
+}
+interface ForceCaster extends ForceContext {form?: string; forceAbilitySequence?: number; lastForceAbility?: string | null}
+export function selectForceAbility(subject: ForceCaster = {}, suppliedContext?: ForceContext | null) {
   const context = suppliedContext ? { ...suppliedContext, rankIndex: rankIndex(subject), energy: subject.energy,
     formId: subject.form, sequence: subject.forceAbilitySequence ?? 0, lastAbility: subject.lastForceAbility } : subject;
-  const distance = Number.isFinite(context.distance) ? context.distance : 0;
-  const energy = Number.isFinite(context.energy) ? context.energy : 100;
-  const count = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
+  const distance = Number.isFinite(context.distance) ? context.distance! : 0;
+  const energy = Number.isFinite(context.energy) ? context.energy! : 100;
+  const count = (value: number | undefined, fallback: number) => Number.isFinite(value) ? Math.max(0, Math.floor(value!)) : fallback;
   const nearby = count(context.nearbyEnemies, 1);
   const repulseTargets = count(context.repulseTargets, nearby), sweepTargets = count(context.sweepTargets, nearby);
-  const costMultiplier = Number.isFinite(context.forceCostMultiplier) && context.forceCostMultiplier > 0 ? context.forceCostMultiplier : 1;
-  const candidates = forceRepertoire(context).map(forceAbilityById).filter(a => {
+  const costMultiplier = Number.isFinite(context.forceCostMultiplier) && context.forceCostMultiplier! > 0 ? context.forceCostMultiplier! : 1;
+  const candidates = (forceRepertoire(context).map(forceAbilityById) as ReturnType<typeof ability>[]).filter(a => {
     const weapon = context.baseWeapon ? forceAbilityWeapon(context.baseWeapon, a.id) : a;
     return energy >= weapon.energyCost * costMultiplier && distance <= weapon.range &&
       !(a.mechanic === 'barrier' && context.barrierActive === true);
   });
   if (!candidates.length) return null;
-  const score = a => {
+  const score = (a: ReturnType<typeof ability>) => {
     let result = 1;
     if (a.mechanic === 'push') result += distance < 85 ? 5 : 1;
     if (a.mechanic === 'pull') result += (distance > 110 && distance < 310 ? 5 : 0) - (nearby >= 2 && !context.enemyCarrier ? 5 : 0);
-    if (a.mechanic === 'barrier') result += context.incomingAttack || context.incomingThreats > 0 ? 10 : -4;
+    if (a.mechanic === 'barrier') result += context.incomingAttack || context.incomingThreats! > 0 ? 10 : -4;
     if (a.mechanic === 'throw') result += distance > 150 ? 5 : 0;
     if (a.mechanic === 'grip') result += context.targetRecovering || context.targetAirborne ? 8 : distance > 75 && distance < 250 ? 3 : 0;
     if (a.mechanic === 'lightning') result += context.targetGuarding ? 7 : distance > 150 ? 4 : 0;
@@ -88,15 +105,19 @@ export function selectForceAbility(subject = {}, suppliedContext) {
 
 // Only the nine frozen catalog identities are shared: at most eight derived
 // abilities each. Custom equipment, even frozen copies/accessors, stays fresh.
-const derivedWeaponProfiles = new WeakMap(Object.values(WEAPONS).filter(base => Object.isFrozen(base)).map(base => [base, new Map()]));
+const derivedWeaponProfiles = new WeakMap<BaseForceWeapon, Map<ForceAbilityId, DerivedForceWeapon>>(Object.values(WEAPONS).filter(base => Object.isFrozen(base)).map(base => [base, new Map()]));
 
 /** Preserve legacy family tuning for basic casts and all pending pre-v9 casts. */
-export function forceAbilityWeapon(baseWeapon, abilityId) {
+type DerivedForceWeapon = BaseForceWeapon & {
+  abilityId: ForceAbilityId; mechanic: Mechanic;
+  damage?: number; interval?: number; optimalRange?: number; suppression?: number;
+};
+export function forceAbilityWeapon<T extends BaseForceWeapon>(baseWeapon: T, abilityId: string | null | undefined): T & Partial<DerivedForceWeapon & AbilityTuning> {
   const a = forceAbilityById(abilityId);
   if (!a) return baseWeapon;
   const profiles = baseWeapon !== null && typeof baseWeapon === 'object' ? derivedWeaponProfiles.get(baseWeapon) : null;
   const cached = profiles?.get(a.id);
-  if (cached) return cached;
+  if (cached) return cached as T & Partial<DerivedForceWeapon & AbilityTuning>;
   let profile;
   if (a.id === 'force_push') profile = { ...baseWeapon, abilityId: a.id, mechanic: a.mechanic };
   else {

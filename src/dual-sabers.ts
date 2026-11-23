@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Jar'Kai is a two-blade weapon technique alongside any of the seven forms.
  * It adds independently resolved contacts, not a new form or free damage.
  * All values are gameplay adaptations; equipment quality is shared by both blades. */
@@ -17,19 +16,21 @@ export const DUAL_SABER_PROFILE = Object.freeze({
 });
 
 /** Detached match configuration. Missing old configuration means one blade. */
-export function normalizeDualSabers(value = [false, false]) {
+export function normalizeDualSabers(value: unknown = [false, false]) {
   if (!Array.isArray(value) || value.length !== 2 || [0, 1].some(team => typeof value[team] !== 'boolean')) {
     throw new RangeError('Each team must select single or dual sabers');
   }
-  return [...value];
+  return [...value] as [boolean, boolean];
 }
 
 /** Derive wielding from immutable match settings; no per-fighter save fields. */
-export function usesDualSabers(config, fighterOrTeam) {
+export interface DualSaberConfig { startingDualSabers?: readonly boolean[] }
+export type FighterOrTeam = number | {team?: number} | null | undefined;
+export function usesDualSabers(config: DualSaberConfig | null | undefined, fighterOrTeam: FighterOrTeam) {
   const team = typeof fighterOrTeam === 'number' ? fighterOrTeam : fighterOrTeam?.team;
   return (team === 0 || team === 1) && config?.startingDualSabers?.[team] === true;
 }
 
-export function saberWieldProfile(config, fighterOrTeam) {
+export function saberWieldProfile(config: DualSaberConfig | null | undefined, fighterOrTeam: FighterOrTeam) {
   return usesDualSabers(config, fighterOrTeam) ? DUAL_SABER_PROFILE : SINGLE_SABER_PROFILE;
 }

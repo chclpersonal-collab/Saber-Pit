@@ -1,8 +1,11 @@
-// @ts-nocheck
 // World-space framing only. The combat simulation never sees these values.
-const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+export interface CameraPoint{x:number;y:number}
+export interface ActionFocus extends CameraPoint{zoom:number}
+export interface CameraTransform extends CameraPoint{scale:number;scaleY?:number}
+interface ActionFrameOptions{width:number;height:number;fighters:readonly (CameraPoint&{airHeight?:number})[];enabled?:boolean}
+const clamp=(n:number,min:number,max:number)=>Math.min(max,Math.max(min,n));
 
-export function actionFrame({width,height,fighters,enabled=true}) {
+export function actionFrame({width,height,fighters,enabled=true}:ActionFrameOptions) {
   const wide={x:width/2,y:height/2,zoom:1};
   if(!enabled||fighters.length<2||fighters.length>6)return wide;
   let l=Infinity,r=-Infinity,t=Infinity,b=-Infinity;
@@ -16,7 +19,7 @@ export function actionFrame({width,height,fighters,enabled=true}) {
   return {x:(l+r)/2,y:(t+b)/2-42,zoom};
 }
 
-export function stepActionFrame(previous,target,width,height,dt,instant=false){
+export function stepActionFrame(previous:ActionFocus,target:ActionFocus,width:number,height:number,dt:number,instant=false){
   const z=target.zoom;
   // Back out faster than closing in so that a quick dash does not disappear.
   const a=instant?1:1-Math.exp(-Math.max(0,dt)*(z<previous.zoom?12:4.5));
@@ -27,7 +30,7 @@ export function stepActionFrame(previous,target,width,height,dt,instant=false){
     y:clamp(previous.y+(y-previous.y)*a,minY,height-minY)};
 }
 
-export function screenToArena(px,py,box,canvasWidth,canvasHeight,transform){
+export function screenToArena(px:number,py:number,box:Pick<DOMRectReadOnly,"left"|"top"|"width"|"height">,canvasWidth:number,canvasHeight:number,transform:CameraTransform){
   return {
     x:((px-box.left)*canvasWidth/box.width-transform.x)/transform.scale,
     y:((py-box.top)*canvasHeight/box.height-transform.y)/(transform.scaleY??transform.scale)
@@ -35,7 +38,7 @@ export function screenToArena(px,py,box,canvasWidth,canvasHeight,transform){
 }
 
 /** Small Action matches use a shallower frame; all geometry shares the projection. */
-export function composeArcadeFrame(viewWidth,viewHeight,worldWidth,worldHeight,focus,{profile=false,shake}={}){
+export function composeArcadeFrame(viewWidth:number,viewHeight:number,worldWidth:number,worldHeight:number,focus:ActionFocus,{profile=false,shake}:{profile?:boolean;shake?:Partial<CameraPoint>}={}){
   const pitch=profile?.84:1;
   const base=Math.min(viewWidth/worldWidth,viewHeight/(worldHeight*pitch));
   const scale=base*focus.zoom,scaleY=scale*pitch;

@@ -1,7 +1,10 @@
-// @ts-nocheck
+type Ctx=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
+type Rect={x:number;y:number;width:number;height:number;kind:string};
+type Stage={id:string;cavern?:HTMLImageElement|null;terrain:{bounds:{minX:number;minY:number;maxX:number;maxY:number};zones?:Rect[]};obstacles:Rect[]};
+type Pal=readonly string[];
 /** Original stone fortresses and cutaway chambers. Static world backdrop; the regions are passed
  * in by the simulation, never defined by artwork. */
-const palettes={
+const palettes:Record<string,Pal>={
   crossroads:['#252123','#827b78','#645d5e','#8b807a','#51494b','CROSSROADS'],
   zigzag:['#272426','#767374','#5b5558','#7d7977','#474246','ZIGZAG'],
   craterfield:['#332a28','#7c6b66','#615451','#82716c','#4f4040','CRATERFIELD'],
@@ -9,22 +12,22 @@ const palettes={
   foundry:['#2c2424','#77706c','#605655','#7b6f68','#463936','THE FOUNDRY'],
   ember_ring:['#332c33','#787076','#62595f','#867982','#51444c','EMBER RING'],
 };
-const shape=(c,points,fill,stroke=null,n=1)=>{
+const shape=(c:Ctx,points:readonly (readonly number[])[],fill:string|null,stroke:string|null=null,n=1)=>{
   c.beginPath();
   points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));
   c.closePath();
   if(fill){c.fillStyle=fill;c.fill();}
   if(stroke){c.strokeStyle=stroke;c.lineWidth=n;c.stroke();}
 };
-const box=(c,x,y,w,h,fill)=>{c.fillStyle=fill;c.fillRect(x,y,w,h);};
-const line=(c,x,y,xx,yy,stroke,n=1)=>{c.strokeStyle=stroke;c.lineWidth=n;c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.stroke();};
-const stroke=(c,x,y,w,h,color,n=1)=>{c.strokeStyle=color;c.lineWidth=n;c.strokeRect(x,y,w,h);};
-const rng=seed=>()=>((seed=Math.imul(seed,1664525)+1013904223|0)>>>0)/4294967296;
-const hash=id=>[...id].reduce((v,k)=>Math.imul(v,31)+k.charCodeAt(0)|0,1);
-const label=(c,text,x,y,color='#a6a6a0',size=10,align='left')=>{
+const box=(c:Ctx,x:number,y:number,w:number,h:number,fill:string|CanvasGradient)=>{c.fillStyle=fill;c.fillRect(x,y,w,h);};
+const line=(c:Ctx,x:number,y:number,xx:number,yy:number,stroke:string,n=1)=>{c.strokeStyle=stroke;c.lineWidth=n;c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.stroke();};
+const stroke=(c:Ctx,x:number,y:number,w:number,h:number,color:string,n=1)=>{c.strokeStyle=color;c.lineWidth=n;c.strokeRect(x,y,w,h);};
+const rng=(seed:number)=>()=>((seed=Math.imul(seed,1664525)+1013904223|0)>>>0)/4294967296;
+const hash=(id:string)=>[...id].reduce((v,k)=>Math.imul(v,31)+k.charCodeAt(0)|0,1);
+const label=(c:Ctx,text:string,x:number,y:number,color='#a6a6a0',size=10,align:CanvasTextAlign='left')=>{
   c.fillStyle=color;c.font=`800 ${size}px ui-monospace, monospace`;c.textAlign=align;c.textBaseline='middle';c.fillText(text,x,y);
 };
-function lantern(c,x,y,wide){
+function lantern(c:Ctx,x:number,y:number,wide:boolean){
   if(wide){
     const shade=c.createRadialGradient(x,y,1,x,y,34);
     shade.addColorStop(0,'#e7a06b5e');shade.addColorStop(1,'#e7a06b00');
@@ -34,7 +37,7 @@ function lantern(c,x,y,wide){
   shape(c,[[x-7,y-6],[x+7,y-6],[x+5,y+6],[x-5,y+6]],'#aa7255','#292021',2);
   box(c,x-2,y-3,4,7,'#edb785');line(c,x-3,y-5,x-2,y+5,'#49372f',1.2);
 }
-function masonry(c,wall,w,h,key){
+function masonry(c:Ctx,wall:string,w:number,h:number,key:string){
   box(c,0,0,w,h,wall);
   const r=rng(hash(key));
   for(let y=3,i=0;y<h;y+=21,i++){
@@ -46,7 +49,7 @@ function masonry(c,wall,w,h,key){
     }
   }
 }
-function arch(c,x,base,w,h,block=true){
+function arch(c:Ctx,x:number,base:number,w:number,h:number,block=true){
   const y=base-h;
   const points=[[x,base],[x,y+h*.36],[x+w*.13,y+h*.12],[x+w*.38,y],[x+w*.62,y],
     [x+w*.87,y+h*.12],[x+w,y+h*.36],[x+w,base]];
@@ -60,7 +63,7 @@ function arch(c,x,base,w,h,block=true){
     line(c,x+4,y+h*.69,x+w-4,y+h*.69,'#8f7969',2.4);
   }
 }
-function architecture(c,stage,w,h,minY){
+function architecture(c:Ctx,stage:Stage,w:number,h:number,minY:number){
   const {id}=stage, y=Math.max(24,minY), mid=w*.5;
   c.save();c.beginPath();c.rect(0,0,w,y);c.clip();
   if(id==='ember_ring'){
@@ -123,7 +126,7 @@ function architecture(c,stage,w,h,minY){
   }
   line(c,0,y-3,w,y-3,'#382e30',3);c.restore();
 }
-function floor(c,stage,w,h,pal){
+function floor(c:Ctx,stage:Stage,w:number,h:number,pal:Pal){
   const {minX:x,minY:y,maxX:xx,maxY:yy}=stage.terrain.bounds;
   const gx=xx-x,gy=yy-y, r=rng(hash(stage.id));
   const f=c.createLinearGradient(0,y,0,yy);f.addColorStop(0,pal[1]);f.addColorStop(.62,pal[2]);f.addColorStop(1,pal[4]);
@@ -157,7 +160,7 @@ function floor(c,stage,w,h,pal){
   } else if(stage.id==='zigzag'){
     for(const [i,a] of [.12,.31,.53,.72,.89].entries()){
       const py=y+a*gy, k=x+gx*(.17+i*.027);
-      const path=[[x,py],[k,py],[k+gx*.19,py-gy*.106],[xx-gx*.19,py-gy*.106],[xx,py+gy*.025]];
+      const path:[number,number][]=[[x,py],[k,py],[k+gx*.19,py-gy*.106],[xx-gx*.19,py-gy*.106],[xx,py+gy*.025]];
       for(let n=1;n<path.length;n++){line(c,...path[n-1],...path[n],'#24242879',13);line(c,...path[n-1],...path[n],'#8c8a8758',1.35);}
     }
   } else if(stage.id==='craterfield'){
@@ -169,7 +172,7 @@ function floor(c,stage,w,h,pal){
     if(stage.id==='underpit'){
       const q=Math.min(gx/850,gy/460);
       for(const d of [101,135]){c.beginPath();c.ellipse(cx,cy,d*gx/850,d*.49,0,0,Math.PI*2);c.strokeStyle=d===101?'#bbb5a051':'#25202165';c.lineWidth=d===101?1.8:1.2;c.stroke();}
-      const at=points=>points.map(([px,py])=>[cx+q*px,cy+q*py]);
+      const at=(points:number[][])=>points.map(([px,py])=>[cx+q*px,cy+q*py]);
       shape(c,at([[0,-28],[38,-18],[34,10],[0,30],[-34,10],[-38,-18]]),'#4f4b4b40','#c5b6914f',2);
       for(const d of [-1,1]){
         line(c,cx+d*17*q,cy+16*q,cx-d*22*q,cy-14*q,'#d7c1964c',2.6);
@@ -194,7 +197,7 @@ function floor(c,stage,w,h,pal){
   stroke(c,x+.5,y+.5,gx-1,gy-1,'#85877a85',1.7);
   for(const py of [y+3,yy-7])for(const px of [x+4,xx-42])line(c,px,py,px+38,py,'#c4b7a179',2);
 }
-function drawZone(c,z,pal){
+function drawZone(c:Ctx,z:Rect,pal:Pal){
   const {x,y,width:w,height:h}=z, vent=z.kind==='hazard';
   box(c,x,y,w,h,vent?'#441a21':'#20242948');
   stroke(c,x,y,w,h,vent?'#f38d84':'#a5a6a052',vent?2:1);
@@ -208,7 +211,7 @@ function drawZone(c,z,pal){
       line(c,xx,yy,xx+4,yy-2,'#b5aea450',1);
   }
 }
-export function paintCompoundObstacle(c,stage,rect){
+export function paintCompoundObstacle(c:Ctx,stage:Stage,rect:Rect){
   const {x,y,width:w,height:h}=rect, [,,,stone,stoneSide]=palettes[stage.id]??palettes.crossroads;
   const cap=rect.kind==='wall'?stone:'#846659',side=rect.kind==='wall'?stoneSide:'#514038';
   const raised=rect.kind==='wall'?Math.min(16,h*.58):Math.min(9,h*.47);
@@ -226,7 +229,7 @@ export function paintCompoundObstacle(c,stage,rect){
   }
   c.restore();
 }
-export function paintCompound(c,stage,w,h){
+export function paintCompound(c:Ctx,stage:Stage,w:number,h:number){
   const pal=palettes[stage.id]??palettes.crossroads, {minX,minY,maxX}=stage.terrain.bounds;
   c.save();
   box(c,0,0,w,h,pal[0]);
@@ -240,7 +243,7 @@ export function paintCompound(c,stage,w,h){
   label(c,pal[5],w*.5,pl,'#d4d1c7',11,'center');
   c.restore();
 }
-export function animateCompound(c,stage,w,h,time){
+export function animateCompound(c:Ctx,stage:Stage,w:number,h:number,time:number){
   const {minX,minY,maxX,maxY}=stage.terrain.bounds;
   c.save(); c.fillStyle='#e9a16d';
   for(const [i,ax] of [.12,.29,.71,.88].entries()){

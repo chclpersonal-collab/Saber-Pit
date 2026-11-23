@@ -1,11 +1,13 @@
-// @ts-nocheck
 /** Presentation-only fit in CSS pixels. Keep the existing independent-axis map
  * fit and pixel-sized fighters, but frame the complete map plus legal airborne
  * silhouettes. These transforms never change positions, height, or hit tests. */
-const finite = (value, fallback) => Number.isFinite(value) ? value : fallback;
-const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+interface BattleBounds{minX?:number;maxX?:number;minY?:number;maxY?:number}
+interface BattleCameraOptions{width?:number;height?:number;worldWidth?:number;worldHeight?:number;bounds?:BattleBounds|null;fighterBoost?:number}
+export interface BattleCamera{width:number;height:number;sx:number;sy:number;ox:number;oy:number;spriteScale:number}
+const finite = (value:number|undefined, fallback:number) => Number.isFinite(value) ? value as number : fallback;
+const clamp = (value:number, low:number, high:number) => Math.max(low, Math.min(high, value));
 
-function fitAxis(viewport, extent, actorMin, actorMax, before, after) {
+function fitAxis(viewport:number, extent:number, actorMin:number, actorMax:number, before:number, after:number) {
   const available = Math.max(0, viewport - 8);
   const lower = [[0, 0], [actorMin, -before]], upper = [[extent, 0], [actorMax, after]];
   let scale = available / extent;
@@ -19,7 +21,7 @@ function fitAxis(viewport, extent, actorMin, actorMax, before, after) {
   return { scale, offset: (viewport - end - start) / 2 };
 }
 
-export function fitBattleCamera({ width = 960, height = 540, worldWidth = 960, worldHeight = 540, bounds = null, fighterBoost = 1 } = {}) {
+export function fitBattleCamera({ width = 960, height = 540, worldWidth = 960, worldHeight = 540, bounds = null, fighterBoost = 1 }:BattleCameraOptions = {}):BattleCamera {
   width = Math.max(0, finite(width, 960)); height = Math.max(0, finite(height, 540));
   worldWidth = Math.max(1, finite(worldWidth, 960)); worldHeight = Math.max(1, finite(worldHeight, 540));
   // Preserve the pre-camera fighter size rather than shrinking it with the map.
@@ -36,5 +38,5 @@ export function fitBattleCamera({ width = 960, height = 540, worldWidth = 960, w
   return { width, height, sx: x.scale, sy: y.scale, ox: x.offset, oy: y.offset, spriteScale };
 }
 
-export function worldToCanvas(view, x, y) { return { x: x * view.sx + view.ox, y: y * view.sy + view.oy }; }
-export function canvasToWorld(view, x, y) { return { x: (x - view.ox) / view.sx, y: (y - view.oy) / view.sy }; }
+export function worldToCanvas(view:BattleCamera, x:number, y:number) { return { x: x * view.sx + view.ox, y: y * view.sy + view.oy }; }
+export function canvasToWorld(view:BattleCamera, x:number, y:number) { return { x: (x - view.ox) / view.sx, y: (y - view.oy) / view.sy }; }

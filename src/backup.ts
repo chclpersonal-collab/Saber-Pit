@@ -1,22 +1,23 @@
-// @ts-nocheck
+import type {BackupInspection, BackupSection, CareerSummary, QuestSummary} from './arcade-backup.js';
 import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=3.3.0';
-const $=id=>document.getElementById(id);
-const picker=$('backupFile'), preview=$('backupPreview'), confirm=$('backupConfirm'), replace=$('restoreBackup');
+const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
+const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');
-let inspected=null, revision=0;
-function announce(message,tone=''){report.textContent=message;report.dataset.tone=tone;}
-function node(tag,content){
+let inspected: BackupInspection | null=null, revision=0;
+function announce(message: string,tone=''){report.textContent=message;report.dataset.tone=tone;}
+function node<K extends keyof HTMLElementTagNameMap>(tag: K,content?: string){
   const el=document.createElement(tag);
   if(content!==undefined)el.textContent=content;
   return el;
 }
-function current(){return [...sections.querySelectorAll('input:checked')].map(box=>box.value);}
+function current(){return [...sections.querySelectorAll<HTMLInputElement>('input:checked')].map(box=>box.value as BackupSection);}
 function sync(){replace.disabled=!inspected||!confirm.checked||!current().length;}
 function resetPreview(){
   inspected=null;preview.hidden=true;confirm.checked=false;sections.replaceChildren();sync();
 }
-function summary(k,item){
-  if(k==='quest')return item.questStatus+(item.attempts?' · Attempt '+item.attempts:'');
+function summary(k: string,entry: CareerSummary | QuestSummary){
+  if(k==='quest'){const item=entry as QuestSummary;return item.questStatus+(item.attempts?' · Attempt '+item.attempts:'');}
+  const item=entry as CareerSummary;
   if(k==='gauntlet')return item.seasons+' in-game weeks · '+item.records+' fighters';
   const detail=[item.seasons+' season'+(item.seasons===1?'':'s'),item.records+(k==='duel'?' fighters':' teams'),item.peaks+' peak records'];
   if(k==='duel')detail.push(item.heroes+' Saved Heroes');
@@ -48,14 +49,14 @@ picker.addEventListener('change',async()=>{
 $('downloadBackup').addEventListener('click',()=>{
   const result=exportArcadeBackup();
   if(!result.ok){announce(result.error,'error');return;}
-  let url;
+  let url: string | undefined;
   try{
     url=URL.createObjectURL(new Blob([result.text],{type:'application/json'}));
-    const a=node('a');a.href=url;a.download='saber-pit-save-'+result.bundle.createdAt.slice(0,10)+'.json';a.hidden=true;
+    const a=node('a');a.href=url;a.download='saber-pit-save-'+result.bundle.createdAt!.slice(0,10)+'.json';a.hidden=true;
     document.body.append(a);a.click();a.remove();
     announce('Backup ready. Look in your downloads.','success');
   }catch{announce('The browser could not start the download.','error');}
-  finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),2000);}
+  finally{if(url)setTimeout(()=>URL.revokeObjectURL(url!),2000);}
 });
 confirm.addEventListener('change',sync);
 sections.addEventListener('change',()=>{confirm.checked=false;sync();});

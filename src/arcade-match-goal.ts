@@ -1,12 +1,13 @@
-// @ts-nocheck
 /** Tactical objective only; never resolves a fixture or authorizes an input.
  * injuryEdge: -1 injured much worse to +1 opponent much worse.
  * pressure: 0..1 immediate danger to self; opening: true or 0..1 credible opening.
  */
-const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
-const finite=(n,otherwise=0)=>Number.isFinite(n)?n:otherwise;
+const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
+const finite=(n:unknown,otherwise=0)=>typeof n==='number'&&Number.isFinite(n)?n:otherwise;
 const care=Object.freeze({shii_cho:0,makashi:.035,soresu:.075,ataru:-.025,djem_so:-.035,niman:.028,juyo:-.062});
-export function chooseArenaMatchGoal(c={}){
+type Goal='win'|'draw';
+type Context=Partial<Record<'limit'|'time'|'currentGoal'|'selfAlive'|'enemyAlive'|'injuryEdge'|'pressure'|'opening'|'opponentElo'|'elo'|'form',unknown>>;
+export function chooseArenaMatchGoal(c:Context={}):Goal{
   const limit=finite(c.limit),time=finite(c.time);
   if(limit<=0||time<0)return 'win';
   const progress=clamp(time/limit,0,1);
@@ -25,7 +26,7 @@ export function chooseArenaMatchGoal(c={}){
   const rating=clamp((finite(c.opponentElo,1500)-finite(c.elo,1500))/450,-1,1);
   const late=clamp((progress-.32)/.68,0,1);
   const risk=(-injury*.39)+(pressure*.30)+(numbers*.38)+(rating*.085)+(late*.22)-(opening*.28)
-    +(Object.hasOwn(care,c.form)?care[c.form]:0);
+    +(Object.hasOwn(care,c.form as PropertyKey)?care[c.form as keyof typeof care]:0);
   if(pressure<.22&&injury>=-.12&&numbers<=0&&risk<.31)return 'win';
   // Avoid oscillating over one frame or one missed swing.
   return risk>=(hold?.37:.46)?'draw':'win';

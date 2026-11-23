@@ -1,14 +1,17 @@
-// @ts-nocheck
+type Region=keyof typeof zoneProfiles;
+type Ledger=Partial<Record<Region,{front?:number;rear?:number}>>|null|undefined;
+type Strike={amount?:number;quality?:number;rank?:number;attackerRank?:number;defenderRank?:number;direction?:string;blocked?:boolean;region?:string;roll?:number};
+type Equip={weaponHand?:string;dual?:boolean};
 /** Fictional Saber Pit balance. Zone values and percentages have no real-world meaning. */
-const clamp=(n,lo=0,hi=1)=>Math.max(lo,Math.min(hi,n));
-const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
-const round=(n,digits=3)=>Number(n.toFixed(digits));
+const clamp=(n:number,lo=0,hi=1)=>Math.max(lo,Math.min(hi,n));
+const finite=(value:number|undefined,fallback=0)=>Number.isFinite(value)?value!:fallback;
+const round=(n:number,digits=3)=>Number(n.toFixed(digits));
 
 export const ARCADE_BODY_REGIONS=Object.freeze([
   {id:'head',label:'Head'}, {id:'torso',label:'Torso'},
   {id:'leftArm',label:'Left arm'}, {id:'rightArm',label:'Right arm'},
   {id:'leftLeg',label:'Left leg'}, {id:'rightLeg',label:'Right leg'},
-].map(Object.freeze));
+].map(row=>Object.freeze(row as {id:Region;label:string})));
 
 export const ARCADE_INJURY_REFERENCE=Object.freeze({
   label:'Reference clean strike',amount:18,quality:.74,
@@ -25,34 +28,34 @@ const zoneProfiles=Object.freeze({
 });
 
 const labels=Object.freeze(['Ready','Strained','Impaired','Disabled']);
-const hasRegion=id=>typeof id==='string'&&Object.hasOwn(zoneProfiles,id);
-const surface=direction=>direction==='rear'?'rear':'front';
-const localSurface=(injuries,region,direction)=>clamp(finite(injuries?.[region]?.[surface(direction)]),0,100);
-const localRegion=(injuries,region)=>{
+const hasRegion=(id:unknown):id is Region=>typeof id==='string'&&Object.hasOwn(zoneProfiles,id);
+const surface=(direction?:string)=>direction==='rear'?'rear':'front';
+const localSurface=(injuries:Ledger,region:Region,direction?:string)=>clamp(finite(injuries?.[region]?.[surface(direction)]),0,100);
+const localRegion=(injuries:Ledger,region:Region)=>{
   const a=localSurface(injuries,region,'front'),b=localSurface(injuries,region,'rear');
   // Both surfaces can matter in this region; other body regions cannot.
   return clamp(Math.max(a,b)+.34*Math.min(a,b),0,100);
 };
-const conditionTier=value=>value>=74?3:value>=43?2:value>=18?1:0;
-const boundedRank=value=>clamp(Math.trunc(finite(value)),0,14);
+const conditionTier=(value:number)=>value>=74?3:value>=43?2:value>=18?1:0;
+const boundedRank=(value?:number)=>clamp(Math.trunc(finite(value)),0,14);
 
 export function createArcadeInjuries(){
   return Object.fromEntries(ARCADE_BODY_REGIONS.map(({id})=>[id,{front:0,rear:0}]));
 }
 export const createArcadeCondition=createArcadeInjuries;
 
-export function arcadeInjuryLabel(injuries,region,direction){
+export function arcadeInjuryLabel(injuries:Ledger,region?:string,direction?:string){
   if(!hasRegion(region))return 'Unknown';
   return labels[conditionTier(direction?localSurface(injuries,region,direction):localRegion(injuries,region))];
 }
 
-function strike({amount,quality,rank,attackerRank=rank,defenderRank,direction,blocked}={}){
+function strike({amount,quality,rank,attackerRank=rank,defenderRank,direction,blocked}:Strike={}){
   const a=clamp(finite(amount),0,140);
   return {amount:a,quality:clamp(finite(quality,.50+a/120)),
     attackerRank:boundedRank(attackerRank),defenderRank:boundedRank(defenderRank),
     direction:surface(direction),blocked:blocked===true};
 }
-function fatalChance(injuries,region,hit){
+function fatalChance(injuries:Ledger,region:string|undefined,hit:ReturnType<typeof strike>){
   if(!hasRegion(region)||hit.blocked||hit.amount<=4)return 0;
   const profile=zoneProfiles[region];
   const surfaceInjury=localSurface(injuries,region,hit.direction);
@@ -68,7 +71,7 @@ function fatalChance(injuries,region,hit){
 }
 
 /** Exact probability used by applyArcadeInjury, without consuming a roll. */
-export function arcadeFatalChance(injuries,{region,...options}={}){
+export function arcadeFatalChance(injuries:Ledger,{region,...options}:Strike={}){
   return fatalChance(injuries,region,strike(options));
 }
 
@@ -77,7 +80,7 @@ export function arcadeFatalChance(injuries,{region,...options}={}){
  * solely because a condition value hit a limit. A guarded contact spends
  * arena resources outside this module, without causing a penetrating injury.
  */
-export function applyArcadeInjury(injuries,{region,roll,...options}={}){
+export function applyArcadeInjury(injuries:Ledger,{region,roll,...options}:Strike={}){
   injuries=injuries??createArcadeInjuries();
   const hit=strike(options);
   const {direction}=hit;
@@ -87,7 +90,7 @@ export function applyArcadeInjury(injuries,{region,roll,...options}={}){
   if(hit.blocked)return {...base,outcome:'blocked'};
   if(hit.amount<=0)return base;
   const probability=fatalChance(injuries,region,hit);
-  const fatal=Number.isFinite(roll)&&roll>=0&&roll<1&&roll<probability;
+  const fatal=Number.isFinite(roll)&&roll!>=0&&roll!<1&&roll!<probability;
   const profile=zoneProfiles[region];
   const contactScale=hit.amount<=4?.24:.72+.28*hit.quality;
   const weighted=hit.amount*profile.injury*contactScale*(direction==='rear'?1.14:1);
@@ -100,7 +103,7 @@ export function applyArcadeInjury(injuries,{region,roll,...options}={}){
     tier:conditionTier(after),fatalChance:probability,outcome:fatal?'fatal':delta>0&&hit.amount>4?'injury':'glance'};
 }
 
-function channels(injuries,{weaponHand='right'}={}){
+function channels(injuries:Ledger,{weaponHand='right'}:Equip={}){
   const weapon=weaponHand==='left'?'leftArm':'rightArm';
   const other=weapon==='leftArm'?'rightArm':'leftArm';
   return {
@@ -111,16 +114,16 @@ function channels(injuries,{weaponHand='right'}={}){
 }
 
 /** A timeout tool, not a pool. Earlier channels take priority over later ones. */
-export function arcadeInjuryBurden(injuries,options){
+export function arcadeInjuryBurden(injuries:Ledger,options?:Equip){
   const c=channels(injuries,options);
   const vital=Math.max(c.head,c.torso),leg=Math.max(c.leftLeg,c.rightLeg);
-  const tier=n=>conditionTier(n*100);
+  const tier=(n:number)=>conditionTier(n*100);
   return [tier(vital),tier(leg),tier(c.weapon),tier(c.offhand),round(vital),round(c.torso),round(leg),
     round(Math.min(c.leftLeg,c.rightLeg)),round(c.weapon),round(c.offhand)];
 }
 
 /** Positive means the first fighter is in worse functional condition. */
-export function compareArcadeDanger(a,b){
+export function compareArcadeDanger(a:Ledger|number[],b:Ledger|number[]){
   const first=Array.isArray(a)?a:arcadeInjuryBurden(a);
   const second=Array.isArray(b)?b:arcadeInjuryBurden(b);
   for(let i=0;i<Math.max(first.length,second.length);i++){
@@ -130,7 +133,7 @@ export function compareArcadeDanger(a,b){
   return 0;
 }
 
-export function arcadeInjuryEffects(injuries,options={}){
+export function arcadeInjuryEffects(injuries:Ledger,options:Equip={}){
   const c=channels(injuries,options);
   const highLeg=Math.max(c.leftLeg,c.rightLeg),lowLeg=Math.min(c.leftLeg,c.rightLeg);
   const moveScale=round(clamp(1-.37*highLeg-.18*lowLeg-.13*c.torso-.07*c.head,.25,1));
@@ -144,7 +147,7 @@ export function arcadeInjuryEffects(injuries,options={}){
 export const arcadeInjuryModifiers=arcadeInjuryEffects;
 
 /** Safe UI labels; condition is local injury severity, not remaining health. */
-export function arcadeInjuryReport(injuries,{direction='front',attackerRank=0,defenderRank=attackerRank}={}){
+export function arcadeInjuryReport(injuries:Ledger,{direction='front',attackerRank=0,defenderRank=attackerRank}:Strike={}){
   direction=surface(direction);
   return ARCADE_BODY_REGIONS.map(({id,label})=>{
     const condition=localSurface(injuries,id,direction);

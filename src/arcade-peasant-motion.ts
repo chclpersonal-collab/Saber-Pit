@@ -1,32 +1,32 @@
-// @ts-nocheck
 /** v3 attack phrasing: a small continuity correction that crosses the real
  * release with a nonzero tangent. Anticipation and recovery do not alter
  * authored contact timing. Rigid shafts and tips are constructed by the rig. */
-const keys=Object.freeze({
+interface PhraseOptions{family?:string;time?:number;duration?:number;contact?:number;offContact?:number;kit?:string;side?:number;linked?:boolean}
+const keys:Readonly<Record<string,readonly [number,number,number,number,number]>>=Object.freeze({
   cut:[.34,5,5,7,5], sweep:[.47,6,6,10,5.5],
   thrust:[.13,10,2,6,4], rise:[.39,4,10,8,6],
   screen:[.22,3,5,4,3.5], vault:[.36,6,8,8,5],
 });
-const clamp=(v,min=0,max=1)=>Math.max(min,Math.min(max,v));
-const good=v=>Number.isFinite(v);
-const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
-const pulse=(u,low,high)=>smooth((u-low)/(high-low));
-const lobe=s=>s<=0||s>=1?0:Math.sin(Math.PI*s)**2;
+const clamp=(v:number,min=0,max=1)=>Math.max(min,Math.min(max,v));
+const good=(v:unknown):v is number=>Number.isFinite(v);
+const smooth=(t:number)=>{t=clamp(t);return t*t*(3-2*t);};
+const pulse=(u:number,low:number,high:number)=>smooth((u-low)/(high-low));
+const lobe=(s:number)=>s<=0||s>=1?0:Math.sin(Math.PI*s)**2;
 /** Exact zero offset at release, continuous nonzero speed on either side.
  * The cubic is bounded at both edges and starts/ends at rest. */
-export function peasantReleaseArc(dt,window){
+export function peasantReleaseArc(dt:number,window:number){
   if(!good(dt)||!good(window)||window<=0||Math.abs(dt)>=window)return 0;
   const u=dt/window, a=Math.abs(u);
   return 6.75*u*(1-a)**2;
 }
-export function samplePeasantPhrase({family,time,duration,contact,offContact,kit='single',side=1,linked=false}={}){
-  if(!Object.hasOwn(keys,family)||!good(time)||!good(duration)||!good(contact)||time<0||time>duration||
+export function samplePeasantPhrase({family,time,duration,contact,offContact,kit='single',side=1,linked=false}:PhraseOptions={}){
+  if(family===undefined||!Object.hasOwn(keys,family)||!good(time)||!good(duration)||!good(contact)||time<0||time>duration||
     contact<.055||duration-contact<.07)return null;
   const [yaw,reach,height,lean,twist]=keys[family];
   const s=side<0?-1:1;
   const k=kit==='staff'?.78:kit==='dual'?.86:1;
   const delayed=good(offContact)&&offContact>contact&&offContact<duration;
-  const beat=(gate,hand,later=duration)=>{
+  const beat=(gate:number,hand:number,later=duration)=>{
     const half=Math.min(.135,gate*.39,(later-gate)*.51);
     const u=time-gate, a=peasantReleaseArc(u,half)*Math.min(1,half/.10);
     // Hip/shoulder starts before the wrist. The arm follows later and trails
@@ -49,7 +49,7 @@ export function samplePeasantPhrase({family,time,duration,contact,offContact,kit
 /** Blend starts with the captured outgoing velocity, while the initial
  * target blend is stationary. Both velocity and offsets vanish smoothly at
  * the other end. Extra drag gives the off hand a later-looking settle. */
-export function peasantHandoff(elapsed,duration,secondary=false){
+export function peasantHandoff(elapsed:number,duration:number,secondary=false){
   if(!good(elapsed)||!good(duration)||duration<=0)return {feed:0,tangent:0};
   const t=clamp(elapsed/duration);
   const blend=secondary?t*t*(3-2*t)*(1-.25*(1-t)):smooth(t);

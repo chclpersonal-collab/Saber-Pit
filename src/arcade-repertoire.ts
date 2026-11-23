@@ -1,4 +1,11 @@
-// @ts-nocheck
+type Timing=readonly [number,number,number,number,number,number,number,number,number];
+type Motion=ReturnType<typeof p>;
+type Extra={cap?:number;deflect?:boolean;air?:string;opening?:string;launch?:boolean;tactical?:string;
+ arenaCut?:boolean;exchangeCut?:boolean;minorMove?:boolean;circuitCut?:boolean;label?:string;forceAbility?:string};
+type Row=[string,string,number,string,string,string,Timing,Extra?];
+type Technique=Readonly<{id:string;name:string;form:string;minRank:number;role:string;mapAction:string;motion:Motion;
+ contact:number;duration:number;reach:number;arc:number;damage:number;cost:number;lunge:number;knock:number;recoil:number;cap:number}&Extra>;
+type Tiers=Readonly<Record<string,readonly (readonly Technique[])[]>>;
 import {ARCADE_MINOR_MOVES} from './arcade-minor-moves.js?v=3.1.0';
 export {ARCADE_MINOR_MOVES} from './arcade-minor-moves.js?v=3.1.0';
 import {ARCADE_EXCHANGE_CUT_ROWS} from './arcade-exchange-cuts.js?v=3.0.1';
@@ -7,9 +14,9 @@ import {ARCADE_RANK_CUTS} from './arcade-rank-cuts.js?v=2.27.0';
 /** Original game choreography for the seven saber forms. These are authored
  * gameplay moves, not a catalogue of canonical techniques. The engine uses
  * their contact/reach/arc; the rig uses the linked motion at that same contact. */
-const p=(path,chamber,finish,wind,cut,reach,lift,lean,brace,twist,lead)=>Object.freeze(
+const p=(path:string,chamber:number,finish:number,wind:number,cut:number,reach:number,lift:number,lean:number,brace:number,twist:number,lead:number)=>Object.freeze(
   {path,chamber,finish,wind,cut,reach,lift,lean,brace,twist,lead});
-const choreography={
+const choreography:Record<string,Motion>={
   sweep:p('arc',-1.75,1.26,.56,-3,6,0,3,5,.23,2),
   wheel:p('arc',1.76,-1.31,.53,2,5,-4,4,6,-.27,2),
   crescent:p('arc',-1.12,1.42,.58,-4,8,-6,7,8,.31,3),
@@ -43,11 +50,11 @@ const choreography={
   snapHook:p('arc',1.28,-.94,.37,-2,5,3,10,3,-.36,4),
   stormReturn:p('diagonal',-2.16,1.62,.41,-4,9,-5,13,5,.46,6),
 };
-const tech=(id,name,form,minRank,role,mapAction,motion,[contact,duration,reach,arc,damage,cost,lunge,knock,recoil],extra={})=>
+const tech=(id:string,name:string,form:string,minRank:number,role:string,mapAction:string,motion:string,[contact,duration,reach,arc,damage,cost,lunge,knock,recoil]:Timing,extra:Extra={}):Technique=>
   Object.freeze({id,name,form,minRank,role,mapAction,motion:choreography[motion],
     contact,duration,reach,arc,damage,cost,lunge,knock,recoil,cap:1,...extra});
-const table=[];
-const add=(form,rows)=>rows.forEach(row=>table.push(tech(row[0],row[1],form,...row.slice(2))));
+const table:Technique[]=[];
+const add=(form:string,rows:Row[])=>rows.forEach(([id,name,...rest])=>table.push(tech(id,name,form,...rest)));
 add('shii_cho',[
   ['sc_open_cut','Open Cut',0,'light','slash','sweep',[.247,.571,91,1.30,16,8,137,111,.15]],
   ['sc_gate_sweep','Gate Sweep',0,'heavy','sweep','wheel',[.435,.947,111,1.90,25,23,116,217,.28],{cap:2}],
@@ -138,22 +145,22 @@ const expansion={
  ['Second Wound','cut'],['Reeling Draw','pull'],['Blind Angle','feint'],
  ['Tearing Wheel','wheel'],['Held Fury','stasis'],['Fracture Wheel','crescent'],['Pressure Wall','ward']],
 };
-const forceMoves={
+const forceMoves:Record<string,Timing>={
  push:[.34,.75,169,.71,10,24,0,570,.30],
  pull:[.39,.86,159,.51,7,26,0,400,.26],
  stasis:[.44,.97,147,.60,5,30,0,110,.36],
  ward:[.42,.92,92,2.60,0,29,0,0,.15],
 };
-const motionClass=m=>choreography[m].path;
+const motionClass=(m:string)=>choreography[m].path;
 const rankRole=['light','heavy','heavy','counter','heavy','heavy','crowd','heavy','counter','heavy'];
-const formBias={
+const formBias:Record<string,readonly number[]>={
  shii_cho:[.025,4,.16,6,1],makashi:[-.020,12,-.15,37,-1],
  soresu:[.010,-9,-.05,-24,-2],ataru:[-.012,0,.03,33,0],
  djem_so:[.047,1,-.04,0,4],niman:[-.003,2,.08,-5,0],juyo:[-.028,1,.12,31,2],
 };
 for(const [form,rows] of Object.entries(expansion)){
  const [tempo,space,width,drive,power]=formBias[form];
- const prefix=table.find(m=>m.form===form).id.split('_')[0];
+ const prefix=table.find(m=>m.form===form)!.id.split('_')[0];
  rows.forEach(([name,motion],i)=>{
    const rank=milestones[i],role=rankRole[i],id=prefix+'_'+name.toLowerCase().replace(/’/g,'').replace(/[^a-z0-9]+/g,'_');
    if(forceMoves[motion]){
@@ -189,12 +196,12 @@ const tacticalRows={
  niman:['Cross Current','False Flow','Drifting Screen','pulse','hook','peel'],
  juyo:['Driving Slip','False Fury','Raking Screen','cut','feint','rising'],
 };
-const tactics=[];
+const tactics:Technique[]=[];
 for(const [form,[slip,redirect,guard,a,b,c]] of Object.entries(tacticalRows)){
  const [tempo,space,width,drive,power]=formBias[form];
- const prefix=table.find(m=>m.form===form).id.split('_')[0];
- const point=m=>['point','lowpoint','feint'].includes(m);
- const make=(tag,name,rank,role,motion,guard=false)=>tech(prefix+'_'+tag,name,form,rank,role,
+ const prefix=table.find(m=>m.form===form)!.id.split('_')[0];
+ const point=(m:string)=>['point','lowpoint','feint'].includes(m);
+ const make=(tag:string,name:string,rank:number,role:string,motion:string,guard=false)=>tech(prefix+'_'+tag,name,form,rank,role,
    point(motion)?'rush':motion==='wheel'?'sweep':'slash',motion,
    [(.226+(guard?.042:0))+tempo,.63+tempo*2,94+space+(point(motion)?12:0),
     (guard?1.26:point(motion)?.51:1.13)+width,21+power+(guard?-4:0),guard?18:16,
@@ -202,7 +209,7 @@ for(const [form,[slip,redirect,guard,a,b,c]] of Object.entries(tacticalRows)){
  tactics.push(make('slip_counter',slip,5,'counter',a),make('feint_redirect',redirect,9,'heavy',b),
    make('moving_guard',guard,13,'counter',c,true));
 }
-const arenaRows={
+const arenaRows:Record<string,Row[]>={
  shii_cho:[
   ['ac_sc_corner_cut','Corner Cut',1,'light','slash','nearTurn',[.208,.493,86,1.34,13,7,122,88,.13],{opening:'inside'}],
   ['ac_sc_pivot_fan','Pivot Fan',12,'crowd','sweep','broadPivot',[.346,.838,119,2.39,27,24,109,188,.28],{cap:3,opening:'wide'}],
@@ -237,7 +244,7 @@ export const ARCADE_ARENA_CUTS=Object.freeze(Object.entries(arenaRows).flatMap((
 export const ARCADE_EXCHANGE_CUTS=Object.freeze(Object.entries(ARCADE_EXCHANGE_CUT_ROWS).flatMap(([form,rows])=>
   rows.map(([id,name,rank,role,action,motion,timing,extra])=>tech(id,name,form,rank,role,action,motion,timing,{...extra,exchangeCut:true}))));
 table.sort((a,b)=>a.minRank-b.minRank);
-export const ARCADE_TECHNIQUES=Object.freeze(Object.fromEntries([...table,...tactics,...ARCADE_RANK_CUTS,...ARCADE_CIRCUIT_CUTS,...ARCADE_ARENA_CUTS,...ARCADE_EXCHANGE_CUTS,...ARCADE_MINOR_MOVES].map(move=>[move.id,move])));
+export const ARCADE_TECHNIQUES:Readonly<Record<string,Technique>>=Object.freeze(Object.fromEntries([...table,...tactics,...ARCADE_RANK_CUTS,...ARCADE_CIRCUIT_CUTS,...ARCADE_ARENA_CUTS,...ARCADE_EXCHANGE_CUTS,...ARCADE_MINOR_MOVES].map(move=>[move.id,move])));
 export const ARCADE_REPERTOIRE=Object.freeze(Object.fromEntries(
   [...new Set(table.map(m=>m.form))].map(form=>[form,Object.freeze(table.filter(move=>move.form===form))])));
 const tiers=Object.freeze(Object.fromEntries(Object.entries(ARCADE_REPERTOIRE).map(([form,moves])=>[form,
@@ -247,8 +254,8 @@ const tacticTiers=Object.freeze(Object.fromEntries(Object.keys(ARCADE_REPERTOIRE
   Object.freeze(Array.from({length:15},(_,rank)=>Object.freeze(tactics.filter(m=>m.form===form&&m.minRank<=rank))))])));
 const allTiers=Object.freeze(Object.fromEntries(Object.keys(ARCADE_REPERTOIRE).map(form=>[form,
   Object.freeze(tiers[form].map((moves,rank)=>Object.freeze([...moves,...tacticTiers[form][rank]].sort((a,b)=>a.minRank-b.minRank))))])));
-const rankOf=gradeIndex=>Number.isFinite(gradeIndex)?Math.max(0,Math.min(14,Math.floor(gradeIndex))):0;
-const addCuts=(base,cuts)=>Object.freeze(Object.fromEntries(Object.entries(base).map(([form,levels])=>[
+const rankOf=(gradeIndex:number)=>Number.isFinite(gradeIndex)?Math.max(0,Math.min(14,Math.floor(gradeIndex))):0;
+const addCuts=(base:Tiers,cuts:readonly Technique[]):Tiers=>Object.freeze(Object.fromEntries(Object.entries(base).map(([form,levels])=>[
   form,Object.freeze(levels.map((moves,rank)=>Object.freeze([
     ...moves,...cuts.filter(m=>m.form===form&&m.minRank<=rank),
   ].sort((a,b)=>a.minRank-b.minRank)))),
@@ -259,13 +266,13 @@ const arenaTiers=[tiers,allTiers,cutTiers,allCutTiers,...circuitTiers].map(base=
 const poolVariants=[tiers,allTiers,cutTiers,allCutTiers,...circuitTiers,...arenaTiers];
 const exchangeTiers=new Map(poolVariants.map(base=>[base,addCuts(base,ARCADE_EXCHANGE_CUTS)]));
 const minorTiers=new Map([...poolVariants,...exchangeTiers.values()].map(base=>[base,addCuts(base,ARCADE_MINOR_MOVES)]));
-export function arcadeMovesFor(form,gradeIndex=0,{tactical=false,rankCuts=false,circuitCuts=false,arenaCuts=false,exchangeVariety=false,minorMoves=false}={}){
+export function arcadeMovesFor(form:string,gradeIndex=0,{tactical=false,rankCuts=false,circuitCuts=false,arenaCuts=false,exchangeVariety=false,minorMoves=false}={}){
   const index=Number(tactical===true)+2*Number(rankCuts===true);
   const options=arenaCuts?arenaTiers[index+4*Number(circuitCuts===true)]:circuitCuts?circuitTiers[index]:
     rankCuts?(tactical?allCutTiers:cutTiers):(tactical?allTiers:tiers);
   const selected=exchangeVariety===true?exchangeTiers.get(options):options;
-  return (minorMoves===true?minorTiers.get(selected):selected)?.[form]?.[rankOf(gradeIndex)]??EMPTY;
+  return (minorMoves===true?minorTiers.get(selected!):selected)?.[form]?.[rankOf(gradeIndex)]??EMPTY;
 }
-export function arcadeTacticsFor(form,gradeIndex=0){
+export function arcadeTacticsFor(form:string,gradeIndex=0){
   return tacticTiers[form]?.[rankOf(gradeIndex)]??EMPTY;
 }

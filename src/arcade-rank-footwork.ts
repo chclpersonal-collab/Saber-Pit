@@ -1,6 +1,6 @@
-// @ts-nocheck
+type Plan=ReturnType<typeof arcadeFootworkPlan>;
 /** Grounded spacing for simulation-rank training. Speeds are pixels/second. */
-const move=(id,label,minRank,path,duration,cost,speed,lane,turn,variation)=>Object.freeze({
+const move=(id:string,label:string,minRank:number,path:string,duration:number,cost:number,speed:number,lane:number,turn:number,variation:number)=>Object.freeze({
   id,label,minRank,path,duration,cost,speed,lane,turn,variation,
 });
 export const ARCADE_RANK_FOOTWORK=Object.freeze([
@@ -13,24 +13,24 @@ export const ARCADE_RANK_FOOTWORK=Object.freeze([
   move('return_step','Return Step',14,'return',.42,18,340,2.32,-1.27,.88),
 ]);
 const byId=Object.freeze(Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m])));
-const bounded=i=>Math.max(0,Math.min(14,Math.floor(Number(i)||0)));
+const bounded=(i:unknown)=>Math.max(0,Math.min(14,Math.floor(Number(i)||0)));
 const tables=Object.freeze(Array.from({length:15},(_,index)=>Object.freeze(ARCADE_RANK_FOOTWORK.filter(m=>m.minRank<=index))));
-export const arcadeRankFootworkFor=index=>tables[bounded(index)];
-export const arcadeRankFootworkById=(id,index)=>{
+export const arcadeRankFootworkFor=(index:number)=>tables[bounded(index)];
+export const arcadeRankFootworkById=(id:string,index:number)=>{
   const spec=Object.hasOwn(byId,id)?byId[id]:null;
   return spec&&spec.minRank<=bounded(index)?spec:null;
 };
-const identity={
+const identity:Record<string,{pace:number;arc:number}>={
   shii_cho:{pace:1,arc:1},makashi:{pace:1.05,arc:.83},soresu:{pace:.88,arc:.86},
   ataru:{pace:1.11,arc:1.16},djem_so:{pace:.92,arc:.88},niman:{pace:.98,arc:1.08},juyo:{pace:1.08,arc:1.12},
 };
-const smooth=x=>{const t=Math.min(1,Math.max(0,x));return t*t*(3-2*t);};
-export function arcadeFootworkPlan(spec,{face,side,form,grade}){
+const smooth=(x:number)=>{const t=Math.min(1,Math.max(0,x));return t*t*(3-2*t);};
+export function arcadeFootworkPlan(spec:ReturnType<typeof move>,{face,side,form,grade}:{face:number;side:number;form:string;grade:number}){
   const type=identity[form]??identity.shii_cho;
   return {...spec,face,side,bearing:face+side*spec.lane,
     turn:spec.turn*type.arc,speed:spec.speed*type.pace*(1+(bounded(grade)-spec.minRank)*.007)};
 }
-export function arcadeFootworkMotion(plan,time){
+export function arcadeFootworkMotion(plan:Plan,time:number){
   const phase=Math.min(1,Math.max(0,time/plan.duration));
   const transfer=smooth((phase-.23)/.59);
   const bearing=plan.bearing+plan.side*plan.turn*transfer;
@@ -39,16 +39,16 @@ export function arcadeFootworkMotion(plan,time){
   const speed=plan.speed*push*second;
   return {x:Math.cos(bearing)*speed,y:Math.sin(bearing)*speed};
 }
-export function planPeerFootwork(index,{form,danger,retreat,serial}){
+export function planPeerFootwork(index:number,{form,danger,retreat,serial}:{form:string;danger:boolean;retreat:boolean;serial:number}){
   const options=arcadeRankFootworkFor(index);
   if(!options.length)return null;
   // Prefer compact forms on a very short clock, not the highest unlocked
   // technique automatically. A different choice pays its own time and gas.
-  let pool=options.filter(m=>danger?m.path==='check'||m.path==='side'||m.path==='slip':
+  let pool:typeof options=options.filter(m=>danger?m.path==='check'||m.path==='side'||m.path==='slip':
     retreat?m.path!=='arc':m.path!=='check');
   if(!pool.length)pool=options;
   if(pool.length>2){
-    const favored={makashi:'slip',soresu:'check',ataru:'wheel',djem_so:'return',niman:'arc',juyo:'switch',shii_cho:'side'}[form];
+    const favored=({makashi:'slip',soresu:'check',ataru:'wheel',djem_so:'return',niman:'arc',juyo:'switch',shii_cho:'side'} as Record<string,string>)[form];
     const favorite=pool.find(m=>m.path===favored);
     if(favorite&&(serial%3===0))return favorite;
   }

@@ -23,6 +23,7 @@
     "test:baseline": "node --test tests/*.test.mjs",
     "build": "node scripts/build-typescript.mjs",
     "typecheck": "node scripts/typecheck.mjs",
+    "typecheck:all": "node scripts/typecheck.mjs --require-all",
     "verify:parity": "node scripts/compare-typescript-release.mjs",
     "check:baseline": "node scripts/check.mjs",
     "prestart": "npm run build"

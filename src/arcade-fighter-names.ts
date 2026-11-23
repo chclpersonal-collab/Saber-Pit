@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Legacy name keys stay stable: fighter IDs seed outcomes and attach saved Heroes.
 export const fighterNameKeysGiven=(['Alden','Anwen','Arlen','Bea','Briallen','Cadan','Carys','Celyn','Dara','Deryn','Eira','Emlin','Fenn','Gwen','Hale','Hollis','Ione','Ivor','Jory','Kell','Linnet','Mara','Mael','Merrin','Nerys','Niall','Oriel','Osric','Perrin','Quill','Renn','Rhian','Rook','Rowan','Sable','Sorrel','Tamsin','Taren','Vesper','Wren']);
 export const fighterNameKeysFamily=(['Ashbell','Blackfen','Bramble','Briarvale','Cinderholt','Claymere','Coldwater','Crowford','Duskmere','Evenwood','Flintward','Frostbank','Graywick','Harthill','Highmere','Lowbridge','Mirewood','Moonford','Netherby','Oakward','Reedfall','Rimefield','Siltbrook','Stonecut','Thornwick','Valehart','Whitebrook','Windsill','Winterby','Yewcroft']);
@@ -28,7 +27,7 @@ const layouts=[
   [9,1,1],[30,2,1],[45,1,2],[62,2,2],[71,3,1],
   [83,2,3],[91,3,2],[97,3,3],[100,3,4]
 ];
-function chunk(i,n,one,two){
+function chunk(i:number,n:number,one:string[],two:string[]){
   if(n===1)return [one[i]];
   const units=two[i].split('-');
   if(n>=3)units.push(tails[i%tails.length]);
@@ -38,16 +37,18 @@ function chunk(i,n,one,two){
   }
   return units;
 }
-export function fighterNameParts(i,j){
+export function fighterNameParts(i:number,j:number){
   if(!Number.isInteger(i)||!Number.isInteger(j)||i<0||j<0||i>=givenOne.length||j>=familyOne.length)return [];
   const code=((i*familyOne.length+j)*397)%1200;
   const roll=100*code/1200;
-  const [,a,b]=layouts.find(([end])=>roll<end);
+  const [,a,b]=layouts.find(([end])=>roll<end)!;
   return [chunk(i,a,givenOne,givenTwo),chunk(j,b,familyOne,familyTwo)];
 }
-const namedId=(g,f)=>'f-'+g.toLowerCase()+'-'+f.toLowerCase();
-const displayed=(i,j)=>fighterNameParts(i,j).map(parts=>parts.join('')).join(' ');
-export function fighterDisplayName(id,name){
+const namedId=(g:string,f:string)=>'f-'+g.toLowerCase()+'-'+f.toLowerCase();
+const displayed=(i:number,j:number)=>fighterNameParts(i,j).map(parts=>parts.join('')).join(' ');
+export function fighterDisplayName(id:unknown,name:string):string;
+export function fighterDisplayName<T>(id:unknown,name:T):T|string;
+export function fighterDisplayName(id:unknown,name:unknown){
   if(typeof id!=='string'||typeof name!=='string')return name;
   const [g,f,serial,extra]=name.split(' ');
   if(extra!==undefined)return name;
@@ -130,24 +131,24 @@ const recruitFamilyRows=[
 ].map(([stem,suffixes])=>[stem,...(suffixes+' kan myo zan').split(' ').map(suffix=>stem+suffix)]);
 export const recruitFighterFamilies=Object.freeze(recruitFamilyRows.flat());
 
-export function fighterFamilyName(name){
+export function fighterFamilyName(name:unknown){
   return typeof name==='string'?(name.trim().split(/\s+/)[1]??''):'';
 }
 
-export function recruitFighterName({givenIndex=0,familySeed=0,avoidFamilies=[]}={}){
-  const wrap=(value,length)=>Number.isSafeInteger(value)?(value%length+length)%length:0;
+export function recruitFighterName({givenIndex=0,familySeed=0,avoidFamilies=[]}: {givenIndex?:number;familySeed?:number;avoidFamilies?:Iterable<unknown>|ArrayLike<unknown>}={}){
+  const wrap=(value:number,length:number)=>Number.isSafeInteger(value)?(value%length+length)%length:0;
   const i=wrap(givenIndex,givenOne.length);
   const family=chooseRecruitFamily(familySeed,avoidFamilies);
   const start=wrap(familySeed,recruitFighterFamilies.length);
   const roll=100*((i*397+start*293)%1200)/1200;
-  const [,givenLength]=layouts.find(([end])=>roll<end);
+  const [,givenLength]=layouts.find(([end])=>roll<end)!;
   const given=chunk(i,givenLength,givenOne,givenTwo).join('');
   return {name:given+' '+family,family};
 }
 
-export function chooseRecruitFamily(familySeed=0,avoidFamilies=[]){
+export function chooseRecruitFamily(familySeed=0,avoidFamilies:Iterable<unknown>|ArrayLike<unknown>=[]){
   const length=recruitFighterFamilies.length;
-  const wrap=(value,size)=>Number.isSafeInteger(value)?(value%size+size)%size:0;
+  const wrap=(value:number,size:number)=>Number.isSafeInteger(value)?(value%size+size)%size:0;
   const start=wrap(familySeed,length);
   const avoid=new Set(Array.from(avoidFamilies??[],value=>String(value).trim().toLowerCase()));
   let family=recruitFighterFamilies[start];

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Optional match rules apply equally to both squads and never alter careers. */
 export const MODIFIERS = Object.freeze({
   standard: Object.freeze({
@@ -11,13 +10,13 @@ export const MODIFIERS = Object.freeze({
   }),
 });
 
-export function normalizeModifier(value = 'standard') {
+export function normalizeModifier(value: unknown = 'standard'): keyof typeof MODIFIERS {
   if (typeof value !== 'string' || !Object.hasOwn(MODIFIERS, value)) throw new RangeError('Unknown match modifier');
-  return value;
+  return value as keyof typeof MODIFIERS;
 }
 
-export function getModifier(value = 'standard') { return MODIFIERS[normalizeModifier(value)]; }
+export function getModifier(value: unknown = 'standard') { return MODIFIERS[normalizeModifier(value)]; }
 
-export function permitsForceAttacks(config = {}) {
+export function permitsForceAttacks(config: {modifier?: unknown} = {}) {
   return getModifier(config.modifier ?? 'standard').forceAttacks;
 }

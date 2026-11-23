@@ -1,10 +1,15 @@
-// @ts-nocheck
+import type {BackupSummary, CareerSummary, QuestSummary} from './arcade-backup.js';
+import type {SyncAction, SyncResult} from './arcade-cloud-sync.js';
+type SyncPresentation = SyncResult & {
+  cloud?: BackupSummary | null; device?: BackupSummary | null;
+  cloudRevision?: string | null; localDigest?: string | null; error?: string;
+};
 import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=3.3.0';
 import {readCloudRecovery} from './arcade-cloud-sync.js';
-const $=id=>document.getElementById(id);
+const $=<T extends HTMLElement=HTMLButtonElement>(id: string)=>document.getElementById(id) as T;
 const controls=['cloudEnable','cloudDisable','cloudCheck','cloudDevice','cloudPull'];
-let last=null;
-function draw(result){
+let last: SyncPresentation | null=null;
+function draw(result: SyncPresentation | null){
   const enabled=browserSync.prefs().enabled;
   $('cloudEnable').hidden=enabled;$('cloudDisable').hidden=!enabled;$('cloudCheck').hidden=!enabled;
   $('cloudEnable').disabled=$('cloudDisable').disabled=$('cloudCheck').disabled=false;
@@ -14,9 +19,9 @@ function draw(result){
   $('cloudPull').hidden=!result?.cloud;
   $('cloudDevice').hidden=!result?.device||status==='reset'||status==='cloud-newer';
   $('cloudPull').disabled=$('cloudDevice').disabled=false;
-  const summary=items=>!items?'No saves found.':Object.values(items).map(x=>x.label+': '+
-    (x.questStatus??(x.seasons+' seasons · '+x.records+' records'+(x.heroes?' · '+x.heroes+' Heroes':'')))).join(' / ');
-  if(compare){$('cloudLocalSummary').textContent=summary(result.device);$('cloudRemoteSummary').textContent=summary(result.cloud);}
+  const summary=(items?: BackupSummary | null)=>!items?'No saves found.':Object.values(items).map(x=>x.label+': '+
+    ((x as QuestSummary).questStatus??((x as CareerSummary).seasons+' seasons · '+(x as CareerSummary).records+' records'+((x as CareerSummary).heroes?' · '+(x as CareerSummary).heroes+' Heroes':'')))).join(' / ');
+  if(compare){$('cloudLocalSummary').textContent=summary(result!.device);$('cloudRemoteSummary').textContent=summary(result!.cloud);}
   $('cloudStatus').textContent=({
     disabled:'Sync is off. Saves stay on this device.',
     enabled:'Sync is on for this device.',
@@ -31,9 +36,9 @@ function draw(result){
     'recovery-blocked':'Could not preserve a recovery copy, so no saves were replaced.',
     busy:'Please wait for the current sync.',
     error:result?.error
-  })[status]??'';
+  } as Partial<Record<SyncResult['status'] | 'enabled', string>>)[status]??'';
 }
-async function go(action){
+async function go(action: SyncAction){
   if(['device','cloud'].includes(action)&&!last)return;
   for(const id of controls)$(id).disabled=true;
   $('cloudStatus').textContent='Checking saves…';
@@ -42,12 +47,13 @@ async function go(action){
   if(last.status==='downloaded')announceSyncedSave();
   draw(last);
 }
-for(const [id,action] of Object.entries({cloudEnable:'enable',cloudDisable:'disable',cloudCheck:'check',cloudDevice:'device',cloudPull:'cloud'}))
+for(const [id,action] of Object.entries({cloudEnable:'enable',cloudDisable:'disable',cloudCheck:'check',cloudDevice:'device',cloudPull:'cloud'} as const))
   $(id).addEventListener('click',()=>go(action));
-$('cloudRecovery').addEventListener('change',async e=>{
-  if(!e.target.value)return;
-  const copy=await readCloudRecovery(e.target.value);
-  e.target.value='';
+$<HTMLSelectElement>('cloudRecovery').addEventListener('change',async e=>{
+  const select=e.target as HTMLSelectElement;
+  if(!select.value)return;
+  const copy=await readCloudRecovery(select.value);
+  select.value='';
   if(!copy){$('cloudStatus').textContent='No recovery copy of that save was found.';return;}
   const url=URL.createObjectURL(new Blob([copy.text],{type:'application/json'}));
   const a=document.createElement('a');a.download='saber-pit-recovery-'+copy.reason+'.json';a.href=url;document.body.append(a);a.click();a.remove();

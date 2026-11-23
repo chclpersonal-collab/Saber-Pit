@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {createArcade,stepArcade,ARCADE_FORMS} from './arcade-engine.js?v=3.0.0';
 import {ARCADE_MAPS} from './arcade-stage.js?v=2.13.0';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
@@ -7,14 +6,27 @@ import {arcadeFighterGear} from './arcade-loadouts.js?v=2.10.0';
 import {validTournamentMove} from './arcade-tournament-adaptation.js?v=2.42.0';
 
 import {GAUNTLET_SIM_VERSION,gauntletReplayVersion} from './gauntlet-rules.js';
+type Role='solo'|'trio';
+type RawFighter={id?:string;name?:string;body?:string;gender?:string;appearanceSeed?:number;form?:string;combatElo?:number;elo?:number;
+  gear?:{weapon?:string;grip?:string;forceFamily?:string;dualPhase?:boolean;dualSabers?:boolean}; profile?:object|null;adaptation?:object|null};
+interface RawProfile {solo?:RawProfile;trio?:RawProfile;bouts?:unknown;guard?:unknown;pressure?:unknown;mobility?:unknown;doctrine?:string;preferredMove?:unknown}
+type RawFixture={id?:string;seed?:number;limit?:number;terrain?:string;simulationVersion?:number;fighters:readonly RawFighter[]};
+type Fighter=ReturnType<typeof normalizeFighter>;
+type Plan=ReturnType<typeof selectPlan>;
+type LiveFighter={id:string;slot:number;team:number;form:string;x:number;y:number;vx:number;vy:number;alive:boolean;attack?:unknown;
+  attackSerial:number;actionTime:number;contact:boolean;airPhase:string;action:string;energy:number;stats:Record<string,number>};
+type LiveGame={fighters:LiveFighter[];limit:number;config:{limit:number};phase:string;time:number;eventId:number;
+  events:{id:number;kind:string;damage:number;fighterId:string;technique?:string;phase?:string}[];endReason:string;
+  gauntlet:{id:string;seed:number;simulationVersion:number;limit:number;terrain:string;plans:Plan[];
+    tuning:{soloRecovery:number;trioTax:number;taxed:Map<string,number>}}};
 export {GAUNTLET_SIM_VERSION};
 export const GAUNTLET_STEP=1/120;
 const FORCES=['force_push','force_burst','force_pulse'];
 const DOCTRINES=['balanced','aggressive','defensive'];
-const finite=(x,fallback=0)=>Number.isFinite(x)?x:fallback;
-const clamp=(x,low,high)=>Math.max(low,Math.min(x,high));
-const unit=(x,fallback=.5)=>clamp(finite(x,fallback),0,1);
-const clean=(x,max=48)=>typeof x==='string'?x.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,max):'';
+const finite=(x:unknown,fallback=0)=>typeof x==='number'&&Number.isFinite(x)?x:fallback;
+const clamp=(x:number,low:number,high:number)=>Math.max(low,Math.min(x,high));
+const unit=(x:unknown,fallback=.5)=>clamp(finite(x,fallback),0,1);
+const clean=(x:unknown,max=48)=>typeof x==='string'?x.replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,max):'';
 const flags=Object.freeze({
   weaponFlow:true,expandedCombat:true,ratingSkill:true,matchGoalPlanning:true,circuitCuts:true,continuousCombat:true,
   anticipatingCombat:true,arenaCuts:true,activeFootwork:true,styleTravel:true,repertoireSupport:true,styleChoreo:true,
@@ -22,58 +34,58 @@ const flags=Object.freeze({
   impactPhysics:true,recoveryFlow:true,balancePass:true,closeChoice:true,guardCounterplay:true,minorMoves:true,
   forceVariants:true,advancedArena:true,
 });
-const slotRole=i=>i===0?'solo':'trio';
+const slotRole=(i:number):Role=>i===0?'solo':'trio';
 
-function fighterProfile(f,role){
-  const profile=f.profile??f.adaptation;
+function fighterProfile(f:RawFighter,role:Role){
+  const profile=(f.profile??f.adaptation) as RawProfile|null|undefined;
   const raw=profile?.[role]??profile;
   return {
     bouts:clamp(Math.floor(finite(raw?.bouts)),0,1000000),
     guard:unit(raw?.guard),pressure:unit(raw?.pressure),mobility:unit(raw?.mobility),
-    doctrine:DOCTRINES.includes(raw?.doctrine)?raw.doctrine:'balanced',
+    doctrine:DOCTRINES.includes(raw?.doctrine!)?raw!.doctrine!:'balanced',
     preferredMove:validTournamentMove(raw?.preferredMove,f.form,'SSS+V'),
   };
 }
 
-function normalizeFighter(raw,index){
+function normalizeFighter(raw:RawFighter,index:number){
   const id=clean(raw?.id,80);
   if(!id)throw new TypeError('Every gauntlet fighter must have an ID.');
-  const body=['woman','rabbit'].includes(raw.body)?raw.body:'femboy', role=slotRole(index);
-  const form=Object.hasOwn(ARCADE_FORMS,raw.form)?raw.form:'shii_cho';
+  const body=['woman','rabbit'].includes(raw.body!)?raw.body!:'femboy', role=slotRole(index);
+  const form=Object.hasOwn(ARCADE_FORMS,raw.form!)?raw.form!:'shii_cho';
   const gear=raw.gear??{};
-  const weapon=['single','dual','staff'].includes(gear.weapon)?gear.weapon:gear.dualSabers===true?'dual':'single';
+  const weapon=['single','dual','staff'].includes(gear.weapon!)?gear.weapon!:gear.dualSabers===true?'dual':'single';
   const grip=weapon!=='staff'&&gear.grip==='backhand'?'backhand':'forward';
   return {
     id,role,form,body,name:clean(raw.name)||'Fighter '+(index+1),gender:fighterGender(raw.gender,body,id),
-    appearanceSeed:Number.isInteger(raw.appearanceSeed)?raw.appearanceSeed>>>0:appearanceSeedFor(id),
-    gear:{weapon,grip,dualPhase:gear.dualPhase===true,forceFamily:FORCES.includes(gear.forceFamily)?gear.forceFamily:'force_push'},
+    appearanceSeed:Number.isInteger(raw.appearanceSeed)?raw.appearanceSeed!>>>0:appearanceSeedFor(id),
+    gear:{weapon,grip,dualPhase:gear.dualPhase===true,forceFamily:FORCES.includes(gear.forceFamily!)?gear.forceFamily!:'force_push'},
     elo:clamp(finite(raw.combatElo??raw.elo,1500),0,25000),profile:fighterProfile({...raw,form},role),
   };
 }
 
-function normalizeFixture(fixture){
+function normalizeFixture(fixture:RawFixture){
   if(!Array.isArray(fixture?.fighters)||fixture.fighters.length!==4)
     throw new TypeError('A gauntlet requires exactly one solo fighter and three rivals.');
   const simulationVersion=gauntletReplayVersion(fixture);
   if(simulationVersion===null)
     throw new RangeError('This version of the gauntlet simulation is not available.');
-  const fighters=fixture.fighters.map(normalizeFighter);
+  const fighters=(fixture.fighters as readonly RawFighter[]).map(normalizeFighter);
   if(new Set(fighters.map(f=>f.id)).size!==4)throw new TypeError('Gauntlet fighter IDs must be distinct.');
   return {
     id:clean(fixture.id,80),fighters,simulationVersion,
-    seed:Number.isSafeInteger(fixture.seed)?fixture.seed>>>0:1,
+    seed:Number.isSafeInteger(fixture.seed)?fixture.seed!>>>0:1,
     limit:clamp(Math.round(finite(fixture.limit,90)),15,600),
-    terrain:Object.hasOwn(ARCADE_MAPS,fixture.terrain)?fixture.terrain:'underpit',
+    terrain:Object.hasOwn(ARCADE_MAPS,fixture.terrain!)?fixture.terrain!:'underpit',
   };
 }
 
 // Read only previous recorded bouts. Engine still chooses each action.
-function selectPlan(f,opponents,index){
+function selectPlan(f:Fighter,opponents:Fighter[],index:number){
   const p=f.profile;
   const learned=opponents.filter(o=>o.profile.bouts>=2);
   let doctrine=p.doctrine;
   if(p.bouts>=2){
-    const their=(key)=>learned.length?learned.reduce((sum,o)=>sum+o.profile[key],0)/learned.length:.50;
+    const their=(key:'guard'|'pressure'|'mobility')=>learned.length?learned.reduce((sum,o)=>sum+o.profile[key],0)/learned.length:.50;
     const pressure=p.pressure*.47+their('guard')*.26+their('mobility')*.10+
       (doctrine==='aggressive'?.14:0)+(index===0?0:.025);
     const defense=p.guard*.47+their('pressure')*.28+
@@ -83,14 +95,14 @@ function selectPlan(f,opponents,index){
   return {id:f.id,doctrine,preferredMove:p.preferredMove};
 }
 
-export function createGauntletBattle(fixture){
+export function createGauntletBattle(fixture:RawFixture):LiveGame{
   const {id,seed,limit,terrain,fighters,simulationVersion}=normalizeFixture(fixture);
   const plans=fighters.map((f,i)=>selectPlan(f,i===0?fighters.slice(1):fighters.slice(0,1),i));
   const halves=[fighters.slice(0,1),fighters.slice(1)];
-  const gear=([a,b])=>({startingSaberWeapon:[a.gear.weapon,b.gear.weapon],
+  const gear=([a,b]:[Fighter,Fighter])=>({startingSaberWeapon:[a.gear.weapon,b.gear.weapon],
     startingSaberGrip:[a.gear.grip,b.gear.grip],startingDualPhase:[a.gear.dualPhase,b.gear.dualPhase],
     startingForceFamily:[a.gear.forceFamily,b.gear.forceFamily]});
-  const game=createArcade({...flags,mode:'watch',seed,limit,terrain,rule:'elimination',
+  const game=(createArcade as unknown as (options:Record<string,unknown>)=>LiveGame)({...flags,mode:'watch',seed,limit,terrain,rule:'elimination',
     teamSizes:[1,3],startingRanks:['SSS+V','SSS+V'],teamForms:halves.map(side=>side.map(f=>f.form)),
     fighterRatings:halves.map(side=>side.map(f=>f.elo)),fighterChessStyles:halves.map(side=>side.map(f=>arcadeChessStyleForId(f.id))),
     ...gear([fighters[0],fighters[1]]),
@@ -106,7 +118,7 @@ export function createGauntletBattle(fixture){
 }
 
 // Two small stamina changes, restricted to multi-attacker exchanges in Gauntlet.
-export function applyGauntletBalance(game,dt){
+export function applyGauntletBalance(game:LiveGame,dt:number){
   const [solo,...trio]=game.fighters, state=game.gauntlet.tuning;
   if(!solo.alive)return;
   const nearby=trio.filter(f=>f.alive&&Math.hypot(f.x-solo.x,f.y-solo.y)<175);
@@ -127,8 +139,8 @@ export function applyGauntletBalance(game,dt){
 }
 
 /** Normalize tournament result on the actual engine tick, never from score. */
-export function stepGauntletBattle(game,dt=GAUNTLET_STEP){
-  stepArcade(game,dt);
+export function stepGauntletBattle(game:LiveGame,dt=GAUNTLET_STEP){
+  (stepArcade as unknown as (match:LiveGame,tick:number)=>unknown)(game,dt);
   if(game.phase==='playing'&&game.gauntlet.simulationVersion>=2)applyGauntletBalance(game,dt);
   if(game.endReason==='timeout'&&game.phase!=='draw'){
     game.phase='draw';
@@ -138,9 +150,9 @@ export function stepGauntletBattle(game,dt=GAUNTLET_STEP){
   return game;
 }
 
-export function simulateGauntlet(fixture){
+export function simulateGauntlet(fixture:RawFixture){
   const game=createGauntletBattle(fixture), actors=game.fighters;
-  const rows=actors.map(()=>({ticks:0,guardTicks:0,closingTicks:0,distance:0,hits:{},lastX:0,lastY:0}));
+  const rows=actors.map(()=>({ticks:0,guardTicks:0,closingTicks:0,distance:0,hits:{} as Record<string,number>,lastX:0,lastY:0}));
   rows.forEach((r,i)=>{r.lastX=actors[i].x;r.lastY=actors[i].y;});
   const actorIndex=new Map(actors.map((a,i)=>[a.id,i]));
   let lastEvent=0;
@@ -160,14 +172,15 @@ export function simulateGauntlet(fixture){
     if(game.eventId===lastEvent)continue;
     for(const e of game.events){
       if(e.id<=lastEvent||!['hit','launch'].includes(e.kind)||!(e.damage>0)||!e.technique)continue;
-      const index=actorIndex.get(e.fighterId), actor=actors[index];
+      const index=actorIndex.get(e.fighterId);if(index===undefined)continue;
+      const actor=actors[index];
       const move=actor&&validTournamentMove(e.technique,actor.form,'SSS+V');
       if(move)rows[index].hits[move]=(rows[index].hits[move]??0)+1;
     }
     lastEvent=game.eventId;
   }
   if(game.phase==='playing')throw new Error('Gauntlet simulation did not reach its deadline.');
-  const winnerIndex=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
+  const winnerIndex:0|1|null=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
   const observations=actors.map((f,i)=>{
     const row=rows[i],plan=game.gauntlet.plans[i],stats={...f.stats};
     const elapsed=Math.max(.1,row.ticks*GAUNTLET_STEP);

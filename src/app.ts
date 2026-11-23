@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { arenaPalette, drawArenaStage, drawArenaCurrent } from './arena-stage.js?v=1.5.0';
 import { createArenaImpact } from './arena-impact.js?v=1.5.0';
 import { QUICK_FIGHTS } from './quick-fights.js?v=1.5.0';
@@ -33,20 +32,49 @@ import { createPresentationClock } from './presentation-clock.js?v=1.4.0';
 import { createPresentationEffects } from './presentation-effects.js?v=1.4.0';
 import { sampleSharedCombatBeats, applySharedCombatBeat } from './combat-sequences.js?v=1.4.0';
 
-const $ = id => document.getElementById(id);
+import type {ClassicGame, ClassicSoldier} from './sim.js';
+import type {ClassicFormId} from './combat-forms.js';
+import type {Point} from './terrain.js';
+
+type ButtonId = 'mainMenuBtn' | 'battleOptionsBtn' | 'speedBtn' | 'pauseBtn' | 'resetBtn' | 'continueSessionBtn' | 'loadCheckpointBtn' | 'optionsBtn' | 'controlsBtn' | 'masterTrialBtn' | 'applyAllFormsBtn' | 'mixPlayerFormsBtn' | 'startBattleBtn' | 'closeOptionsBtn' | 'closeControlsBtn' | 'closeInspectorBtn' | 'takeControlBtn' | 'resumeBtn' | 'spectateBtn' | 'nextRoundBtn' | 'inspectResultBtn' | 'reviewResultBtn' | 'reviewNextBtn' | 'previousFighterBtn' | 'nextFighterBtn' | 'inspectCarrierBtn' | 'cycleTargetBtn' | 'advanceBtn' | 'holdBtn' | 'retreatBtn' | 'flankBtn' | 'regroupBtn' | 'grenadeBtn' | 'smokeBtn' | 'autoBtn' | 'intelBtn' | 'soundBtn' | 'detailsBtn' | 'saveCampaignBtn' | 'resumeCampaignBtn' | 'copySeedBtn' | 'exportBtn';
+type SvgId = 'pauseIcon';
+type FormId = 'setupForm';
+type SelectId = 'setupMatchMode' | 'setupRoundDuration' | 'setupModifier' | 'setupTerrain' | 'setupMapSize' | 'setupEnvironment' | 'setupOpponentForm' | 'setupPlayerSlot' | 'setupSpeed' | 'setupDoctrine' | 'setupEnemyDoctrine' | 'setupAllForms' | 'optionColors' | 'optionMotion' | 'optionEffects' | 'nextEnemyDoctrine' | 'inspectTeam' | `nextDeployment${number}` | `nextFormation${number}` | `nextPriority${number}` | `setupDeployment${number}` | `setupFormation${number}` | `setupPriority${number}` | `setupStartingForce${number}` | `setupStartingForceQuality${number}` | `setupStartingRank${number}` | `setupStartingSaber${number}`;
+type InputId = 'setupSeed' | 'optionTactical' | 'optionSound' | `setupStartingDualSabers${number}` | `setupTeam${number}`;
+type DetailsId = 'setupStartingOptions' | 'mutationDetails';
+type DialogId = 'optionsDialog' | 'controlsDialog';
+type CanvasId = 'battleCanvas';
+type OutputId = 'fightCallout' | 'debugState';
+type ClassicElement<Id extends string> = Id extends SvgId ? SVGSVGElement :
+  Id extends InputId ? HTMLInputElement :
+  Id extends CanvasId ? HTMLCanvasElement :
+  Id extends SelectId ? HTMLSelectElement :
+  Id extends DialogId ? HTMLDialogElement :
+  Id extends DetailsId ? HTMLDetailsElement :
+  Id extends OutputId ? HTMLOutputElement :
+  Id extends FormId ? HTMLFormElement :
+  Id extends ButtonId ? HTMLButtonElement : HTMLElement;
+const $ = <Id extends string>(id: Id): ClassicElement<Id> => document.getElementById(id) as unknown as ClassicElement<Id>;
 const canvas = $('battleCanvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d', { alpha: false })!;
 const world = { width: 960, height: 540 };
 const params = new URLSearchParams(location.search);
 // QA runs never read or overwrite the owner's persistent campaign.
 const qaSession = params.get('qa') === '1';
-const qaValues = new Map();
-const campaignStorage = qaSession ? { getItem: key => qaValues.get(key) ?? null, setItem: (key, value) => qaValues.set(key, String(value)), removeItem: key => qaValues.delete(key) } : undefined;
+const qaValues = new Map<string, string>();
+const campaignStorage = qaSession ? { getItem: (key: string) => qaValues.get(key) ?? null, setItem: (key: string, value: string) => qaValues.set(key, String(value)), removeItem: (key: string) => qaValues.delete(key) } : undefined;
 const qaStatus = qaSession ? document.createElement('output') : null;
 let qaFrames = 0, qaLastError = '';
 let qaFullMotion = false;
-const qaDisplayFrames = [];
-let qaFrameLog = null, qaLogUpdated = 0, qaSampleGame = null, qaEpoch = 0;
+interface QaSample {
+  round: number; tick: number; generation: string; appPhase: string;
+}
+interface VisualPuff extends Point {ttl: number; maxTtl: number; size: number; drift: number}
+type Effect = ClassicGame['effects'][number];
+type RenderSwing = Effect & {round: number; tick: number};
+type CombatFeedback = Effect & {remaining: number};
+const qaDisplayFrames: QaSample[] = [];
+let qaFrameLog: HTMLPreElement | null = null, qaLogUpdated = 0, qaSampleGame: ClassicGame | null = null, qaEpoch = 0;
 if (qaStatus) {
   qaStatus.id = 'qaStatus'; qaStatus.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#071521;color:#c9ffff;font:11px monospace;padding:5px;pointer-events:none';
   document.body.append(qaStatus);
@@ -65,9 +93,9 @@ if (qaStatus) {
   window.addEventListener('unhandledrejection', event => { qaLastError = String(event.reason); qaStatus.textContent = qaLastError; });
 }
 const requestedSeed = Number(params.get('seed'));
-let seed = params.has('seed') && Number.isFinite(requestedSeed) ? (requestedSeed >>> 0) || 1 : (Math.floor(Math.random() * 99998) + 1);
+let seed: ClassicGame['seed'] = params.has('seed') && Number.isFinite(requestedSeed) ? (requestedSeed >>> 0) || 1 : (Math.floor(Math.random() * 99998) + 1);
 let game = createGame(seed, { mode: 'spectate' });
-let appPhase = 'menu';
+let appPhase: 'menu' | 'playing' | 'review' | 'paused' | 'results' = 'menu';
 let sessionStarted = false;
 let animationHandle = 0;
 let preferences = loadPreferences();
@@ -81,8 +109,8 @@ let nextDeployments = [...(game.config?.deployments || ['standard', 'standard'])
 let nextTargetPriorities = [...(game.config?.targetPriorities || ['balanced', 'balanced'])];
 let campaignSavingEnabled = false;
 const audio = createAudio();
-let selectedUnitId = null;
-let currentOrderMarker = null;
+let selectedUnitId: string | null = null;
+let currentOrderMarker: (Point & {label: string}) | null = null;
 let tacticalView = preferences.tacticalView;
 let smokeCooldownMax = 1;
 let lastEventSignature = '';
@@ -90,22 +118,23 @@ let lastObjectiveSignature = '';
 let lastTerrainSignature = '';
 let visualGeneration = '';
 let lastVisualEffect = 0;
-let visualPuffs = [];
-let combatFeedback = [];
+let visualPuffs: VisualPuff[] = [];
+let combatFeedback: CombatFeedback[] = [];
 let feedbackGeneration = '';
 let lastFeedbackEffect = 0;
 let lastFeedbackTick = 0;
-let renderFighters = new Map(), renderSwings = new Map(), renderBlocks = new Map();
-let renderPoseGame = null, lastPoseTick = 0;
-let renderFrame = null, renderTick = 0;
+let renderFighters = new Map<string | number, ClassicSoldier>(), renderSwings = new Map<string, RenderSwing>(), renderBlocks = new Map<string, Effect & {tick: number}>();
+let renderPoseGame: ClassicGame | null = null, lastPoseTick = 0;
+type RenderFrame = ReturnType<typeof createRenderFrame<ClassicSoldier, ClassicGame["objective"], Effect>>;
+let renderFrame: RenderFrame = null!, renderTick = 0;
 const presentationClock = createPresentationClock();
 const presentationEffects = createPresentationEffects();
 const arenaImpact = createArenaImpact();
 let lastCalloutId = 0, calloutUntil = 0;
 let sharedBeats = new Map();
-let presentationGame = null, presentationRound = null;
+let presentationGame: ClassicGame | null = null, presentationRound: number | null = null;
 function resetPresentation() {
-  presentationClock.reset(game); presentationEffects.reset(game.effects || []); arenaImpact.reset(game.effects || []);
+  presentationClock.reset(game); presentationEffects.reset((game.effects || []) as Parameters<typeof presentationEffects.reset>[0]); arenaImpact.reset((game.effects || []) as Parameters<typeof arenaImpact.reset>[0]);
   lastCalloutId = (game.effects || []).reduce((max, event) => Math.max(max, event.id || 0), 0);
   calloutUntil = 0; $('fightCallout').hidden = true;
   sharedBeats.clear(); renderSwings.clear(); renderBlocks.clear();
@@ -113,7 +142,7 @@ function resetPresentation() {
 }
 const rankNames = ['Recruit', 'Veteran', 'Elite', 'Ace'];
 let paused = true;
-let speed = preferences.speed;
+let speed: number = preferences.speed;
 let lastTime = 0;
 let lastUI = 0;
 let resultShown = false;
@@ -131,7 +160,7 @@ const input = createPlayerInput({
 function motionReduced() { return qaSession && qaFullMotion ? false : preferences.motion === 'reduce' || reducedMotion.matches; }
 function clearInput() { input.clear(); clearPlayerInput(game); document.querySelectorAll('.is-held').forEach(button => button.classList.remove('is-held')); }
 function ensureFrame() { if (!animationHandle && appPhase !== 'menu') animationHandle = requestAnimationFrame(frame); }
-const commands = [...document.querySelectorAll('[data-order]')];
+const commands = [...document.querySelectorAll<HTMLButtonElement>('[data-order]')];
 const orderText = { flank: 'Finding a side approach', regroup: 'Regrouping at the team rally point', advance: 'Advancing toward the enemy', hold: 'Holding position', retreat: 'Moving back to cover' };
 const orderShort = { flank: 'Team flanking', regroup: 'Team regrouping', advance: 'Team advancing →', hold: 'Holding position', retreat: '← Falling back' };
 
@@ -148,15 +177,15 @@ function syncWorld() {
   if (terrain.width !== world.width || terrain.height !== world.height) { terrain.width = world.width; terrain.height = world.height; }
 }
 
-function announce(message) { $('announcer').textContent = message; }
-function showToast(message) {
+function announce(message: string) { $('announcer').textContent = message; }
+function showToast(message: string) {
   $('orderToast').textContent = message;
   $('orderToast').classList.add('is-visible');
   toastUntil = performance.now() + 1500;
 }
-function issueOrder(order) {
+function issueOrder(order: string) {
   if (appPhase !== 'playing' || paused || game.status !== 'playing' || game.config?.mode === 'spectate') return;
-  if (Object.hasOwn(SQUAD_ORDERS, order) && commandIntent(game, 0).eligible === 0) { showToast('No AI teammates available for movement orders.'); return; }
+  if (Object.hasOwn(SQUAD_ORDERS, order) && commandIntent(game, 0)!.eligible === 0) { showToast('No AI teammates available for movement orders.'); return; }
   const accepted = command(game, order);
   if (order === 'force') {
     if (accepted !== false) {
@@ -166,12 +195,12 @@ function issueOrder(order) {
   } else if (order === 'guard') {
     if (accepted !== false) { smokeCooldownMax = Math.max(1, game.guardCooldown); showToast('Team guarding'); }
   } else {
-    if (accepted !== false) { showToast(orderShort[order]); announce(orderShort[order]); }
+    if (accepted !== false) { showToast(orderShort[order as keyof typeof orderShort]); announce(orderShort[order as keyof typeof orderShort]); }
   }
   if (accepted === false) showToast(displayText(commandReadiness(game, order).reason));
   updateUI();
 }
-function setPaused(next) {
+function setPaused(next: boolean) {
   if (!sessionStarted || appPhase === 'menu' || game.status !== 'playing') return;
   if (!next && game.config?.mode === 'play' && !game.soldiers.some(s => s.id === game.control?.soldierId && s.alive)) { showToast('Choose a living teammate or watch instead.'); return; }
   paused = next; appPhase = next ? 'paused' : 'playing';
@@ -222,7 +251,7 @@ function beginNextRound() {
   ensureFrame(); canvas.focus({ preventScroll: true });
 }
 
-commands.forEach(button => button.addEventListener('click', () => issueOrder(button.dataset.order)));
+commands.forEach(button => button.addEventListener('click', () => issueOrder(button.dataset.order!)));
 $('grenadeBtn').addEventListener('click', () => issueOrder('force'));
 $('smokeBtn').addEventListener('click', () => issueOrder('guard'));
 $('pauseBtn').addEventListener('click', () => setPaused(!paused));
@@ -239,7 +268,7 @@ $('reviewResultBtn').addEventListener('click', () => {
 });
 $('speedBtn').addEventListener('click', () => {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
-  preferences.speed = speed; savePreferences(preferences);
+  preferences.speed = speed as typeof preferences.speed; savePreferences(preferences);
   $('speedBtn').textContent = speed + '×';
   $('speedBtn').setAttribute('aria-label', `Game speed: ${speed} times`);
   showToast(`Battle speed ${speed}×`);
@@ -251,8 +280,8 @@ window.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
   if (appPhase === 'menu' || document.querySelector('dialog[open]')) return;
   if (!$('resultOverlay').hidden && key === 'tab') {
-    const controls = [...$('resultOverlay').querySelectorAll('button:not([disabled]), select:not([disabled]), summary, a[href]')].filter(control => control.getClientRects().length > 0);
-    const index = controls.indexOf(document.activeElement);
+    const controls = [...$('resultOverlay').querySelectorAll<HTMLElement>('button:not([disabled]), select:not([disabled]), summary, a[href]')].filter(control => control.getClientRects().length > 0);
+    const index = controls.indexOf(document.activeElement as HTMLElement);
     const next = index < 0 ? (event.shiftKey ? controls.length - 1 : 0) : (index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
     event.preventDefault(); controls[next]?.focus(); return;
   }
@@ -273,7 +302,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && appPhase !== 'menu') ensureFrame();
 });
 
-function weaponSummary(team) {
+function weaponSummary(team: number) {
   const squad = game.soldiers.filter(s => s.team === team);
   const styles = new Set(squad.map(s => s.form));
   return `${styles.size === 1 ? FORMS[squad[0].form].name : styles.size + ' forms'} · ${permitsForceAttacks(game.config) ? 'Sabers & Force' : 'Sabers only'}`;
@@ -329,7 +358,7 @@ function updateUI() {
   updateDirectUI();
   if (ended && !resultShown) showResult(living);
 }
-function showResult(living) {
+function showResult(living: readonly number[]) {
   const settledDuringPlay = appPhase === 'playing';
   appPhase = 'results'; paused = false; clearInput(); audio.silence();
   resultShown = true;
@@ -361,25 +390,25 @@ function showResult(living) {
   $('resultHealth').hidden = !timeout;
   if (timeout) {
     const health = [0, 1].map(team => game.soldiers.filter(s => s.team === team && s.alive).reduce((sum, s) => sum + s.hp, 0));
-    const format = value => Number(value.toFixed(3)).toLocaleString();
+    const format = (value: number) => Number(value.toFixed(3)).toLocaleString();
     $('resultHealth').textContent = `Health left: you ${format(health[0])} · enemy ${format(health[1])}`;
   }
   $('resultPlayer').textContent = String(living[0]);
   $('resultEnemy').textContent = String(living[1]);
   $('resultOverlay').hidden = false;
   announce(`${title}. ${living[0]} of your fighters and ${living[1]} enemy fighters remain. Check the stats and choose your next-round settings.`);
-  $('resultOverlay').querySelector('.result-card').scrollTop = 0;
+  $('resultOverlay').querySelector<HTMLElement>('.result-card')!.scrollTop = 0;
   $('resultTitle').tabIndex = -1;
   $('resultTitle').focus({ preventScroll: true });
 }
 
-function careerOf(soldier) {
+function careerOf(soldier: ClassicSoldier) {
   const snapshot = soldier.career;
   const progress = progressionSummary(snapshot?.merit || 0);
   // Old saves retain their exact combat snapshot. Only the displayed ladder is current.
   return { ...snapshot, ...progress, modifiers: snapshot?.modifiers || progress.modifiers };
 }
-function careerPowers(career) {
+function careerPowers(career: ReturnType<typeof careerOf>) {
   const modifiers = career.modifiers;
   const health = Number(((modifiers.healthMultiplier - 1) * 100).toFixed(1));
   const accuracy = Number((modifiers.accuracyBonus * 100).toFixed(1));
@@ -387,7 +416,7 @@ function careerPowers(career) {
   return health || accuracy || reload ? `Training bonuses: +${health}% health · +${accuracy} accuracy points · ${reload}% shorter saber recovery` : 'Training bonuses: none yet. Earn training points to improve stats.';
 }
 function updateDoctrineChoices() {
-  for (const button of $('doctrineChoices').children) {
+  for (const button of $('doctrineChoices').children as HTMLCollectionOf<HTMLButtonElement>) {
     button.setAttribute('aria-pressed', String(button.dataset.doctrine === nextDoctrine));
   }
   $('doctrineHint').textContent = displayText(DOCTRINES[nextDoctrine].description);
@@ -423,20 +452,20 @@ function buildFormChoices() {
       groups.get(groupKey).append(option);
     }
     select.value = nextForms[lane];
-    const describe = form => {
+    const describe = (form: (typeof FORMS)[ClassicFormId]) => {
       const practice = masterySummary(game.mastery?.[0]?.[lane], form.id);
       return `${displayText(form.trait)} Damage ×${form.damageMultiplier.toFixed(2)} · recovery ×${form.attackIntervalMultiplier.toFixed(2)} · Force cost ×${form.forceCostMultiplier.toFixed(2)}. Form stats: ${practice.rounds} rounds · ${practice.kills} kills · ${Math.round(practice.damage)} damage.`;
     };
-    const trait = document.createElement('small'); trait.id = `form-trait-${lane}`; trait.textContent = describe(FORMS[select.value]);
+    const trait = document.createElement('small'); trait.id = `form-trait-${lane}`; trait.textContent = describe(FORMS[select.value as ClassicFormId]);
     select.setAttribute('aria-describedby', trait.id);
-    select.addEventListener('change', () => { nextForms[lane] = select.value; trait.textContent = describe(FORMS[select.value]); });
+    select.addEventListener('change', () => { nextForms[lane] = select.value as ClassicFormId; trait.textContent = describe(FORMS[select.value as ClassicFormId]); });
     row.append(label, select, trait); $('formChoices').append(row);
   }
 }
 function updateBattleRecap() {
-  const recap = buildBattleRecap(game, { round: game.round, limit: 5 });
-  const totals = recap.totals;
-  const pair = values => Array.isArray(values) ? values.join(' / ') : 'unavailable';
+  const recap = buildBattleRecap(game as ClassicGame & {roundReport: NonNullable<ClassicGame['roundReport']>}, { round: game.round, limit: 5 });
+  const totals = recap.totals!;
+  const pair = (values: unknown) => Array.isArray(values) ? values.join(' / ') : 'unavailable';
   const objectiveLabel = totals.mode === 'relic' ? 'Relic deliveries' : 'Signal points';
   const objective = totals.mode === 'control' && Array.isArray(totals.objective) ? totals.objective.map(Math.floor) : totals.objective;
   $('roundRecapTotals').textContent = `Your team / enemy: Kills ${pair(totals.kills)} · Casualties ${pair(totals.deaths)}${totals.mode === 'elimination' ? '' : ` · ${objectiveLabel} ${pair(objective)}`}`;
@@ -484,7 +513,8 @@ function checkpointCampaign() {
 function resumeSavedCampaign() {
   const result = loadCampaign(campaignStorage);
   if (!result.game) { $('saveStatus').textContent = `Could not resume: ${result.error || 'no saved game'}`; $('menuSaveStatus').textContent = $('saveStatus').textContent; return; }
-  game = result.game;
+  // The detached save has passed persistence validation and migration.
+  game = result.game as unknown as ClassicGame;
   resetPresentation();
   sessionStarted = true; appPhase = game.status === 'ended' ? 'results' : 'paused';
   $('startMenu').hidden = true; $('battleSurface').hidden = false; $('battleUtilities').hidden = false;
@@ -613,7 +643,7 @@ canvas.addEventListener('keydown', event => {
   const direction = ['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1 : 1;
   cycleInspection(direction);
 });
-function cycleInspection(direction) {
+function cycleInspection(direction: number) {
   selectUnit(nextInspectionId(game.soldiers, selectedUnitId, direction, $('inspectTeam').value, game.status === 'ended'));
 }
 function updateInspectionControls() {
@@ -625,7 +655,7 @@ function updateInspectionControls() {
   $('inspectCarrierBtn').hidden = game.config?.matchMode !== 'relic';
   $('inspectCarrierBtn').disabled = !game.objective?.carrierId;
 }
-function selectUnit(id) {
+function selectUnit(id: string | null) {
   selectedUnitId = id;
   updateInspector();
   updateUI(); draw();
@@ -634,9 +664,9 @@ function selectUnit(id) {
     if (soldier) announce(`${soldier.team === 0 ? 'Your' : 'Enemy'} fighter ${(soldier.lane ?? 0) + 1}. Rank ${gradeDisplayLabel(careerOf(soldier).grade)}. ${Math.round(soldier.hp)} health. ${soldierStatus(soldier)}.`);
   }
 }
-function activeMove(soldier) { return soldier.attack?.kind === 'saber' && soldier.attack.moveId ? selectFormMove(soldier.attack.form || soldier.form, soldier.attack.comboIndex || 0) : null; }
-function forceRepertoireLabel(soldier) { return forceRepertoire(soldier).map(id => id === 'force_push' ? WEAPONS[soldier.weapon]?.name || 'Force push' : forceAbilityById(id)?.name || id).join(', '); }
-function soldierStatus(soldier) {
+function activeMove(soldier: ClassicSoldier) { return soldier.attack?.kind === 'saber' && soldier.attack.moveId ? selectFormMove(soldier.attack.form || soldier.form, soldier.attack.comboIndex || 0) : null; }
+function forceRepertoireLabel(soldier: ClassicSoldier) { return forceRepertoire(soldier).map(id => id === 'force_push' ? WEAPONS[soldier.weapon]?.name || 'Force push' : forceAbilityById(id)?.name || id).join(', '); }
+function soldierStatus(soldier: ClassicSoldier) {
   if (!soldier.alive) return 'Dead';
   if (soldier.airborne) return `Airborne · ${Math.round(airborneHeight(soldier, game.tick))} height`;
   if (soldier.landingRecoveryUntil > game.tick) return 'Landing recovery';
@@ -751,16 +781,16 @@ function updateReport() {
     $('metric-' + key).innerHTML = `${Math.round(values[0])} <i>· ${Math.round(values[1])}</i>`;
   }
   $('tacticSummary').textContent = [0, 1].map(team => `${team === 0 ? 'Your team' : 'Enemy'}: ${DOCTRINES[game.doctrines[team]].name} · ${FORMATIONS[game.config?.formations?.[team] || 'line'].name} · ${priorityName(game.config?.targetPriorities?.[team] || 'balanced')}`).join(' / ');
-  for (const button of $('unitRoster').children) {
+  for (const button of $('unitRoster').children as HTMLCollectionOf<HTMLButtonElement>) {
     const soldier = game.soldiers.find(s => s.id === button.dataset.unitId);
     if (!soldier) continue;
     button.classList.toggle('is-dead', !soldier.alive);
     button.classList.toggle('is-selected', soldier.id === selectedUnitId);
     button.setAttribute('aria-pressed', String(soldier.id === selectedUnitId));
     const career = careerOf(soldier);
-    button.querySelector('.roster-grade').textContent = gradeDisplayLabel(career.grade);
+    button.querySelector('.roster-grade')!.textContent = gradeDisplayLabel(career.grade);
     const record = (game.records?.soldiers || []).find(record => record.team === soldier.team && record.lane === soldier.lane);
-    button.querySelector('.roster-record').textContent = `${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`;
+    button.querySelector('.roster-record')!.textContent = `${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`;
     button.title = `${FORMS[soldier.form].name} · All rounds: ${record?.kills || 0} kills, ${record?.deaths || 0} deaths, ${record?.assists || 0} assists; ${record?.environmentDeaths || 0} hazard deaths`;
     button.setAttribute('aria-label', `${soldier.team === 0 ? 'Your' : 'Enemy'} fighter ${(soldier.lane ?? 0) + 1}, rank ${gradeDisplayLabel(career.grade)}, ${career.merit} training points, ${Math.round(soldier.hp)} health, ${soldierStatus(soldier)}. All rounds: ${record?.kills || 0} kills, ${record?.deaths || 0} deaths, ${record?.assists || 0} assists; ${record?.environmentDeaths || 0} hazard deaths.`);
   }
@@ -812,7 +842,7 @@ function updateUpgradeUI() {
   $('objectiveHud').dataset.mode = game.config?.matchMode || 'control';
   $('objectiveRule').textContent = rules.objectiveLabel;
   $('objectiveHud').title = displayText(rules.summary);
-  $('captureLeft').parentElement.hidden = !captureEnabled || game.config?.matchMode === 'relic';
+  $('captureLeft').parentElement!.hidden = !captureEnabled || game.config?.matchMode === 'relic';
   if (captureEnabled) {
     $('objectiveScore').textContent = `${Math.floor(objective.points[0])} : ${Math.floor(objective.points[1])}`;
     $('objectiveHud').setAttribute('aria-label', `${game.config?.matchMode === 'relic' ? 'Relic deliveries' : 'Signal control'}: your team ${Math.floor(objective.points[0])}, enemy ${Math.floor(objective.points[1])}. Target ${objective.targetScore}.`);
@@ -832,8 +862,8 @@ function updateUpgradeUI() {
     showToast(feedback.status);
   }
   lastObjectiveSignature = feedback.signature;
-  $('metric-points').parentElement.hidden = !rules.objectiveEnabled;
-  $('metric-points').previousElementSibling.textContent = game.config?.matchMode === 'relic' ? 'Relic deliveries' : 'Signal points';
+  $('metric-points').parentElement!.hidden = !rules.objectiveEnabled;
+  $('metric-points').previousElementSibling!.textContent = game.config?.matchMode === 'relic' ? 'Relic deliveries' : 'Signal points';
   $('footerRules').textContent = `${rules.title}: ${game.config?.matchMode === 'relic' ? 'deliver 3 relics home or defeat the enemy.' : rules.objectiveEnabled ? 'reach 30 signal points or defeat the enemy.' : 'defeat the enemy. At time limit: survivors, then health.'}`;
   $('mapName').textContent = (game.terrain?.name || 'THE CROSSING').toUpperCase();
   updateInspector();
@@ -850,17 +880,17 @@ Object.defineProperty(window, '__trenchline', { value: Object.freeze({
 const terrain = document.createElement('canvas');
 terrain.width = world.width;
 terrain.height = world.height;
-const ground = terrain.getContext('2d');
-function roundRect(context, x, y, width, height, radius, fill, stroke) {
+const ground = terrain.getContext('2d')!;
+function roundRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number, fill: string, stroke?: string) {
   context.beginPath();
   context.roundRect(x, y, width, height, radius);
   if (fill) { context.fillStyle = fill; context.fill(); }
   if (stroke) { context.strokeStyle = stroke; context.stroke(); }
 }
-function line(context, x, y, x2, y2, color, width = 1) {
+function line(context: CanvasRenderingContext2D, x: number, y: number, x2: number, y2: number, color: string, width = 1) {
   context.beginPath(); context.moveTo(x, y); context.lineTo(x2, y2); context.strokeStyle = color; context.lineWidth = width; context.stroke();
 }
-function ellipse(context, x, y, rx, ry, color) {
+function ellipse(context: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, color: string) {
   context.beginPath(); context.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); context.fillStyle = color; context.fill();
 }
 function terrainSignature() { return `${game.seed}:${game.round}:${game.terrain?.id}:${world.width}:${world.height}:${preferences.colors}`; }
@@ -928,9 +958,9 @@ new ResizeObserver(resize).observe($('battlefield'));
 window.addEventListener('resize', resize, { passive: true });
 
 // Blade poses and traces read the actual form and simulation attack/effect state.
-function drawSoldier(soldier) {
+function drawSoldier(soldier: ClassicSoldier) {
   const spriteScale = view.spriteScale;
-  const flight = soldier.alive ? sampleAirborne(soldier, renderTick) : { height: 0, rotation: 0, airborne: false };
+  const flight: Partial<ReturnType<typeof sampleAirborne>> & {height: number; airborne: boolean; rotation: number} = soldier.alive ? sampleAirborne(soldier, renderTick) : { height: 0, rotation: 0, airborne: false };
   if (flight.airborne) {
     ctx.save(); ctx.translate(soldier.x, soldier.y); ctx.scale(spriteScale / view.sx, spriteScale / view.sy);
     ellipse(ctx, 1, 9, 13 + flight.height * .04, 5 + flight.height * .015, '#21372745');
@@ -959,7 +989,7 @@ function drawSoldier(soldier) {
   }
   const moving = soldier.moving ?? soldier.state === 'moving';
   if (!flight.airborne) ellipse(ctx, 1, 9, 11, 5, '#2137273d');
-  if (soldier.forceBarrierUntil > game.tick || soldier.barrierUntil > game.tick) {
+  if (soldier.forceBarrierUntil! > game.tick || soldier.barrierUntil > game.tick) {
     ctx.beginPath(); ctx.ellipse(0, -2, 23, 29, 0, 0, Math.PI * 2); ctx.strokeStyle = '#acdcff'; ctx.lineWidth = 2; ctx.stroke();
   }
   if (soldier.guard) {
@@ -985,13 +1015,14 @@ function drawSoldier(soldier) {
   // World altitude is applied above. Local rig owns torso, hands and depth.
   if (flight.airborne && !motionReduced()) ctx.rotate((flight.rotationAxis === 'yaw' ? flight.bank || 0 : (flight.visualRotation ?? flight.rotation)) * dir);
   const rig = sampleFighterRig({ fighter: soldier, tick: renderTick, pose, motion,
-    move: activeMove(soldier), swing, flight, dual, reducedMotion: motionReduced(), aimAngle, moving });
+    move: activeMove(soldier), swing: swing as Parameters<typeof sampleFighterRig>[0] extends infer Options ? NonNullable<Options> extends {swing?: infer Swing} ? Swing : never : never, flight, dual, reducedMotion: motionReduced(), aimAngle, moving });
   const rotation = flight.airborne && !motionReduced() ? (flight.rotationAxis === 'yaw' ? flight.bank || 0 : (flight.visualRotation ?? flight.rotation)) * dir : 0;
-  const bladeWorld = p => ({ x: soldier.x + (p.x * Math.cos(rotation) - p.y * Math.sin(rotation)) * spriteScale / view.sx,
+  const bladeWorld = (p: Point) => ({ x: soldier.x + (p.x * Math.cos(rotation) - p.y * Math.sin(rotation)) * spriteScale / view.sx,
     y: soldier.y - flight.height + (p.x * Math.sin(rotation) + p.y * Math.cos(rotation)) * spriteScale / view.sy });
   for (const b of rig.blades) presentationEffects.sampleBlade(`${soldier.id}:${b.hand}`, bladeWorld(rig.projected[b.hilt]), bladeWorld(rig.projected[b.tip]), {
     active: !paused && preferences.effects !== 'minimal' && ['strike', 'follow-through'].includes(pose.phase), color: blade });
-  drawFighterRig(ctx, rig, { teamColor, dark, blade, team: soldier.team, effects: preferences.effects, appearance: 'broadcast' });
+  const rigStyle = { teamColor, dark, blade, team: soldier.team, effects: preferences.effects, appearance: 'broadcast' };
+  drawFighterRig(ctx, rig, rigStyle);
   ctx.restore();
   if (soldier.combatState === 'stagger') { line(ctx, -10, -21, -6, -25, '#ffe8a9', 2); line(ctx, 7, -25, 11, -21, '#ffe8a9', 2); }
   if (soldier.hp < soldier.maxHp) {
@@ -1004,7 +1035,7 @@ function drawSoldier(soldier) {
 }
 
 // Nine paths correspond to the nine authored techniques; telegraphs use the same geometry.
-function traceTechnique(motion, phase, telegraph) {
+function traceTechnique(motion: string, phase: number, telegraph: boolean) {
   const reach = telegraph ? 38 : 27 + phase * 18;
   ctx.beginPath();
   if (motion === 'thrust') { ctx.moveTo(8, 0); ctx.lineTo(reach + 16, 0); ctx.moveTo(reach + 7, -5); ctx.lineTo(reach + 16, 0); ctx.lineTo(reach + 7, 5); }
@@ -1032,8 +1063,8 @@ function drawEffects() {
     const phase = motionReduced() ? .65 : 1 - life;
     const tone = effect.team === 0 ? '#a0fff1' : '#ffc3a4';
     ctx.save(); ctx.globalAlpha = Math.max(.2, life);
-    const source = renderFighters.get(effect.soldierId);
-    const target = renderFighters.get(effect.targetId);
+    const source = renderFighters.get(effect.soldierId!);
+    const target = renderFighters.get(effect.targetId!);
     const sourceHeight = source ? airborneHeight(source, renderTick) : 0;
     const targetHeight = target ? airborneHeight(target, renderTick) : 0;
     ctx.translate(effect.x, effect.y - sourceHeight);
@@ -1046,7 +1077,7 @@ function drawEffects() {
     } else if (effect.type === 'saber') {
       ctx.rotate(heading);
       ctx.strokeStyle = tone; ctx.lineWidth = effect.offhand ? 1.8 : 2.4;
-      traceTechnique(effect.motion, phase, false);
+      traceTechnique(effect.motion!, phase, false);
       if (preferences.effects !== 'minimal' && phase < .55) {
         ctx.save(); ctx.rotate(-heading);
         const contactX = (effect.x2 ?? effect.x) - effect.x, contactY = (effect.y2 ?? effect.y) - effect.y + sourceHeight - targetHeight;
@@ -1094,17 +1125,17 @@ function drawEffects() {
   drawCombatFeedback();
 }
 
-function outcomeText(outcome) {
+function outcomeText(outcome: Pick<Effect, 'damage' | 'outcome' | 'isCounter'>) {
   const damage = Math.round((outcome.damage || 0) * 10) / 10;
   if (outcome.outcome === 'blocked') return `Blocked · ${damage} damage through guard`;
   if (outcome.outcome === 'hit') return `${outcome.isCounter ? 'Counter hit' : 'Hit'} · ${damage} damage`;
-  return { miss: 'Missed', 'out-of-range': 'Out of range', 'target-lost': 'Target lost', interrupted: 'Interrupted' }[outcome.outcome] || 'Attack in progress';
+  return { miss: 'Missed', 'out-of-range': 'Out of range', 'target-lost': 'Target lost', interrupted: 'Interrupted' }[outcome.outcome!] || 'Attack in progress';
 }
-function feedbackStyle(outcome) {
+function feedbackStyle(outcome: CombatFeedback) {
   if (outcome.outcome === 'blocked') return { label: 'BLOCK', color: '#bdeaff', shape: 'shield' };
   if (outcome.outcome === 'hit' && outcome.isCounter) return { label: 'COUNTER', color: '#ffe393', shape: 'counter' };
   if (outcome.outcome === 'hit') return { label: 'HIT', color: '#fff0c2', shape: 'hit' };
-  return { label: { 'out-of-range': 'RANGE', 'target-lost': 'LOST', interrupted: 'STOPPED' }[outcome.outcome] || 'MISS', color: '#bcc6c7', shape: 'miss' };
+  return { label: { 'out-of-range': 'RANGE', 'target-lost': 'LOST', interrupted: 'STOPPED' }[outcome.outcome as 'out-of-range' | 'target-lost' | 'interrupted'] || 'MISS', color: '#bcc6c7', shape: 'miss' };
 }
 function drawWindups() {
   for (const soldier of renderFrame.soldiers) {
@@ -1117,8 +1148,8 @@ function drawWindups() {
     const angle = Math.atan2((aimY - soldier.y) * view.sy, (aimX - soldier.x) * view.sx);
     const ability = forceAbilityById(attack.abilityId), move = activeMove(soldier);
     if (ability?.radius || move) {
-      const reach = ability?.radius || KNIVES[soldier.meleeWeapon].range + FORMS[soldier.form].reachBonus + move.reachBonus;
-      const arc = ability ? (ability.cone || Math.PI * 2) : move.arc;
+      const reach = ability?.radius || KNIVES[soldier.meleeWeapon].range + FORMS[soldier.form].reachBonus + move!.reachBonus;
+      const arc = ability ? (ability.cone || Math.PI * 2) : move!.arc;
       const heading = Math.atan2(aimY - soldier.y, aimX - soldier.x);
       ctx.save(); ctx.translate(soldier.x, soldier.y); ctx.rotate(heading); ctx.beginPath();
       if (arc < Math.PI * 2) ctx.moveTo(0, 0);
@@ -1136,7 +1167,7 @@ function drawWindups() {
     ctx.restore();
   }
 }
-function updateCombatFeedback(dt) {
+function updateCombatFeedback(dt: number) {
   const generation = `${game.seed}:${game.round}`;
   const latestId = (game.effects || []).reduce((maximum, effect) => Math.max(maximum, effect.id || 0), 0);
   if (generation !== feedbackGeneration || game.tick < lastFeedbackTick || (game.tick === 0 && latestId < lastFeedbackEffect)) {
@@ -1158,12 +1189,12 @@ function updateCombatFeedback(dt) {
   if (combatFeedback.length > 10) combatFeedback.splice(0, combatFeedback.length - 10);
 }
 function drawCombatFeedback() {
-  const priority = item => Number(item.soldierId === game.control?.soldierId || item.targetId === game.control?.soldierId) * 2 + Number(item.soldierId === selectedUnitId || item.targetId === selectedUnitId);
+  const priority = (item: CombatFeedback) => Number(item.soldierId === game.control?.soldierId || item.targetId === game.control?.soldierId) * 2 + Number(item.soldierId === selectedUnitId || item.targetId === selectedUnitId);
   const ordered = [...combatFeedback].sort((a, b) => priority(b) - priority(a) || b.id - a.id);
-  const labels = [];
+  const labels: (Point & {width: number})[] = [];
   for (const item of ordered) {
     const style = feedbackStyle(item);
-    const text = style.label + (item.damage > 0 ? ` ${Number(item.damage.toFixed(1))}` : '');
+    const text = style.label + (item.damage! > 0 ? ` ${Number(item.damage!.toFixed(1))}` : '');
     const width = text.length * 6 + 12;
     const screen = worldToCanvas(view, item.x, item.y);
     const x = Math.max(width / 2 + 4, Math.min(view.width - width / 2 - 4, screen.x));
@@ -1186,11 +1217,11 @@ function drawCombatFeedback() {
     ctx.restore();
   }
 }
-function screenLabel(x, y, text, color = '#4c6149', size = 8) {
+function screenLabel(x: number, y: number, text: string, color = '#4c6149', size = 8) {
   ctx.save(); ctx.translate(x, y); ctx.scale(1 / view.sx, 1 / view.sy);
   ctx.fillStyle = color; ctx.font = `700 ${size}px ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.fillText(text, 0, 0); ctx.restore();
 }
-function drawRelicMarker(objective) {
+function drawRelicMarker(objective: ClassicGame['objective']) {
   const carrier = renderFrame.soldiers.find(soldier => soldier.id === objective.carrierId && soldier.alive);
   const x = carrier?.x ?? objective.x, y = carrier?.y ?? objective.y;
   ctx.save(); ctx.translate(x, y); ctx.scale(1 / view.sx, 1 / view.sy);
@@ -1204,7 +1235,7 @@ function drawRelicMarker(objective) {
   }
   ctx.restore();
 }
-function drawRelicField(objective) {
+function drawRelicField(objective: ClassicGame['objective']) {
   for (const zone of objective.extractionZones || []) {
     ctx.beginPath(); ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
     ctx.fillStyle = zone.team === 0 ? '#66cdf522' : '#ff7a9822'; ctx.fill();
@@ -1275,7 +1306,7 @@ function drawTacticalField() {
   }
   ctx.restore();
 }
-function updateVisualPuffs(dt) {
+function updateVisualPuffs(dt: number) {
   if (motionReduced() || preferences.effects === 'minimal') { visualPuffs = []; return; }
   const generation = `${seed}:${game.round}:${game.time < .02}`;
   if (game.time < .02 || visualGeneration.split(':')[1] !== String(game.round)) { visualPuffs = []; lastVisualEffect = 0; }
@@ -1317,8 +1348,8 @@ function draw() {
   renderPoseGame = game; lastPoseTick = game.tick; renderBlocks = new Map();
   for (const [id, effect] of renderSwings) if (game.tick - effect.tick > 36 || !renderFighters.has(id)) renderSwings.delete(id);
   for (const effect of game.effects || []) {
-    if (effect.type === 'saber' && (!renderSwings.has(effect.soldierId) || effect.id > renderSwings.get(effect.soldierId).id)) renderSwings.set(effect.soldierId, { ...effect, round: game.round });
-    if (effect.type === 'block') renderBlocks.set(effect.soldierId, { ...effect, tick: effect.tick ?? game.tick - Math.round(((effect.maxTtl || .3) - effect.ttl) * 60) });
+    if (effect.type === 'saber' && (!renderSwings.has(effect.soldierId!) || effect.id > renderSwings.get(effect.soldierId!)!.id)) renderSwings.set(effect.soldierId!, { ...effect, round: game.round } as RenderSwing);
+    if (effect.type === 'block') renderBlocks.set(effect.soldierId!, { ...effect, tick: effect.tick ?? game.tick - Math.round(((effect.maxTtl || .3) - effect.ttl) * 60) });
   }
   sharedBeats = sampleSharedCombatBeats({ fighters: renderFrame.soldiers, swings: renderSwings, tick: renderTick, reducedMotion: motionReduced() });
   ctx.drawImage(terrain, 0, 0);
@@ -1331,17 +1362,17 @@ function draw() {
   drawVisualPuffs();
   const soldiers = [...renderFrame.soldiers].sort((a, b) => Number(a.alive) - Number(b.alive) || a.y - b.y);
   for (const soldier of soldiers) drawSoldier(soldier);
-  if (game.config?.matchMode === 'relic' && game.objective?.carrierId) drawRelicMarker(renderFrame.objective);
+  if (game.config?.matchMode === 'relic' && game.objective?.carrierId) drawRelicMarker(renderFrame.objective!);
   drawEffects();
   presentationEffects.draw(ctx);
   arenaImpact.draw(ctx, colors);
   drawTargetLock();
 }
-function fillSelect(id, entries) {
+function fillSelect(id: SelectId, entries: Iterable<readonly string[]>) {
   const select = $(id); select.replaceChildren();
   for (const [value, label] of entries) { const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option); }
 }
-function priorityName(id, mode = game.config?.matchMode) {
+function priorityName(id: string, mode: string = game.config?.matchMode) {
   return id === 'objective' ? mode === 'elimination' ? 'Near center' : mode === 'relic' ? 'Near relic' : TARGET_PRIORITIES[id]?.name || 'Balanced' : TARGET_PRIORITIES[id]?.name || 'Balanced';
 }
 function updateMatchRulesHint() {
@@ -1349,7 +1380,7 @@ function updateMatchRulesHint() {
   $('matchRulesHint').textContent = displayText(describeMatchRules(config).summary);
   const modifier = getModifier($('setupModifier').value);
   $('modifierHint').textContent = modifier.description;
-  for (const team of [0, 1]) for (const id of [`setupStartingForce${team}`, `setupStartingForceQuality${team}`]) $(id).disabled = !modifier.forceAttacks;
+  for (const team of [0, 1]) for (const id of [`setupStartingForce${team}`, `setupStartingForceQuality${team}`] as const) $(id).disabled = !modifier.forceAttacks;
   for (const team of [0, 1]) {
     for (const option of $(`setupPriority${team}`).options) option.textContent = priorityName(option.value, config.matchMode);
   }
@@ -1357,7 +1388,7 @@ function updateMatchRulesHint() {
 }
 function updateSetupTacticsHints() {
   for (const team of [0, 1]) {
-    const doctrine = DOCTRINES[$(team ? 'setupEnemyDoctrine' : 'setupDoctrine').value];
+    const doctrine = DOCTRINES[$(team ? 'setupEnemyDoctrine' : 'setupDoctrine').value as keyof typeof DOCTRINES];
     const formation = FORMATIONS[$(`setupFormation${team}`).value];
     const deployment = DEPLOYMENTS[$(`setupDeployment${team}`).value];
     $(`setupDeploymentHint${team}`).textContent = displayText(deployment?.description || '');
@@ -1372,19 +1403,19 @@ function initializeTacticalOptions() {
   const formations = Object.values(FORMATIONS).map(item => [item.id, item.name]);
   const deployments = Object.values(DEPLOYMENTS).map(item => [item.id, item.name]);
   const priorities = Object.values(TARGET_PRIORITIES).map(item => [item.id, item.name]);
-  for (const id of ['setupDoctrine', 'setupEnemyDoctrine', 'nextEnemyDoctrine']) fillSelect(id, doctrines);
+  for (const id of ['setupDoctrine', 'setupEnemyDoctrine', 'nextEnemyDoctrine'] as const) fillSelect(id, doctrines);
   for (const team of [0, 1]) {
-    for (const prefix of ['setup', 'next']) {
+    for (const prefix of ['setup', 'next'] as const) {
       fillSelect(`${prefix}Deployment${team}`, deployments);
       fillSelect(`${prefix}Formation${team}`, formations); fillSelect(`${prefix}Priority${team}`, priorities);
     }
     for (const id of [`setupFormation${team}`, `setupPriority${team}`, team ? 'setupEnemyDoctrine' : 'setupDoctrine']) $(id).addEventListener('change', updateSetupTacticsHints);
     $(`setupDeployment${team}`).addEventListener('change', updateSetupTacticsHints);
-    $(`nextDeployment${team}`).addEventListener('change', event => { nextDeployments[team] = event.target.value; });
-    $(`nextFormation${team}`).addEventListener('change', event => { nextFormations[team] = event.target.value; });
-    $(`nextPriority${team}`).addEventListener('change', event => { nextTargetPriorities[team] = event.target.value; });
+    $(`nextDeployment${team}`).addEventListener('change', event => { nextDeployments[team] = (event.target as HTMLSelectElement).value; });
+    $(`nextFormation${team}`).addEventListener('change', event => { nextFormations[team] = (event.target as HTMLSelectElement).value; });
+    $(`nextPriority${team}`).addEventListener('change', event => { nextTargetPriorities[team] = (event.target as HTMLSelectElement).value; });
   }
-  $('nextEnemyDoctrine').addEventListener('change', event => { nextEnemyDoctrine = event.target.value; });
+  $('nextEnemyDoctrine').addEventListener('change', event => { nextEnemyDoctrine = (event.target as HTMLSelectElement).value as keyof typeof DOCTRINES; });
   syncTacticalPlan();
 }
 function syncTacticalPlan() {
@@ -1439,7 +1470,7 @@ function lockedTarget() {
   const id = input.snapshot().targetId;
   return id ? visibleEnemyTargets(game, game.control?.soldierId).find(enemy => enemy.id === id) || null : null;
 }
-function lockTarget(target) {
+function lockTarget(target: ClassicSoldier) {
   input.aim(target.id);
   const message = `Target: enemy fighter ${String(target.lane + 1).padStart(2, '0')}`;
   showToast(message); announce(message); updateDirectUI(); draw();
@@ -1452,7 +1483,7 @@ function cycleTarget() {
   lockTarget(targets[(current + 1) % targets.length]);
 }
 function drawTargetLock() {
-  const target = renderFighters.get(lockedTarget()?.id);
+  const target = renderFighters.get(lockedTarget()?.id!);
   if (!target?.alive) return;
   ctx.save(); ctx.translate(target.x, target.y - airborneHeight(target, renderTick)); ctx.scale(1 / view.sx, 1 / view.sy);
   ctx.beginPath(); ctx.arc(0, 2, 27, 0, Math.PI * 2);
@@ -1468,7 +1499,7 @@ function drawTargetLock() {
   ctx.restore();
 }
 
-function updateStartingHint(team) {
+function updateStartingHint(team: number) {
   const rank = SOLDIER_GRADES.find(grade => grade.label === $(`setupStartingRank${team}`).value) || SOLDIER_GRADES[0];
   const career = progressionSummary(rank.threshold);
   const force = FORCE_FAMILIES.find(item => item.id === $(`setupStartingForce${team}`).value);
@@ -1518,7 +1549,7 @@ function applyMasterTrial() {
     setupDeployment0: 'standard', setupDeployment1: 'standard',
     setupFormation0: 'line', setupFormation1: 'line', setupPriority0: 'balanced', setupPriority1: 'balanced',
   };
-  for (const [id, value] of Object.entries(values)) $(id).value = value;
+  for (const [id, value] of Object.entries(values)) ($(id) as HTMLSelectElement | HTMLInputElement).value = value;
   for (const team of [0, 1]) {
     $(`setupStartingSaber${team}`).value = 'standard';
     $(`setupStartingForce${team}`).value = 'force_push';
@@ -1526,7 +1557,7 @@ function applyMasterTrial() {
     $(`setupStartingDualSabers${team}`).checked = false;
     updateStartingHint(team);
   }
-  $('setupForm').querySelectorAll('[name=playMode]').forEach(radio => { radio.checked = radio.value === 'spectate'; });
+  $('setupForm').querySelectorAll<HTMLInputElement>('[name=playMode]').forEach(radio => { radio.checked = radio.value === 'spectate'; });
   setupForms();
   for (const select of $('setupFormChoices').querySelectorAll('select')) select.value = 'makashi';
   updateSetupMode(); updateMatchRulesHint();
@@ -1536,8 +1567,8 @@ function applyMasterTrial() {
   announce('Master trial setup applied. Edit any setting, then press Start.');
 }
 
-function startQuickFight(id) {
-  const fight = QUICK_FIGHTS[id];
+function startQuickFight(id: string) {
+  const fight = QUICK_FIGHTS[id as keyof typeof QUICK_FIGHTS] as (typeof QUICK_FIGHTS)[keyof typeof QUICK_FIGHTS] & {formation?: string; priority?: string};
   if (!fight || appPhase !== 'menu') return;
   const values = {
     setupTeam0: String(fight.friendly), setupTeam1: String(fight.enemy),
@@ -1549,14 +1580,14 @@ function startQuickFight(id) {
     setupFormation0: fight.formation ?? 'line', setupFormation1: fight.formation ?? 'line',
     setupPriority0: fight.priority ?? 'balanced', setupPriority1: fight.priority ?? 'balanced',
   };
-  for (const [key, value] of Object.entries(values)) $(key).value = value;
-  $('setupForm').querySelectorAll('[name=playMode]').forEach(radio => { radio.checked = radio.value === fight.mode; });
+  for (const [key, value] of Object.entries(values)) ($(key) as HTMLSelectElement | HTMLInputElement).value = value;
+  $('setupForm').querySelectorAll<HTMLInputElement>('[name=playMode]').forEach(radio => { radio.checked = radio.value === fight.mode; });
   for (const team of [0, 1]) {
-    $('setupStartingRank' + team).value = fight.rank;
-    $('setupStartingSaber' + team).value = 'standard';
-    $('setupStartingForce' + team).value = 'force_push';
-    $('setupStartingForceQuality' + team).value = 'standard';
-    $('setupStartingDualSabers' + team).checked = false;
+    $(`setupStartingRank${team}`).value = fight.rank;
+    $(`setupStartingSaber${team}`).value = 'standard';
+    $(`setupStartingForce${team}`).value = 'force_push';
+    $(`setupStartingForceQuality${team}`).value = 'standard';
+    $(`setupStartingDualSabers${team}`).checked = false;
     updateStartingHint(team);
   }
   setupForms(); $('setupPlayerSlot').value = '0';
@@ -1567,9 +1598,9 @@ function startQuickFight(id) {
   $('setupForm').requestSubmit();
 }
 function updateSetupMode() {
-  const mode = $('setupForm').elements.playMode.value;
+  const mode = ($('setupForm').elements as HTMLFormControlsCollection & {playMode: RadioNodeList}).playMode.value;
   $('playerSlotField').hidden = mode !== 'play';
-  $('startBattleBtn').firstChild.textContent = mode === 'play' ? 'Start ' : 'Start ';
+  $('startBattleBtn').firstChild!.textContent = mode === 'play' ? 'Start ' : 'Start ';
 }
 function refreshMenu() {
   const saved = hasSavedCampaign(campaignStorage);
@@ -1594,13 +1625,13 @@ function continueSession() {
   if (game.status === 'playing') setPaused(true);
   resize(); updateUI(); restoreAudioFromGesture(); ensureFrame();
 }
-function startNewCampaign(event) {
+function startNewCampaign(event: SubmitEvent) {
   event.preventDefault();
   if (appPhase !== 'menu' || !$('setupForm').reportValidity()) return;
   const options = {
     teamSizes: [Number($('setupTeam0').value), Number($('setupTeam1').value)],
     mapSize: $('setupMapSize').value, terrain: $('setupTerrain').value, environment: $('setupEnvironment').value,
-    mode: $('setupForm').elements.playMode.value, playerSlot: Number($('setupPlayerSlot').value),
+    mode: ($('setupForm').elements as HTMLFormControlsCollection & {playMode: RadioNodeList}).playMode.value, playerSlot: Number($('setupPlayerSlot').value),
     matchMode: $('setupMatchMode').value, roundDuration: Number($('setupRoundDuration').value), modifier: $('setupModifier').value,
     formations: [$('setupFormation0').value, $('setupFormation1').value],
     deployments: [$('setupDeployment0').value, $('setupDeployment1').value],
@@ -1616,11 +1647,11 @@ function startNewCampaign(event) {
   const nextSeed = Number($('setupSeed').value);
   if (!Number.isInteger(nextSeed) || nextSeed < 1 || nextSeed > 0xffffffff) { $('setupError').textContent = 'Choose a whole-number seed from 1 to 4294967295.'; return; }
   let next;
-  try { next = createGame(nextSeed, options); } catch (error) { $('setupError').textContent = error.message; return; }
+  try { next = createGame(nextSeed, options); } catch (error) { $('setupError').textContent = (error as Error).message; return; }
   clearInput(); game = next; seed = nextSeed; sessionStarted = true; appPhase = 'playing'; paused = false;
   campaignSavingEnabled = false; manualDeathHandled = false; resultShown = false; selectedUnitId = null;
   nextForms = [...game.forms[0]]; nextDoctrine = game.doctrines[0]; syncTacticalPlan();
-  speed = Number($('setupSpeed').value); preferences.speed = speed; savePreferences(preferences);
+  speed = Number($('setupSpeed').value); preferences.speed = speed as typeof preferences.speed; savePreferences(preferences);
   lastTime = 0; lastUI = 0; lastEventSignature = ''; lastObjectiveSignature = ''; lastTerrainSignature = ''; visualGeneration = ''; visualPuffs = [];
   combatFeedback = []; feedbackGeneration = ''; lastFeedbackEffect = 0; lastFeedbackTick = 0; lastVisualEffect = 0;
   cooldownMax = 1; smokeCooldownMax = 1; mutationUntil = 0; toastUntil = 0; audio.silence();
@@ -1640,17 +1671,17 @@ function updateTeamOrders() {
   $('teamCommandRow').hidden = !enabled;
   $('teamOrderStatus').hidden = $('teamOrderHelp').hidden = !enabled;
   $('autoBtn').disabled = !enabled || paused || game.status !== 'playing';
-  for (const id of ['grenadeBtn', 'smokeBtn']) $(id).disabled ||= !enabled;
+  for (const id of ['grenadeBtn', 'smokeBtn'] as const) $(id).disabled ||= !enabled;
   const intent = enabled ? commandIntent(game, 0) : null;
   currentOrderMarker = intent && intent.eligible > 0 && game.status === 'playing' && Number.isFinite(intent.anchor?.x) && Number.isFinite(intent.anchor?.y)
-    ? { x: intent.anchor.x, y: intent.anchor.y, label: intent.order === 'regroup' ? 'Regroup assembly' : `${intent.label} reference point` } : null;
+    ? { x: intent.anchor!.x, y: intent.anchor!.y, label: intent.order === 'regroup' ? 'Regroup assembly' : `${intent.label} reference point` } : null;
   $('teamOrderStatus').textContent = intent ? `Your team · ${intent.auto ? 'Auto' : 'Your orders'} · ${intent.label} · ${intent.eligible === 0 ? 'No AI teammates available for movement orders.' : intent.reason}${paused ? ' · Paused' : ''}` : '';
   $('teamOrderHelp').textContent = game.config?.mode === 'play'
     ? 'Orders guide your AI teammates; you keep control of your fighter. Dashed markers show a reference point, or the assembly point for Regroup. Flank uses the public objective as its reference. Auto returns team decisions to AI.'
     : 'Choose an order for your AI team. Dashed markers show a reference point, or the assembly point for Regroup. Flank uses the public objective as its reference. Auto returns team decisions to AI.';
   for (const button of commands) {
     const active = enabled && intent?.order === button.dataset.order;
-    button.title = SQUAD_ORDERS[button.dataset.order]?.description || '';
+    button.title = SQUAD_ORDERS[button.dataset.order!]?.description || '';
     button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     button.disabled = !enabled || paused || game.status !== 'playing' || intent?.eligible === 0;
     const shortcut = button.querySelector('kbd'); if (shortcut) shortcut.hidden = game.config?.mode !== 'command';
@@ -1673,7 +1704,7 @@ function updateDirectUI() {
   const inspected = game.soldiers.find(s => s.id === selectedUnitId && s.alive);
   const position = game.status === 'playing' && inspected ? squadIntent(game, inspected) : null;
   $('squadPosition').hidden = !position;
-  $('squadPosition').textContent = position ? `Fighter ${inspected.lane + 1} · ${position.role} · ${position.reason}` : '';
+  $('squadPosition').textContent = position ? `Fighter ${inspected!.lane + 1} · ${position.role} · ${position.reason}` : '';
   $('battleSurface').classList.toggle('direct-play', manual && game.status === 'playing');
   const fighter = game.soldiers.find(s => s.id === game.control?.soldierId);
   $('directControls').hidden = !manual;
@@ -1681,9 +1712,9 @@ function updateDirectUI() {
   $('spectateBtn').textContent = manual ? 'Watch instead' : 'Let both teams play';
   $('resumeBtn').disabled = manual && !fighter?.alive;
   $('controlledStatus').textContent = fighter ? `Fighter ${fighter.lane + 1} · ${FORMS[fighter.form].name}${usesDualSabers(game.config, fighter) ? ' · Jar’Kai' : ''} · ${Math.max(0, Math.ceil(fighter.hp))} HP · ${Math.floor(fighter.energy)} energy${fighter.alive ? '' : ' · Dead'}` : 'Pause and choose a living teammate';
-  for (const button of document.querySelectorAll('[data-player-action], [data-move-x]')) button.disabled = !manual || paused || game.status !== 'playing' || !fighter?.alive;
-  const forceButton = document.querySelector('[data-player-action=force]');
-  const dashButton = document.querySelector('[data-player-action=dash]');
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-player-action], [data-move-x]')) button.disabled = !manual || paused || game.status !== 'playing' || !fighter?.alive;
+  const forceButton = document.querySelector<HTMLButtonElement>('[data-player-action=force]')!;
+  const dashButton = document.querySelector<HTMLButtonElement>('[data-player-action=dash]')!;
   forceButton.title = fighter ? `Force repertoire: ${forceRepertoireLabel(fighter)} · K` : 'Force · K';
   const forceAllowed = permitsForceAttacks(game.config);
   const carrying = game.config?.matchMode === 'relic' && game.objective?.carrierId === fighter?.id;
@@ -1691,8 +1722,8 @@ function updateDirectUI() {
   dashButton.disabled ||= carrying;
   if (fighter?.form === 'ataru' && !carrying) dashButton.setAttribute('aria-label', 'Acrobatic vault, Shift');
   else dashButton.setAttribute('aria-label', 'Dash, Shift');
-  forceButton.querySelector('small').textContent = forceAllowed ? 'K' : 'Off';
-  dashButton.querySelector('small').textContent = carrying ? 'Carrying' : 'Shift';
+  forceButton.querySelector('small')!.textContent = forceAllowed ? 'K' : 'Off';
+  dashButton.querySelector('small')!.textContent = carrying ? 'Carrying' : 'Shift';
   dashButton.title = carrying ? 'Cannot dash while carrying the relic' : 'Dash · Shift';
   const target = lockedTarget();
   $('targetStatus').textContent = target ? `Locked · enemy fighter ${String(target.lane + 1).padStart(2, '0')} · ${Math.ceil(target.hp)} HP` : 'Auto aim · nearest enemy in sight';
@@ -1708,7 +1739,7 @@ function updateDirectUI() {
   if (fighter) {
     const skill = combatSkillProfile(fighter.career);
     const nextMove = selectFormMove(fighter.form, fighter.comboUntil > game.tick ? (fighter.comboIndex || 0) % skill.comboLength : 0);
-    document.querySelector('[data-player-action=attack]').title = fighter.attackCooldown > 0 ? `Saber ready in ${fighter.attackCooldown.toFixed(1)}s` : `${nextMove.name} · ${(nextMove.energyCost * skill.energyEfficiency * saberWieldProfile(game.config, fighter).energyMultiplier).toFixed(1)} energy`;
+    document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = fighter.attackCooldown > 0 ? `Saber ready in ${fighter.attackCooldown.toFixed(1)}s` : `${nextMove.name} · ${(nextMove.energyCost * skill.energyEfficiency * saberWieldProfile(game.config, fighter).energyMultiplier).toFixed(1)} energy`;
     forceButton.title = !forceAllowed ? 'Force attacks are off for both teams' : `${fighter.forceCooldown > 0 ? `Ready in ${fighter.forceCooldown.toFixed(1)}s. ` : ''}Repertoire: ${forceRepertoireLabel(fighter)}. Selects an available power for the target.`;
     if (fighter.form === 'ataru' && !carrying) dashButton.title = 'Acrobatic vault · Shift · energy cost and landing recovery';
     updateCombatReadiness(fighter, forceAllowed, carrying);
@@ -1716,21 +1747,21 @@ function updateDirectUI() {
   if (appPhase === 'playing') $('commandStatus').textContent = manual ? `Controlling fighter ${(fighter?.lane ?? 0) + 1} · AI teammates` : game.config?.mode === 'command' ? 'Commanding your team · AI fighters' : 'Watching · both teams play automatically';
   $('speedBtn').textContent = speed + '×'; $('speedBtn').setAttribute('aria-label', `Game speed: ${speed} times`);
 }
-function updateCombatReadiness(fighter, forceAllowed, carrying) {
+function updateCombatReadiness(fighter: ClassicSoldier, forceAllowed: boolean, carrying: boolean) {
   const skill = combatSkillProfile(fighter.career), form = FORMS[fighter.form], wield = saberWieldProfile(game.config, fighter);
   const combo = fighter.comboUntil > game.tick ? (fighter.comboIndex || 0) % skill.comboLength : 0;
   const intent = duelIntent(game, fighter);
   const moveIndex = fighter.attack?.kind === 'saber' ? fighter.attack.comboIndex : intent.moveIndex;
   const moveKnown = Number.isInteger(moveIndex);
-  const move = selectFormMove(fighter.form, moveKnown ? moveIndex : combo);
+  const move = selectFormMove(fighter.form, moveKnown ? moveIndex! : combo);
   const target = game.soldiers.find(other => other.id === intent.targetId && other.alive);
   const ability = forceAbilityById(intent.abilityId), force = forceAbilityWeapon(WEAPONS[fighter.weapon], ability?.id);
   const distance = target ? Math.hypot(target.x - fighter.x, target.y - fighter.y) : Infinity;
   const saberCost = move.energyCost * skill.energyEfficiency * wield.energyMultiplier;
-  document.querySelector('[data-player-action=attack]').title = moveKnown ? `${move.name} · ${saberCost.toFixed(1)} energy` : 'Next technique is selected after recovery';
+  document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = moveKnown ? `${move.name} · ${saberCost.toFixed(1)} energy` : 'Next technique is selected after recovery';
   const forceCost = force.energyCost * form.forceCostMultiplier * skill.energyEfficiency;
-  const blocked = kind => !!target && game.config.mapSize !== 'legacy' && !lineOfSight(game.terrain, fighter, target, kind);
-  const readiness = (readyTick, cost, kind, range) => {
+  const blocked = (kind: string) => !!target && game.config.mapSize !== 'legacy' && !lineOfSight(game.terrain, fighter, target, kind);
+  const readiness = (readyTick: number, cost: number, kind?: string, range?: number) => {
     if (paused) return 'Paused';
     if (!fighter.alive) return 'Defeated';
     if (fighter.staggerUntil > game.tick || fighter.landingRecoveryUntil > game.tick || fighter.pinned) return 'Recover';
@@ -1739,7 +1770,7 @@ function updateCombatReadiness(fighter, forceAllowed, carrying) {
     if (readyTick > game.tick) return `${((readyTick - game.tick) / 60).toFixed(1)}s`;
     if (kind && !target) return 'No target';
     if (kind && blocked(kind)) return 'Blocked';
-    if (kind && distance > range) return 'Close in';
+    if (kind && distance > range!) return 'Close in';
     return 'Ready';
   };
   const states = {
@@ -1749,16 +1780,16 @@ function updateCombatReadiness(fighter, forceAllowed, carrying) {
     dash: carrying ? 'Carrying' : readiness(fighter.dashReadyTick, form.dashCost),
   };
   const queued = input.snapshot();
-  for (const [action, key] of [['attack', 'J'], ['force', 'K'], ['guard', 'Space'], ['dash', 'Shift']]) {
-    const button = document.querySelector(`[data-player-action=${action}]`);
+  for (const [action, key] of [['attack', 'J'], ['force', 'K'], ['guard', 'Space'], ['dash', 'Shift']] as const) {
+    const button = document.querySelector<HTMLButtonElement>(`[data-player-action=${action}]`)!;
     const pending = action !== 'guard' && queued[action] === true && !paused && fighter.alive;
-    button.querySelector('small').textContent = `${key} · ${pending ? 'Queued · ' : ''}${states[action]}`;
+    button.querySelector('small')!.textContent = `${key} · ${pending ? 'Queued · ' : ''}${states[action]}`;
     button.dataset.queued = String(pending);
     button.dataset.ready = String(states[action] === 'Ready');
   }
   const counter = fighter.counterUntil > game.tick;
   $('comboStatus').textContent = fighter.attack?.offhand ? 'Jar’Kai · offhand contact follows' :
-    `${counter ? 'Counter opening · ' : ''}${moveKnown ? moveIndex + 1 : combo + 1}/${skill.comboLength} · ${move.name}${wield.bladeCount === 2 ? ' · dual sabers' : ''}`;
+    `${counter ? 'Counter opening · ' : ''}${moveKnown ? moveIndex! + 1 : combo + 1}/${skill.comboLength} · ${move.name}${wield.bladeCount === 2 ? ' · dual sabers' : ''}`;
   if (!moveKnown) $('comboStatus').textContent = 'Recovering · next technique not selected';
   $('comboStatus').classList.toggle('is-counter', counter && moveKnown);
   $('combatReadiness').textContent = `${ability?.name || force.name} · ${Math.ceil(forceCost)} energy${forceAllowed ? '' : ' · disabled'} · Strike ${Math.ceil(saberCost)} energy`;
@@ -1773,7 +1804,7 @@ function applyPresentation() {
   $('soundBtn').setAttribute('aria-pressed', String(audio.enabled)); $('soundLabel').textContent = audio.enabled ? 'Sound on' : 'Sound off';
   if (sessionStarted) { drawTerrain(); updateUI(); draw(); }
 }
-async function requestAudioEnabled(wanted) {
+async function requestAudioEnabled(wanted: boolean) {
   const request = ++soundRequest;
   preferences.sound = Boolean(wanted); $('optionSound').checked = preferences.sound;
   if (!wanted) audio.setEnabled(false);
@@ -1810,21 +1841,21 @@ function initializeMenu() {
   fillSelect('setupOpponentForm', [['mixed', 'Mixed · changes each round'], ...formOptions]); fillSelect('setupAllForms', formOptions);
   fillSelect('optionColors', Object.entries(COLOR_SCHEMES).map(([id, scheme]) => [id, scheme.name]));
   $('setupSeed').value = String(seed); $('setupSpeed').value = String(preferences.speed); setupForms(); updateSetupMode();
-  $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value].description);
-  $('setupEnvironment').addEventListener('change', () => { $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value].description); });
+  $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value as keyof typeof ENVIRONMENTS].description);
+  $('setupEnvironment').addEventListener('change', () => { $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value as keyof typeof ENVIRONMENTS].description); });
   $('setupOpponentForm').addEventListener('change', () => { $('opponentHint').textContent = $('setupOpponentForm').value === 'mixed' ? 'Mixed forms change each round, using the game’s seed.' : 'Every enemy uses this form for the whole game.'; });
   $('setupTeam0').addEventListener('input', setupForms);
-  $('setupForm').querySelectorAll('[name=playMode]').forEach(radio => radio.addEventListener('change', updateSetupMode));
+  $('setupForm').querySelectorAll<HTMLInputElement>('[name=playMode]').forEach(radio => radio.addEventListener('change', updateSetupMode));
   $('applyAllFormsBtn').addEventListener('click', () => { for (const select of $('setupFormChoices').querySelectorAll('select')) select.value = $('setupAllForms').value; });
   $('mixPlayerFormsBtn').addEventListener('click', () => { [...$('setupFormChoices').querySelectorAll('select')].forEach((select, i) => { select.value = formOptions[i % formOptions.length][0]; }); });
   $('setupForm').addEventListener('submit', startNewCampaign);
   $('masterTrialBtn').addEventListener('click', applyMasterTrial);
-  for (const button of document.querySelectorAll('[data-quick-fight]')) button.addEventListener('click', () => startQuickFight(button.dataset.quickFight));
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-quick-fight]')) button.addEventListener('click', () => startQuickFight(button.dataset.quickFight!));
   $('continueSessionBtn').addEventListener('click', continueSession); $('loadCheckpointBtn').addEventListener('click', resumeSavedCampaign);
   $('mainMenuBtn').addEventListener('click', openMainMenu); $('optionsBtn').addEventListener('click', openOptions); $('battleOptionsBtn').addEventListener('click', openOptions);
   $('controlsBtn').addEventListener('click', () => $('controlsDialog').showModal());
   for (const id of ['optionColors', 'optionMotion', 'optionEffects', 'optionTactical', 'optionSound']) $(id).addEventListener('change', async () => {
-    preferences.colors = $('optionColors').value; preferences.motion = $('optionMotion').value; preferences.effects = $('optionEffects').value;
+    preferences.colors = $('optionColors').value as typeof preferences.colors; preferences.motion = $('optionMotion').value as typeof preferences.motion; preferences.effects = $('optionEffects').value as typeof preferences.effects;
     preferences.tacticalView = $('optionTactical').checked;
     const wantsSound = $('optionSound').checked;
     const audioResult = id === 'optionSound' ? await requestAudioEnabled(wantsSound) : null;
@@ -1833,7 +1864,7 @@ function initializeMenu() {
     applyPresentation();
   });
   for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', clearInput);
-  for (const button of document.querySelectorAll('[data-player-action], [data-move-x]')) input.bind(button);
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-player-action], [data-move-x]')) input.bind(button);
   $('previousFighterBtn').addEventListener('click', () => cycleInspection(-1));
   $('nextFighterBtn').addEventListener('click', () => cycleInspection(1));
   $('inspectTeam').addEventListener('change', () => cycleInspection(1));
@@ -1863,7 +1894,7 @@ function drawEnvironment() {
   ctx.restore();
 }
 
-function recordDisplayFrame(now, rawElapsed, elapsed) {
+function recordDisplayFrame(now: number, rawElapsed: number, elapsed: number) {
   if (!qaStatus || !renderFrame) return;
   const previous = qaDisplayFrames.at(-1);
   if (qaSampleGame !== game || (previous && (previous.round !== game.round || previous.tick > game.tick))) {
@@ -1878,17 +1909,17 @@ function recordDisplayFrame(now, rawElapsed, elapsed) {
     prevX: current?.prevX ?? null, prevY: current?.prevY ?? null,
     currentX: current?.x ?? null, currentY: current?.y ?? null,
     motionEligible: Boolean(current?.alive && !paused && game.status === 'playing' &&
-      Math.hypot(current.x - current.prevX, current.y - current.prevY) > 1e-8),
+      Math.hypot(current.x - current.prevX!, current.y - current.prevY!) > 1e-8),
     generation: `${seed}:${game.round}:${qaEpoch}`, round: game.round, appPhase, paused, visibility: document.visibilityState };
   qaDisplayFrames.push(sample);
   if (qaDisplayFrames.length > 300) qaDisplayFrames.shift();
   qaStatus.textContent = `QA frames ${++qaFrames} · tick ${game.tick} · alpha ${renderFrame.alpha.toFixed(4)} · sample ${renderTick.toFixed(4)} · ${sample.id} XY ${drawn?.x.toFixed(3)},${drawn?.y.toFixed(3)} · rAF delta ${(rawElapsed * 1000).toFixed(2)}ms · ${sample.visibility} · ${appPhase} · paused ${paused} · ${qaLastError || 'no error'}`;
   if (now - qaLogUpdated >= 250 || paused || rawElapsed === 0 || previous?.generation !== sample.generation || previous?.appPhase !== appPhase) {
-    qaFrameLog.textContent = JSON.stringify({ frames: qaDisplayFrames }); qaLogUpdated = now;
+    qaFrameLog!.textContent = JSON.stringify({ frames: qaDisplayFrames }); qaLogUpdated = now;
   }
 }
 
-function updateFightCallout(now) {
+function updateFightCallout(now: number) {
   const box = $('fightCallout');
   if (paused || game.status !== 'playing' || preferences.effects === 'minimal') { box.hidden = true; return; }
   let next = null, priority = 0;
@@ -1907,7 +1938,7 @@ function updateFightCallout(now) {
   if (now >= calloutUntil) box.hidden = true;
 }
 
-function frame(now) {
+function frame(now: number) {
   animationHandle = 0;
   if (appPhase === 'menu' || document.hidden) { lastTime = 0; return; }
   const rawElapsed = lastTime ? (now - lastTime) / 1000 : 0;
@@ -1931,8 +1962,8 @@ function frame(now) {
       const readiness = player ? [player.saberReadyTick, player.forceReadyTick, player.dashReadyTick] : [];
       step(game, dt);
       presentationClock.observe(game);
-      presentationEffects.observe(game.effects || []);
-      arenaImpact.observe(game.effects || []);
+      presentationEffects.observe((game.effects || []) as Parameters<typeof presentationEffects.observe>[0]);
+      arenaImpact.observe((game.effects || []) as Parameters<typeof arenaImpact.observe>[0]);
       if (game.tick > before) {
         input.consume({ ticks: game.tick - before, accepted: {
           attack: !!player && player.lastShotTick > before && player.saberReadyTick > readiness[0],

@@ -1,12 +1,11 @@
-// @ts-nocheck
 /** Buildless touch-stick math. Inputs and thumb outputs are CSS pixels, not
  * backing-canvas pixels. Gameplay vectors retain screen's y-down convention. */
 const zero = () => ({x:0,y:0});
-const validRadius = radius => Number.isFinite(radius) && radius > 0;
-const validPoint = (x,y) => Number.isFinite(x) && Number.isFinite(y);
-const validPointer = id => Number.isSafeInteger(id) && id >= 0;
+const validRadius = (radius:number) => Number.isFinite(radius) && radius > 0;
+const validPoint = (x:number,y:number) => Number.isFinite(x) && Number.isFinite(y);
+const validPointer = (id:number) => Number.isSafeInteger(id) && id >= 0;
 
-function polar(dx,dy,radius) {
+function polar(dx:number,dy:number,radius:number) {
   if (!validPoint(dx,dy) || !validRadius(radius)) return null;
   const scale = Math.max(Math.abs(dx),Math.abs(dy));
   if (!scale) return null;
@@ -17,7 +16,7 @@ function polar(dx,dy,radius) {
 }
 
 /** Circular dead zone with continuous gain above its edge. */
-export function arcadeTouchVector(dx,dy,radius,deadZone=.15) {
+export function arcadeTouchVector(dx:number,dy:number,radius:number,deadZone=.15) {
   const p=polar(dx,dy,radius);
   if(!p) return zero();
   const dead=Number.isFinite(deadZone)?Math.max(0,Math.min(.95,deadZone)):.15;
@@ -27,7 +26,7 @@ export function arcadeTouchVector(dx,dy,radius,deadZone=.15) {
 }
 
 /** Thumb feedback follows the finger even inside the gameplay dead zone. */
-export function arcadeTouchThumb(dx,dy,radius) {
+export function arcadeTouchThumb(dx:number,dy:number,radius:number) {
   const p=polar(dx,dy,radius);
   if(!p) return zero();
   const length=radius*p.amount;
@@ -36,13 +35,13 @@ export function arcadeTouchThumb(dx,dy,radius) {
 
 /** One pointer owns this stick while other fingers can hold action buttons. */
 export function createArcadeTouchOwner({deadZone=.15}={}) {
-  let pointerId=null, startX=0, startY=0, radius=0, dx=0, dy=0;
-  function begin(id,x,y,r) {
+  let pointerId:number|null=null, startX=0, startY=0, radius=0, dx=0, dy=0;
+  function begin(id:number,x:number,y:number,r:number) {
     if(pointerId!==null||!validPointer(id)||!validPoint(x,y)||!validRadius(r)) return false;
     pointerId=id;startX=x;startY=y;radius=r;dx=dy=0;
     return true;
   }
-  function move(id,x,y) {
+  function move(id:number,x:number,y:number) {
     if(pointerId===null||pointerId!==id||!validPoint(x,y)) return false;
     dx=x-startX;dy=y-startY;
     return true;
@@ -52,7 +51,7 @@ export function createArcadeTouchOwner({deadZone=.15}={}) {
     pointerId=null;startX=startY=radius=dx=dy=0;
     return true;
   }
-  function end(id) {
+  function end(id:number) {
     return pointerId!==null&&pointerId===id&&cancel();
   }
   function snapshot() {
@@ -63,10 +62,14 @@ export function createArcadeTouchOwner({deadZone=.15}={}) {
 }
 
 /** Pick a visible silhouette, or a short-lived directional aim on the floor. */
-export function arcadeTapAim({point,fighters,team,current,time,width,height}){
+type Point = {x:number;y:number};
+type AimFighter = Point & {id:string;team:number;alive:boolean;airHeight?:number};
+export type ArcadeTapTarget = {id:string;x?:never;y?:never;until?:never}|(Point & {id?:never;until:number});
+type ArcadeTapContext = {point:Point|null;fighters:readonly AimFighter[];team:number;current?:ArcadeTapTarget|null;time:number;width:number;height:number};
+export function arcadeTapAim({point,fighters,team,current,time,width,height}:ArcadeTapContext):ArcadeTapTarget|null{
   const p=point;
   if(!p||!validPoint(p.x,p.y)||p.x<0||p.y<0||p.x>width||p.y>height)return current??null;
-  let target=null,distance=37;
+  let target:AimFighter|null=null,distance=37;
   for(const f of fighters){
     if(!f.alive||f.team===team)continue;
     const silhouetteY=f.y-33-(f.airHeight??0);

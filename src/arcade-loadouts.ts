@@ -1,13 +1,15 @@
-// @ts-nocheck
+type Config=Partial<Record<'startingSaberWeapon'|'startingDualSabers'|'startingSaberGrip'|'startingDualPhase'|'startingSaberQuality'|'startingForceFamily'|'startingForceQuality',unknown>>;
+type Kit={weapon?:string;grip?:string;forceFamily?:string;forceQuality?:string;saberQuality?:string;dualSabers?:boolean};
+type Spec={duration:number;contact:number;damage:number;reach:number;arc:number;cost:number;knock:number;recoil:number;freeHand?:boolean};
 /** Starting gear shared with Classic's setup vocabulary, tuned for Arcade timing. */
 import { FORCE_FAMILIES, QUALITY_LEVELS } from './content.js?v=1.4.0';
 import { DUAL_SABER_PROFILE } from './dual-sabers.js?v=1.4.0';
 
-const qualityById = new Map(QUALITY_LEVELS.map(grade => [grade.id, grade]));
+const qualityById = new Map<string,(typeof QUALITY_LEVELS)[number]>(QUALITY_LEVELS.map(grade => [grade.id, grade]));
 export const ARCADE_GEAR_QUALITIES = Object.freeze(QUALITY_LEVELS.map(({ id, label }) =>
   Object.freeze({ id, label: label || 'Standard' })));
 
-const forceDescriptions = {
+const forceDescriptions:Record<string,string> = {
   force_push: 'Strongest knockback. Creates space in a forward cone.',
   force_burst: 'A broad, short-range cast with the highest damage and energy cost.',
   force_pulse: 'A quick, long-range cast with narrow aim and lighter impact.',
@@ -20,9 +22,9 @@ const forceTuning = Object.freeze({
   force_burst: Object.freeze({ damage: 1.55, reach: .79, arc: 1.27, cost: 1.19, windup: 1.17, recovery: 1.15, knock: .56, recoil: 1.16 }),
   force_pulse: Object.freeze({ damage: .72, reach: 1.28, arc: .61, cost: .81, windup: .83, recovery: .84, knock: .29, recoil: .70 }),
 });
-const quality = value => qualityById.has(value) ? value : 'standard';
-const forceFamily = value => typeof value === 'string' && Object.hasOwn(forceTuning, value) ? value : 'force_push';
-const select = (values, team) => Array.isArray(values) ? values[team] : undefined;
+const quality = (value:unknown) => qualityById.has(value as string) ? value as string : 'standard';
+const forceFamily = (value:unknown) => typeof value === 'string' && Object.hasOwn(forceTuning, value) ? value as keyof typeof forceTuning : 'force_push';
+const select = (values:unknown, team:number) => Array.isArray(values) ? values[team] : undefined;
 
 export const ARCADE_SABER_OPTIONS = Object.freeze([
   Object.freeze({ id: 'single', weapon: 'single', grip: 'forward', label: 'Single saber' }),
@@ -38,9 +40,9 @@ export const ARCADE_SABER_VARIANTS=Object.freeze({
   shoto:Object.freeze({blade:.77,reach:.88,windup:.89,recovery:.89,cost:.87,damage:.94}),
   greatsaber:Object.freeze({blade:1.27,reach:1.13,windup:1.15,recovery:1.12,cost:1.15,damage:1.08}),
 });
-export const arcadeSaberVariant=weapon=>Object.hasOwn(ARCADE_SABER_VARIANTS,weapon)?ARCADE_SABER_VARIANTS[weapon]:null;
+export const arcadeSaberVariant=(weapon?:string)=>Object.hasOwn(ARCADE_SABER_VARIANTS,weapon as string)?ARCADE_SABER_VARIANTS[weapon as keyof typeof ARCADE_SABER_VARIANTS]:null;
 
-function saberKit(config, team) {
+function saberKit(config:Config|undefined, team:number) {
   const value = select(config?.startingSaberWeapon, team);
   const legacyDual = select(config?.startingDualSabers, team) === true;
   const weapon = ['single', 'dual', 'staff', 'shoto', 'greatsaber'].includes(value) ? value : legacyDual ? 'dual' : 'single';
@@ -48,12 +50,12 @@ function saberKit(config, team) {
   return { weapon, grip };
 }
 
-export function arcadeSaberOption(gear) {
+export function arcadeSaberOption(gear?:Kit) {
   return ARCADE_SABER_OPTIONS.find(o => o.weapon === gear?.weapon && o.grip === gear?.grip) ?? ARCADE_SABER_OPTIONS[0];
 }
 
 /** Normalize exactly two teams; old dual-saber checkboxes remain forward grip. */
-export function normalizeArcadeGear(raw = {}) {
+export function normalizeArcadeGear(raw:Config = {}) {
   const teams = [0, 1];
   const kits = teams.map(team => saberKit(raw, team));
   return {
@@ -68,7 +70,7 @@ export function normalizeArcadeGear(raw = {}) {
 }
 
 /** All fighters on a side spawn with the side's gear, independent of career rank. */
-export function arcadeFighterGear(config, team) {
+export function arcadeFighterGear(config:Config, team:number) {
   const { weapon, grip } = saberKit(config, team);
   const dualSabers = weapon === 'dual';
   return Object.freeze({
@@ -86,12 +88,12 @@ export function arcadeFighterGear(config, team) {
  * resolves each blade independently. Offhand contact is elapsed attack time
  * in seconds, not the delay from the first strike.
  */
-export function arcadeGearMove(gear, moveName, move) {
+export function arcadeGearMove<T extends Spec>(gear:Kit|undefined, moveName:string, move:T) {
   const recovery = move.duration - move.contact;
   if (moveName === 'force') {
     const id = forceFamily(gear?.forceFamily);
     const ability = forceTuning[id];
-    const grade = qualityById.get(quality(gear?.forceQuality));
+    const grade = qualityById.get(quality(gear?.forceQuality))!;
     const contact = move.contact * ability.windup;
     return {
       ...move,
@@ -107,7 +109,7 @@ export function arcadeGearMove(gear, moveName, move) {
     };
   }
 
-  const grade = qualityById.get(quality(gear?.saberQuality));
+  const grade = qualityById.get(quality(gear?.saberQuality))!;
   const variant=arcadeSaberVariant(gear?.weapon);
   if(variant&&!move.freeHand){
     const contact=move.contact*variant.windup;

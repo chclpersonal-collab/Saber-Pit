@@ -1,6 +1,19 @@
-// @ts-nocheck
+import type {SimGame,SimFighter,SimMove,BladeCast,BladeSegment,Technique,LocalPressure,SimCommand,Cover,Point} from './arcade-engine-state.js';
+import type {ArcadeOptions,ArcadeInput} from './arcade-engine-api.js';
+import {bodyGap,inside,openAt,crossed,blockedBetween,canSlide,bodyMotionFraction,separate,chooseRoute,spawnPosition} from './arcade-engine-geometry.js';
+import {aerialArcs,vaultArc,evadeArc,launchArc,startAir,updateAir} from './arcade-engine-air.js';
+import {ARCADE_STAT_KEYS,record,roundStats,credit,recordDamage,recordKnockout} from './arcade-engine-stats.js';
+export {ARCADE_STAT_KEYS};
+import {neutralAction,setAction,spend} from './arcade-engine-actions.js';
+import {outcome} from './arcade-engine-outcome.js';
+import {ARCADE_RANK_COMBAT,countMove,rankGap,masteryRatio,rankStrikeScale,elitePair,pacingLift,pacedDamage} from './arcade-engine-rank.js';
+export {ARCADE_RANK_COMBAT};
+import {stepGame} from './arcade-engine-step.js';
+import {archetypes,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_ATTACKS,legacyForm,profile,styleTimings,quickCounter,art,arcadeContactHeight} from './arcade-engine-profile.js';
+export {ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_ATTACKS,arcadeContactHeight};
+import {buildArcadeConfig} from './arcade-engine-config.js';
 import {arcadeBodyStaminaReward} from './arcade-stamina.js?v=2.37.0';
-import {normalizeArcadeChessStyle,arcadeChessStyleFor,arcadeChessMove,arcadeChessAllowsLane,arcadeChessDesiredBearing,arcadeChessPawnStrike,chooseArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
+import {arcadeChessStyleFor,arcadeChessMove,arcadeChessAllowsLane,arcadeChessDesiredBearing,arcadeChessPawnStrike,chooseArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {chooseArenaMatchGoal} from './arcade-match-goal.js?v=2.33.0';
 import {arcadeEloSkill} from './arcade-elo-skill.js?v=2.32.0';
 import {arcadeExpandedMoveById} from './arcade-expanded-combat.js?v=3.1.0';
@@ -9,7 +22,7 @@ import {chooseAdvancedFollowup} from './arcade-advanced-moves.js?v=2.30.0';
 import {arcadeRankFootworkById,arcadeFootworkMotion,arcadeFootworkPlan,planPeerFootwork} from './arcade-rank-footwork.js?v=2.27.0';
 export {ARCADE_RANK_FOOTWORK,arcadeRankFootworkFor} from './arcade-rank-footwork.js?v=2.27.0';
 import {arcadeAttackPresentation,chooseFormCommit} from './arcade-move-choice.js?v=2.30.0';
-import {ARCADE_AIR_ATTACKS,ARCADE_AIR_STRIKES,arcadeJumpProfile,arcadeJumpHeight,arcadeJumpMotion} from './arcade-air-gameplay.js?v=2.25.3';
+import {ARCADE_AIR_ATTACKS,ARCADE_AIR_STRIKES,arcadeJumpProfile,arcadeJumpMotion} from './arcade-air-gameplay.js?v=2.25.3';
 export {ARCADE_AIR_STRIKES};
 import {normalizeHeroTactics,observeHeroPlan} from './arcade-hero-tactics.js?v=2.18.0';
 import {fighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
@@ -21,280 +34,61 @@ import {ARCADE_TECHNIQUES,arcadeMovesFor} from './arcade-repertoire.js?v=3.1.0';
 import {createArcadeInjuries,applyArcadeInjury,arcadeInjuryModifiers,compareArcadeDanger} from './arcade-injuries.js?v=2.9.0';
 export {arcadeMovesFor};
 import {createArcadeTerrain} from './arcade-stage.js';
-import {advanceArcadeObjective,arcadeObjectiveMove,carrierSpeedScale,createArcadeObjective,isArcadeCarrier,objectiveOutcome} from './arcade-objectives.js';
-import {arcadeFighterGear,arcadeGearMove,normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
-import {ENVIRONMENTS,environmentAt} from './environment.js?v=1.4.0';
+import {advanceArcadeObjective,arcadeObjectiveMove,carrierSpeedScale,createArcadeObjective,isArcadeCarrier} from './arcade-objectives.js';
+import {arcadeFighterGear,arcadeGearMove} from './arcade-loadouts.js?v=3.1.0';
+import {environmentAt} from './environment.js?v=1.4.0';
 import {combatSkillProfile, progressionSummary, SOLDIER_GRADES} from "./progression.js?v=1.4.0";
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-const angleDelta = (a, b) => Math.atan2(Math.sin(a-b),Math.cos(a-b));
+const finite=(value:unknown): value is number=>Number.isFinite(value);
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const angleDelta = (a: number, b: number) => Math.atan2(Math.sin(a-b),Math.cos(a-b));
 export const ARCADE_MAX_TEAM_SIZE=24;
-export const ARCADE_RANK_COMBAT=Object.freeze(Array.from({length:15},(_,index)=>Object.freeze({
-  index, reads:1+index, awareness:1+index*.21, initiative:index*.012,
-  staminaRecovery:1+index*.046, holdEfficiency:1-index*.024,
-  stability:index*.043, crowdCap:Math.min(8,1+Math.floor(index*.51)),
-})));
-const countMove=(f,name)=>{f.moves[name]=(f.moves[name]??0)+1;};
-const rankGap=(a,b)=>a.career.gradeIndex-b.career.gradeIndex;
-const masteryRatio=(rank)=>clamp(rank/14,0,1);
-const rankStrikeScale=(source,target)=>{
-  const gap=rankGap(source,target);
-  if(gap===0)return 1;
-  return gap>0?1+.055+4.145*masteryRatio(gap)**1.53:1-.975*masteryRatio(-gap)**.83;
-};
-const archetypes = {
-  vanguard:{speed:192, heavy:'sweep', pressure:102, wind:.10},
-  duelist:{speed:225, heavy:'rush', pressure:79, wind:.07},
-  warden:{speed:175, heavy:'uppercut', pressure:86, wind:.14},
-};
-const fitted = (name, description, heavy, stats) => Object.freeze({name,label:name,description,heavy,...stats});
-export const ARCADE_FORMS = Object.freeze({
-  shii_cho:fitted('Shii-Cho','Wide cuts catch multiple enemies; broad, steady and good for crowds.', 'wide_cut', {speed:189,pressure:105,wind:.104,orbit:.42,guardAI:.44,parry:.155,arc:1.33,reach:1,tempo:1.04,guardCost:1,comboCap:3}),
-  makashi:fitted('Makashi','A narrow lunge for precise duels, quick footwork and measured distance.', 'thrust', {speed:224,pressure:115,wind:.077,orbit:.72,guardAI:.48,parry:.14,arc:.61,reach:1.14,tempo:.92,guardCost:1.04,comboCap:3}),
-  soresu:fitted('Soresu','Compact cuts, efficient guard, and a wide window to deflect incoming blades.', 'deflect', {speed:177,pressure:72,wind:.091,orbit:.60,guardAI:.78,parry:.236,arc:.90,reach:.87,tempo:1.08,guardCost:.60,comboCap:2}),
-  ataru:fitted('Ataru','An acrobatic vault and quick sidesteps close gaps; defense is less efficient.', 'vault', {speed:238,pressure:112,wind:.055,orbit:1.18,guardAI:.23,parry:.112,arc:.97,reach:.98,tempo:.88,guardCost:1.28,comboCap:3}),
-  djem_so:fitted('Djem So','Heavy countercuts deal more damage after a successful block or parry.', 'riposte', {speed:174,pressure:84,wind:.114,orbit:.32,guardAI:.70,parry:.172,arc:1.05,reach:.98,tempo:1.13,guardCost:.81,comboCap:3}),
-  niman:fitted('Niman','Steady saber work and a short cone-shaped Force push that creates space.', 'force', {speed:197,pressure:126,wind:.11,orbit:.56,guardAI:.50,parry:.16,arc:1,reach:1,tempo:1,guardCost:.92,comboCap:3}),
-  juyo:fitted('Juyo','Relentless four-hit sequences and fast pressure, at the cost of a weaker guard.', 'frenzy', {speed:216,pressure:89,wind:.049,orbit:.35,guardAI:.23,parry:.098,arc:1.12,reach:1.02,tempo:.81,guardCost:1.37,comboCap:4}),
-});
-export const ARCADE_FORM_IDS = Object.freeze(Object.keys(ARCADE_FORMS));
-const legacyForm = {vanguard:'shii_cho',duelist:'makashi',warden:'djem_so'};
-const profile = f => f.formRules ? ARCADE_FORMS[f.form] : archetypes[f.archetype];
-export const ARCADE_ATTACKS = Object.freeze({
-  slash:Object.freeze({duration:.285,contact:.108,reach:88,arc:1.12,damage:16,cost:7,lunge:300,knock:120,recoil:.18}),
-  slash2:Object.freeze({duration:.265,contact:.100,reach:92,arc:1.40,damage:18,cost:8,lunge:320,knock:148,recoil:.19}),
-  slash3:Object.freeze({duration:.365,contact:.145,reach:107,arc:1.22,damage:23,cost:11,lunge:391,knock:221,recoil:.27}),
-  rush:Object.freeze({duration:.435,contact:.223,reach:88,arc:.69,damage:31,cost:25,lunge:790,knock:310,recoil:.33}),
-  sweep:Object.freeze({duration:.545,contact:.293,reach:126,arc:2.12,damage:28,cost:24,lunge:294,knock:257,recoil:.35}),
-  slash4:Object.freeze({duration:.405,contact:.134,reach:104,arc:1.20,damage:26,cost:13,lunge:410,knock:225,recoil:.27}),
-  thrust:Object.freeze({duration:.41,contact:.187,reach:143,arc:.40,damage:31,cost:22,lunge:565,knock:182,recoil:.28}),
-  wide_cut:Object.freeze({duration:.57,contact:.303,reach:123,arc:2.46,damage:28,cost:24,lunge:280,knock:249,recoil:.31}),
-  deflect:Object.freeze({duration:.37,contact:.248,reach:79,arc:.87,damage:19,cost:13,lunge:164,knock:149,recoil:.19}),
-  vault:Object.freeze({duration:.50,contact:.247,reach:107,arc:1.29,damage:27,cost:24,lunge:633,knock:267,recoil:.29}),
-  riposte:Object.freeze({duration:.53,contact:.274,reach:106,arc:1.29,damage:29,cost:24,lunge:381,knock:288,recoil:.29}),
-  force:Object.freeze({duration:.59,contact:.279,reach:173,arc:.83,damage:13,cost:31,lunge:0,knock:700,recoil:.36}),
-  frenzy:Object.freeze({duration:.42,contact:.194,reach:116,arc:1.54,damage:29,cost:25,lunge:532,knock:236,recoil:.28}),
-  uppercut:Object.freeze({duration:.435,contact:.213,reach:85,arc:1.04,damage:26,cost:23,lunge:480,knock:238,recoil:.55}),
-});
-// Arcade timings keep a recognisable windup, release and return even at elite
-// grades. The lunge component is a planted step, not persistent locomotion.
-const styleTimings=Object.freeze({
-  slash:[.57,.218,152],slash2:[.60,.245,146],slash3:[.71,.282,173],slash4:[.69,.267,171],
-  thrust:[.69,.284,223],wide_cut:[.92,.405,118],deflect:[.72,.315,82],
-  vault:[.92,.428,290],riposte:[.88,.363,154],force:[.84,.379,0],frenzy:[.71,.302,188],
-});
-const quickCounter=[.70,.270,171];
-const vaultArc={takeoff:.145,flight:.495,landing:.185,peak:53};
-const aerialArcs={vault:vaultArc,crossVault:{takeoff:.115,flight:.493,landing:.18,peak:45},highVault:{takeoff:.17,flight:.532,landing:.13,peak:66}};
-const evadeArc={takeoff:.075,flight:.215,landing:.115,peak:25};
-const launchArc={takeoff:0,flight:.39,landing:.14,peak:37};
-function startAir(f,arc,trick=null) {
-  if(!arc.kind)f.jumpKind=null;
-  f.airFacing=f.face;f.airTrick=trick;f.airArc=arc;f.airTime=0;f.airDuration=arc.takeoff+arc.flight+arc.landing;
-  updateAir(f,0);
-}
-function updateAir(f,dt) {
-  const arc=f.airArc;
-  if(!arc)return;
-  f.airTime=Math.min(f.airDuration,f.airTime+dt);
-  const t=f.airTime;
-  f.airborne=Math.max(0,f.airDuration-t);
-  if(t<arc.takeoff){
-    f.airPhase='takeoff';f.airProgress=t/arc.takeoff;f.airHeight=0;
-  }else if(t<arc.takeoff+arc.flight){
-    const u=(t-arc.takeoff)/arc.flight;f.airPhase='airborne';f.airProgress=u;f.airHeight=arc.kind?arcadeJumpHeight(arc,u):4*arc.peak*u*(1-u);
-  }else if(t<f.airDuration){
-    f.airPhase='landing';f.airProgress=(t-arc.takeoff-arc.flight)/arc.landing;f.airHeight=0;
-  }else{
-    f.airArc=null;f.airFacing=null;f.airTrick=null;f.jumpKind=null;f.airRequest=null;f.airPhase='grounded';f.airProgress=0;f.airHeight=0;
-  }
-}
-const art = (name) => name.startsWith('slash')?'slash':({thrust:'rush',vault:'rush',riposte:'uppercut',deflect:'slash',frenzy:'sweep',wide_cut:'sweep'}[name]??name);
-function rng(state) { state.rng ^= state.rng<<13; state.rng ^= state.rng>>>17; state.rng ^= state.rng<<5; return (state.rng>>>0)/4294967296; }
-function blendAngle(a,b,amount){return a+angleDelta(b,a)*amount;}
-const bodyGap=36, dashDuration=.205;
+function rng(state: Pick<SimGame,"rng">) { state.rng ^= state.rng<<13; state.rng ^= state.rng>>>17; state.rng ^= state.rng<<5; return (state.rng>>>0)/4294967296; }
+function blendAngle(a: number,b: number,amount: number){return a+angleDelta(b,a)*amount;}
+const dashDuration=.205;
 export const ARCADE_TRAKATA_ID='trakata';
-const atk = f=>f.attack&&!f.saberOff ? (f.attackSpec??ARCADE_ATTACKS[f.attack]??ARCADE_AIR_ATTACKS[f.attack]) : null;
-function event(s,kind,f,x=f.x,y=f.y,extra={}){
+type BladeWorld=ReturnType<typeof arcadeBladeWorld>&{offhand?:BladeSegment};
+const attackByName=(id:string|null|undefined): SimMove | undefined=>ARCADE_ATTACKS[id as keyof typeof ARCADE_ATTACKS];
+const atk = (f: SimFighter): SimMove | null | undefined=>f.attack&&!f.saberOff ? (f.attackSpec??attackByName(f.attack)??ARCADE_AIR_ATTACKS[f.attack]) : null;
+function event(s: SimGame,kind: string,f: SimFighter,x: number=f.x,y: number=f.y,extra: Record<string, unknown>={}){
   s.events.push({id:++s.eventId,kind,x,y,face:f.face,team:f.team,fighterId:f.id,time:s.time,form:f.form,technique:f.technique,weapon:f.gear?.weapon,grip:f.gear?.grip,saberPhase:f.saberPhase,
     ...(s.config?.anticipatingCombat&&f.chessStyle?{chessStyle:(f.attack&&f.attackSpec?.chessStyle)||f.chessStyle,
       chessPromoted:f.attack&&f.attackSpec?.chessStyle?f.attackSpec.chessPromoted===true:f.chessPawn?.promoted===true}:{}),...extra});
   if(s.events.length>48) s.events.splice(0,s.events.length-48);
 }
-const neutralAction=action=>action==='idle'||action==='walk'||action==='run';
-function setAction(f,action,duration=0){
-  if(f.action!==action || duration){
-    const elapsed=f.actionTime+(f.poseEntryOffset??0);
-    const carry=!duration&&neutralAction(f.action)&&neutralAction(action)&&
-      (f.poseFrom?.kind==='dash_recover'||f.poseFrom?.kind==='force_recover'||f.poseFrom?.kind==='weapon_recover'||f.poseFrom?.kind==='guard_recover')&&elapsed<f.poseEntryDuration;
-    if(f.rankFootwork)f.rankFootwork=null;
-    f.action=action; f.actionTime=0; f.actionDuration=duration;
-    if(carry)f.poseEntryOffset=elapsed;
-    else {f.poseFrom=null;f.poseEntryDuration=0;f.poseEntryOffset=0;}
-  }
-}
-function spend(f,n){if(f.energy+1e-7<n)return false;f.energy=Math.max(0,f.energy-n);return true;}
-
-export const ARCADE_STAT_KEYS=Object.freeze(['saberSwings','saberHits','damage','damageTaken','blocks','counters','parries','forceCasts','forceHits','kills','deaths','assists','environmentDeaths','saberLanded','forceLanded','punishes','whiffs','clashes','rankDeflections','rankComposure','rankMoves','allyBlocks','feints','guardReads','ripostes']);
-const recordKeys=['kills','deaths','assists','environmentDeaths'];
-const record = prior => Object.fromEntries(recordKeys.map(k=>[k,Number.isSafeInteger(prior?.[k])&&prior[k]>=0?Math.min(prior[k],1e9):0]));
-const roundStats = () => Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,0]));
-const credit=(s,f,key,amount=1)=>{
-  f.stats[key]+=amount;s.stats[key][f.team]+=amount;
-  if(recordKeys.includes(key)){
-    const side=s.records.teams[f.team], slot=s.records.soldiers.find(r=>r.id===f.id);
-    side[key]=Math.min(1e9,side[key]+amount);slot[key]=Math.min(1e9,slot[key]+amount);
-  }
-};
-function recordDamage(s,attacker,victim,amount) {
-  if(amount<=0)return;
-  credit(s,attacker,'damage',amount);credit(s,victim,'damageTaken',amount);
-  victim.contributors=victim.contributors.filter(entry=>entry.time>=s.time-6).slice(-95);
-  victim.contributors.push({id:attacker.id,time:s.time,damage:amount});
-}
-function recordKnockout(s,victim){
-  credit(s,victim,'deaths');
-  const dealt=new Map();
-  for(const {id,time,damage} of victim.contributors) if(time>=s.time-6) dealt.set(id,(dealt.get(id)??0)+damage);
-  const contributors=[...dealt].sort(([a,av],[b,bv])=>bv-av||(a<b?-1:a>b?1:0)).map(([id])=>s.fighters.find(f=>f.id===id)).filter(Boolean);
-  const [killer,...assists]=contributors;
-  if(killer){credit(s,killer,'kills');for(const helper of assists)credit(s,helper,'assists');}
-  else credit(s,victim,'environmentDeaths');
-  return {killerId:killer?.id??null,assists:assists.map(f=>f.id)};
-}
-
-const teamSize=(n,fallback)=>Number.isFinite(Number(n))&&n!==null&&n!==''?clamp(Math.floor(Number(n)),1,ARCADE_MAX_TEAM_SIZE):fallback;
-const optionSet=(value,choices,fallback)=>choices.includes(value)?value:fallback;
-const terrainParts=(parts, kind) => (Array.isArray(parts)?parts:[]).slice(0,40).filter(rect=>
-  Number.isFinite(rect?.x)&&Number.isFinite(rect?.y)&&Number.isFinite(rect?.width)&&Number.isFinite(rect?.height)&&rect.width>0&&rect.height>0
+const teamSize=(n: unknown,fallback: number)=>finite(Number(n))&&n!==null&&n!==''?clamp(Math.floor(Number(n)),1,ARCADE_MAX_TEAM_SIZE):fallback;
+const terrainParts=(parts: unknown, kind: string) => (Array.isArray(parts)?parts:[]).slice(0,40).filter(rect=>
+  finite(rect?.x)&&finite(rect?.y)&&finite(rect?.width)&&finite(rect?.height)&&rect.width>0&&rect.height>0
 ).map(rect=>({...rect,kind:rect.kind??kind}));
-function terrainFor(value,w,h) {
+function terrainFor(value: ArcadeOptions["terrain"],w: number,h: number) {
   const defaultBounds={minX:42,maxX:w-42,minY:h*.21875,maxY:h*(585/640)};
   const source=value&&typeof value==='object'?value:{id:typeof value==='string'?value:'open'};
-  const bounds=Object.fromEntries(Object.entries(defaultBounds).map(([key,fallback])=>{
-    const value=source.bounds?.[key];return [key,Number.isFinite(value)?clamp(value,0,key.endsWith('X')?w:h):fallback];
-  }));
+  const read=(key:keyof SimGame['bounds'])=>{
+    const value=source.bounds?.[key];return finite(value)?clamp(value,0,key.endsWith('X')?w:h):defaultBounds[key];
+  };
+  const bounds={minX:read('minX'),maxX:read('maxX'),minY:read('minY'),maxY:read('maxY')};
   return {id:source.id??'open',bounds:bounds.maxX-bounds.minX>80&&bounds.maxY-bounds.minY>80?bounds:defaultBounds,
     solids:terrainParts(source.solids,'wall'),zones:terrainParts(source.zones,'rough')};
 }
-const inside=(x,y,rect,pad=0)=>x>rect.x-pad&&x<rect.x+rect.width+pad&&y>rect.y-pad&&y<rect.y+rect.height+pad;
-const openAt=(s,x,y,pad)=>!s.terrain.solids.some(r=>inside(x,y,r,pad));
-function crossed(x,y,tx,ty,rect,pad=0){
-  const x0=rect.x-pad,x1=rect.x+rect.width+pad,y0=rect.y-pad,y1=rect.y+rect.height+pad;
-  if((x<x0&&tx<x0)||(x>x1&&tx>x1)||(y<y0&&ty<y0)||(y>y1&&ty>y1))return false;
-  const dx=tx-x,dy=ty-y;
-  let near=0,far=1;
-  if(Math.abs(dx)>1e-7){const a=(x0-x)/dx,b=(x1-x)/dx;near=Math.max(near,Math.min(a,b));far=Math.min(far,Math.max(a,b));}
-  if(Math.abs(dy)>1e-7){const a=(y0-y)/dy,b=(y1-y)/dy;near=Math.max(near,Math.min(a,b));far=Math.min(far,Math.max(a,b));}
-  return near<=far;
-}
-const blockedBetween=(s,x,y,tx,ty,pad=0)=>s.terrain.solids.find(r=>crossed(x,y,tx,ty,r,pad));
-function masterPath(s,f,enemy){
-  const old=f.masterRoute;
-  if(old&&old.until>s.time&&Math.hypot(old.tx-enemy.x,old.ty-enemy.y)<58){
-    if(old.blocked)return null;
-    while(old.points.length&&Math.hypot(old.points[0].x-f.x,old.points[0].y-f.y)<17)old.points.shift();
-    if(old.points.length&&!blockedBetween(s,f.x,f.y,old.points[0].x,old.points[0].y,f.radius-.2))return old.points[0];
-  }
-  const pad=f.radius+7, b=s.bounds;
-  const nodes=[{x:f.x,y:f.y},{x:enemy.x,y:enemy.y}];
-  for(const block of s.terrain.solids){
-    for(const x of [block.x-pad,block.x+block.width+pad])for(const y of [block.y-pad,block.y+block.height+pad]){
-      if(x>b.minX&&x<b.maxX&&y>b.minY&&y<b.maxY&&openAt(s,x,y,f.radius+1))nodes.push({x,y});
-    }
-  }
-  const scores=Array(nodes.length).fill(Infinity), parents=Array(nodes.length).fill(-1), closed=new Set();
-  const distance=(i,j)=>Math.hypot(nodes[i].x-nodes[j].x,nodes[i].y-nodes[j].y);
-  scores[0]=0;
-  for(let tries=0;tries<nodes.length;tries++){
-    let best=-1,estimate=Infinity;
-    for(let i=0;i<nodes.length;i++)if(!closed.has(i)&&scores[i]+distance(i,1)<estimate){
-      best=i;estimate=scores[i]+distance(i,1);
-    }
-    if(best<0)break;
-    if(best===1){
-      const points=[];let i=parents[best];
-      while(i>0){points.unshift(nodes[i]);i=parents[i];}
-      f.masterRoute={tx:enemy.x,ty:enemy.y,until:s.time+1.12,points};
-      return points[0]??enemy;
-    }
-    closed.add(best);const a=nodes[best];
-    for(let i=1;i<nodes.length;i++){
-      const score=scores[best]+distance(best,i);
-      if(closed.has(i)||score>=scores[i])continue;
-      const n=nodes[i];
-      if(!blockedBetween(s,a.x,a.y,n.x,n.y,f.radius-.2)){scores[i]=score;parents[i]=best;}
-    }
-  }
-  f.masterRoute={tx:enemy.x,ty:enemy.y,until:s.time+.6,points:[],blocked:true};
-  return null;
-}
-function chooseRoute(s,f,enemy){
-  if(!s.terrain.solids.length)return enemy;
-  const block=blockedBetween(s,f.x,f.y,enemy.x,enemy.y,f.radius+1);
-  if(!block){f.route=null;return enemy;}
-  if(f.rankDominance>=10&&(s.liveByTeam?.[1-f.team]<=5||s.liveByTeam?.[f.team]===1)){const route=masterPath(s,f,enemy);if(route)return route;}
-  if(f.route&&f.route.until>s.time&&Math.hypot(f.route.x-f.x,f.route.y-f.y)>24)return f.route;
-  const p=f.radius+10, {minX,maxX,minY,maxY}=s.bounds;
-  const points=[{x:block.x-p,y:block.y-p},{x:block.x+block.width+p,y:block.y-p},
-    {x:block.x-p,y:block.y+block.height+p},{x:block.x+block.width+p,y:block.y+block.height+p}];
-  const valid=points.filter(({x,y})=>x>=minX&&x<=maxX&&y>=minY&&y<=maxY&&openAt(s,x,y,f.radius)&&!blockedBetween(s,f.x,f.y,x,y,f.radius));
-  const distance=point=>Math.hypot(point.x-f.x,point.y-f.y)+Math.hypot(enemy.x-point.x,enemy.y-point.y);
-  valid.sort((a,b)=>distance(a)-distance(b));
-  if(valid.length){f.route={...valid[0],until:s.time+.55};return f.route;}
-  return enemy;
-}
-function spawnPosition(s,team,slot,count){
-  const {bounds:b}=s, mid=(b.minY+b.maxY)/2, xSpan=b.maxX-b.minX;
-  const dir=team===0?1:-1, edge=team===0?b.minX:b.maxX, formation=s.config.formations[team];
-  let x,y;
-  if(count<=3&&formation==='line'){
-    x=s.width*(team===0?(slot>0?.23:.31):(slot>0?.77:.69));
-    y=clamp(s.height*.5+(slot>0?(slot%2?1:-1)*Math.min(110,s.height*.18):0),b.minY,b.maxY);
-  }else{
-    const row=slot%5;const col=Math.floor(slot/5);const order=[0,1,-1,2,-2];
-    const gap=Math.min(75,(b.maxY-b.minY-40)/4);
-    y=mid+order[row]*gap;
-    x=edge+dir*(xSpan*(formation==='spread'?.33:.30)-col*48-(formation==='wedge'?Math.abs(order[row])*26:0));
-    if(formation==='spread')y=mid+order[row]*gap+([0,1,-1][col]??0)*Math.min(gap*.34,23);
-  }
-  x+=dir*(s.config.deployments[team]==='forward'?56:s.config.deployments[team]==='reserve'?-56:0);
-  const trim=(xx,yy)=>[clamp(xx,b.minX+5,b.maxX-5),clamp(yy,b.minY+5,b.maxY-5)];
-  for(let i=0;i<8;i++) for(const dy of [0,30,-30,60,-60]){
-    const [xx,yy]=trim(x-dir*i*36,y+dy);
-    if(openAt(s,xx,yy,17)&&!s.fighters.some(other=>Math.hypot(other.x-xx,other.y-yy)<bodyGap))return [xx,yy];
-  }
-  // Very dense or blocked starts use a nearest legal same-side grid cell.
-  const alternatives=[];
-  for(let px=b.minX+19;px<b.maxX-19;px+=37){
-    if(team===0?px>s.width*.46:px<s.width*.54)continue;
-    for(let py=b.minY+19;py<b.maxY-19;py+=37){
-      if(openAt(s,px,py,17)&&s.fighters.every(other=>Math.hypot(other.x-px,other.y-py)>=bodyGap))
-        alternatives.push({x:px,y:py,d:Math.hypot(px-x,py-y)});
-    }
-  }
-  alternatives.sort((a,b)=>a.d-b.d);
-  return alternatives.length?[alternatives[0].x,alternatives[0].y]:trim(x,y);
-}
-function startingMerit(value) {
+function startingMerit(value: unknown) {
   const label=typeof value==='string' ? value.trim().toUpperCase().replace(/\s+/g,'').replace('(ENTRY)','') : 'F';
   return SOLDIER_GRADES.find(g=>g.label===label)?.threshold??0;
 }
-function makeFighter(s,team,slot,count,control,careers,startingRanks){
-  const id=`${team}-${slot}`;
+function makeFighter(s: SimGame,team: 0|1,slot: number,count: number,control: boolean,careers: ArcadeOptions["careers"],startingRanks: ArcadeOptions["startingRanks"]): SimFighter {
+  const id=`${team}-${slot}` as const;
   const hero=s.heroLineup[id]??null;
   const supplied=careers?.[id]??careers?.[team]?.[slot];
-  const side=startingRanks?.[team]??startingRanks?.[team===0?'blue':'red'];
+  const side=startingRanks?.[team]??(startingRanks as Exclude<typeof startingRanks, readonly unknown[]> | undefined)?.[team===0?'blue':'red'];
   const career=progressionSummary(hero?startingMerit('SSS+V'):supplied??startingMerit(Array.isArray(side)?side[slot]:side));
   const skill=combatSkillProfile(career);
-  const archetype = control ? s.playerArchetype : count===1 ? (team===0?'vanguard':'duelist') : ['vanguard','duelist','warden'][slot%3];
+  const archetype: SimFighter['archetype'] = control ? s.playerArchetype : count===1 ? (team===0?'vanguard':'duelist') : (['vanguard','duelist','warden'] as const)[slot%3];
   const preset=s.config.teamForms[team];
   const explicit=typeof preset==='string'?preset:preset?.[slot]??null;
-  const picked=Object.hasOwn(ARCADE_FORMS,explicit)?explicit:null;
+  const picked=Object.hasOwn(ARCADE_FORMS,explicit!)?explicit:null;
   const lead=team===0&&slot===((s.mode==='watch'||s.mode==='command')?0:s.config.playerSlot);
-  const form=hero?.form??(s.formRules?(picked??(lead&&explicit!=='mixed'?s.playerForm:ARCADE_FORM_IDS[(s.round-1+team*3+slot+(team===1&&count===1?1:0))%ARCADE_FORM_IDS.length])):legacyForm[archetype]);
+  const form=(hero?.form??(s.formRules?(picked??(lead&&explicit!=='mixed'?s.playerForm:ARCADE_FORM_IDS[(s.round-1+team*3+slot+(team===1&&count===1?1:0))%ARCADE_FORM_IDS.length])):legacyForm[archetype])) as SimFighter['form'];
   const injuries=createArcadeInjuries();
   const injuryEffects=arcadeInjuryModifiers(injuries);
-  const body=hero?.body??(lead?s.playerBody:(team+slot+s.round)%2===0?'woman':'femboy');
+  const body=(hero?.body??(lead?s.playerBody:(team+slot+s.round)%2===0?'woman':'femboy')) as SimFighter['body'];
   const visualKey=hero?.id??`roster:${s.weatherSeed}:${id}`;
   const gender=fighterGender(hero?.gender,body,visualKey),appearanceSeed=hero?.appearanceSeed??appearanceSeedFor(visualKey);
   const gear=hero?arcadeFighterGear({
@@ -302,70 +96,31 @@ function makeFighter(s,team,slot,count,control,careers,startingRanks){
     startingForceFamily:[hero.forceFamily]
   },0):arcadeFighterGear(s.config,team);
   const [x,y]=spawnPosition(s,team,slot,count);
-  return {id,team,control,slot,archetype,form,body,gender,appearanceSeed,career,skill,rankCombat:ARCADE_RANK_COMBAT[career.gradeIndex],moves:{},gear,weaponFlow:s.config.weaponFlow===true,expandedCombat:s.config.expandedCombat===true,circuitCuts:s.config.circuitCuts===true,heroId:hero?.id,displayName:hero?.name,heroDoctrine:hero?.doctrine,
-    ...(hero?{...(hero.preferredMove?{tournamentMove:hero.preferredMove}:{}),heroPlan:hero.doctrine,heroAdaptation:normalizeHeroTactics(hero.heroAdaptation??hero.adaptation),
-      heroElo:Number.isFinite(hero.elo)?hero.elo:undefined,heroEloFloorGrade:hero.eloFloorGrade??hero.heroEloFloorGrade}:{}),formRules:s.formRules||Boolean(hero),x,y,face:team===0?0:Math.PI,
+  const initial: Omit<SimFighter,'rankDominance'>={id,team,control,slot,archetype,form,body,gender,appearanceSeed,career,skill,rankCombat:ARCADE_RANK_COMBAT[career.gradeIndex],moves:{},gear,weaponFlow:s.config.weaponFlow===true,expandedCombat:s.config.expandedCombat===true,circuitCuts:s.config.circuitCuts===true,heroId:hero?.id,displayName:hero?.name,heroDoctrine:hero?.doctrine,
+    ...(hero?{...(hero.preferredMove?{tournamentMove:hero.preferredMove}:{}),heroPlan:hero.doctrine,heroAdaptation:normalizeHeroTactics((('heroAdaptation' in hero ? hero.heroAdaptation : undefined)??hero.adaptation) as Parameters<typeof normalizeHeroTactics>[0]),
+      heroElo:finite(hero.elo)?hero.elo:undefined,heroEloFloorGrade:hero.eloFloorGrade??('heroEloFloorGrade' in hero ? hero.heroEloFloorGrade as string|undefined : undefined)}:{}),formRules:s.formRules||Boolean(hero),x,y,face:team===0?0:Math.PI,
     vx:0,vy:0,kx:0,ky:0,radius:17,groundDistance:0,groundSpeed:0,alive:true,injuries,injuryEffects,saberPhase:'short',
     energy:100,action:'idle',actionTime:0,actionDuration:0,attack:null,attackSpec:null,contact:false,offhandContact:false,technique:null,counterUntil:0,guardLane:'center',guardBearing:null,combo:0,
     parryTime:0,invuln:0,guardLock:0,airborne:0,airArc:null,airPhase:'grounded',airHeight:0,airProgress:0,airTime:0,airDuration:0,think:.09+slot*.11,decision:null,buffer:null,guardHeld:false,stats:roundStats(),contributors:[],targetId:null,targetUntil:0,counterMove:false};
+  // The first authoritative tick fills rankDominance before any fighter acts.
+  return initial as SimFighter;
 }
-export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}={}){
+export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}: ArcadeOptions={}){
   mode=['duel','squad','watch','command'].includes(mode)?mode:'duel';
-  width=clamp(Number.isFinite(width)?width:1120,480,2400);height=clamp(Number.isFinite(height)?height:640,360,1440);
-  const stringSeed=typeof seed==='string'?Array.from(seed).reduce((n,c)=>Math.imul(n^c.codePointAt(0),16777619),-2128831035):Number(seed);
-  const hasForm=Object.hasOwn(ARCADE_FORMS,form);
+  width=clamp(finite(width)?width:1120,480,2400);height=clamp(finite(height)?height:640,360,1440);
+  const stringSeed=typeof seed==='string'?Array.from(seed).reduce((n,c)=>Math.imul(n^c.codePointAt(0)!,16777619),-2128831035):Number(seed);
+  const hasForm=Object.hasOwn(ARCADE_FORMS,form!);
   const formRules=hasForm||Array.isArray(teamForms);
   const fallback=mode==='duel'?1:3;
-  const sizes=[teamSize(teamSizes?.[0],fallback),teamSize(teamSizes?.[1],fallback)];
-  const requestedLimit=Number(limit);
-  const longSoloClock=requestedLimit===360&&soloTournamentClock===true&&mode==='watch'&&sizes.every(n=>n===1)&&(!rule||rule==='elimination');
+  const sizes: [number,number]=[teamSize(teamSizes?.[0],fallback),teamSize(teamSizes?.[1],fallback)];
   const map=terrainFor(typeof terrain==='string'&&terrain!=='open'?createArcadeTerrain(terrain,width,height,round):terrain,width,height);
-  const config={...normalizeArcadeGear({startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality}),teamSizes:sizes,limit:longSoloClock||[45,75,90,150].includes(requestedLimit)?requestedLimit:75,
-    circuitCuts:circuitCuts===true,matchGoalPlanning:matchGoalPlanning===true&&mode==='watch'&&(!rule||rule==='elimination'),
-    weaponFlow:weaponFlow===true,expandedCombat:expandedCombat===true,customHeroTactics:customHeroTactics===true&&mode!=='command',
-    advancedArena:advancedArena===true&&mode!=='command'&&(!rule||rule==='elimination'),
-    playerSlot:Number.isInteger(Number(playerSlot))?clamp(Number(playerSlot),0,sizes[0]-1):0,
-    teamForms:[teamForms?.[0]??null,teamForms?.[1]??null],saberOnly:Boolean(saberOnly),
-    doctrines:[0,1].map(i=>optionSet(({assault:'aggressive',guard:'defensive'})[doctrines?.[i]]??doctrines?.[i],['balanced','aggressive','defensive'],'balanced')),
-    targeting:[0,1].map(i=>optionSet(targeting?.[i],['balanced','nearest','weakest','objective'],'balanced')),
-    formations:[0,1].map(i=>optionSet(formations?.[i],['line','wedge','spread'],'line')),
-    rule:optionSet(rule,['elimination','control','relic'],'elimination'),
-    weather:optionSet(weather??environment,Object.keys(ENVIRONMENTS),'clear'),
-    deployments:[0,1].map(i=>optionSet(deployments?.[i],['standard','forward','reserve'],'standard'))};
-  const styleOptions=[0,1].map(i=>normalizeArcadeChessStyle(chessStyles?.[i]));
-  if(styleOptions.some(x=>x!=='none'))config.chessStyles=styleOptions;
-  const concreteStyles=[0,1].map(i=>Array.from({length:sizes[i]},(_,slot)=>{
-    const style=normalizeArcadeChessStyle(fighterChessStyles?.[i]?.[slot]);
-    return style==='none'||style==='mixed'?null:style;
-  }));
-  if(concreteStyles.some(side=>side.some(Boolean)))config.fighterChessStyles=concreteStyles;
-  if(perfectParryStamina===true)config.perfectParryStamina=true;
-  if(continuousCombat===true)config.continuousCombat=true;
-  if(anticipatingCombat===true)config.anticipatingCombat=true;
-  if(arenaCuts===true)config.arenaCuts=true;
-  if(activeFootwork===true)config.activeFootwork=true;
-  if(styleTravel===true)config.styleTravel=true;
-  if(repertoireSupport===true)config.repertoireSupport=true;
-  if(styleChoreo===true)config.styleChoreo=true;
-  if(peasantMotion===true)config.peasantMotion=true;
-  if(exchangeVariety===true)config.exchangeVariety=true;
-  if(stanceFlow===true)config.stanceFlow=true;
-  if(impactPhysics===true)config.impactPhysics=true;
-  if(recoveryFlow===true&&impactPhysics===true)config.recoveryFlow=true;
-  if(balancePass===true)config.balancePass=true;
-  if(closeChoice===true)config.closeChoice=true;
-  if(guardCounterplay===true)config.guardCounterplay=true;
-  if(minorMoves===true)config.minorMoves=true;
-  if(forceVariants===true&&expandedCombat===true)config.forceVariants=true;
-  if(liveEntry===true)config.liveEntry=true;
-  if(eloReads===true&&ratingSkill===true)config.eloReads=true;
-  if(fluidFootwork===true)config.fluidFootwork=true;
-  const s={mode,width,height,formRules,config,heroLineup:normalizeHeroLineup(heroLineup),terrain:map,playerForm:hasForm?form:legacyForm[archetype]??'shii_cho',playerBody:['woman','rabbit'].includes(body)?body:'femboy',time:0,round:Number.isInteger(round)&&round>0?round:1,phase:'playing',fighters:[],events:[],eventId:0,
+  const config=buildArcadeConfig({startingSaberQuality, startingDualSabers, startingSaberWeapon, startingSaberGrip, startingDualPhase, startingForceFamily, startingForceQuality, limit, soloTournamentClock, rule, circuitCuts, matchGoalPlanning, weaponFlow, expandedCombat, customHeroTactics, advancedArena, playerSlot, teamForms, saberOnly, doctrines, targeting, formations, weather, environment, deployments, chessStyles, fighterChessStyles, perfectParryStamina, continuousCombat, anticipatingCombat, arenaCuts, activeFootwork, styleTravel, repertoireSupport, styleChoreo, peasantMotion, exchangeVariety, stanceFlow, impactPhysics, recoveryFlow, balancePass, closeChoice, guardCounterplay, minorMoves, forceVariants, liveEntry, eloReads, ratingSkill, fluidFootwork},mode,sizes);
+  const s: SimGame={mode:mode as SimGame['mode'],width,height,formRules,config,heroLineup:normalizeHeroLineup(heroLineup),terrain:map,playerForm:(hasForm?form:legacyForm[archetype as keyof typeof legacyForm]??'shii_cho') as SimGame['playerForm'],playerBody:['woman','rabbit'].includes(body)?body as SimGame['playerBody']:'femboy',time:0,round:Number.isInteger(round)&&round>0?round:1,phase:'playing',fighters:[],events:[], /* simulation arrays are populated below */eventId:0,
     bounds:map.bounds,objective:createArcadeObjective(config.rule,width,height,map.bounds),order:'push',weather:null,weatherSeed:stringSeed>>>0,
-    rng:(stringSeed>>>0)||1, playerArchetype:Object.hasOwn(archetypes,archetype)?archetype:'vanguard',edges:{},limit:config.limit,tick:0,
-    stats:Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,[0,0]])),records:{teams:[record(records?.teams?.[0]),record(records?.teams?.[1])],soldiers:[]},
+    rng:(stringSeed>>>0)||1, playerArchetype:Object.hasOwn(archetypes,archetype)?archetype as SimGame['playerArchetype']:'vanguard',edges:{},limit:config.limit,tick:0,
+    stats:Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,[0,0]])) as SimGame['stats'],records:{teams:[record(records?.teams?.[0]),record(records?.teams?.[1])],soldiers:[]},
     pressure:mode==='watch'||!Number.isInteger(round)?0:clamp((round-1)/9,0,1)};
-  for(let team=0;team<2;team++)for(let i=0;i<sizes[team];i++)s.fighters.push(makeFighter(s,team,i,sizes[team],team===0&&i===config.playerSlot&&mode!=='watch'&&mode!=='command',careers,startingRanks));
+  for(const team of [0,1] as const)for(let i=0;i<sizes[team];i++)s.fighters.push(makeFighter(s,team,i,sizes[team],team===0&&i===config.playerSlot&&mode!=='watch'&&mode!=='command',careers,startingRanks));
   s.weather=environmentAt(config.weather,s.weatherSeed,0);
   for (const f of s.fighters) {
     if(config.chessStyles||config.fighterChessStyles){
@@ -379,7 +134,7 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
     if(ratingSkill===true||config.matchGoalPlanning){
       const sample=f.heroElo??fighterRatings?.[f.team]?.[f.slot]??sideElo?.[f.team];
       if(ratingSkill===true)f.eloSkill=arcadeEloSkill(sample,true);
-      if(config.matchGoalPlanning){f.matchGoal='win';f.matchGoalSince=0;f.matchGoalRating=Number.isFinite(sample)?sample:1500;}
+      if(config.matchGoalPlanning){f.matchGoal='win';f.matchGoalSince=0;f.matchGoalRating=finite(sample)?sample:1500;}
     }
     if(config.continuousCombat)f.continuousCombat=true;
     if(config.styleTravel)f.styleTravel=true;
@@ -405,12 +160,12 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
   return s;
 }
 
-function releaseThreat(attacker,victim,now,frontOnly=false){
+function releaseThreat(attacker: SimFighter,victim: SimFighter,now: number,frontOnly: boolean=false){
   const move=atk(attacker);
   if(!move)return false;
   const dx=victim.x-attacker.x,dy=victim.y-attacker.y,angle=Math.atan2(dy,dx);
   if(frontOnly&&Math.abs(angleDelta(angle+Math.PI,victim.face))>1.27)return false;
-  const isThreat=(blade,released,turn=0)=>{
+  const isThreat=(blade: BladeCast|undefined,released: boolean,turn: number=0)=>{
     if(!blade||released)return false;
     const time=blade.contact-attacker.actionTime;
     return time>0&&time<now&&dx*dx+dy*dy<=(blade.reach+27)**2&&Math.abs(angleDelta(angle,attacker.face+turn))<blade.arc+.17;
@@ -418,19 +173,19 @@ function releaseThreat(attacker,victim,now,frontOnly=false){
   return isThreat(move,attacker.contact)||
     isThreat(move.offhand,attacker.offhandContact,(move.offhand?.backLane??move.offhand?.blade==='rear')?Math.PI:0);
 }
-function rememberAttacker(s,f,hostile,from){
+function rememberAttacker(s: SimGame,f: SimFighter,hostile: SimFighter,from: number){
   if(f.control||!f.alive||Math.abs(angleDelta(from,f.face))<1.12)return;
   // Don't reset the reaction clock under a flurry from the same source.
   const prior=f.rearHit;
   const delay=.27-f.career.gradeIndex*.0075;
   f.rearHit={id:hostile.id,readyAt:prior?.id===hostile.id&&prior.expires>s.time?prior.readyAt:s.time+delay,expires:s.time+1.48};
 }
-function nearest(s,f){
+function nearest(s: SimGame,f: SimFighter){
   let best=null,score=Infinity;
   const policy=f.control?'nearest':s.config.targeting[f.team];
   for(const o of s.fighters)if(o.team!==f.team&&o.alive){
     const d=Math.hypot(o.x-f.x,o.y-f.y);
-    if(!f.control&&d>s.weather.sightRange)continue;
+    if(!f.control&&d>s.weather!.sightRange)continue;
     const injury=policy==='weakest'?o.injuryEffects.moveSpeed*45+o.injuryEffects.guardEfficiency*65:0;
     const value=d+(policy==='weakest'?injury:policy==='objective'?Math.hypot(o.x-s.width*.5,o.y-s.height*.5)*.29:0);
     if(value<score){score=value;best=o;}
@@ -440,7 +195,7 @@ function nearest(s,f){
   const memory=f.rearHit;
   if(memory&&s.time>=memory.readyAt&&s.time<memory.expires&&!atk(f)){
     const remembered=s.fighters.find(o=>o.id===memory.id&&o.alive&&o.team!==f.team);
-    if(remembered&&Math.hypot(remembered.x-f.x,remembered.y-f.y)<Math.min(253,s.weather.sightRange)&&
+    if(remembered&&Math.hypot(remembered.x-f.x,remembered.y-f.y)<Math.min(253,s.weather!.sightRange)&&
        !blockedBetween(s,f.x,f.y,remembered.x,remembered.y)){
       const front=s.fighters.find(o=>o.alive&&o.team!==f.team&&o.id!==remembered.id&&releaseThreat(o,f,.21,true)&&
         !blockedBetween(s,f.x,f.y,o.x,o.y));
@@ -449,46 +204,21 @@ function nearest(s,f){
     }
   }
   const old=s.fighters.find(o=>o.id===f.targetId&&o.alive);
-  if(old&&s.time<f.targetUntil&&Math.hypot(old.x-f.x,old.y-f.y)<=Math.min(s.weather.sightRange,score*1.55+25))return old;
+  if(old&&s.time<f.targetUntil&&Math.hypot(old.x-f.x,old.y-f.y)<=Math.min(s.weather!.sightRange,score*1.55+25))return old;
   f.targetId=best.id;f.targetUntil=s.time+.48;
   return best;
 }
-function turnForAttack(f,to){if(Number.isFinite(to))f.face=to;}
-const elitePair=(a,b)=>a.career.gradeIndex>=12&&b.career.gradeIndex>=12&&Math.abs(a.career.gradeIndex-b.career.gradeIndex)<=2;
-function pacingLift(s) {
-  if(!s.elitePacing)return 1;
-  const u=clamp((s.time/s.limit-s.elitePacing.measuredUntil)/(s.elitePacing.fullAt-s.elitePacing.measuredUntil),0,1);
-  return u*u*(3-2*u);
-}
-function pacedDamage(s,victim,damage,punish,blocked){
-  if(!s.elitePacing)return damage;
-  const lift=pacingLift(s);
-  if(lift>=1){
-    const opening=s.elitePacing.injuryCapUntil!=null&&s.time/s.limit>=.62&&!blocked;
-    const late=clamp((s.time/s.limit-.62)/.17,0,1);
-    return opening?Math.round(damage*(1+late*(punish?.42:victim.energy<=28?.19:0))):damage;
-  }
-  const recent=victim.recentMistakes?.filter(t=>t>s.time-7)??[];
-  const wideOpen=punish&&recent.length>=5&&victim.energy<=8&&(victim.control||victim.exposedBy==='guard_break');
-  const clockWeight=Math.min(.68,45/s.limit);
-  const early=wideOpen?.87:blocked?.25*clockWeight:punish?.33*clockWeight:.20*clockWeight;
-  const scaled=Math.max(1,Math.round(damage*(early+(1-early)*lift)));
-  // Measured exchanges can still impair a region, but only a fully exposed
-  // sequence or decisive late release risks an early knockout.
-  const elapsedFraction=s.time/s.limit;
-  const capUntil=s.elitePacing.injuryCapUntil??.85;
-  return !wideOpen&&elapsedFraction<capUntil?Math.min(scaled,elapsedFraction<s.elitePacing.measuredUntil?4:6):scaled;
-}
-function expose(s,f,reason,seconds){
+function turnForAttack(f: SimFighter,to: number){if(finite(to))f.face=to;}
+function expose(s: SimGame,f: SimFighter,reason: string,seconds: number){
   f.exposedBy=reason;f.exposedUntil=s.time+seconds;
   if(s.elitePacing){
     f.recentMistakes=(f.recentMistakes??[]).filter(t=>t>s.time-7).slice(-5);
     f.recentMistakes.push(s.time);
   }
 }
-const saberReachInLongPhase=reach=>26+Math.max(0,reach-26)*1.26;
-function changeSaberPhase(s,f,desired){
-  if(!f.gear.dualPhase||!f.alive||f.saberPhase===desired||f.saberPhaseReadyAt>s.time||
+const saberReachInLongPhase=(reach:number)=>26+Math.max(0,reach-26)*1.26;
+function changeSaberPhase(s: SimGame,f: SimFighter,desired: SimFighter["saberPhase"]){
+  if(!f.gear.dualPhase||!f.alive||f.saberPhase===desired||f.saberPhaseReadyAt!>s.time||
       f.actionDuration>0||!['idle','walk','run'].includes(f.action)||f.energy<11)return false;
   f.energy=Math.max(0,f.energy-(desired==='long'?5:2));
   f.saberPhase=desired;
@@ -500,12 +230,12 @@ function changeSaberPhase(s,f,desired){
     contactX:geometry.hand?.x,contactY:geometry.hand?.y,blades:geometry.blades??[{id:'main',hand:geometry.hand,tip:geometry.tip}]});
   return true;
 }
-function isFeintable(f){
+function isFeintable(f: SimFighter){
   const move=atk(f);
   return move&&f.action!=='force'&&!f.contact&&f.actionTime<move.contact*.56&&!f.airArc&&f.airPhase==='grounded';
 }
-function beginFeint(s,f,bearing,followup=null,redirect=null){
-  if(!f.alive||f.energy<12||f.guardLock>0||f.feintReadyAt>s.time||
+function beginFeint(s: SimGame,f: SimFighter,bearing: number,followup: string | null=null,redirect: number | null=null){
+  if(!f.alive||f.energy<12||f.guardLock>0||f.feintReadyAt!>s.time||
     (f.actionDuration>0&&!isFeintable(f))||!spend(f,6))return false;
   f.attack=null;f.attackSpec=null;f.combo=0;f.technique='feint';f.buffer=null;
   f.feintBearing=bearing;f.feintRedirect=redirect;f.feintFollowup=followup;f.feintReadyAt=s.time+2.8;
@@ -513,11 +243,11 @@ function beginFeint(s,f,bearing,followup=null,redirect=null){
   setAction(f,'feint',.34);countMove(f,'feint');credit(s,f,'feints');
   event(s,'feint',f,undefined,undefined,{feintBearing:bearing,...(s.config.balancePass&&followup==='ex_mk_false_line'?{feintFollowup:followup}:{})});return true;
 }
-function trakataEvent(s,f,kind,extra={}){
+function trakataEvent(s: SimGame,f: SimFighter,kind: string,extra: Record<string,unknown>={}){
   const w=arcadeBladeWorld(f,sampleArcadeFighter(f,s.time));
   event(s,kind,f,undefined,undefined,{contactX:w.hand.x,contactY:w.hand.y,blades:w.blades,...extra});
 }
-function beginTrakata(s,f,bearing){
+function beginTrakata(s: SimGame,f: SimFighter,bearing: number){
   if(!f.heroId||!f.alive||f.saberOff||f.airArc||f.airPhase!=='grounded'||f.guardLock>0||
      (f.trakataReadyAt??0)>s.time||(f.actionDuration>0&&!isFeintable(f))||!spend(f,23))return false;
   const pose=entryPose(s,f,'guard'),fake=bearing+(f.slot%2===0?.36:-.36);
@@ -533,19 +263,19 @@ function beginTrakata(s,f,bearing){
   trakataEvent(s,f,'trakata_off');
   return true;
 }
-function relightTrakata(s,f,interrupted=false){
+function relightTrakata(s: SimGame,f: SimFighter,interrupted: boolean=false){
   if(!f.saberOff)return;
   f.saberOff=false;f.trakataIgnitedAt=s.time;
   trakataEvent(s,f,'trakata_on',{interrupted});
 }
-function guardSource(victim,from,spec){
+function guardSource(victim: SimFighter,from: number,spec: SimMove){
   const left=angleDelta(from,victim.guardBearing??victim.face);
   // Actual grip and emitter can subtly move the attacking line. This never
   // swings a blade through an ally or overrides world contact geometry.
   const bladeOffset=(spec.backLane??spec.blade==='rear')?-.11:spec.isOffhand?-.18:(spec.bladeTurn??0)*.6;
   return left+bladeOffset;
 }
-function confirmGuardRead(s,victim,attacker,x,y,kind){
+function confirmGuardRead(s: SimGame,victim: SimFighter,attacker: SimFighter,x: number,y: number,kind: string){
   const serial=attacker.id+':'+(attacker.attackSerial??s.tick);
   if(!victim.guardDirected||victim.lastReadSerial===serial)return;
   victim.lastReadSerial=serial;
@@ -553,18 +283,18 @@ function confirmGuardRead(s,victim,attacker,x,y,kind){
   event(s,'read',victim,x,y,{targetId:attacker.id,guardLane:victim.guardLane,
     guardBearing:victim.guardBearing,readKind:kind,contactY:y-38-victim.airHeight});
 }
-const authoringLateral=move=>move?.tactical==='slip_counter'||move?.tactical==='moving_guard';
-function entryPose(s,f,kind){
-  const rig=sampleArcadeFighter(f,s.time), world=arcadeBladeWorld(f,rig);
+const authoringLateral=(move: SimMove | null | undefined)=>move?.tactical==='slip_counter'||move?.tactical==='moving_guard';
+function entryPose(s: SimGame,f: SimFighter,kind: string): NonNullable<SimFighter["poseFrom"]>{
+  const rig=sampleArcadeFighter(f,s.time), world: BladeWorld=arcadeBladeWorld(f,rig);
   let momentum=(f.styleChoreo||f.peasantMotion||f.liveEntry)&&f.actionTime===0?f.poseFrom?.momentum:undefined;
   if((f.styleChoreo||f.peasantMotion||f.liveEntry)&&f.airPhase==='grounded'&&f.actionTime>0&&
       (f.peasantMotion||kind==='live_entry'||['chain','weapon_flow','weapon_recover','guard','guard_recover','counter','staff','force_recover'].includes(kind))){
     const sample=Math.min(1/120,f.actionTime);
     const past={...f,actionTime:f.actionTime-sample};
-    const prev=arcadeBladeWorld(past,sampleArcadeFighter(past,s.time-sample));
-    const rate=(a,b)=>{
+    const prev: BladeWorld=arcadeBladeWorld(past,sampleArcadeFighter(past,s.time-sample));
+    const rate=(a: BladeSegment|undefined,b: BladeSegment|undefined)=>{
       if(!a?.hand||!b?.hand)return null;
-      const yaw=o=>Math.atan2(o.tip.y-o.hand.y,o.tip.x-o.hand.x);
+      const yaw=(o: BladeSegment)=>Math.atan2(o.tip.y-o.hand.y,o.tip.x-o.hand.x);
       const dx=(b.hand.x-a.hand.x)/sample,dy=(b.hand.y-a.hand.y)/sample;
       const k=Math.min(1,380/(Math.hypot(dx,dy)||1));
       return {x:dx*k,y:dy*k,angle:clamp(angleDelta(yaw(b),yaw(a))/sample,-12,12)};
@@ -576,15 +306,15 @@ function entryPose(s,f,kind){
     origin:{x:f.x,y:f.y},facing:f.face,
     body:{lean:rig.lean,bend:rig.bend,wide:rig.wide,torsoTurn:rig.torsoTurn,...(f.stanceFlow?{roll:rig.roll,airPhase:rig.airPhase,airProgress:f.airProgress,attackFamily:rig.attackFamily}:{}),...(f.liveEntry?{rhythm:rig.rhythm,roll:rig.roll}:{})},kind};
 }
-const chainLimit=f=>f.formRules?(f.form==='juyo'?4:f.career.gradeIndex>=12?3:2):3;
-function chainWindow(s,f,move){
+const chainLimit=(f: SimFighter)=>f.formRules?(f.form==='juyo'?4:f.career.gradeIndex>=12?3:2):3;
+function chainWindow(s: SimGame,f: SimFighter,move: SimMove){
   const threshold=s.elitePacing?.83:f.form==='juyo'?.71:.78;
   return f.action!=='force'&&f.airPhase!=='airborne'&&(!move.airStrike||f.airPhase==='grounded')&&
     f.actionTime>=Math.max(move.contact+.105,(move.offhand?.contact??0)+.041,move.duration*threshold);
 }
 // Each grip exchanges recovery for reach or a second live release.
 // A new rig can move faster between these timings without inventing contact.
-function weaponFlowTiming(f,move){
+function weaponFlowTiming(f: SimFighter,move: SimMove){
   const reverse=f.gear.grip==='backhand',staff=f.gear.weapon==='staff',dual=f.gear.weapon==='dual';
   const training=f.career.gradeIndex/14;
   const windScale=staff?.98:dual?reverse?.94:.935:reverse?.89:.96;
@@ -597,13 +327,13 @@ function weaponFlowTiming(f,move){
   const cost=move.cost*(staff?1.04:dual?1.035:reverse?1.02:.97);
   return {...move,contact,duration:Math.max(duration,(offhand?.contact??contact)+(dual?.061:.078)),offhand,reach,cost};
 }
-function expandedMove(s,f,id){
-  const move=s.config.expandedCombat?arcadeExpandedMoveById(id,{forceVariants:s.config.forceVariants===true}):null;
+function expandedMove(s: SimGame,f: SimFighter,id: string | null | undefined){
+  const move=s.config.expandedCombat?arcadeExpandedMoveById(id!,{forceVariants:s.config.forceVariants===true}):null;
   if(!move||s.config.saberOnly||move.minRank>f.career.gradeIndex)return null;
   if(move.kind==='free_hand'&&f.gear.weapon==='dual')return null;
   return move;
 }
-function startExpanded(s,f,id,bearing){
+function startExpanded(s: SimGame,f: SimFighter,id: string | null | undefined,bearing: number){
   const move=expandedMove(s,f,id);
   if(!move||!f.alive||f.saberOff||f.actionDuration>0||f.airArc||f.airPhase!=='grounded'||f.guardLock>0||
     (f.expandedReadyAt??0)>s.time||!spend(f,move.cost))return false;
@@ -612,20 +342,20 @@ function startExpanded(s,f,id,bearing){
   const skill=f.career.gradeIndex/14;
   const contact=move.contact*(1-skill*.04);
   const spec={...move,contact,duration:contact+(move.duration-move.contact)*(1-skill*.06),
-    damage:move.damage*strength,lunge:move.lunge??(force?0:58),freeHand:!force,expanded:true};
-  f.attack=id;f.attackSpec=spec;f.technique=id;f.contact=false;f.offhandContact=true;f.combo=0;
+    damage:move.damage*strength,lunge:(move as {lunge?:number}).lunge??(force?0:58),freeHand:!force,expanded:true};
+  f.attack=id!;f.attackSpec=spec;f.technique=id!;f.contact=false;f.offhandContact=true;f.combo=0;
   f.counterMove=false;f.releaseOutcome=null;f.buffer=null;f.chainDepth=1;f.invuln=0;f.face=bearing;
   f.attackFamily=force?'cast':'cut';f.attackVariant='center';
   f.attackSerial=s.eventId+1;f.expandedReadyAt=s.time+(f.control?1.05:4.6);
   if(force){credit(s,f,'forceCasts');f.lastForceAt=s.time;}else countMove(f,'unarmed_swings');
-  countMove(f,id);setAction(f,action,spec.duration);
+  countMove(f,id!);setAction(f,action,spec.duration);
   f.poseFrom=pose;f.poseEntryDuration=Math.min(.08,contact*.40);
   event(s,action,f,undefined,undefined,{expanded:true,effect:move.effect,freeHand:!force,
     contact,duration:spec.duration});
   return true;
 }
-function liveGroundEntry(f,bearing,move,authored,excluded){
-  if(!f.liveEntry||excluded||!Number.isFinite(bearing)||f.actionDuration!==0||
+function liveGroundEntry(f: SimFighter,bearing: number,move: SimMove,authored: Technique | null | undefined,excluded: boolean){
+  if(!f.liveEntry||excluded||!finite(bearing)||f.actionDuration!==0||
      f.airArc||f.airPhase!=='grounded'||!(neutralAction(f.action)||f.action==='guard')||
      move.contact<.095||authored?.air||authored?.tactical==='moving_guard')return null;
   const vx=f.vx,vy=f.vy,speed=Math.min(Math.hypot(vx,vy),f.groundSpeed??0);
@@ -636,16 +366,16 @@ function liveGroundEntry(f,bearing,move,authored,excluded){
     turn>=.22?'pivot':null;
   return kind?{kind,vx,vy,bearing,side:Math.sign(side),groundDistance:f.groundDistance}:null;
 }
-function attack(s,f,name,to,{redirected=false,linked=false}={}){
+function attack(s: SimGame,f: SimFighter,name: string,to: number,{redirected=false,linked=false}: {redirected?: boolean; linked?: boolean}={}){
   if(f.saberOff)return false;
   if(name==='force'&&s.config.saberOnly)name='wide_cut';
-  const authored=ARCADE_TECHNIQUES[name];
+  const authored=ARCADE_TECHNIQUES[name!];
   const airCut=ARCADE_AIR_ATTACKS[name];
-  const base=authored??ARCADE_ATTACKS[name]??airCut;
+  const base: SimMove|undefined=authored??attackByName(name)??airCut;
   if(airCut&&(!f.jumpKind||f.action!=='jump'||f.airPhase!=='airborne'||f.airStrikeSpent))return false;
   if((authored&&(authored.form!==f.form||authored.minRank>f.career.gradeIndex||authored.circuitCut&&!s.config.circuitCuts||authored.arenaCut&&!s.config.arenaCuts||authored.exchangeCut&&!s.config.exchangeVariety||authored.minorMove&&!s.config.minorMoves))||!base||f.guardLock>.005)return false;
   if(authored?.tactical==='feint_redirect'&&!redirected){
-    const dir=Number.isFinite(to)?to:f.face,shift=(f.slot%2===0?1:-1)*.48;
+    const dir=finite(to)?to:f.face,shift=(f.slot%2===0?1:-1)*.48;
     return beginFeint(s,f,dir+shift,name,dir);
   }
   const forceMove=name==='force'||authored?.mapAction==='force';
@@ -653,12 +383,12 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
   const def=profile(f);
   const counter=(name==='riposte'||authored?.role==='counter')&&f.counterUntil>s.time;
   const riposteSource=counter?f.counterTarget:null;
-  let move=f.formRules&&name.startsWith('slash')?{...base,duration:base.duration*def.tempo,contact:base.contact*def.tempo,
-    arc:base.arc*def.arc,reach:base.reach*def.reach,damage:base.damage+(f.form==='juyo'?2:0)}
+  let move: SimMove=f.formRules&&name.startsWith('slash')?{...base,duration:base.duration*def.tempo!,contact:base.contact*def.tempo!,
+    arc:base.arc*def.arc!,reach:base.reach*def.reach!,damage:base.damage+(f.form==='juyo'?2:0)}
     :counter&&!authored?{...base,duration:.39,contact:.165,cost:19,damage:40,lunge:475,recoil:.37}:base;
-  if(f.formRules&&styleTimings[name]) {
-    const [duration,contact,lunge]=counter?quickCounter:styleTimings[name];
-    const pace=name.startsWith('slash')?def.tempo:1;
+  if(f.formRules&&styleTimings[name as keyof typeof styleTimings]) {
+    const [duration,contact,lunge]=counter?quickCounter:styleTimings[name as keyof typeof styleTimings];
+    const pace=name.startsWith('slash')?def.tempo!:1;
     move={...move,duration:duration*pace,contact:contact*pace,lunge};
   }
   if(f.career.gradeIndex>0) {
@@ -677,7 +407,7 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
         reach:move.reach+(sweeping?33:19)*train.index/14,rankSweep:sweeping||train.index>=13&&name.startsWith('slash')};
     }
   }
-  move=arcadeGearMove(f.gear,forceMove?'force':name,move);
+  move=arcadeGearMove(f.gear,forceMove?'force':name,move) as SimMove;
   if(authored?.forceAbility)move={...move,forceAbility:authored.forceAbility};
   if(!forceMove&&f.gear.grip==='backhand'){
     // The tip trails the wrist. Commit nearer, recover sooner and cover
@@ -690,7 +420,7 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
     // One rigid shaft, two physical emitters. Each new commitment presents
     // the other end along the live attack lane; only the lane is exchanged.
     const lead=(f.staffCommitments??0)%2===0?'primary':'rear';
-    const trailing=lead==='primary'?'rear':'primary';
+    const trailing: NonNullable<BladeCast['blade']>=lead==='primary'?'rear':'primary';
     const farEnd={contact:move.contact,damage:move.damage*.74,reach:Math.min(101,move.reach*.79),
       arc:Math.min(1.47,Math.max(.94,move.arc*.74)),knock:move.knock*.68,recoil:move.recoil*.80,
       blade:trailing,backLane:true};
@@ -727,7 +457,7 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
   f.chainFrom=previous;
   f.chainCarryUntil=linked?s.time+move.contact:0;
   if(linked)countMove(f,'chain_follow');
-  const impactPlan=f.recoveryFlow&&!linked&&f.impactRecovery;
+  const impactPlan=f.recoveryFlow&&!linked?f.impactRecovery:undefined;
   const recoveryFollowup=impactPlan?.followup===name&&impactPlan.serial===f.attackSerial&&
     s.time-impactPlan.at<impactPlan.duration+.33?impactPlan.kind:null;
   if(recoveryFollowup)countMove(f,'recovery_reentry');
@@ -737,10 +467,10 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
   f.riposteTarget=riposteSource;
   if(authoringLateral(authored)){
     const turn=(f.slot%2===0?1:-1)*(authored.tactical==='slip_counter'?.62:.78);
-    const direction=(Number.isFinite(to)?to:f.face)+turn;
+    const direction=(finite(to)?to:f.face)+turn;
     f.stepBearing=direction;f.stepUntil=s.time+(authored.tactical==='slip_counter'?.21:.34);
     if(authored.tactical==='moving_guard'){
-      f.guardBearing=Number.isFinite(to)?to:f.face;f.guardLane=turn>0?'right':'left';f.guardDirected=true;
+      f.guardBearing=finite(to)?to:f.face;f.guardLane=turn>0?'right':'left';f.guardDirected=true;
     }
   }else f.stepUntil=0;
   f.counterMove=counter;f.lastOpponentMove=name;
@@ -761,7 +491,7 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
     else f.eliteReady=s.time+move.duration+.16+rng(s)*.28+tactical;
   }
   f.combo=name==='slash4'?4:name==='slash3'?3:name==='slash2'?2:name==='slash'?1:0;
-  if(name==='vault'||authored?.air)startAir(f,aerialArcs[authored?.air]??vaultArc);
+  if(name==='vault'||authored?.air)startAir(f,aerialArcs[authored?.air as keyof typeof aerialArcs]??vaultArc);
   if(authored)credit(s,f,'rankMoves');
   const action=airCut?.action??authored?.mapAction??art(name);
   setAction(f,action,move.duration);
@@ -777,7 +507,7 @@ function attack(s,f,name,to,{redirected=false,linked=false}={}){
   event(s,action,f,undefined,undefined,{attackFamily:f.attackFamily,attackVariant:f.attackVariant,...(s.config.closeChoice&&f.closeAlternate?.id===name&&f.closeAlternate.at===s.time?{closeAlternate:'mk_wrist_cut'}:{}),...(recoveryFollowup?{recoveryFollowup}:{}),...(live?{entryKind:live.kind}:{}),...(authored?.arenaCut?{arenaCut:true,cutOpening:authored.opening??authored.motion?.path??'cut'}:{}),...(airCut?{airStrike:name,jumpKind:f.jumpKind}:{}),chainDepth:f.chainDepth,chainFrom:previous,rankMove:Boolean(authored),combo:f.combo,contact:move.contact,duration:move.duration,counter,blade:forceMove?undefined:move.blade??'primary',...(move.staff?{staffLead:f.staffLead,backLane:false}:{}),forceAbility:move.forceAbility});
   return true;
 }
-function dash(s,f,dir,evasion){
+function dash(s: SimGame,f: SimFighter,dir: number,evasion: string | null | undefined){
   if(isArcadeCarrier(s,f))return false;
   const acrobat=f.formRules&&f.form==='ataru';
   if(!spend(f,acrobat?15:19))return false;
@@ -785,12 +515,12 @@ function dash(s,f,dir,evasion){
   const pose=entryPose(s,f,'dash');
   countMove(f,evade);
   f.face=dir;f.contact=false;f.attack=null;f.combo=0;f.buffer=null;f.invuln=acrobat?0:.115;f.technique=evade==='dash'?null:evade;
-  if(acrobat)startAir(f,evadeArc,Number.isFinite(f.lastParryAt)&&s.time-f.lastParryAt<1?'parry_flip':null);
+  if(acrobat)startAir(f,evadeArc,finite(f.lastParryAt)&&s.time-f.lastParryAt!<1?'parry_flip':null);
   setAction(f,'dash',f.formRules?acrobat?.405:.26:dashDuration);
   f.poseFrom=pose;f.poseEntryDuration=.095;
   event(s,'dash',f);return true;
 }
-function tryRankFootwork(s,f,id,face,side){
+function tryRankFootwork(s: SimGame,f: SimFighter,id: string,face: number,side: number){
   const spec=arcadeRankFootworkById(id,f.career.gradeIndex);
   if(!spec||!f.alive||f.actionDuration>0||f.airArc||f.airPhase!=='grounded'||
      f.saberOff||f.guardLock>0||(f.footworkReadyAt??0)>s.time||isArcadeCarrier(s,f))return false;
@@ -804,26 +534,26 @@ function tryRankFootwork(s,f,id,face,side){
   if(s.config.advancedArena&&!f.control)f.advancedTravelStart={x:f.x,y:f.y,id};
   f.poseFrom=entry;f.poseEntryDuration=.095;
   countMove(f,spec.id);
-  event(s,'rank_footwork',f,undefined,undefined,{footwork:spec.id,path:spec.path,bearing:plan.bearing,duration:spec.duration});
+  event(s,'rank_footwork',f,undefined,undefined,{footwork:spec.id,path:spec.path,bearing:plan!.bearing,duration:spec.duration});
   return true;
 }
-function jump(s,f,bearing,traversing,combatAim){
+function jump(s: SimGame,f: SimFighter,bearing: number,traversing: boolean,combatAim: number | undefined){
   if(!f.alive||f.airArc||f.airPhase!=='grounded'||f.actionDuration>0||
-    !['idle','walk','run'].includes(f.action)||f.jumpReadyAt>s.time||isArcadeCarrier(s,f))return false;
+    !['idle','walk','run'].includes(f.action)||f.jumpReadyAt!>s.time||isArcadeCarrier(s,f))return false;
   const arc=arcadeJumpProfile(f.form,bearing,f.face,traversing);
   f.airStrikeSpent=false;f.airStrike=null;f.airRequest=null;
   if(!spend(f,arc.cost))return false;
   f.jumpKind=arc.kind;f.jumpBearing=bearing;f.jumpDrive=traversing?arc.drive:0;
   f.jumpReadyAt=s.time+arc.takeoff+arc.flight+arc.landing+.34;
   f.attack=null;f.attackSpec=null;f.buffer=null;f.combo=0;f.technique=null;
-  countMove(f,'jump');turnForAttack(f,Number.isFinite(combatAim)?combatAim:bearing);startAir(f,arc);
+  countMove(f,'jump');turnForAttack(f,finite(combatAim)?combatAim:bearing);startAir(f,arc);
   setAction(f,'jump',f.airDuration);
   event(s,'jump',f,undefined,undefined,{jumpKind:f.jumpKind,jumpBearing:bearing});return true;
 }
 // Contact changes velocity, not coordinates or hit stun. Terrain and other
 // body disks still sweep the result on every subsequent simulation step.
-function bodyImpulse(s,f,bearing,speed,kind){
-  if(!Number.isFinite(speed)||Math.abs(speed)<1)return;
+function bodyImpulse(s: SimGame,f: SimFighter,bearing: number,speed: number,kind: string){
+  if(!finite(speed)||Math.abs(speed)<1)return;
   const heading=speed<0?bearing+Math.PI:bearing, amount=Math.abs(speed);
   const x=Math.cos(heading),y=Math.sin(heading);
   const carry=f.kx*x+f.ky*y;
@@ -834,7 +564,7 @@ function bodyImpulse(s,f,bearing,speed,kind){
   if(magnitude>620){f.kx*=620/magnitude;f.ky*=620/magnitude;}
   if(push>=19)f.impactReaction={at:s.time,bearing:heading,strength:clamp(push/480,.10,1),kind};
 }
-function stagger(s,f,seconds){
+function stagger(s: SimGame,f: SimFighter,seconds: number){
   if(f.saberOff&&f.alive)relightTrakata(s,f,true);
   f.trakataAim=null;
   // Capture the blade socket while the interrupted action still owns the pose.
@@ -844,27 +574,27 @@ function stagger(s,f,seconds){
   f.attack=null;f.buffer=null;f.combo=0;f.releaseOutcome=null;setAction(f,'stagger',seconds);
   f.poseFrom=pose;f.poseEntryDuration=Math.min(.13,seconds);
 }
-function injuryRoll(s,attacker,victim){
+function injuryRoll(s: SimGame,attacker: SimFighter,victim: SimFighter){
   // Separate deterministic channel so contacts do not perturb AI choice timing.
   const code=Math.imul(s.tick+1,0x27d4eb2d)^(s.eventId+1)^Math.imul(attacker.slot+1+attacker.team*31,0x9e3779b9)^Math.imul(victim.slot+1+victim.team*37,0x85ebca6b);
   let h=code^s.weatherSeed;h=Math.imul(h^(h>>>16),0x7feb352d);h=Math.imul(h^(h>>>15),0x846ca68b);
   return ((h^(h>>>16))>>>0)/4294967296;
 }
-function updateInjury(f,result){
+function updateInjury(f: SimFighter,result: ReturnType<typeof applyArcadeInjury>){
   if(result.changed){
     f.injuries=result.injuries;
     f.injuryEffects=arcadeInjuryModifiers(f.injuries,{dual:f.gear?.dualSabers});
   }
   if(result.fatal){
-    f.alive=false;f.fatalRegion=result.region;f.fatalDirection=result.direction;
+    f.alive=false;f.fatalRegion=result.region;f.fatalDirection=result.direction as "front"|"rear";
   }
 }
-function injure(s,attacker,victim,spec,amount,blocked,punish,from){
+function injure(s: SimGame,attacker: SimFighter,victim: SimFighter,spec: SimMove,amount: number,blocked: boolean,punish: boolean,from: number){
   const incoming=angleDelta(from,victim.face), travel=angleDelta(Math.atan2(victim.y-attacker.y,victim.x-attacker.x),attacker.face);
   const direction=Math.abs(incoming)>2.26?'rear':Math.abs(incoming)>.86?'side':'front';
   const left=(Math.sin(incoming)+(spec.isOffhand?-.55:.28)*(attacker.gear.grip==='backhand'?-1:1))<0;
   const arm=left?'leftArm':'rightArm',leg=left?'leftLeg':'rightLeg';
-  const path=ARCADE_TECHNIQUES[attacker.technique]?.role;
+  const path=ARCADE_TECHNIQUES[attacker.technique!]?.role;
   const action=attacker.action;
   const stableLine=Math.abs(angleDelta(travel,(spec.backLane??spec.blade==='rear')?Math.PI:spec.bladeTurn??0))<(action==='rush'?.36:.52);
   const quality=clamp((stableLine?.67:.43)+(punish?.22:0)+(victim.action==='stagger'?.08:0)+(direction==='rear'?.08:0),0,1);
@@ -881,26 +611,26 @@ function injure(s,attacker,victim,spec,amount,blocked,punish,from){
   return {delta:result.impact??result.delta,meta:{region,direction,injuryTier:result.tier,
     injuryOutcome:result.outcome,contactY:victim.y-zoneY-victim.airHeight,fatal:result.fatal}};
 }
-function applyDamage(s,attacker,victim,spec){
+function applyDamage(s: SimGame,attacker: SimFighter,victim: SimFighter,spec: SimMove){
   const angle=Math.atan2(victim.y-attacker.y,victim.x-attacker.x);
   const from=Math.atan2(attacker.y-victim.y,attacker.x-victim.x);
   const def=profile(victim);
   const superiority=rankGap(victim,attacker), mastery=masteryRatio(superiority);
   const moveIsForce=attacker.action==='force',freeHand=spec.freeHand===true;
   const deflecting=(victim.attack==='deflect'||victim.attackSpec?.deflect)&&victim.actionTime>=.04&&victim.actionTime<=(victim.attackSpec?.contact??.245);
-  const guarding=victim.action==='guard', movingGuard=deflecting&&ARCADE_TECHNIQUES[victim.technique]?.tactical==='moving_guard';
+  const guarding=victim.action==='guard', movingGuard=deflecting&&ARCADE_TECHNIQUES[victim.technique!]?.tactical==='moving_guard';
   const directed=guarding||movingGuard;
   const coverage0=victim.crossfire&&guarding&&victim.energy>18?1.53:movingGuard?1.00:deflecting?1.77:victim.guardDirected?victim.guardLane==='center'?1.04:.81:1.33;
-  const coverage=coverage0*(victim.forceVeiledUntil>s.time?.78:1);
+  const coverage=coverage0*(victim.forceVeiledUntil!>s.time?.78:1);
   const closeGuard=(guarding||deflecting)&&Math.abs(directed?guardSource(victim,from,spec):angleDelta(from,victim.face))<coverage;
   const origin={sx:attacker.x,sy:attacker.y,forceAbility:spec.forceAbility,offhand:Boolean(spec.isOffhand),blade:moveIsForce||freeHand?undefined:spec.blade??(spec.isOffhand?'offhand':'primary'),...(spec.staff?{staffLead:attacker.staffLead,backLane:Boolean(spec.backLane)}:{}),...(spec.expanded?{expanded:true,effect:spec.effect,freeHand}:{} )};
   const impactX=victim.x-Math.cos(angle)*8,impactY=victim.y-Math.sin(angle)*8;
   if(victim.invuln>0&&victim.action==='dash'&&victim.airPhase==='grounded')return 'evade';
-  if(victim.wardUntil>s.time&&victim.wardCharges>0){
-    victim.wardCharges--;credit(s,victim,'blocks');countMove(victim,'force_ward_block');
+  if(victim.wardUntil!>s.time&&victim.wardCharges!>0){
+    victim.wardCharges!--;credit(s,victim,'blocks');countMove(victim,'force_ward_block');
     event(s,'force_ward',victim,impactX,impactY,{targetId:attacker.id,...origin});return 'block';
   }
-  if(closeGuard&&!moveIsForce&&((victim.parryTime>0&&!(victim.forceVeiledUntil>s.time))||deflecting)&&victim.energy>=5&&(superiority>=-5||s.time-(victim.lastParryAt??-Infinity)>.45+Math.abs(superiority)*.043)){
+  if(closeGuard&&!moveIsForce&&((victim.parryTime>0&&!(victim.forceVeiledUntil!>s.time))||deflecting)&&victim.energy>=5&&(superiority>=-5||s.time-(victim.lastParryAt??-Infinity)>.45+Math.abs(superiority)*.043)){
     const perfect=s.config.perfectParryStamina&&guarding&&!freeHand&&victim.parryTime>0&&
       victim.actionTime<=.085&&s.time>=(victim.perfectParryReadyAt??0);
     const afterBase=Math.min(100,victim.energy+13);
@@ -944,7 +674,7 @@ function applyDamage(s,attacker,victim,spec){
     const held=observeGuard&&victim.actionTime>=.155&&victim.parryTime<=0;
     const guardStart=s.time-victim.actionTime;
     const guardRead=held?attacker.heldGuardOpening:null;
-    const authored=ARCADE_TECHNIQUES[attacker.attack];
+    const authored=ARCADE_TECHNIQUES[attacker.attack!];
     const pressure=guardRead?.target===victim.id&&Math.abs(guardRead.guardStart-guardStart)<.025&&guardRead.count>=2&&guardRead.serial!==attacker.attackSerial&&
       s.time-guardRead.at<2.7&&(authored?.role==='heavy'||spec.recoil>=.28)&&
       attacker.attackSerial!==attacker.guardPressSerial&&!spec.isOffhand;
@@ -974,7 +704,7 @@ function applyDamage(s,attacker,victim,spec){
 
     }
   }
-  const punish=!blocked&&damage>0&&victim.exposedUntil>s.time;
+  const punish=!blocked&&damage>0&&victim.exposedUntil!>s.time;
   // A ready grandmaster caught while sliding a real outside angle turns a
   // marginal hit into a graze, not an automatic block. A clean rear, committed
   // windup, air hit, exhausted guard or an earned punish stays full strength.
@@ -985,11 +715,11 @@ function applyDamage(s,attacker,victim,spec){
     victim.airPhase!=='airborne'&&bodyLine<2.22&&
     (victim.action==='guard'||(['run','walk','dash','idle'].includes(victim.action)&&(sliding||bodyLine>.73||strikeLine>.22)));
   if(!punish&&!blocked&&!breakGuard&&!s.elitePacing&&elitePair(attacker,victim)&&
-      s.liveByTeam[0]!==s.liveByTeam[1]&&s.config.teamSizes[0]!==s.config.teamSizes[1]&&victim.energy>=12){
+      s.liveByTeam![0]!==s.liveByTeam![1]&&s.config.teamSizes[0]!==s.config.teamSizes[1]&&victim.energy>=12){
     // Equally trained opponents can contain ordinary contact even in an
     // uneven roster. This attenuates injury, never removes contact and
     // applies to both sides; an earned opening always hits at full force.
-    damage=Math.max(1,Math.round(damage*(s.liveByTeam[victim.team]<s.liveByTeam[attacker.team]?(bodyLine<2.22?0.33:0.56):(bodyLine<2.22?.64:.82))));
+    damage=Math.max(1,Math.round(damage*(s.liveByTeam![victim.team]<s.liveByTeam![attacker.team]?(bodyLine<2.22?0.33:0.56):(bodyLine<2.22?.64:.82))));
   }
   if(braced){
     victim.energy-=4;
@@ -1070,7 +800,7 @@ function applyDamage(s,attacker,victim,spec){
 }
 // Trace the attack line to each target separately: a wide cut can still
 // reach an exposed opponent to one side. A raised vault can clear a grounded ally.
-function allyInLane(s,f,x,y){
+function allyInLane(s: SimGame,f: SimFighter,x: number,y: number){
   const dx=x-f.x,dy=y-f.y,length=Math.hypot(dx,dy);
   if(length<1||(s.liveByTeam?.[f.team]??2)<2)return null;
   const nx=dx/length,ny=dy/length;
@@ -1083,7 +813,7 @@ function allyInLane(s,f,x,y){
   }
   return nearest;
 }
-function alternateLane(s,f,enemy,blocker){
+function alternateLane(s: SimGame,f: SimFighter,enemy: SimFighter,blocker: SimFighter){
   const base=Math.atan2(blocker.y-enemy.y,blocker.x-enemy.x), preferred=f.slot%2===0?1:-1;
   const radius=91, {minX,maxX,minY,maxY}=s.bounds;
   let best=null,cost=Infinity;
@@ -1098,12 +828,12 @@ function alternateLane(s,f,enemy,blocker){
   }
   return best;
 }
-function contactBlade(s,f,spec){
+function contactBlade(s: SimGame,f: SimFighter,spec: SimMove){
   if(f.action==='force'||spec.freeHand)return spec;
   const rear=spec.blade==='rear';
   const reverse=f.gear.grip==='backhand';
   if(!rear&&!reverse&&f.gear.weapon!=='staff')return spec;
-  const world=arcadeBladeWorld(f,sampleArcadeFighter(f,s.time));
+  const world: BladeWorld=arcadeBladeWorld(f,sampleArcadeFighter(f,s.time));
   const physical=spec.blade??(spec.isOffhand?'offhand':'primary');
   const bladeId=physical==='rear'?'rear':physical==='offhand'?'off':'main';
   const segment=world.blades?.find(b=>b.id===bladeId)??(bladeId==='main'?world:world.offhand);
@@ -1116,26 +846,10 @@ function contactBlade(s,f,spec){
   const turn=reverse?(spec.isOffhand?-1:1)*Math.min(.26,.12+Math.abs(dy)/length*.15):0;
   return {...spec,bladeTurn:turn,bladePointX:segment.tip.x,bladePointY:segment.tip.y};
 }
-// Gameplay depth envelope, not screen-space sprite overlap. Only a real
-// difference in physical height can clear a low blade; Force and rising
-// strikes still reach a visible flip when their horizontal line is valid.
-export function arcadeContactHeight(attacker,target,spec={}){
-  const difference=(target.airHeight??0)-(attacker.airHeight??0);
-  if(attacker.action==='force')return Math.abs(difference)<=(spec.effect==='arcWave'?23:88);
-  if(spec.freeHand)return Math.abs(difference)<=23;
-  const blade=spec.blade;
-  const travel=attacker.action;
-  const airMove=spec.airStrike||ARCADE_TECHNIQUES[attacker.technique]?.air||attacker.attack==='vault';
-  const raised=travel==='uppercut'||spec.launch===true;
-  const low=travel==='sweep'&&!raised;
-  const above=raised?71:airMove?62:low?31:travel==='rush'?46:49;
-  const below=airMove?72:low?51:58;
-  return difference<=((spec.backLane??blade==='rear')?above-3:above)&&difference>=-below;
-}
-function expandedUtility(s,f,spec){
+function expandedUtility(s: SimGame,f: SimFighter,spec: SimMove){
   const {effect}=spec;
   if(effect==='lattice'){
-    if(!(f.wardUntil>s.time&&f.wardCharges>0)){f.wardUntil=s.time+.84;f.wardCharges=1;}
+    if(!(f.wardUntil!>s.time&&f.wardCharges!>0)){f.wardUntil=s.time+.84;f.wardCharges=1;}
     event(s,'force_ward',f,undefined,undefined,{expanded:true,effect,forceAbility:'ward'});return true;
   }
   if(effect==='echoStep'){
@@ -1146,7 +860,7 @@ function expandedUtility(s,f,spec){
     }
     return true;
   }
-  if(!['anchor','veil','siphon'].includes(effect))return false;
+  if(!['anchor','veil','siphon'].includes(effect!))return false;
   const within=s.fighters.filter(o=>o.alive&&o.team!==f.team&&Math.hypot(o.x-f.x,o.y-f.y)<=spec.reach+o.radius&&
     arcadeContactHeight(f,o,spec)&&Math.abs(angleDelta(Math.atan2(o.y-f.y,o.x-f.x),f.face))<=spec.arc&&
     !s.terrain.solids.some(r=>r.kind!=='barricade'&&crossed(f.x,f.y,o.x,o.y,r))&&!allyInLane(s,f,o.x,o.y))
@@ -1154,8 +868,8 @@ function expandedUtility(s,f,spec){
   for(const o of within){
     if(o.invuln>0&&o.action==='dash'&&o.airPhase==='grounded')continue;
     const defended=o.action==='guard'&&Math.abs(angleDelta(Math.atan2(f.y-o.y,f.x-o.x),o.guardBearing??o.face))<.91&&o.energy>=5;
-    if(defended||(o.wardUntil>s.time&&o.wardCharges>0)){
-      if(defended)o.energy-=5;else o.wardCharges--;
+    if(defended||(o.wardUntil!>s.time&&o.wardCharges!>0)){
+      if(defended)o.energy-=5;else o.wardCharges!--;
       credit(s,o,'blocks');countMove(o,'block');
       f.releaseOutcome='guarded';
       event(s,'block',o,o.x,o.y,{targetId:f.id,expanded:true,effect,damage:0});
@@ -1174,13 +888,13 @@ function expandedUtility(s,f,spec){
   f.releaseOutcome='miss';
   return true;
 }
-function finishChessPawn(f,landed=false){
+function finishChessPawn(f: SimFighter,landed: boolean=false){
   if(f.chessPawnPending==null)return;
   f.chessPawn=arcadeChessPawnStrike(f.chessPawn,{serial:f.chessPawnPending,landed});
   f.chessPawnPending=null;
   f.chessPawnRetreat=0;
 }
-function contact(s,f,spec){
+function contact(s: SimGame,f: SimFighter,spec: SimMove){
   if(f.saberOff)return;
   if(spec.expanded)event(s,'expanded_release',f,undefined,undefined,{effect:spec.effect,moveId:f.attack,freeHand:spec.freeHand});
   if(spec.expanded&&!spec.freeHand&&expandedUtility(s,f,spec))return;
@@ -1193,24 +907,24 @@ function contact(s,f,spec){
   if(spec.unavailable)return;
   const back=spec.backLane??spec.blade==='rear',bladeAngle=f.face+(back?Math.PI:spec.bladeTurn??0);
   const chessStyle=f.action==='force'||spec.freeHand?null:(spec.chessStyle??f.chessStyle);
-  const canReach=t=>!chessStyle||arcadeChessAllowsLane(chessStyle,{bearing:Math.atan2(t.dy,t.dx),face:f.face,targetFace:t.o.face,
+  const canReach=(t:{o:SimFighter;dx:number;dy:number;d:number})=>!chessStyle||arcadeChessAllowsLane(chessStyle,{bearing:Math.atan2(t.dy,t.dx),face:f.face,targetFace:t.o.face,
     backLane:back,promoted:spec.chessPromoted===true,styleTravel:s.config.styleTravel,distance:t.d,reach:spec.reach});
   // Resolve in spatial order to keep near bodies first and avoid an artificial stab through a crowd.
   const candidates=s.fighters.filter(o=>o.team!==f.team&&o.alive).map(o=>({o,dx:o.x-f.x,dy:o.y-f.y,d:Math.hypot(o.x-f.x,o.y-f.y)}))
     .filter(t=>t.d<=spec.reach+t.o.radius&&arcadeContactHeight(f,t.o,spec)&&!s.terrain.solids.some(r=>(f.action!=='force'||r.kind!=='barricade')&&crossed(f.x,f.y,t.o.x,t.o.y,r))&&Math.abs(angleDelta(Math.atan2(t.dy,t.dx),bladeAngle))<=spec.arc&&canReach(t))
     .sort((a,b)=>a.d-b.d);
-  const cap=spec.expanded?(spec.cap??1):back?Math.min(3,spec.cap??2):Math.max(spec.cap??0,['sweep','wide_cut','force'].includes(f.attack)?3:f.attack==='slash3'||f.attack==='frenzy'||(f.formRules&&f.form==='shii_cho')?2:1,
+  const cap=spec.expanded?(spec.cap??1):back?Math.min(3,spec.cap??2):Math.max(spec.cap??0,['sweep','wide_cut','force'].includes(f.attack!)?3:f.attack==='slash3'||f.attack==='frenzy'||(f.formRules&&f.form==='shii_cho')?2:1,
     spec.rankSweep?f.rankCombat.crowdCap:1);
   let used=0, landed=false,parried=false,screened=null;
   const force=f.action==='force';
   const staff=f.gear.weapon==='staff'&&!force&&!spec.freeHand;
   if(staff)f.staffTouched??=new Set();
   for(const target of candidates){
-    if(staff&&f.staffTouched.has(target.o.id))continue;
+    if(staff&&f.staffTouched!.has(target.o.id))continue;
     const ally=allyInLane(s,f,target.o.x,target.o.y);
     if(ally){screened??=ally;continue;}
     const result=applyDamage(s,f,target.o,spec);
-    if(staff&&result!=='evade')f.staffTouched.add(target.o.id);
+    if(staff&&result!=='evade')f.staffTouched!.add(target.o.id);
     if(result==='hit'){
       landed=true;
       if(staff)countMove(f,spec.blade==='rear'?'staff_rear_hit':'staff_primary_hit');
@@ -1234,18 +948,18 @@ function contact(s,f,spec){
     expose(s,f,'whiff',Math.min(.61,left+.18));credit(s,f,'whiffs');
   }
 }
-const combatHabits=['opening_reader','lane_builder','tempo_keeper'];
-function combatHabit(f){
+const combatHabits=['opening_reader','lane_builder','tempo_keeper'] as const;
+function combatHabit(f: SimFighter){
   const seed=Number.isInteger(f.appearanceSeed)?f.appearanceSeed>>>0:appearanceSeedFor(f.heroId??f.id);
   return combatHabits[((seed^(seed>>>13))>>>0)%combatHabits.length];
 }
-function situationalRepertoire(s,f,enemy,moves,role,range){
+function situationalRepertoire(s: SimGame,f: SimFighter,enemy: SimFighter,moves: readonly Technique[],role: string,range: number){
   if(!s.config.repertoireSupport||!enemy||f.control||!['counter','crowd','heavy'].includes(role)||f.career.gradeIndex<4)return null;
   const aim=Math.atan2(enemy.y-f.y,enemy.x-f.x), incoming=atk(enemy);
   const wind=incoming&&!enemy.contact?incoming.contact-enemy.actionTime:Infinity;
-  const grounded=enemy.airPhase!=='airborne', vulnerable=enemy.exposedUntil>s.time+.15||enemy.action==='stagger';
+  const grounded=enemy.airPhase!=='airborne', vulnerable=enemy.exposedUntil!>s.time+.15||enemy.action==='stagger';
   const verifiedCounter=f.counterTarget===enemy.id&&f.counterUntil>s.time;
-  const lane=(m,target)=>{
+  const lane=(m: Pick<SimMove,"reach"|"arc">,target: SimFighter)=>{
     const d=Math.hypot(target.x-f.x,target.y-f.y), bearing=Math.atan2(target.y-f.y,target.x-f.x);
     return d<=m.reach+target.radius&&Math.abs(angleDelta(bearing,aim))<=m.arc&&
       (!f.chessStyle||arcadeChessAllowsLane(f.chessStyle,{bearing,face:aim,targetFace:target.face,distance:d,
@@ -1265,7 +979,7 @@ function situationalRepertoire(s,f,enemy,moves,role,range){
     }else if(role==='counter'){
       const covering=Boolean(move.deflect&&wind>=.10&&wind<=spec.contact+.045);
       if(!covering&&!verifiedCounter)continue;
-      if(!covering&&Number.isFinite(wind)&&wind+.035<spec.contact)continue;
+      if(!covering&&finite(wind)&&wind+.035<spec.contact)continue;
       if(move.launch&&!grounded)continue;
       if(spec.contact>.35||(!grounded&&!move.launch&&range>92))continue;
       value=(covering?2.65:1)+(vulnerable&&(move.launch||move.tactical==='slip_counter')?.85:0)+
@@ -1299,7 +1013,7 @@ function situationalRepertoire(s,f,enemy,moves,role,range){
     ((f.moves[b.move.id]??0)+(recent.some(r=>r.id===b.move.id)?2:0))||b.value-a.value||a.move.id.localeCompare(b.move.id));
   return similar[0]?.move.id??null;
 }
-function rankTechnique(s,f,enemy,intent,crowd){
+function rankTechnique(s: SimGame,f: SimFighter,enemy: SimFighter,intent: string,crowd: number){
   if(!f.formRules)return null;
   const mirror=s.config.teamSizes[0]===s.config.teamSizes[1];
   const moves=arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:mirror,rankCuts:true,circuitCuts:s.config.circuitCuts,arenaCuts:s.config.arenaCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves});
@@ -1327,23 +1041,23 @@ function rankTechnique(s,f,enemy,intent,crowd){
     pool.sort((a,b)=>(f.moves[a.id]??0)-(f.moves[b.id]??0)||b.minRank-a.minRank);
     return pool[0]?.id??null;
   }
-  const opts=moves.filter(m=>m.mapAction!=='force'&&!m.air&&['light','heavy'].includes(m.role)&&m.cost<=f.energy&&
+  const opts: Parameters<typeof chooseFormCommit>[0][number][]=moves.filter(m=>m.mapAction!=='force'&&!m.air&&['light','heavy'].includes(m.role)&&m.cost<=f.energy&&
     d<m.reach+32).map(move=>({id:move.id,action:move.mapAction,move,intentMatch:move.role===intent}));
   for(const move of pool){
     if(!opts.some(o=>o.id===move.id))opts.push({id:move.id,action:move.mapAction,move,intentMatch:true});
   }
   for(const choice of ['slash',profile(f).heavy]){
-    const move=ARCADE_ATTACKS[choice];
+    const move=attackByName(choice);
     if(move&&choice!=='force'&&!opts.some(o=>o.id===choice))
       opts.push({id:choice,action:art(choice),move,intentMatch:(choice==='slash')===(intent==='light')});
   }
   const line=Math.abs(angleDelta(Math.atan2(enemy.y-f.y,enemy.x-f.x),f.face));
   const side=angleDelta(Math.atan2(f.y-enemy.y,f.x-enemy.x),enemy.guardBearing??enemy.face);
   const incoming=atk(enemy),wind=incoming&&!enemy.contact?Math.max(0,incoming.contact-enemy.actionTime):0;
-  const choice={form:f.form,distance:d,line,side,guarded:enemy.action==='guard',open:enemy.exposedUntil>s.time,
-    wind,crowd,counter:f.counterUntil>s.time,history:f.attackChoices,energy:f.energy,preferred,variety:s.config.exchangeVariety?f.moves:null,advancedArena:s.config.advancedArena,rank:f.career.gradeIndex};
+  const choice={form:f.form,distance:d,line,side,guarded:enemy.action==='guard',open:enemy.exposedUntil!>s.time,
+    wind,crowd,counter:f.counterUntil>s.time,history:f.attackChoices,energy:f.energy,preferred:preferred??undefined,variety:s.config.exchangeVariety?f.moves:undefined,advancedArena:s.config.advancedArena,rank:f.career.gradeIndex};
   if(s.config.arenaCuts&&f.career.gradeIndex>=1){
-    const fitted=opts.filter(({id,move:m})=>ARCADE_TECHNIQUES[id]&&
+    const fitted=opts.filter(({id,move:m})=>ARCADE_TECHNIQUES[id!]&&
       d<=m.reach+(m.air?58:16)&&(!m.tactical||m.tactical!=='moving_guard'||Boolean(wind)||choice.counter)&&
       (m.role!=='heavy'||intent==='heavy'||(choice.open&&f.energy>=42)||
         (s.config.exchangeVariety&&f.energy>=48&&!wind&&m.contact<=.37&&d>=58&&d<=m.reach-7&&!m.tactical&&!m.air))&&
@@ -1354,7 +1068,7 @@ function rankTechnique(s,f,enemy,intent,crowd){
   }
   return chooseFormCommit(opts,choice)??pool[0]?.id??null;
 }
-function eliteLocalPressure(s,f){
+function eliteLocalPressure(s: SimGame,f: SimFighter){
   if(f.career.gradeIndex<12||(s.liveByTeam?.[1-f.team]??0)<2)return null;
   const threats=[];
   let support=0;
@@ -1369,7 +1083,7 @@ function eliteLocalPressure(s,f){
     const d=Math.sqrt(d2),angle=Math.atan2(dy,dx),spec=atk(o);
     let time=Infinity;
     if(spec){
-      for(const [hit,done,bearing] of [[spec,o.contact,o.face],[spec.offhand,o.offhandContact,o.face+((spec.offhand?.backLane??spec.offhand?.blade==='rear')?Math.PI:0)]]){
+      for(const [hit,done,bearing] of [[spec,o.contact,o.face],[spec.offhand,o.offhandContact,o.face+((spec.offhand?.backLane??spec.offhand?.blade==='rear')?Math.PI:0)]] as const){
         if(!hit||done)continue;
         const release=hit.contact-o.actionTime;
         if(release<=0||release>.40||d>hit.reach+32||Math.abs(angleDelta(angle+Math.PI,bearing))>hit.arc+.22)continue;
@@ -1382,7 +1096,7 @@ function eliteLocalPressure(s,f){
   threats.sort((a,b)=>a.time-b.time||a.d-b.d);
   return {threats,imminent:threats.filter(t=>t.time<.24),closest:Math.min(...threats.map(t=>t.d))};
 }
-function pressureFootwork(s,f,info,heading){
+function pressureFootwork(s: SimGame,f: SimFighter,info: LocalPressure,heading: number){
   let best=null,high=-Infinity;
   for(const delta of [-1.15,1.15,-1.88,1.88,-2.47,2.47]){
     const direction=heading+delta,x=f.x+Math.cos(direction)*74,y=f.y+Math.sin(direction)*74;
@@ -1402,7 +1116,7 @@ function pressureFootwork(s,f,info,heading){
 }
 // Read feet and visible blades, then reserve a brief ordinary movement
 // exit before three lanes converge. No dash, faster stats, or mitigation.
-function heroExitPath(s,f,local){
+function heroExitPath(s: SimGame,f: SimFighter,local: LocalPressure){
   const nearby=local.threats.filter(t=>t.d<172);
   if(nearby.length<2||!nearby.some((a,i)=>nearby.slice(i+1).some(b=>Math.abs(angleDelta(a.angle,b.angle))>1.13)))return null;
   const current=local.closest,b=s.bounds, distance=53;
@@ -1410,7 +1124,7 @@ function heroExitPath(s,f,local){
   for(let i=0;i<12;i++){
     const angle=i*Math.PI/6,dx=Math.cos(angle),dy=Math.sin(angle),x=f.x+dx*distance,y=f.y+dy*distance;
     if(x<b.minX+9||x>b.maxX-9||y<b.minY+9||y>b.maxY-9||blockedBetween(s,f.x,f.y,x,y,f.radius)||
-       s.terrain.zones.some(z=>z.damagePerSecond>0&&inside(x,y,z)))continue;
+       s.terrain.zones.some(z=>z.damagePerSecond!>0&&inside(x,y,z)))continue;
     let min=Infinity,sum=0;
     for(const {o} of nearby){
       const n=Math.hypot(x-o.x,y-o.y);
@@ -1426,9 +1140,9 @@ function heroExitPath(s,f,local){
   }
   return best;
 }
-function refreshMatchGoal(s,f,enemy,{range,urgent,danger,local,opening}){
+function refreshMatchGoal(s: SimGame,f: SimFighter,enemy: SimFighter,{range,urgent,danger,local,opening}: {range:number;urgent:boolean;danger:boolean;local:LocalPressure|null;opening:boolean}){
   if(!s.config.matchGoalPlanning||f.control||((f.matchGoalSampleAt??0)>s.time&&!(opening&&f.matchGoal==='draw')))return;
-  if(f.matchGoal==='win'&&f.matchGoalSince>0&&atk(f))return;
+  if(f.matchGoal==='win'&&(f.matchGoalSince??0)>0&&atk(f))return;
   f.matchGoalSampleAt=s.time+.28;
   const outgoing=f.injuryEffects,incoming=enemy.injuryEffects;
   const impairment=((outgoing.saberPower-incoming.saberPower)*.9+(outgoing.moveSpeed-incoming.moveSpeed)*.65+
@@ -1437,19 +1151,20 @@ function refreshMatchGoal(s,f,enemy,{range,urgent,danger,local,opening}){
   const pressure=clamp((range<138?.18:0)+(range<78?.11:0)+(urgent?.20:0)+(danger?.17:0)+
     Math.max(0,(local?.threats.length??1)-1)*.13,0,1);
   const previous=f.matchGoal;
-  const goal=chooseArenaMatchGoal({time:s.time,limit:s.limit,elo:f.matchGoalRating,opponentElo:enemy.matchGoalRating,
-    selfAlive:s.liveByTeam[f.team],enemyAlive:s.liveByTeam[enemy.team],injuryEdge,pressure,currentGoal:previous,
-    opening,form:f.form,stamina:f.energy/100});
+  const goalInput={time:s.time,limit:s.limit,elo:f.matchGoalRating,opponentElo:enemy.matchGoalRating,
+    selfAlive:s.liveByTeam![f.team],enemyAlive:s.liveByTeam![enemy.team],injuryEdge,pressure,currentGoal:previous,
+    opening,form:f.form,stamina:f.energy/100};
+  const goal=chooseArenaMatchGoal(goalInput);
   if(goal!==previous){
     f.matchGoal=goal;f.matchGoalSince=s.time;
-    const reason=goal==='draw'?(s.liveByTeam[f.team]<s.liveByTeam[enemy.team]?'outnumbered':
-      injuryEdge<-.25?'injury-risk':f.matchGoalRating<enemy.matchGoalRating?'rating-risk':'clock-risk')
+    const reason=goal==='draw'?(s.liveByTeam![f.team]<s.liveByTeam![enemy.team]?'outnumbered':
+      injuryEdge<-.25?'injury-risk':f.matchGoalRating!<enemy.matchGoalRating!?'rating-risk':'clock-risk')
       :opening?'counter-opening':'seek-decisive';
     event(s,'match_goal',f,undefined,undefined,{goal,previous,reason});
     countMove(f,'intent_'+goal);
   }
 }
-function clockSpacing(s,f,enemy,aim,range,orbit){
+function clockSpacing(s: SimGame,f: SimFighter,enemy: SimFighter,aim: number,range: number,orbit: number){
   // Avoid one direction forever or walking through walls / a partner. At
   // long range even a draw plan returns to a measured fighting distance.
   const side=Math.sign(orbit)||1;
@@ -1457,26 +1172,26 @@ function clockSpacing(s,f,enemy,aim,range,orbit){
     const bearing=aim+offset,dx=Math.cos(bearing),dy=Math.sin(bearing),tx=f.x+dx*40,ty=f.y+dy*40,b=s.bounds;
     if(tx<b.minX+8||tx>b.maxX-8||ty<b.minY+8||ty>b.maxY-8||
        Math.hypot(tx-enemy.x,ty-enemy.y)>167||blockedBetween(s,f.x,f.y,tx,ty,f.radius)||
-       allyInLane(s,f,tx,ty)||s.terrain.zones.some(z=>z.damagePerSecond>0&&inside(tx,ty,z)))continue;
+       allyInLane(s,f,tx,ty)||s.terrain.zones.some(z=>z.damagePerSecond!>0&&inside(tx,ty,z)))continue;
     const pace=range<88?.82:.67;
     return {x:dx*pace,y:dy*pace,aim};
   }
   return null;
 }
-function continuation(s,f,enemy,range,aligned,urgent){
+function continuation(s: SimGame,f: SimFighter,enemy: SimFighter,range: number,aligned: boolean,urgent: boolean){
   const move=atk(f);
-  if(!move||!chainWindow(s,f,move)||!aligned||urgent||f.energy<25||f.chainDepth>=chainLimit(f)||
+  if(!move||!chainWindow(s,f,move)||!aligned||urgent||f.energy<25||f.chainDepth!>=chainLimit(f)||
      Math.abs(rankGap(f,enemy))>4||range>123||enemy.action==='dash'||enemy.airPhase==='airborne'||
-     !['landed','guarded'].includes(f.releaseOutcome))return null;
+     !['landed','guarded'].includes(f.releaseOutcome!))return null;
   if(f.releaseOutcome==='guarded'&&enemy.action!=='guard'&&enemy.action!=='stagger')return null;
-  if(f.career.gradeIndex<8&&f.form!=='juyo'&&f.releaseOutcome==='guarded'&&enemy.exposedUntil<=s.time)return null;
-  if(f.releaseOutcome==='guarded'&&f.chainDepth>1&&f.form!=='juyo')return null;
-  const active=ARCADE_TECHNIQUES[f.attack], base=ARCADE_ATTACKS[f.attack];
+  if(f.career.gradeIndex<8&&f.form!=='juyo'&&f.releaseOutcome==='guarded'&&enemy.exposedUntil!<=s.time)return null;
+  if(f.releaseOutcome==='guarded'&&f.chainDepth!>1&&f.form!=='juyo')return null;
+  const active=ARCADE_TECHNIQUES[f.attack!], base=ARCADE_ATTACKS[f.attack as keyof typeof ARCADE_ATTACKS];
   const finalStage=s.elitePacing&&s.elitePacing.stage==='decisive';
   const canRepeat=(f.chainRepeat??0)<(f.form==='juyo'?2:1)&&!active?.air&&!(active?.tactical)&&
     range<(move.reach+3)&&f.releaseOutcome==='landed'&&enemy.action!=='guard'&&
-    (active?.role==='light'||f.form==='juyo'||base&&f.attack.startsWith('slash'));
-  if(!s.config.stanceFlow&&canRepeat&&(!s.config.arenaCuts||!f.attack.startsWith('slash'))&&f.energy>=37&&(f.form==='juyo'||enemy.action==='stagger'||finalStage))return f.attack;
+    (active?.role==='light'||f.form==='juyo'||base&&f.attack!.startsWith('slash'));
+  if(!s.config.stanceFlow&&canRepeat&&(!s.config.arenaCuts||!f.attack!.startsWith('slash'))&&f.energy>=37&&(f.form==='juyo'||enemy.action==='stagger'||finalStage))return f.attack;
   const pool=arcadeMovesFor(f.form,f.career.gradeIndex,{circuitCuts:s.config.circuitCuts,arenaCuts:s.config.arenaCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves}).filter(m=>m.id!==f.attack&&!m.air&&m.mapAction!=='force'&&m.role==='light'&&
     m.contact<.31&&range<=m.reach+10&&f.energy>=m.cost+10);
   if(enemy.action==='guard'&&f.releaseOutcome!=='landed'&&f.form==='soresu')return null;
@@ -1489,7 +1204,7 @@ function continuation(s,f,enemy,range,aligned,urgent){
     const rig=sampleArcadeFighter(f,s.time);
     const rear=rig.staff&&(move.offhand&&f.offhandContact?move.offhand.blade==='rear':f.staffLead==='rear');
     const h=rear?rig.offEmitter:rig.emitter??rig.hand,tip=rear?rig.offBlade:rig.blade;
-    const bladeFacing=Math.atan2(tip.y-h.y,(tip.x-h.x)*rig.hdx);
+    const bladeFacing=Math.atan2(tip!.y-h.y,(tip!.x-h.x)*rig.hdx);
     const loaded=(rig.lean??0)>8||(rig.bend??0)>9||drive>38;
     const promoted=f.chessPawn?.promoted===true, style=f.chessStyle;
     if(style&&!arcadeChessAllowsLane(style,{bearing:aim,face:aim,targetFace:enemy.face,promoted,
@@ -1515,18 +1230,18 @@ function continuation(s,f,enemy,range,aligned,urgent){
     return options.sort((a,b)=>a.score-b.score||a.id.localeCompare(b.id))[0]?.id??null;
   }
   return pool.sort((a,b)=>{
-    const fit=m=>Math.abs(m.reach-range)*.035+(f.moves[m.id]??0)*.08+m.contact*3;
+    const fit=(m:Technique)=>Math.abs(m.reach-range)*.035+(f.moves[m.id]??0)*.08+m.contact*3;
     return fit(a)-fit(b);
   })[0]?.id??(range<96&&f.attack!=='slash'?'slash':null);
 }
-function footworkPath(s,f,bearing,distance){
+function footworkPath(s: SimGame,f: SimFighter,bearing: number,distance: number){
   const x=f.x+Math.cos(bearing)*distance,y=f.y+Math.sin(bearing)*distance,b=s.bounds;
   return x>=b.minX+4&&x<=b.maxX-4&&y>=b.minY+4&&y<=b.maxY-4&&openAt(s,x,y,f.radius)&&
     !blockedBetween(s,f.x,f.y,x,y,f.radius)&&bodyMotionFraction(s,f,f.x,f.y,x,y)>.82;
 }
 // A recoil response starts only after the engine releases the original
 // action lock. Neither visible injury nor actual airborne time is skipped.
-function recoveryIntent(s,f,enemy,{d,aim,orbit,untilContact,threatened,clear}){
+function recoveryIntent(s: SimGame,f: SimFighter,enemy: SimFighter,{d,aim,orbit,untilContact,threatened,clear}: {d:number;aim:number;orbit:number;untilContact:number;threatened:boolean;clear:boolean}){
   const hit=f.impactReaction;
   if(!f.recoveryFlow||!hit||!['hard','clash'].includes(hit.kind)||s.time-hit.at>.86||
     f.actionDuration!==0||f.airArc||f.airPhase!=='grounded'||!clear||d<43||d>165||
@@ -1552,21 +1267,21 @@ function recoveryIntent(s,f,enemy,{d,aim,orbit,untilContact,threatened,clear}){
     }
     if(!kind)return null;
     const duration=kind==='guard'?.205:hit.kind==='clash'?.17:.20;
-    plan=f.impactRecovery={at:s.time,impactAt:hit.at,duration,kind,bearing,strength:hit.strength,
+    plan=f.impactRecovery={at:s.time,impactAt:hit.at,duration,kind,bearing:bearing!,strength:hit.strength,
       target:enemy.id,serial:f.attackSerial,last:f.attackChoices?.at(-1)};
   }
-  if(plan.target!==enemy.id||s.time-plan.at>=plan.duration)return null;
-  if(plan.kind==='guard')return {guard:true,guardAim:aim,x:0,y:0,aim};
-  if(!footworkPath(s,f,plan.bearing,13))return null;
-  const speed=plan.kind==='backstep'?.62:.58;
-  return {x:Math.cos(plan.bearing)*speed,y:Math.sin(plan.bearing)*speed,aim};
+  if(plan!.target!==enemy.id||s.time-plan!.at>=plan!.duration)return null;
+  if(plan!.kind==='guard')return {guard:true,guardAim:aim,x:0,y:0,aim};
+  if(!footworkPath(s,f,plan!.bearing,13))return null;
+  const speed=plan!.kind==='backstep'?.62:.58;
+  return {x:Math.cos(plan!.bearing)*speed,y:Math.sin(plan!.bearing)*speed,aim};
 }
-function selectBalanceEntry(s,f,enemy,{d,aim,incoming,formChoice,role,planned}){
+function selectBalanceEntry(s: SimGame,f: SimFighter,enemy: SimFighter,{d,aim,incoming,formChoice,role,planned}: {d:number;aim:number;incoming:SimMove|null|undefined;formChoice:string|null|undefined;role:string;planned:boolean}){
   const latest=f.attackChoices?.at(-1);
   if(!s.config.balancePass||f.career.gradeIndex<4||!s.config.exchangeVariety||d<42||d>138||
      s.time<(f.balanceReadyAt??0))return null;
   const promoted=f.chessPawn?.promoted===true,style=f.chessStyle;
-  const lane=(move,o)=>{
+  const lane=(move: SimMove,o:SimFighter)=>{
     const bearing=Math.atan2(o.y-f.y,o.x-f.x),distance=Math.hypot(o.x-f.x,o.y-f.y);
     const spec=arcadeChessMove(style,move,{promoted});
     return Math.abs(angleDelta(bearing,aim))<=spec.arc-.04&&distance<=spec.reach+o.radius*.40&&
@@ -1592,8 +1307,8 @@ function selectBalanceEntry(s,f,enemy,{d,aim,incoming,formChoice,role,planned}){
       if(paired){f.balanceReadyAt=s.time+1.24;return move.id;}
     }
   }
-  if(!planned||!formChoice||latest?.id!==formChoice||f.attackChoices.slice(-3).filter(c=>c.id===formChoice).length<2)return null;
-  const current=ARCADE_TECHNIQUES[formChoice]??ARCADE_ATTACKS[formChoice];
+  if(!planned||!formChoice||latest?.id!==formChoice||f.attackChoices!.slice(-3).filter(c=>c.id===formChoice).length<2)return null;
+  const current=ARCADE_TECHNIQUES[formChoice!]??attackByName(formChoice);
   if(!current||current.air||current.tactical||current.mapAction==='force')return null;
   const options=arcadeMovesFor(f.form,f.career.gradeIndex,{rankCuts:true,arenaCuts:s.config.arenaCuts,
     circuitCuts:s.config.circuitCuts,exchangeVariety:true,minorMoves:s.config.minorMoves}).filter(m=>m.role===role&&m.id!==formChoice&&!m.air&&!m.tactical&&
@@ -1602,15 +1317,15 @@ function selectBalanceEntry(s,f,enemy,{d,aim,incoming,formChoice,role,planned}){
   options.sort((a,b)=>(f.moves[a.id]??0)-(f.moves[b.id]??0)||a.contact-b.contact);
   return options[0]?.id??null;
 }
-function tacticalJump(s,f,enemy,{d,aim,orbit,incoming,untilContact,obstructed,follow,allyScreen}){
+function tacticalJump(s: SimGame,f: SimFighter,enemy: SimFighter,{d,aim,orbit,incoming,untilContact,obstructed,follow,allyScreen}: {d:number;aim:number;orbit:number;incoming:SimMove|null|undefined;untilContact:number;obstructed:boolean;follow:boolean|null;allyScreen:SimFighter|null}){
   const age=f.career.gradeIndex, ataru=f.form==='ataru', fluid=s.config.fluidFootwork===true&&s.config.teamSizes[0]===s.config.teamSizes[1];
   if(!f.formRules||f.actionDuration||f.airPhase!=='grounded'||!neutralAction(f.action)||
-     f.jumpReadyAt>s.time||(f.aiJumpNextAt??(fluid?1.45:2.1)+(f.slot%4)*.35)>s.time||f.energy<(fluid?(ataru?37:42):ataru?39:45)||
+     f.jumpReadyAt!>s.time||(f.aiJumpNextAt??(fluid?1.45:2.1)+(f.slot%4)*.35)>s.time||f.energy<(fluid?(ataru?37:42):ataru?39:45)||
      d<(fluid?54:49)||d>(fluid?(ataru?168:151):ataru?154:139)||follow||obstructed||(!fluid&&allyScreen)||isArcadeCarrier(s,f))return null;
   const enemyMoving=Math.hypot(enemy.vx,enemy.vy)>30;
   const longIncoming=incoming&&!enemy.contact&&untilContact>=(fluid?.215:.29)&&untilContact<.59;
   const opening=enemy.action==='stagger'&&enemy.actionDuration-enemy.actionTime>.23||
-    enemy.exposedUntil>s.time+.28||enemy.action==='run'&&enemyMoving;
+    enemy.exposedUntil!>s.time+.28||enemy.action==='run'&&enemyMoving;
   const laneClear=!incoming||(fluid&&enemy.contact&&(!incoming.offhand||enemy.offhandContact));
   const groundedGap=laneClear&&enemy.airPhase==='grounded'&&enemy.action!=='guard'&&
     d>=78&&(f.groundSpeed>35||enemyMoving);
@@ -1627,14 +1342,14 @@ function tacticalJump(s,f,enemy,{d,aim,orbit,incoming,untilContact,obstructed,fo
   }
   return null;
 }
-function ai(s,f,enemy,dt){
+function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCommand {
   if(s.config.repertoireSupport&&!f.combatHabit)f.combatHabit=combatHabit(f);
   const objectiveMove=arcadeObjectiveMove(s,f);
   const commanded=s.mode==='command'&&f.team===0;
   const order=commanded?s.order:'push';
   const ordered=order==='hold'?(f.orderAnchor??f.spawn):order==='regroup'?f.spawn:order==='flank'?{
     x:s.width*.56,y:s.bounds.minY+42+Math.floor(f.slot/5)*32}:null;
-  const hazard=f.rankDominance>=9&&!atk(f)?s.terrain.zones.find(z=>z.damagePerSecond>0&&inside(f.x,f.y,z)):null;
+  const hazard=f.rankDominance>=9&&!atk(f)?s.terrain.zones.find(z=>z.damagePerSecond!>0&&inside(f.x,f.y,z)):null;
   let escape=null;
   if(hazard){
     const p=24, b=s.bounds;
@@ -1642,7 +1357,7 @@ function ai(s,f,enemy,dt){
     escape=options.filter(pt=>pt.x>b.minX&&pt.x<b.maxX&&pt.y>b.minY&&pt.y<b.maxY&&openAt(s,pt.x,pt.y,f.radius)).sort((a,b)=>
       Math.hypot(a.x-f.x,a.y-f.y)-Math.hypot(b.x-f.x,b.y-f.y))[0]??null;
   }
-  const destination=isArcadeCarrier(s,f)?objectiveMove:escape?{...escape,role:'escape'}:ordered??objectiveMove;
+  const destination: (Point & {role?:string})|null|undefined=isArcadeCarrier(s,f)?objectiveMove:escape?{...escape,role:'escape'}:ordered??objectiveMove;
   if(!enemy){
     const goal=destination??{x:s.width*(f.team===0?.56:.44),y:s.height*.5+((f.slot%5)-2)*39};
     const near=Math.hypot(goal.x-f.x,goal.y-f.y), route=chooseRoute(s,f,goal);
@@ -1675,12 +1390,12 @@ function ai(s,f,enemy,dt){
   f.eliteEngaged=elite;
   f.eliteRankEdge=elite&&!s.elitePacing?clamp(rankAdvantage,-2,2):0;
   const ready=!atk(f)&&f.action!=='dash'&&f.action!=='stagger'&&f.action!=='clash';
-  const crowd=rankAdvantage>=5&&f.rankCombat.index>=8?s.fighters.reduce((n,x)=>n+(x.alive&&x.team!==f.team&&
+  const crowd=rankAdvantage>=5&&f.rankCombat.index>=8?s.fighters.reduce((n,x)=>n+Number(x.alive&&x.team!==f.team&&
     rankGap(f,x)>=5&&Math.hypot(x.x-f.x,x.y-f.y)<180),0):0;
   const local=elite&&!isArcadeCarrier(s,f)?eliteLocalPressure(s,f):null;
   const crossingElite=s.eliteCrossfire&&elite;
   const isolated=crossingElite&&s.config.teamSizes[f.team]===1&&(local?.threats.length??0)>=2;
-  const attackerGroup=crossingElite&&s.config.teamSizes[f.team]>=3&&s.liveByTeam[f.team]>=2;
+  const attackerGroup=crossingElite&&s.config.teamSizes[f.team]>=3&&s.liveByTeam![f.team]>=2;
   f.crossfire=Boolean(isolated);
   const danger=local?.imminent[0];
   f.localRead=Boolean(local&&local.closest<169);
@@ -1703,12 +1418,12 @@ function ai(s,f,enemy,dt){
     }
   }
 
-  const opening=elite&&!danger&&!allyScreen&&ready&&aligned&&enemy.exposedUntil>s.time+.18-(f.eloSkill?.readRecovery??0)&&d<106&&f.energy>=13;
-  refreshMatchGoal(s,f,enemy,{range:d,urgent,danger,local,opening});
+  const opening=elite&&!danger&&!allyScreen&&ready&&aligned&&enemy.exposedUntil!>s.time+.18-(f.eloSkill?.readRecovery??0)&&d<106&&f.energy>=13;
+  refreshMatchGoal(s,f,enemy,{range:d,urgent,danger:Boolean(danger),local,opening});
   let plannedBlock=false, plannedDodge=false;
   const readLevel=s.config.eloReads?Math.max(0,f.eloSkill?.level??0):0;
   const pattern=readLevel&&threatened&&!obstructed&&!allyScreen&&!follow&&f.airPhase==='grounded'&&
-    enemy.attackChoices?.length>=3&&enemy.attackChoices.slice(-3).every(o=>o.family===enemy.attackFamily);
+    (enemy.attackChoices?.length??0)>=3&&enemy.attackChoices!.slice(-3).every(o=>o.family===enemy.attackFamily);
   const poised=pattern&&Math.abs(angleDelta(aim,f.face))<.66&&f.energy>=24&&f.guardLock<=0;
   const measuredRead=poised&&untilContact>0&&untilContact<=.118+readLevel*.075;
   if(elite&&ready&&!danger&&(urgent||measuredRead)&&f.action!=='guard'&&f.energy>=12&&f.reactedTo!==enemy.attackSerial){
@@ -1721,7 +1436,7 @@ function ai(s,f,enemy,dt){
       const read=rng(s);
       const heroParryBias=f.heroPlan==='defensive'?.09:f.heroPlan==='aggressive'?-.06:0;
       const blockGate=.28+.40*favorGuard+f.eliteRankEdge*.08+heroParryBias+(poised?.11*readLevel:0);
-      if(poised)f.lastRatedRead={time:s.time,remaining:untilContact,family:enemy.attackFamily,choice:enemy.action!=='force'&&read<blockGate?'guard':canDash&&read<.73?'dodge':'hold'};
+      if(poised)f.lastRatedRead={time:s.time,remaining:untilContact,family:enemy.attackFamily!,choice:enemy.action!=='force'&&read<blockGate?'guard':canDash&&read<.73?'dodge':'hold'};
       if(enemy.action!=='force'&&read<blockGate){
         f.decision='guard';f.guardUntil=s.time+.26;plannedBlock=true;
       }else if(canDash&&read<.73){
@@ -1731,7 +1446,7 @@ function ai(s,f,enemy,dt){
   }
   f.think-=dt;
   const peerSwarm=elite&&!s.elitePacing&&s.config.teamSizes[f.team]>s.config.teamSizes[enemy.team]&&
-    s.liveByTeam[f.team]>s.liveByTeam[enemy.team];
+    s.liveByTeam![f.team]>s.liveByTeam![enemy.team];
   // Nearby teammates read the actual committed release. Those sharing its
   // lane circle into available space instead of stepping into the same hit.
   const partnerRelease=attackerGroup?s.fighters.find(a=>{
@@ -1747,7 +1462,7 @@ function ai(s,f,enemy,dt){
   // A follow-up from the same side should not cross the previous attacker's
   // recovery path. The opening remains available from a distinct flank.
   const coveringAfter=attackerGroup&&enemy.lastEliteTouchBy!==f.id&&s.time-(enemy.lastEliteTouchAt??-Infinity)<1.25&&
-    Math.abs(angleDelta(enemy.lastEliteTouchFrom,aim+Math.PI))<3.14;
+    Math.abs(angleDelta(enemy.lastEliteTouchFrom!,aim+Math.PI))<3.14;
   const peerForceClear=!peerSwarm||s.fighters.every(ally=>ally===f||!ally.alive||ally.team!==f.team||
     Math.abs(ally.x-enemy.x)>230||Math.abs(ally.y-enemy.y)>230||s.time-(ally.lastForceAt??-Infinity)>2.7);
   const measuredForceReady=peerForceClear&&(!s.elitePacing||s.time-(f.lastForceAt??-Infinity)>4);
@@ -1768,7 +1483,7 @@ function ai(s,f,enemy,dt){
       f.baitBearing=guardAim;f.baitUntil=f.guardUntil;
     }
   }
-  if(f.baitUntil>s.time&&f.decision==='guard'&&!urgent)guardAim=f.baitBearing;
+  if(f.baitUntil!>s.time&&f.decision==='guard'&&!urgent)guardAim=f.baitBearing;
   if(f.think<=0){
     f.think=(def.wind+.048+rng(s)*.15-difficulty*.047)*(1-.28*f.skill.skill)*(1-(rankAdvantage!==0?f.rankCombat.initiative*.40:0))*(f.eloSkill?.decisionClock??1);
     if(!elite&&rankAdvantage<5&&urgent&&f.energy>13&&f.action!=='dash'&&f.action!=='guard'){
@@ -1776,12 +1491,12 @@ function ai(s,f,enemy,dt){
       if(rating<preference){ f.decision='guard'; f.guardUntil=s.time+.23+rng(s)*.14; }
       else if(rating<preference+.26 && f.energy>27)roll=true;
     }
-    if(f.guardUntil<=s.time||!f.guardUntil) f.decision=null;
+    if(f.guardUntil!<=s.time||!f.guardUntil) f.decision=null;
     const current=atk(f);
     // Less trained peers no longer queue a fresh strike on every think tick.
     // Keep Juyo's clean combo, and let genuinely exposed targets invite a follow-up.
     const canChain=current&&f.contact&&f.actionTime>current.contact+.11&&
-      ((f.form==='juyo'&&f.combo>0&&f.combo<3)||enemy.exposedUntil>s.time+.19)&&f.energy>27;
+      ((f.form==='juyo'&&f.combo>0&&f.combo<3)||enemy.exposedUntil!>s.time+.19)&&f.energy>27;
     const canCommit=elite||!matchedPeer||!current||canChain;
     if(canCommit&&!obstructed&&!allyScreen&&order!=='regroup'&&destination?.role!=='escape'&&f.decision!=='guard'&&!roll&&f.guardLock<=0&&(aligned||atk(f))&&(!elite||(ready&&!urgent&&(f.eliteReady??0)<=s.time))){
       const nearby=s.fighters.filter(e=>e.team!==f.team&&e.alive&&Math.hypot(e.x-f.x,e.y-f.y)<146).length;
@@ -1871,7 +1586,7 @@ function ai(s,f,enemy,dt){
     const canExit=ready&&f.actionDuration===0&&f.action!=='guard'&&!plannedBlock&&!pressureGuard&&slip===null&&
       !danger&&!urgent&&!follow&&!turningToHit&&!opening&&f.airPhase==='grounded'&&local&&local.closest>=66&&local.closest<167;
     if(canExit&&(f.heroExit?.until??0)>s.time){
-      const exit=f.heroExit, dx=exit.x-f.x, dy=exit.y-f.y, distance=Math.hypot(dx,dy);
+      const exit=f.heroExit!, dx=exit.x-f.x, dy=exit.y-f.y, distance=Math.hypot(dx,dy);
       if(distance>8&&!blockedBetween(s,f.x,f.y,exit.x,exit.y,f.radius)){
         return {x:dx/distance*.92,y:dy/distance*.92,aim};
       }
@@ -1891,7 +1606,7 @@ function ai(s,f,enemy,dt){
   const chain=matchedLineups&&aimClear&&!roll&&!danger&&!pressureGuard?continuation(s,f,enemy,d,aligned,urgent):null;
   const canAnswer=matchedLineups&&aimClear&&ready&&!urgent&&!danger&&!roll&&aligned&&f.counterTarget===enemy.id&&
     f.counterUntil>s.time&&f.energy>=19&&d<105&&(f.formRules||f.heroId)&&Math.abs(rankAdvantage)<=4&&
-    (enemy.action==='stagger'||enemy.exposedUntil>s.time+.14);
+    (enemy.action==='stagger'||enemy.exposedUntil!>s.time+.14);
   if(canAnswer){
     f.decision=null;strike=true;heavy=false;force=false;feint=false;
   }
@@ -1906,7 +1621,7 @@ function ai(s,f,enemy,dt){
       // Read only visible travel and recovery. No knowledge of the rival's
       // cached AI choice, and no resource or parry privilege for a plan.
       const future=Math.hypot(enemy.x-f.x+(enemy.vx-f.vx)*.16,enemy.y-f.y+(enemy.vy-f.vy)*.16);
-      const push=enemy.exposedUntil>s.time+.21||enemy.action==='stagger';
+      const push=enemy.exposedUntil!>s.time+.21||enemy.action==='stagger';
       const prefersHeavy=push&&f.energy>=49&&future>72&&future<106&&f.form!=='soresu';
       f.nextExchange={target:enemy.id,serial:f.attackSerial,expires:s.time+.77,heavy:prefersHeavy};
     }
@@ -1925,7 +1640,7 @@ function ai(s,f,enemy,dt){
     }
   }
   const authoredChoice=(strike||heavy||force)&&ready?rankTechnique(s,f,enemy,force?'force':heavy?'heavy':'light',crowd):null;
-  let technique=canAnswer&&ARCADE_TECHNIQUES[authoredChoice]?.role!=='counter'
+  let technique=canAnswer&&ARCADE_TECHNIQUES[authoredChoice!]?.role!=='counter'
     ?(f.career.gradeIndex>=8||f.form==='djem_so'?'riposte':'slash')
     :authoredChoice;
   let advanced=null;
@@ -1934,23 +1649,23 @@ function ai(s,f,enemy,dt){
      f.career.gradeIndex>=5&&(f.advancedReadyAt??0)<=s.time){
     const active=atk(f);
     const completedMiss=active&&f.releaseOutcome==='miss'&&f.actionTime>=active.duration*.90&&
-      chainWindow(s,f,active)&&f.chainDepth<chainLimit(f);
-    const realParry=ready&&f.actionDuration===0&&f.parryCounterUntil>s.time&&f.counterTarget===enemy.id;
-    const advancedTravel=ready&&f.actionDuration===0&&f.advancedTravel?.until>s.time;
+      chainWindow(s,f,active)&&f.chainDepth!<chainLimit(f);
+    const realParry=ready&&f.actionDuration===0&&f.parryCounterUntil!>s.time&&f.counterTarget===enemy.id;
+    const advancedTravel=ready&&f.actionDuration===0&&f.advancedTravel?.until!>s.time;
     const trigger=realParry?'parry':completedMiss?'whiff':advancedTravel?'travel':null;
     if(trigger){
       const moves=arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:true,rankCuts:true,circuitCuts:s.config.circuitCuts,arenaCuts:s.config.arenaCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves}).filter(m=>m.tactical!=='feint_redirect');
       const wind=incoming&&!enemy.contact?Math.max(0,incoming.contact-enemy.actionTime):Infinity;
       const move=chooseAdvancedFollowup(moves,{advancedArena:true,rank:f.career.gradeIndex,trigger,
-        previous:active?{...active,id:f.attack}:undefined,window:realParry?f.parryCounterUntil-s.time:undefined,
+        previous:active?{...active,id:f.attack!}:undefined,window:realParry?f.parryCounterUntil!-s.time:undefined,
         previousId:f.attack??f.attackChoices?.at(-1)?.id??f.advancedTravel?.id,
         distance:d,line:Math.abs(angleDelta(aim,f.face)),wind,energy:f.energy,
         side:angleDelta(aim+Math.PI,enemy.guardBearing??enemy.face),guarded:enemy.action==='guard',crowd});
-      if(move&&ARCADE_TECHNIQUES[move]?.tactical!=='feint_redirect')advanced={move,trigger};
+      if(move&&ARCADE_TECHNIQUES[move!]?.tactical!=='feint_redirect')advanced={move,trigger};
     }
   }
   let strikeAim=aim;
-  if(technique&&ARCADE_TECHNIQUES[technique]?.role==='crowd'){
+  if(technique&&ARCADE_TECHNIQUES[technique!]?.role==='crowd'){
     let dx=0,dy=0;
     for(const e of s.fighters)if(e.alive&&e.team!==f.team){
       const d=Math.hypot(e.x-f.x,e.y-f.y), toward=Math.atan2(e.y-f.y,e.x-f.x);
@@ -2005,7 +1720,7 @@ function ai(s,f,enemy,dt){
         wanted=arcadeChessDesiredBearing(f.chessStyle,{...relative,bearing:future});
       }
     }
-    const turn=Number.isFinite(wanted)?angleDelta(wanted,aim):0;
+    const turn=finite(wanted)?angleDelta(wanted,aim):0;
     if(Math.abs(turn)>.08){
       strafe=clamp(-turn*2,-.90,.90);
       // Orbit to a legal lane. For a constantly tracking opponent, allow the
@@ -2034,8 +1749,8 @@ function ai(s,f,enemy,dt){
     }else{
       // Steer to an actual legal sector, without stalling at its boundary.
       const preferred=arcadeChessDesiredBearing(style,relative);
-      const turn=angleDelta(preferred,aim);
-      if(Number.isFinite(turn)&&Math.abs(turn)>.08)strafe=clamp(-turn*2.6,-.92,.92);
+      const turn=angleDelta(preferred!,aim);
+      if(finite(turn)&&Math.abs(turn)>.08)strafe=clamp(-turn*2.6,-.92,.92);
       if(style==='knight')advance=Math.max(advance,d>49?.69:.29);
       else if(d<67)advance=Math.min(advance,.06);
       else if(d>96)advance=Math.max(advance,.31);
@@ -2076,7 +1791,7 @@ function ai(s,f,enemy,dt){
     }else{
       const want=f.chessStyle&&!legal?arcadeChessDesiredBearing(f.chessStyle,{bearing:aim,face:aim,targetFace:enemy.face,
         promoted:f.chessPawn?.promoted===true,distance:d,styleTravel:s.config.styleTravel}):aim;
-      const toward=-Math.sign(angleDelta(want,aim))||Math.sign(orbit)||1;
+      const toward=-Math.sign(angleDelta(want!,aim))||Math.sign(orbit)||1;
       for(const side of [toward,-toward]){
         if(!footworkPath(s,f,aim+side*1.86,28))continue;
         advance=-.13;strafe=side*.77;break;
@@ -2095,7 +1810,7 @@ function ai(s,f,enemy,dt){
       advance=lean;strafe=flank*.48;break;
     }
   }
-  const keepAuthoredAir=s.config.repertoireSupport&&Boolean((ARCADE_TECHNIQUES[technique]?.arenaCut||ARCADE_TECHNIQUES[technique]?.exchangeCut)&&ARCADE_TECHNIQUES[technique]?.air);
+  const keepAuthoredAir=s.config.repertoireSupport&&Boolean((ARCADE_TECHNIQUES[technique!]?.arenaCut||ARCADE_TECHNIQUES[technique!]?.exchangeCut)&&ARCADE_TECHNIQUES[technique!]?.air);
   const jumpPlan=s.config.activeFootwork&&!keepAuthoredAir&&ready&&!pressureGuard&&!plannedBlock&&!canAnswer&&!advanced&&!chain&&
     !feint&&!force&&!roll&&f.decision!=='guard'?tacticalJump(s,f,enemy,{d,aim,orbit,incoming,untilContact,obstructed,follow,allyScreen}):null;
   const activeJump=s.config.fluidFootwork&&s.config.teamSizes[0]===s.config.teamSizes[1]&&jumpPlan?.purpose==='cross'&&
@@ -2107,7 +1822,7 @@ function ai(s,f,enemy,dt){
     s.mode==='watch'&&!s.elitePacing&&!s.eliteCrossfire&&s.config.teamSizes.every(n=>n>=2)&&
     f.formRules&&f.form!=='ataru'&&f.rankCombat.index>=4&&f.energy>=33&&!f.aiVaultUsed&&s.time>(f.jumpReadyAt??0)&&
     !obstructed&&!allyScreen&&!follow&&incoming&&incoming.arc>=1.08&&d>=incoming.reach*.63&&
-    (enemy.attackSerial+f.slot*31+f.team*7)%4===0;
+    (enemy.attackSerial!+f.slot*31+f.team*7)%4===0;
   let vaultExit=false;
   if(wantsVault){
     const tx=f.x+Math.cos(angle)*61,ty=f.y+Math.sin(angle)*61;
@@ -2127,7 +1842,7 @@ function ai(s,f,enemy,dt){
   // A deployed Hero may choose the blade-off variant when baiting a guarding
   // opponent in a clear lane, never as an emergency defense or free hit.
   const freshGuard=enemy.action==='guard'&&enemy.actionTime>=.18&&enemy.parryTime<=0;
-  const safeRecovery=enemy.exposedBy==='whiff'&&enemy.exposedUntil>s.time+.34&&
+  const safeRecovery=enemy.exposedBy==='whiff'&&enemy.exposedUntil!>s.time+.34&&
     (enemy.attackSerial??0)%3===((f.slot+f.team)%3)&&!local;
   const trakataOpportunity=customHero&&aimClear&&ready&&f.actionDuration===0&&aligned&&
     !danger&&!urgent&&!roll&&!pressureGuard&&!plannedBlock&&f.decision!=='guard'&&!chain&&!canAnswer&&!advanced&&!airEntry&&!vaultExit&&!activeJump&&
@@ -2139,7 +1854,7 @@ function ai(s,f,enemy,dt){
   const footworkSerial=(enemy.attackSerial??s.tick)+f.slot*7+f.team*11;
   let rankFootwork=null;
   const prepared=untilContact>.073&&roll&&footworkSerial%3===0;
-  const claimable=enemy.exposedBy==='whiff'&&enemy.exposedUntil>s.time+.18&&d>=78&&d<153&&footworkSerial%5===1;
+  const claimable=enemy.exposedBy==='whiff'&&enemy.exposedUntil!>s.time+.18&&d>=78&&d<153&&footworkSerial%5===1;
   const circleGuard=enemy.action==='guard'&&enemy.parryTime>.085&&d>=105&&d<146&&
     f.decision!=='guard'&&(s.tick+f.slot*31+f.team*7)%19===14;
   const reclaim=!roll&&!strike&&!heavy&&!force&&!feint&&!trakata&&!airEntry&&!activeJump&&f.career.gradeIndex>=8&&(claimable||circleGuard);
@@ -2160,11 +1875,11 @@ function ai(s,f,enemy,dt){
       f.airPhase==='grounded'&&!roll&&!urgent&&!danger&&!feint&&!trakata&&!advanced&&!pressureGuard&&!canAnswer&&!activeJump&&
       f.decision!=='guard'&&(f.expandedReadyAt??0)<=s.time&&f.energy>=24&&Math.abs(rankAdvantage)<=4&&
       (s.tick+f.slot*9+f.team*7)%13===6){
-    const close=enemy.action==='stagger'||enemy.exposedUntil>s.time+.24||
+    const close=enemy.action==='stagger'||enemy.exposedUntil!>s.time+.24||
       d<73&&!incoming&&enemy.action!=='guard'&&Math.abs(angleDelta(aim,f.face))<.56&&f.energy>=32;
     const locked=enemy.action==='guard'&&enemy.energy<=40;
     const wardWindow=threatened&&untilContact>.355&&untilContact<.56&&f.career.gradeIndex>=10&&
-      !(f.wardUntil>s.time&&f.wardCharges>0)&&f.energy>=45;
+      !(f.wardUntil!>s.time&&f.wardCharges!>0)&&f.energy>=45;
     const echoWindow=locked&&d>=91&&d<127&&f.career.gradeIndex>=7&&f.energy>=57&&
       !incoming&&(s.tick+f.slot*7+f.team)%3===0;
     const first=wardWindow?'force_lattice':echoWindow?'force_echo_step':
@@ -2192,11 +1907,11 @@ function ai(s,f,enemy,dt){
     const moves=arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:true,rankCuts:true,circuitCuts:s.config.circuitCuts,arenaCuts:true,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves});
     const guardedWindow=f.form==='soresu'&&threatened&&untilContact>=.16&&untilContact<=.26;
     const counterWindow=f.counterTarget===enemy.id&&f.counterUntil>s.time&&
-      (enemy.action==='stagger'||enemy.exposedUntil>s.time+.16);
-    const openAir=f.form==='ataru'&&(enemy.action==='run'||enemy.exposedUntil>s.time+.24||enemy.action==='stagger');
+      (enemy.action==='stagger'||enemy.exposedUntil!>s.time+.16);
+    const openAir=f.form==='ataru'&&(enemy.action==='run'||enemy.exposedUntil!>s.time+.24||enemy.action==='stagger');
     const heavyWindow=['shii_cho','djem_so','juyo','niman'].includes(f.form)&&
       ((enemy.action==='guard'&&enemy.parryTime<=0&&enemy.energy<42&&f.energy>=39)||
-       (enemy.action==='stagger'&&enemy.actionDuration-enemy.actionTime>.38)||enemy.exposedUntil>s.time+.38);
+       (enemy.action==='stagger'&&enemy.actionDuration-enemy.actionTime>.38)||enemy.exposedUntil!>s.time+.38);
     const routed=guardedWindow||counterWindow?situationalRepertoire(s,f,enemy,moves,'counter',d):
       openAir||heavyWindow?situationalRepertoire(s,f,enemy,moves,'heavy',d):null;
     if(routed){
@@ -2213,9 +1928,9 @@ function ai(s,f,enemy,dt){
   if(s.config.liveEntry&&matchedLineups&&aimClear&&ready&&f.actionDuration===0&&
      (strike||heavy)&&!force&&!feint&&!chain&&!activeJump&&!vaultExit&&!airEntry&&!roll&&!pressureGuard&&!plannedBlock&&
      !canAnswer&&!advanced&&!trakata&&f.action!=='guard'&&f.decision!=='guard'){
-    const fallback=ARCADE_TECHNIQUES[technique]??ARCADE_ATTACKS[technique]??ARCADE_ATTACKS.slash;
+    const fallback=ARCADE_TECHNIQUES[technique!]??attackByName(technique)??ARCADE_ATTACKS.slash;
     const stride=liveGroundEntry(f,aim,fallback,null,false);
-    if(stride&&stride.kind!=='pivot'&&(!technique||!ARCADE_TECHNIQUES[technique]?.tactical&&!ARCADE_TECHNIQUES[technique]?.air)){
+    if(stride&&stride.kind!=='pivot'&&(!technique||!ARCADE_TECHNIQUES[technique!]?.tactical&&!ARCADE_TECHNIQUES[technique!]?.air)){
       const aimedAngle=angleDelta(aim,f.face), promoted=f.chessPawn?.promoted===true;
       const role=heavy?'heavy':'light';
       const desire=stride.kind==='advance'&&d>=75&&f.form==='makashi'?'thrust':stride.kind==='lateral'?'sweep':
@@ -2234,10 +1949,10 @@ function ai(s,f,enemy,dt){
   }
   if(f.recoveryFlow&&matchedLineups&&ready&&!pressureGuard&&!plannedBlock&&!roll&&!advanced&&!canAnswer&&!chain&&
      !trakata&&!activeJump&&!vaultExit&&!airEntry&&!force&&!feint){
-    const recovery=recoveryIntent(s,f,enemy,{d,aim,orbit,untilContact,threatened,clear:aimClear&&!danger});
+    const recovery=recoveryIntent(s,f,enemy,{d,aim,orbit,untilContact,threatened:Boolean(threatened),clear:aimClear&&!danger});
     if(recovery)return recovery;
-    const plan=f.impactRecovery;
-    if(plan?.target===enemy.id&&plan.serial===f.attackSerial&&s.time-plan.at>=plan.duration&&s.time-plan.at<plan.duration+.33&&
+    const plan=f.impactRecovery!;
+    if(plan?.target===enemy.id&&plan.serial===f.attackSerial&&s.time-plan!.at>=plan!.duration&&s.time-plan!.at<plan!.duration+.33&&
        (strike||heavy)&&aimClear&&aligned&&!urgent&&f.actionDuration===0&&plan.last?.id){
       const promoted=f.chessPawn?.promoted===true,style=f.chessStyle;
       const relative={bearing:aim,face:aim,targetFace:enemy.face,distance:d,promoted,styleTravel:s.config.styleTravel};
@@ -2245,9 +1960,9 @@ function ai(s,f,enemy,dt){
         const role=heavy?'heavy':'light';
         const options=arcadeMovesFor(f.form,f.career.gradeIndex,{rankCuts:true,arenaCuts:s.config.arenaCuts,
           circuitCuts:s.config.circuitCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves}).filter(m=>m.role===role&&
-            m.id!==plan.last.id&&!m.air&&!m.tactical&&m.mapAction!=='force'&&m.cost<=f.energy-5&&
+            m.id!==plan.last!.id&&!m.air&&!m.tactical&&m.mapAction!=='force'&&m.cost<=f.energy-5&&
             m.contact<.37&&d<=arcadeChessMove(style,m,{promoted}).reach+5&&
-            arcadeAttackPresentation(m.id,m,m.mapAction).family!==plan.last.family);
+            arcadeAttackPresentation(m.id,m,m.mapAction).family!==plan.last!.family);
         options.sort((a,b)=>(f.moves[a.id]??0)-(f.moves[b.id]??0)||a.contact-b.contact);
         if(options[0]){technique=options[0].id;plan.followup=technique;}
       }
@@ -2321,9 +2036,9 @@ function ai(s,f,enemy,dt){
      (strike||heavy)&&!force&&!feint&&!chain&&!advanced&&!canAnswer&&!trakata&&!activeJump&&!vaultExit&&!airEntry&&!roll&&
      !urgent&&!danger&&!pressureGuard&&!plannedBlock&&f.decision!=='guard'&&aimClear&&aligned&&f.actionDuration===0&&
      f.airPhase==='grounded'&&d>=57&&d<=121&&Math.abs(angleDelta(aim+Math.PI,enemy.guardBearing??enemy.face))<.95){
-    const proposed=ARCADE_TECHNIQUES[technique]??ARCADE_ATTACKS[technique]??ARCADE_ATTACKS.slash;
+    const proposed=ARCADE_TECHNIQUES[technique!]??attackByName(technique)??ARCADE_ATTACKS.slash;
     const family=arcadeAttackPresentation(technique??'slash',proposed,proposed.mapAction??'slash').family;
-    const exposed=enemy.exposedUntil>s.time+.17&&enemy.action!=='guard'&&!(incoming?.deflect);
+    const exposed=enemy.exposedUntil!>s.time+.17&&enemy.action!=='guard'&&!(incoming?.deflect);
     if(!exposed&&(enemy.action==='guard'||incoming?.deflect||f.lastGuardParry.deflect&&family===f.lastGuardParry.family)){
       const side=Math.sign(Math.sin(enemy.face-aim))||Math.sign(orbit)||1;
       for(const flank of [side,-side]){
@@ -2343,23 +2058,23 @@ function ai(s,f,enemy,dt){
   return {x:Math.cos(angle)*advance-Math.sin(angle)*strafe,
     y:Math.sin(angle)*advance+Math.cos(angle)*strafe,strike,heavy,force,feint,trakata,technique,rankFootwork,chain,guardAim,evasion:evade,jump:vaultExit||airEntry||Boolean(activeJump),activeJump,airEntry,dash:!vaultExit&&roll&&(!obstructed&&!allyScreen&&!follow||slip!==null),pressureRecover,guard:pressureGuard||f.decision==='guard'&&(order!=='regroup'&&destination?.role!=='escape'),rollFace:activeJump?.bearing??(airEntry?aim:angle),aim:defensiveAim??(obstructed||follow||detour?travelAim:strikeAim)};
 }
-function actionStep(s,f,dt,commands,enemy){
+function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,enemy: SimFighter | null){
   f.invuln=Math.max(0,f.invuln-dt);f.parryTime=Math.max(0,f.parryTime-dt);
   f.guardLock=Math.max(0,f.guardLock-dt);
   if(f.buffer&&s.time>f.buffer.until) f.buffer=null;
-  const vecX=clamp(Number.isFinite(commands.x)?commands.x:0,-1,1),vecY=clamp(Number.isFinite(commands.y)?commands.y:0,-1,1);
+  const vecX=clamp(finite(commands.x)?commands.x:0,-1,1),vecY=clamp(finite(commands.y)?commands.y:0,-1,1);
   const mag=Math.hypot(vecX,vecY), moveX=vecX/Math.max(1,mag),moveY=vecY/Math.max(1,mag);
-  const manualAim=Number.isFinite(commands.aimX)&&Number.isFinite(commands.aimY)&&Math.hypot(commands.aimX-f.x,commands.aimY-f.y)>.1;
+  const manualAim=finite(commands.aimX)&&finite(commands.aimY)&&Math.hypot(commands.aimX!-f.x,commands.aimY!-f.y)>.1;
   const force=commands.force&&!s.config.saberOnly;
-  const selected=f.control&&commands.technique?ARCADE_TECHNIQUES[commands.technique]:null;
+  const selected=f.control&&commands.technique?ARCADE_TECHNIQUES[commands.technique!]:null;
   const explicit=selected?.form===f.form&&selected.minRank<=f.career.gradeIndex&&(!selected.circuitCut||s.config.circuitCuts)&&(!selected.arenaCut||s.config.arenaCuts)&&(!selected.exchangeCut||s.config.exchangeVariety)&&(!selected.minorMove||s.config.minorMoves)?selected.id:null;
-  const request=explicit?(selected.mapAction==='force'&&s.config.saberOnly?null:explicit):force?'force':commands.heavy?'heavy':commands.strike?'strike':null;
+  const request=explicit?(selected!.mapAction==='force'&&s.config.saberOnly?null:explicit):force?'force':commands.heavy?'heavy':commands.strike?'strike':null;
   const useTrakata=f.heroId&&(f.control?commands.technique===ARCADE_TRAKATA_ID:commands.trakata);
   const footworkId=f.control&&typeof commands.technique==='string'&&commands.technique.startsWith('footwork:')?commands.technique.slice(9):null;
   const requestExpanded=f.control?commands.technique:commands.expandedMove;
   const offense=request||expandedMove(s,f,requestExpanded)||commands.guard||useTrakata||footworkId;
-  const aim=manualAim?Math.atan2(commands.aimY-f.y,commands.aimX-f.x)
-    : Number.isFinite(commands.aim)?commands.aim
+  const aim=manualAim?Math.atan2(commands.aimY!-f.y,commands.aimX!-f.x)
+    : finite(commands.aim)?commands.aim
     : enemy&&offense?Math.atan2(enemy.y-f.y,enemy.x-f.x)
     : mag>.07?Math.atan2(moveY,moveX)
     : enemy?Math.atan2(enemy.y-f.y,enemy.x-f.x):f.face;
@@ -2382,9 +2097,9 @@ function actionStep(s,f,dt,commands,enemy){
     countMove(f,'pressure_recover');setAction(f,'idle');
   }
   if(useTrakata&&!commands.guard)beginTrakata(s,f,aim);
-  if(requestExpanded&&!commands.guard)startExpanded(s,f,requestExpanded,Number.isFinite(commands.expandedAim)?commands.expandedAim:aim);
+  if(requestExpanded&&!commands.guard)startExpanded(s,f,requestExpanded,finite(commands.expandedAim)?commands.expandedAim:aim);
   if(commands.feint&&!f.saberOff){
-    const combat=Number.isFinite(commands.aim)?commands.aim:aim;
+    const combat=finite(commands.aim)?commands.aim:aim;
     const fake=f.control?combat:combat+(f.slot%2===0?.34:-.34);
     if(beginFeint(s,f,fake,f.control?null:'slash',f.control?null:combat)){
       f.vx*=.4;f.vy*=.4;
@@ -2400,7 +2115,7 @@ function actionStep(s,f,dt,commands,enemy){
     }
   }
   let attacking=atk(f);
-  const dashAngle=Number.isFinite(commands.rollFace)?commands.rollFace:mag>.07?Math.atan2(moveY,moveX):aim;
+  const dashAngle=finite(commands.rollFace)?commands.rollFace:mag>.07?Math.atan2(moveY,moveX):aim;
   if(f.action==='jump'){
     if(commands.strike&&f.control&&!f.airStrikeSpent)f.airRequest={until:s.time+.34,aim};
     const airMove=ARCADE_AIR_STRIKES[f.form];
@@ -2415,10 +2130,10 @@ function actionStep(s,f,dt,commands,enemy){
       Math.hypot(enemy.x-f.x,enemy.y-f.y)<(airMove?.reach??0)+9&&
       Math.abs(angleDelta(aiAim,airFacing))<.87&&enemy.parryTime<=0&&
       !blockedBetween(s,f.x,f.y,enemy.x,enemy.y)&&!allyInLane(s,f,enemy.x,enemy.y);
-    const intentional=f.airRequest?.until>=s.time||opportunity||tactical;
+    const intentional=f.airRequest?.until!>=s.time||opportunity||tactical;
     const lowLanding=f.stanceFlow&&f.airPhase==='landing'&&f.airProgress>=.42&&
       !f.airStrikeSpent&&!commands.guard&&f.guardLock<=0;
-    const plantedCut=lowLanding&&f.control&&f.airRequest?.until>=s.time&&Math.abs(angleDelta(aim,airFacing))<1.15;
+    const plantedCut=lowLanding&&f.control&&f.airRequest?.until!>=s.time&&Math.abs(angleDelta(aim,airFacing))<1.15;
     let lowReply=null;
     if(lowLanding&&!f.control&&enemy?.alive&&enemy.airPhase!=='airborne'&&enemy.action!=='guard'&&
         s.config.teamSizes[0]===s.config.teamSizes[1]&&f.career.gradeIndex>=4&&(f.aiJumpPurpose||f.aiVaultUsed)&&
@@ -2445,7 +2160,7 @@ function actionStep(s,f,dt,commands,enemy){
       // the low landing pose supplies the entry, never an invulnerable hit.
       if(attack(s,f,lowReply??'slash',lowReply?aiAim:aim)){f.airStrikeSpent=true;f.airRequest=null;}
     }else if(airMove&&intentional&&f.airPhase==='airborne'&&f.airProgress>.08&&!f.airStrikeSpent&&remains>airMove.contact+.012){
-      const want=f.control?(manualAim?aim:f.airRequest.aim):aiAim;
+      const want=f.control?(manualAim?aim:f.airRequest!.aim):aiAim;
       const steer=clamp(angleDelta(want,airFacing),-.98,.98);
       attack(s,f,airMove.id,airFacing+steer);
     }
@@ -2454,7 +2169,7 @@ function actionStep(s,f,dt,commands,enemy){
     if(!f.saberOff&&f.actionTime>=.26&&f.trakataAim!==null){
       const bearing=manualAim?aim:f.trakataAim;
       f.trakataAim=null;
-      attack(s,f,'slash',bearing);
+      attack(s,f,'slash',bearing!);
     }
   }else if(f.action==='feint'){
     const measuredFeint=s.config.balancePass&&!f.control&&f.feintFollowup==='ex_mk_false_line';
@@ -2467,7 +2182,7 @@ function actionStep(s,f,dt,commands,enemy){
           blockedBetween(s,f.x,f.y,enemy.x,enemy.y)||allyInLane(s,f,enemy.x,enemy.y))f.feintFollowup=null;
       }
       const queued=f.buffer?.type;
-      const follow=queued?(ARCADE_TECHNIQUES[queued]?queued:queued==='heavy'?def.heavy:queued==='force'?'force':'slash'):f.feintFollowup;
+      const follow=queued?(ARCADE_TECHNIQUES[queued!]?queued:queued==='heavy'?def.heavy:queued==='force'?'force':'slash'):f.feintFollowup;
       if(follow){
         if(attack(s,f,follow,queued?aim:f.feintRedirect??aim,{redirected:true})){
           f.feintFollowup=null;f.feintRedirect=null;
@@ -2478,19 +2193,19 @@ function actionStep(s,f,dt,commands,enemy){
     // Let an input during the dash queue a real attack as its invulnerability ends.
     if(request) f.buffer={type:request,until:s.time+.32};
     if(f.actionTime>=(f.formRules?f.actionDuration*.78:.132)&&f.airPhase!=='airborne'&&f.buffer){
-      const followup=ARCADE_TECHNIQUES[f.buffer.type]?f.buffer.type:f.buffer.type==='force'?'force':f.buffer.type==='heavy'?def.heavy:'slash';
+      const followup=ARCADE_TECHNIQUES[f.buffer!.type!]?f.buffer!.type:f.buffer!.type==='force'?'force':f.buffer!.type==='heavy'?def.heavy:'slash';
       attack(s,f,followup,aim);
     }
   } else if(attacking){
     if(request) f.buffer={type:request,until:s.time+(f.formRules?.59:.39)};
     const canCancel=f.actionTime>Math.max(attacking.contact+(f.formRules?.115:.065),(attacking.offhand?.contact??0)+.038)&&f.airPhase!=='airborne'&&(!attacking.airStrike||f.airPhase==='grounded');
     if(canCancel&&commands.dash) dash(s,f,dashAngle,commands.evasion);
-    else if(commands.chain&&chainWindow(s,f,attacking)&&f.chainDepth<chainLimit(f))
+    else if(commands.chain&&chainWindow(s,f,attacking)&&f.chainDepth!<chainLimit(f))
       attack(s,f,commands.chain,aim,{linked:true});
-    else if(canCancel&&f.chainDepth<chainLimit(f)&&f.buffer?.type==='strike'&&f.combo>0&&f.combo<(def.comboCap??3)&&f.actionTime>=attacking.duration*(f.formRules?(f.form==='juyo'?.72:.82):.68)){
+    else if(canCancel&&f.chainDepth!<chainLimit(f)&&f.buffer?.type==='strike'&&f.combo>0&&f.combo<(def.comboCap??3)&&f.actionTime>=attacking.duration*(f.formRules?(f.form==='juyo'?.72:.82):.68)){
       attack(s,f,'slash'+(f.combo+1),aim,{linked:true});
-    } else if(canCancel&&f.chainDepth<chainLimit(f)&&(['heavy','force'].includes(f.buffer?.type)||ARCADE_TECHNIQUES[f.buffer?.type])&&f.actionTime>=attacking.duration*(f.formRules?.85:.76)&&(f.combo>0||f.control&&f.chainDepth<chainLimit(f))){
-      attack(s,f,ARCADE_TECHNIQUES[f.buffer.type]?f.buffer.type:f.buffer.type==='force'?'force':def.heavy,aim,{linked:f.buffer.type!=='force'});
+    } else if(canCancel&&f.chainDepth!<chainLimit(f)&&(['heavy','force'].includes(f.buffer?.type!)||ARCADE_TECHNIQUES[f.buffer?.type!])&&f.actionTime>=attacking.duration*(f.formRules?.85:.76)&&(f.combo>0||f.control&&f.chainDepth!<chainLimit(f))){
+      attack(s,f,ARCADE_TECHNIQUES[f.buffer!.type!]?f.buffer!.type:f.buffer!.type==='force'?'force':def.heavy,aim,{linked:f.buffer!.type!=='force'});
     }
   } else if(f.actionDuration===0&&f.action!=='stagger'&&f.airPhase!=='airborne'){
     const backAim=f.stanceFlow&&f.control&&manualAim&&mag>.08&&Math.cos(angleDelta(dashAngle,aim))<-.55?aim:undefined;
@@ -2510,23 +2225,23 @@ function actionStep(s,f,dt,commands,enemy){
       else if(rankMove)tryRankFootwork(s,f,rankMove.id,rankMove.face,rankMove.side);
     }
     if(f.actionDuration===0&&commands.dash)dash(s,f,dashAngle,commands.evasion);
-    if(f.actionDuration===0&&(explicit||ARCADE_TECHNIQUES[f.buffer?.type]))attack(s,f,explicit??f.buffer.type,aim);
+    if(f.actionDuration===0&&(explicit||ARCADE_TECHNIQUES[f.buffer?.type!]))attack(s,f,explicit??f.buffer!.type,aim);
     if(f.actionDuration===0&&(force||f.buffer?.type==='force'))attack(s,f,commands.technique??'force',aim);
     const nearbyLower=f.control&&f.rankDominance>=8?s.fighters.filter(e=>e.team!==f.team&&e.alive&&Math.hypot(e.x-f.x,e.y-f.y)<166).length:0;
     if(f.actionDuration===0&&(commands.heavy||f.buffer?.type==='heavy'))attack(s,f,commands.technique??
-      (nearbyLower>=2?rankTechnique(s,f,enemy,'heavy',nearbyLower):null)??def.heavy,aim);
+      (nearbyLower>=2?rankTechnique(s,f,enemy!,'heavy',nearbyLower):null)??def.heavy,aim);
     if(f.actionDuration===0&&(commands.strike||f.buffer?.type==='strike')){
-      const parryFollow=f.parryCounterUntil>s.time&&enemy?.id===f.counterTarget&&
-        Math.hypot(enemy.x-f.x,enemy.y-f.y)<130&&(f.control||f.career.gradeIndex>=6&&s.config.teamSizes[0]===s.config.teamSizes[1]);
+      const parryFollow=f.parryCounterUntil!>s.time&&enemy?.id===f.counterTarget&&
+        Math.hypot(enemy!.x-f.x,enemy!.y-f.y)<130&&(f.control||f.career.gradeIndex>=6&&s.config.teamSizes[0]===s.config.teamSizes[1]);
       attack(s,f,commands.technique??(parryFollow?'riposte':'slash'),aim);
     }
     if(f.actionDuration===0){
       if(commands.guard&&f.guardLock===0&&f.energy>.1){
         const pose=f.action!=='guard'&&f.action!=='stagger'?entryPose(s,f,'guard'):null;
-        const bearing=Number.isFinite(commands.guardAim)?commands.guardAim:aim;
+        const bearing=finite(commands.guardAim)?commands.guardAim:aim;
         const relative=enemy?angleDelta(bearing,Math.atan2(enemy.y-f.y,enemy.x-f.x)):0;
         f.guardLane=relative<-.24?'left':relative>.24?'right':'center';
-        f.guardDirected=Boolean(manualAim||Number.isFinite(commands.guardAim));
+        f.guardDirected=Boolean(manualAim||finite(commands.guardAim));
         if(f.action!=='guard'&&!f.guardHeld){
           countMove(f,'guard');f.parryTime=(def.parry??(f.archetype==='warden'?.205:.155))+f.skill.skill*.055;f.face=bearing;f.guardBearing=bearing;
         }else f.guardBearing=blendAngle(f.guardBearing??f.face,bearing,Math.min(1,dt*16*f.injuryEffects.turnSpeed));
@@ -2539,7 +2254,7 @@ function actionStep(s,f,dt,commands,enemy){
         f.guardRead=null;setAction(f,moving?(walking?'walk':'run'):'idle');
         if(exit){f.poseFrom=exit;f.poseEntryDuration=.145;}
       }
-      f.face=blendAngle(f.face,f.action==='guard'?f.guardBearing:aim,Math.min(1,dt*(f.awarenessFacing?10:16)*f.injuryEffects.turnSpeed));
+      f.face=blendAngle(f.face,f.action==='guard'?f.guardBearing!:aim,Math.min(1,dt*(f.awarenessFacing?10:16)*f.injuryEffects.turnSpeed));
     }
   } else if(f.action==='stagger'&&request){
     f.buffer={type:request,until:s.time+.22};
@@ -2557,11 +2272,11 @@ function actionStep(s,f,dt,commands,enemy){
     const turn=dt*(f.control?8.6:7.4)*f.injuryEffects.turnSpeed;
     f.face+=clamp(angleDelta(target,f.face),-turn,turn);
   }
-  if(f.echoStepUntil>s.time&&f.action==='force'&&f.technique==='force_echo_step'){
-    f.vx=Math.cos(f.echoStepBearing)*236;f.vy=Math.sin(f.echoStepBearing)*236;
+  if(f.echoStepUntil!>s.time&&f.action==='force'&&f.technique==='force_echo_step'){
+    f.vx=Math.cos(f.echoStepBearing!)*236;f.vy=Math.sin(f.echoStepBearing!)*236;
   } else if(f.action==='jump'||(attacking?.airStrike&&f.airArc)){
     const arc=f.airArc;
-    const {x,y}=arc?arcadeJumpMotion(arc,f.airPhase,f.airProgress,f.jumpDrive??0,f.jumpBearing):{x:0,y:0};
+    const {x,y}=arc?arcadeJumpMotion(arc as Extract<typeof arc,{kind:string}>,f.airPhase,f.airProgress,f.jumpDrive??0,f.jumpBearing!):{x:0,y:0};
     f.vx=x;f.vy=y;
   } else if(f.action==='dash'&&f.rankFootwork){
     const velocity=arcadeFootworkMotion(f.rankFootwork,f.actionTime), penalty=f.injuryEffects.moveSpeed;
@@ -2580,12 +2295,12 @@ function actionStep(s,f,dt,commands,enemy){
     let burst=elapsed<=attacking.contact?attacking.lunge*Math.sin(phase*Math.PI*.83):attacking.lunge*.46*Math.max(0,1-(elapsed-attacking.contact)/.10);
     if(f.formRules){
       const plant=clamp((elapsed-(attacking.contact-.12))/.25,0,1);
-      burst=f.technique==='vault'||ARCADE_TECHNIQUES[f.technique]?.air?(f.airPhase==='airborne'?attacking.lunge:f.airPhase==='takeoff'?61:36)
+      burst=f.technique==='vault'||ARCADE_TECHNIQUES[f.technique!]?.air?(f.airPhase==='airborne'?attacking.lunge:f.airPhase==='takeoff'?61:36)
         :attacking.lunge*Math.sin(Math.PI*plant)**2;
     }
     f.vx=Math.cos(f.face)*burst;f.vy=Math.sin(f.face)*burst;
-    if(f.stepUntil>s.time){
-      f.vx+=Math.cos(f.stepBearing)*71;f.vy+=Math.sin(f.stepBearing)*71;
+    if(f.stepUntil!>s.time){
+      f.vx+=Math.cos(f.stepBearing!)*71;f.vy+=Math.sin(f.stepBearing!)*71;
     }
     if(s.config.fluidFootwork&&!f.control&&enemy&&f.airPhase==='grounded'&&f.action!=='force'&&f.action!=='free_hand'&&
       elapsed>Math.max(attacking.contact,attacking.offhand?.contact??0)+.04&&f.releaseOutcome&&
@@ -2617,9 +2332,9 @@ function actionStep(s,f,dt,commands,enemy){
     const speed=def.speed*(f.action==='guard'?(f.crossfire?.54:.30):walking?.49:1);
     const cx=walking?moveX/mag:moveX,cy=walking?moveY/mag:moveY;
     const acceleration=f.formRules?(moving?10:18):17;
-    if(f.peasantMotion&&Number.isFinite(f.landedAt)&&s.time-f.landedAt<.12){
+    if(f.peasantMotion&&finite(f.landedAt)&&s.time-f.landedAt!<.12){
       // Bleed only existing forward carry on landing; no extra displacement or free action.
-      const k=1-clamp((s.time-f.landedAt)/.12,0,1), drift=f.landingDrive;
+      const k=1-clamp((s.time-f.landedAt!)/.12,0,1), drift=f.landingDrive;
       if(drift){f.vx+=(drift.x-f.vx)*dt*3*k;f.vy+=(drift.y-f.vy)*dt*3*k;}
     }
     if(f.peasantMotion){
@@ -2638,39 +2353,12 @@ function actionStep(s,f,dt,commands,enemy){
     }
   }
 }
-const canSlide=(s,f,x,y,tx,ty)=>{
-  if(openAt(s,tx,ty,f.radius) && !blockedBetween(s,x,y,tx,ty,f.radius-.1))return true;
-  // If externally placed inside cover, permit an exit only to a clear point.
-  return !openAt(s,x,y,f.radius-.1)&&openAt(s,tx,ty,f.radius);
-};
-// Sweep the ground-plane body disk through the entire step. Feet keep
-// a landing footprint during vaults; short jumps cannot merge silhouettes.
-function bodyMotionFraction(s,f,x,y,tx,ty){
-  if(!f.alive)return 1;
-  const dx=tx-x,dy=ty-y,len2=dx*dx+dy*dy;
-  if(len2<1e-12)return 1;
-  let portion=1;
-  for(const o of s.fighters){
-    if(o===f||!o.alive)continue;
-    const ax=x-o.x,ay=y-o.y,r=f.radius+o.radius;
-    if(Math.abs(ax)>r+Math.abs(dx)||Math.abs(ay)>r+Math.abs(dy))continue;
-    const dot=ax*dx+ay*dy;
-    if(dot>=0)continue;
-    const c=ax*ax+ay*ay-r*r;
-    if(c<=0)return 0;
-    const discr=dot*dot-len2*c;
-    if(discr<=0)continue;
-    const entry=(-dot-Math.sqrt(discr))/len2;
-    if(entry<portion)portion=Math.max(0,entry-1e-5);
-  }
-  return portion;
-}
-const during = (s,f,dt)=>{
+const during = (s: SimGame,f: SimFighter,dt: number)=>{
   const ox=f.x,oy=f.y;
   const {minX,maxX,minY,maxY}=s.bounds;
   const zone=s.terrain.zones.find(r=>inside(f.x,f.y,r));
-  const raw=zone?.moveCost, speedScale=Number.isFinite(raw)?raw>.99?1/clamp(raw,1,5):clamp(raw,.2,1):1;
-  const ease=f.injuryEffects.moveSpeed*(f.stasisUntil>s.time?.42:f.forceAnchoredUntil>s.time?.59:1)*carrierSpeedScale(s,f)*(f.action==='dash'?s.weather.dashMultiplier:s.weather.walkMultiplier);
+  const raw=zone?.moveCost, speedScale=finite(raw)?raw>.99?1/clamp(raw,1,5):clamp(raw,.2,1):1;
+  const ease=f.injuryEffects.moveSpeed*(f.stasisUntil!>s.time?.42:f.forceAnchoredUntil!>s.time?.59:1)*carrierSpeedScale(s,f)*(f.action==='dash'?s.weather!.dashMultiplier:s.weather!.walkMultiplier);
   const tx=clamp(ox+(f.vx*speedScale*ease+f.kx)*dt,minX,maxX);
   const ty=clamp(oy+(f.vy*speedScale*ease+f.ky)*dt,minY,maxY);
   if(canSlide(s,f,f.x,f.y,tx,f.y)){
@@ -2683,8 +2371,8 @@ const during = (s,f,dt)=>{
   }else f.ky=0;
   if(f.impactPhysics){
     const recent=f.impactReaction&&s.time-f.impactReaction.at<.32;
-    const coast=recent?(f.airPhase==='airborne'?6.8:f.impactReaction.kind==='hard'?8.1:
-      f.impactReaction.kind==='clash'?9.9:f.impactReaction.kind==='guard'?13:10.1):12;
+    const coast=recent?(f.airPhase==='airborne'?6.8:f.impactReaction!.kind==='hard'?8.1:
+      f.impactReaction!.kind==='clash'?9.9:f.impactReaction!.kind==='guard'?13:10.1):12;
     const retain=Math.exp(-dt*coast);
     if(tx===minX&&f.x===minX&&f.kx<0||tx===maxX&&f.x===maxX&&f.kx>0)f.kx=0;
     if(ty===minY&&f.y===minY&&f.ky<0||ty===maxY&&f.y===maxY&&f.ky>0)f.ky=0;
@@ -2703,8 +2391,8 @@ const during = (s,f,dt)=>{
     }
   }
   if(f.airPhase!=='airborne')f.groundDistance+=travel;
-  if(f.alive && f.airHeight<18 && Number.isFinite(zone?.damagePerSecond) && zone.damagePerSecond>0) {
-    f.hazardDamage=(f.hazardDamage??0)+zone.damagePerSecond*dt;
+  if(f.alive && f.airHeight<18 && finite(zone?.damagePerSecond) && zone!.damagePerSecond!!>0) {
+    f.hazardDamage=(f.hazardDamage??0)+zone!.damagePerSecond!!*dt;
     if(f.hazardDamage>=7) {
       const damage=Math.floor(f.hazardDamage);f.hazardDamage-=damage;
       const region=f.slot%2===0?'leftLeg':'rightLeg';
@@ -2716,61 +2404,9 @@ const during = (s,f,dt)=>{
         event(s,'ko',f,f.x,f.y,{targetId:f.id,region,injuryTier:applied.tier,injuryOutcome:applied.outcome,fatal:true,environmental:true,...recordKnockout(s,f)});
       }
     }
-  } else if(!zone||!zone.damagePerSecond)f.hazardDamage=0;
+  } else if(!zone||!zone!.damagePerSecond!)f.hazardDamage=0;
 };
-function separate(s){
-  const {minX,maxX,minY,maxY}=s.bounds;
-  const runners=s.fighters.filter(f=>f.alive);
-  // Repeated constrained projection solves rows and corner jams, where
-  // assigning each fighter half the correction let wall-side stacks persist.
-  const passes=s.config.impactPhysics?(runners.length>4?7:4):(runners.length>4?5:3);
-  for(let pass=0;pass<passes;pass++){
-    let unresolved=false;
-    for(let i=0;i<runners.length;i++)for(let j=i+1;j<runners.length;j++){
-      const a=runners[i],b=runners[j];
-
-      const dx=b.x-a.x,dy=b.y-a.y;
-      const gap=bodyGap+(a.team===b.team?6:0);
-      if(Math.abs(dx)>=gap||Math.abs(dy)>=gap)continue;
-      const d=Math.hypot(dx,dy);
-      if(d>=gap-.2)continue;
-      unresolved=true;
-      const bearing=(a.slot*2.39996+b.slot*1.61803+(a.team===b.team?.9:0))%(Math.PI*2);
-      const nx=d>.001?dx/d:Math.cos(bearing),ny=d>.001?dy/d:Math.sin(bearing);
-      const m=gap-d;
-      const shift=(f,sign,target)=>{
-        const tx=clamp(f.x+nx*target*sign,minX,maxX),ty=clamp(f.y+ny*target*sign,minY,maxY);
-        if(!canSlide(s,f,f.x,f.y,tx,ty))return 0;
-        const fraction=bodyMotionFraction(s,f,f.x,f.y,tx,ty);
-        const moved=((tx-f.x)*nx+(ty-f.y)*ny)*sign*fraction;
-        f.x+=(tx-f.x)*fraction;f.y+=(ty-f.y)*fraction;return moved;
-      };
-      const half=shift(a,-1,m*.5);
-      const second=shift(b,1,m-half);
-      if(half+second<m-.15)shift(a,-1,m-half-second);
-      // A wall can pin both along the normal, particularly as a vault lands.
-      // Give the pair a tangent escape rather than leaving them on one spot.
-      const adx=b.x-a.x,ady=b.y-a.y;
-      if(adx*adx+ady*ady<gap*gap*(s.config.impactPhysics?.86:.69)){
-        const options=[a,b],orig=Math.hypot(adx,ady);
-        let best=null,bestD=orig+1;
-        for(const f of options)for(const sign of [-1,1]){
-          const distance=(gap-orig)*.65;
-          let tx=clamp(f.x-ny*distance*sign,minX,maxX),ty=clamp(f.y+nx*distance*sign,minY,maxY);
-          const fraction=bodyMotionFraction(s,f,f.x,f.y,tx,ty);
-          tx=f.x+(tx-f.x)*fraction;ty=f.y+(ty-f.y)*fraction;
-          const other=f===a?b:a,candidate=Math.hypot(tx-other.x,ty-other.y);
-          if(candidate>bestD&&canSlide(s,f,f.x,f.y,tx,ty)){
-            best={f,tx,ty};bestD=candidate;
-          }
-        }
-        if(best){best.f.x=best.tx;best.f.y=best.ty;}
-      }
-    }
-    if(!unresolved)break;
-  }
-}
-function resolveArcadeBladeClashes(s) {
+function resolveArcadeBladeClashes(s: SimGame) {
   // Each successful pair removes both attacks from this tick. Other independent
   // pairs may still collide; body damage only resolves after all blade stops.
   for(let i=0;i<Math.floor(s.fighters.length/2);i++){
@@ -2778,7 +2414,7 @@ function resolveArcadeBladeClashes(s) {
     if(!contact)break;
     const {a,b,x,y,groundY,bladeA,bladeB,offhandA,offhandB,bladeIdA,bladeIdB}=contact;
     if(!atk(a)||!atk(b)||!a.alive||!b.alive||a.team===b.team)break;
-    for(const [f,blade,offhand] of [[a,bladeA,offhandA],[b,bladeB,offhandB]]){
+    for(const [f,blade,offhand] of [[a,bladeA,offhandA],[b,bladeB,offhandB]] as const){
       f.clashX=x;f.clashY=y;f.clashFrom={...blade,offhand};f.clashBlade=blade.bladeId;f.clashOffhand=offhand;f.clashRole=f===a?'attacker':'defender';
       f.attack=null;f.attackSpec=null;f.technique='blade_clash';f.contact=true;f.offhandContact=true;f.counterMove=false;
       f.combo=0;f.buffer=null;f.releaseOutcome=null;f.vx=0;f.vy=0;f.energy=Math.max(0,f.energy-5);
@@ -2798,33 +2434,12 @@ function resolveArcadeBladeClashes(s) {
   }
 }
 
-function outcome(s,objectiveWinner){
-  const alive=[0,0];
-  for(const f of s.fighters)if(f.alive)alive[f.team]++;
-  const timeUp=s.time+1e-8>=s.limit;
-  if(!alive[0]||!alive[1]||timeUp||objectiveWinner!==null){
-    let comparative=0;
-    if(alive[0]===alive[1]&&timeUp){
-      const regional=[[],[]];
-      for(const f of s.fighters)if(f.alive)regional[f.team].push(f.injuries);
-      // Compare the worst actual regional condition first, then remaining bodies.
-      for(const side of regional)side.sort((a,b)=>compareArcadeDanger(b,a));
-      for(let i=0;i<alive[0]&&!comparative;i++)comparative=compareArcadeDanger(regional[0][i],regional[1][i]);
-    }
-    const winner=!alive[0]&&!alive[1]?null:!alive[0]?1:!alive[1]?0:objectiveWinner??
-      objectiveOutcome(s,{timedOut:true})??(alive[0]!==alive[1]?Number(alive[1]>alive[0]):comparative===0?null:Number(comparative>0));
-    s.phase=winner===0?'won':winner===1?'lost':'draw';
-    s.endReason=!alive[0]||!alive[1]?'elimination':objectiveWinner!==null?s.config.rule:'timeout';
-    const lead=s.fighters.find(f=>f.alive&&f.team===(winner??0))??s.fighters[0];
-    event(s,'round',lead,s.width/2,s.height/2,{phase:s.phase,reason:s.endReason});
-  }
-}
-function tick(s,dt,input){
+function tick(s: SimGame,dt: number,input: ArcadeInput){
   s.time+=dt;
   if(s.elitePacing){const lift=pacingLift(s);s.elitePacing.stage=lift===0?'measured':lift===1?'decisive':'opening';}
   s.weather=environmentAt(s.config.weather,s.weatherSeed,s.time*60);
   const top=[-1,-1];s.liveByTeam=[0,0];
-  for(const f of s.fighters)if(f.alive){top[f.team]=Math.max(top[f.team],f.career.gradeIndex);s.liveByTeam[f.team]++;}
+  for(const f of s.fighters)if(f.alive){top[f.team]=Math.max(top[f.team],f.career.gradeIndex);s.liveByTeam![f.team]++;}
   for(const f of s.fighters)f.rankDominance=top[1-f.team]<0?0:f.career.gradeIndex-top[1-f.team];
   const order=(++s.tick%2?s.fighters:[...s.fighters].reverse());
   for(const f of order){
@@ -2879,27 +2494,9 @@ function tick(s,dt,input){
       if(pose){f.poseFrom=pose;f.poseEntryDuration=f.styleChoreo&&recovery==='weapon_recover'?.185:.095;}
     }
   }
-  outcome(s,advanceArcadeObjective(s,dt));
+  outcome(s,advanceArcadeObjective(s,dt),event);
 }
 /** Mutates and returns state. dt in seconds; attack/dash inputs are rising-edge actions; guard is held. */
-export function stepArcade(s,dt,input={}){
-  if(!s||s.phase!=='playing'||!Number.isFinite(dt)||dt<=0)return s;
-  const command=input.order==='advance'?'push':input.order==='retreat'?'regroup':input.order;
-  if(s.mode==='command'&&['push','hold','regroup','flank'].includes(command)&&command!==s.order){
-    s.order=command;
-    for(const f of s.fighters)if(f.team===0)f.orderAnchor={x:f.x,y:f.y};
-  }
-  const edge={};
-  if(typeof input.technique==='string'&&input.technique!==s.edges.technique)edge.technique=input.technique;
-  s.edges.technique=input.technique??null;
-  for(const name of ['strike','heavy','dash','force','phase','feint','jump']){
-    edge[name]=Boolean(input[name]&&!s.edges[name]);
-    s.edges[name]=Boolean(input[name]);
-  }
-  const count=Math.ceil(Math.min(dt,.12)*120), step=Math.min(dt,.12)/count;
-  for(let index=0;index<count&&s.phase==='playing';index++){
-    const controls={x:input.x,y:input.y,aimX:input.aimX,aimY:input.aimY,guard:input.guard,walk:input.walk,...(index===0?edge:{})};
-    tick(s,step,controls);
-  }
-  return s;
+export function stepArcade(s: SimGame,dt: number,input: ArcadeInput={}){
+  return stepGame(s,dt,input,tick);
 }

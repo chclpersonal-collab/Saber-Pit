@@ -2,13 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import ts from 'typescript';
 import { sampleSharedCombatBeats, applySharedCombatBeat } from '../dist/combat-sequences.js';
 
 const pair = () => [{id:'blue-0',team:0,x:20,y:30,alive:true,attack:{kind:'saber',target:'red-0',startedTick:10,resolveTick:30}},
   {id:'red-0',team:1,x:55,y:30,alive:true}];
-test('Phase 7 leaves the entire authoritative move chooser byte-for-byte unchanged', () => {
+test('Phase 7 leaves the entire authoritative move chooser unchanged after JS normalization', () => {
   const source=readFileSync(new URL('../dist/combat-sequences.js',import.meta.url),'utf8').split('// The functions above')[0].trim().replace(/\r\n/g,'\n').replace(/\?v=1\.4\.0/g,'');
-  assert.equal(createHash('sha256').update(source).digest('hex'),'1f334669026ebece2d275ca020e98db4e3ddba1a5f737da8c565c1a8772c3725');
+  // Preserve the original source-level behavior lock regardless of output
+  // formatting and parentheses around a single arrow parameter added by tsc.
+  const parsed=ts.createSourceFile('move-chooser.js',source,ts.ScriptTarget.ES2022,true,ts.ScriptKind.JS);
+  const normalized=ts.createPrinter({removeComments:true,newLine:ts.NewLineKind.LineFeed})
+    .printFile(parsed).replace(/\(\s*([a-zA-Z_$][\w$]*)\s*\)\s*=>/g,'$1 =>');
+  assert.equal(createHash('sha256').update(normalized).digest('hex'),'c01ec544098a92839ea4f9d56b0eb1298e5be4c8ddad4f250dd6aaf0155863ca');
 });
 test('one real attack shares a clock and opposed torso reactions across both actors', () => {
   const fighters=pair(), before=JSON.stringify(fighters);

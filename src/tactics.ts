@@ -1,12 +1,16 @@
-// @ts-nocheck
 /** Original deterministic game tactics; form names do not imply canonical choreography. */
 import { FORMS } from './content.js?v=1.4.0';
 
+export interface TacticsContext {
+  combatSkill?: number; crowdRecoveryTicks?: number; distance?: number; enemyEnergy?: number; enemyRecoveryTicks?: number; enemySaberRange?: number; enemyStaggerTicks?: number; energy?: number; energyReserve?: number; forceControlTargets?: number; forceCost?: number; forceRange?: number; forceWindupTicks?: number; guardCost?: number; nearbyAllies?: number; nearbyEnemies?: number; parryWindowTicks?: number; reactionTicks?: number; saberCost?: number; saberMoveIndex?: number; saberRange?: number; saberRecoveryTicks?: number; saberWindupTicks?: number; secondaryThreatTicks?: number; threatAgeTicks?: number; threatCount?: number; threatTicks?: number;
+  comboReady?: boolean; counterReady?: boolean; dashReady?: boolean; enemyStaggered?: boolean; forceLineOfSight?: boolean; forceReady?: boolean; forceRequested?: boolean; guardOrdered?: boolean; saberLineOfSight?: boolean; saberReady?: boolean; targetVisible?: boolean;
+  forceAbilityId?: string | null; formId?: string; order?: string; threatKind?: string | null;
+}
 const DEFENSIVE = new Set(['soresu', 'shien', 'djem_so', 'vaapad']);
 const CROWD_CONTROL = new Set(['force_repulse', 'force_sweep']);
-const finite = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-const nonnegative = (value, fallback = 0) => Math.max(0, finite(value, fallback));
-const remaining = value => typeof value === 'number' && value >= 0 ? value : Infinity;
+const finite = (value: unknown, fallback: number) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+const nonnegative = (value: unknown, fallback = 0) => Math.max(0, finite(value, fallback));
+const remaining = (value: unknown) => typeof value === 'number' && value >= 0 ? value : Infinity;
 
 /**
  * Decide from an immutable, primitive snapshot. The engine owns target selection,
@@ -26,10 +30,10 @@ const remaining = value => typeof value === 'number' && value >= 0 ? value : Inf
  * Movement applies only to local duels
  * and must never replace a retreat order or a strategic cover destination.
  */
-export function chooseAction(context = {}) {
+export function chooseAction(context: TacticsContext = {}) {
   const c = context && typeof context === 'object' ? context : {};
   const formId = typeof c.formId === 'string' && Object.hasOwn(FORMS, c.formId) ? c.formId : 'shii_cho';
-  const form = FORMS[formId], defensive = DEFENSIVE.has(formId), mobile = formId === 'ataru';
+  const form = FORMS[formId as keyof typeof FORMS], defensive = DEFENSIVE.has(formId), mobile = formId === 'ataru';
   const energy = nonnegative(c.energy), distance = nonnegative(c.distance, Infinity);
   const saberRange = nonnegative(c.saberRange), forceRange = nonnegative(c.forceRange);
   const saberCost = Math.max(1, nonnegative(c.saberCost, 8));
@@ -37,7 +41,7 @@ export function chooseAction(context = {}) {
   const forceCost = Math.max(1, nonnegative(c.forceCost, Infinity));
   const skill = Math.max(0, Math.min(1, finite(c.combatSkill, 0)));
   const reserve = Math.max(formId === 'juyo' ? 4 : formId === 'niman' ? 12 : Math.min(12, form.blockCost), nonnegative(c.energyReserve));
-  const result = (action, reason, move = 'hold', dash = false) => ({ action, move, dash, reason, reserve, abilityId: c.forceAbilityId ?? null, ...(Number.isInteger(c.saberMoveIndex) ? { moveIndex: c.saberMoveIndex } : {}) });
+  const result = (action: 'wait' | 'saber' | 'guard' | 'force' | 'recover', reason: string, move: 'hold' | 'evade' | 'circle' | 'close' | 'space' = 'hold', dash = false) => ({ action, move, dash, reason, reserve, abilityId: c.forceAbilityId ?? null, ...(Number.isInteger(c.saberMoveIndex) ? { moveIndex: c.saberMoveIndex } : {}) });
   // Hidden actors must not supply a pursuit destination or an attack. With no
   // selected target, the engine still follows its public strategic objective.
   if (c.targetVisible === false) return result('wait', 'No visible target');
@@ -51,12 +55,12 @@ export function chooseAction(context = {}) {
   const canGuard = energy >= guardCost;
   const threatTicks = finite(c.threatTicks, Infinity);
   const reacted = finite(c.threatAgeTicks, Infinity) >= nonnegative(c.reactionTicks);
-  const incoming = reacted && ['saber', 'force'].includes(c.threatKind) && threatTicks >= 0 && threatTicks <= 24;
+  const incoming = reacted && ['saber', 'force'].includes(c.threatKind!) && threatTicks >= 0 && threatTicks <= 24;
   const forceWindupTicks = Math.max(1, nonnegative(c.forceWindupTicks, Infinity));
   const enemySaberRange = nonnegative(c.enemySaberRange, saberRange);
   const closeEnemySaber = saberClear && distance <= enemySaberRange + 12;
   const recoveryTicks = Math.max(nonnegative(c.enemyRecoveryTicks), nonnegative(c.enemyStaggerTicks));
-  const attackArrivesDuringCast = ['saber', 'force'].includes(c.threatKind) && threatTicks >= 0 && threatTicks <= forceWindupTicks;
+  const attackArrivesDuringCast = ['saber', 'force'].includes(c.threatKind!) && threatTicks >= 0 && threatTicks <= forceWindupTicks;
   const recoveryOpening = closeEnemySaber && recoveryTicks > forceWindupTicks && !attackArrivesDuringCast;
   const canForce = forceAvailable && (formId !== 'niman' && skill < .28 || (!attackArrivesDuringCast && (!closeEnemySaber || recoveryOpening)));
   const unsafeRequestedCast = c.forceRequested === true && inSaber && incoming;
@@ -69,13 +73,13 @@ export function chooseAction(context = {}) {
   const crowded = skill >= .5 && nearbyEnemies >= 2 && nearbyEnemies > nearbyAllies + 1 && distance < 190 && c.order !== 'retreat';
   const saberWindupTicks = Math.max(1, remaining(c.saberWindupTicks));
   const secondaryThreatTicks = remaining(c.secondaryThreatTicks);
-  const readThreatTicks = Math.min(reacted && ['saber', 'force'].includes(c.threatKind) ? remaining(c.threatTicks) : Infinity, secondaryThreatTicks);
+  const readThreatTicks = Math.min(reacted && ['saber', 'force'].includes(c.threatKind!) ? remaining(c.threatTicks) : Infinity, secondaryThreatTicks);
   const crowdIncoming = crowded && readThreatTicks <= 24;
   const threatenedCommitment = crowded && readThreatTicks <= saberWindupTicks + 2;
   const crowdCastSafe = !crowded || (typeof c.crowdRecoveryTicks === 'number' &&
     c.crowdRecoveryTicks > forceWindupTicks && secondaryThreatTicks > forceWindupTicks);
   const safeForce = canForce && crowdCastSafe;
-  const controlOpening = crowded && c.guardOrdered !== true && safeForce && CROWD_CONTROL.has(c.forceAbilityId) &&
+  const controlOpening = crowded && c.guardOrdered !== true && safeForce && CROWD_CONTROL.has(c.forceAbilityId!) &&
     nonnegative(c.forceControlTargets) >= 2 && energy >= forceCost + reserve;
 
   // An earned, brief counter window is more valuable than a fresh slow cast.
@@ -135,7 +139,7 @@ export function chooseAction(context = {}) {
   if (formId === 'niman' && inForce && distance > saberRange + 18) return c.order === 'advance'
     ? result('wait', 'Advance while Force recovers', 'close')
     : result('wait', 'Hold Force spacing');
-  if (inSaber) return result(canGuard ? 'guard' : 'wait', 'Wait for saber recovery', skill >= .5 && !incoming && c.enemyRecoveryTicks < 8 && c.saberRecoveryTicks > 12 ? 'space' : 'hold');
+  if (inSaber) return result(canGuard ? 'guard' : 'wait', 'Wait for saber recovery', skill >= .5 && !incoming && c.enemyRecoveryTicks! < 8 && c.saberRecoveryTicks! > 12 ? 'space' : 'hold');
   const dash = mobile && canDash && distance > saberRange * 1.4 && distance < 210 && c.order !== 'hold';
   return result('wait', dash ? 'Dash into saber range' : 'Close toward saber range', 'close', dash);
 }

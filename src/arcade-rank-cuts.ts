@@ -1,7 +1,7 @@
-// @ts-nocheck
+type RankRow=[string,string,string,string,number,number,number,number,number,number,number,number,number];
 /** Additional original saber commitments. Ranks unlock alternatives, not
  * stronger copies: each cut exchanges reach, timing, coverage or recovery. */
-const rows={
+const rows:Record<string,RankRow[]>={
   shii_cho:[
     ['cross_step','Cross-Step Cut','arc','inside',-1.45,.95, .259,.610, 94,1.39,15,10,124],
     ['return_gate','Return Gate','arc','outside',1.60,-1.15, .300,.730,103,1.59,22,19,124],
@@ -38,7 +38,7 @@ const rows={
     ['backward_wheel','Backward Wheel','arc','wide',-1.76,1.66, .357,.832,115,2.02,29,30,174],
     ['half_beat_rake','Half-Beat Rake','diagonal','intercept',1.13,-1.39, .178,.610,88,1.04,21,22,165]],
 };
-const prefixes={shii_cho:'sc',makashi:'mk',soresu:'sr',ataru:'at',djem_so:'ds',niman:'nm',juyo:'jy'};
+const prefixes:Record<string,string>={shii_cho:'sc',makashi:'mk',soresu:'sr',ataru:'at',djem_so:'ds',niman:'nm',juyo:'jy'};
 const minRanks=[2,7,10,14];
 const roles=['light','heavy','crowd','light'];
 const keys=Object.entries(rows);

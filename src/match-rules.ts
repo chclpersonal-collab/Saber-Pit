@@ -1,4 +1,3 @@
-// @ts-nocheck
 /** Pure match configuration, presentation and settlement. No campaign mutation. */
 export const MATCH_MODES = Object.freeze({
   control: Object.freeze({
@@ -18,7 +17,19 @@ export const ROUND_DURATIONS = Object.freeze([45, 90, 150]);
 export const DEFAULT_MATCH_RULES = Object.freeze({ matchMode: 'control', roundDuration: 90, targetScore: 30 });
 
 /** Keep older campaigns on their original 90-second, 30-point control rules. */
-export function normalizeMatchRules(options = {}) {
+export interface MatchRulesInput {
+  matchMode?: string | null;
+  roundDuration?: number | null;
+  targetScore?: number | null;
+}
+interface RoundOutcomeInput {
+  config?: MatchRulesInput | null;
+  roundDuration?: number;
+  soldiers: readonly {alive: boolean; team: number; hp: number}[];
+  objective?: {points?: readonly number[]};
+  tick: number;
+}
+export function normalizeMatchRules(options: MatchRulesInput = {}) {
   if (options === null || typeof options !== 'object' || Array.isArray(options)) throw new RangeError('Invalid match rules');
   const matchMode = options.matchMode ?? DEFAULT_MATCH_RULES.matchMode;
   if (typeof matchMode !== 'string' || !Object.hasOwn(MATCH_MODES, matchMode)) throw new RangeError('Unknown match mode');
@@ -27,11 +38,11 @@ export function normalizeMatchRules(options = {}) {
   const requiredTarget = matchMode === 'relic' ? 3 : DEFAULT_MATCH_RULES.targetScore;
   const targetScore = options.targetScore ?? requiredTarget;
   if (targetScore !== requiredTarget) throw new RangeError(matchMode === 'relic' ? 'Relic target must be 3 deliveries' : 'Signal target must be 30 points');
-  return { matchMode, roundDuration, targetScore };
+  return { matchMode: matchMode as keyof typeof MATCH_MODES, roundDuration, targetScore };
 }
 
 /** Shared copy keeps setup, the live objective HUD and round reports consistent. */
-export function describeMatchRules(options = {}) {
+export function describeMatchRules(options: MatchRulesInput = {}) {
   const rules = normalizeMatchRules(options), mode = MATCH_MODES[rules.matchMode];
   const relic = rules.matchMode === 'relic';
   const timeoutLabel = relic ? 'Deliveries, then survivors, then health' : mode.objectiveEnabled ? 'Signal points, then survivors, then health' : 'Survivors, then health';
@@ -48,8 +59,8 @@ export function describeMatchRules(options = {}) {
   };
 }
 
-const compare = values => values[0] === values[1] ? null : values[0] > values[1] ? 0 : 1;
-const thousandths = value => Math.round(value * 1000);
+const compare = (values: readonly number[]): 0 | 1 | null => values[0] === values[1] ? null : values[0] > values[1] ? 0 : 1;
+const thousandths = (value: number) => Math.round(value * 1000);
 
 /**
  * Return a detached settlement or null while the round is still playing.
@@ -58,7 +69,7 @@ const thousandths = value => Math.round(value * 1000);
  * Elimination takes precedence over capture, including simultaneous mutual loss.
  * Timeout comparisons use integer thousandths, preserving legacy precision.
  */
-export function resolveRoundOutcome(game, tickRate = 60) {
+export function resolveRoundOutcome(game: RoundOutcomeInput, tickRate = 60) {
   if (!Number.isFinite(tickRate) || tickRate <= 0) throw new RangeError('Tick rate must be positive');
   const rules = normalizeMatchRules(game.config ?? { roundDuration: game.roundDuration });
   const sides = [0, 1].map(team => game.soldiers.filter(soldier => soldier.alive && soldier.team === team));

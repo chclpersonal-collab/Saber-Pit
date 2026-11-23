@@ -1,21 +1,21 @@
-// @ts-nocheck
 /** Versioned, mirrored battlefields. The original map catalog remains untouched for old saves. */
 import { MAPS, createTerrain } from './content.js?v=1.4.0';
 import { ENVIRONMENTS } from './environment.js?v=1.4.0';
 
 export const MAP_GEOMETRY_VERSION = 1;
-export const MAP_SIZES = Object.freeze(Object.fromEntries([
+type MapSize = 'small' | 'medium' | 'large';
+export const MAP_SIZES = Object.freeze(Object.fromEntries(([
   ['small', 'Small', 960, 540], ['medium', 'Medium', 1280, 720], ['large', 'Large', 1600, 900],
-].map(([id, name, width, height]) => [id, Object.freeze({ id, name, width, height })])));
-const round = number => Math.round(number * 1000) / 1000;
-function seedNumber(seed) {
+] as const).map(([id, name, width, height]) => [id, Object.freeze({ id, name, width, height })] as const)));
+const round = (number: number) => Math.round(number * 1000) / 1000;
+function seedNumber(seed: unknown) {
   if (typeof seed === 'number' && Number.isFinite(seed)) return seed >>> 0;
   let value = 2166136261;
   for (const char of String(seed)) value = Math.imul(value ^ char.charCodeAt(0), 16777619);
   return value >>> 0;
 }
-function sizes(input) {
-  return [0, 1].map(team => Number.isInteger(input?.[team]) && input[team] >= 1 && input[team] <= 15 ? input[team] : 15);
+function sizes(input?: readonly number[]) {
+  return [0, 1].map(team => Number.isInteger(input?.[team]) && input![team] >= 1 && input![team] <= 15 ? input![team] : 15);
 }
 const DESCRIPTIONS = {
   crossroads: 'Three open approaches cross a field of directional barricades and central walls.',
@@ -28,13 +28,14 @@ const PALETTES = {
   craterfield: ['#b9b190', '#bcb28d', '#9fa987'],
 };
 /** All slots retain stable lane IDs; lane is not a geometric row. Never mutates catalogs. */
-export function createBattlefield(seed = 1, options = {}) {
+export interface BattlefieldOptions {mapSize?: MapSize | 'legacy' | string; terrain?: string | null; teamSizes?: readonly number[]; environment?: string}
+export function createBattlefield(seed: unknown = 1, options: BattlefieldOptions = {}) {
   options = options && typeof options === 'object' ? options : {};
   if (options.mapSize === 'legacy') return createTerrain(seed, options.terrain ?? null);
-  const preset = Object.hasOwn(MAP_SIZES, options.mapSize) ? MAP_SIZES[options.mapSize] : MAP_SIZES.medium;
+  const preset = Object.hasOwn(MAP_SIZES, options.mapSize!) ? MAP_SIZES[options.mapSize!] : MAP_SIZES.medium;
   const template = MAPS.find(map => map.id === options.terrain) || MAPS[seedNumber(seed) % MAPS.length];
   const { width, height } = preset, teamSizes = sizes(options.teamSizes);
-  const environment = Object.hasOwn(ENVIRONMENTS, options.environment) ? options.environment : 'clear';
+  const environment = Object.hasOwn(ENVIRONMENTS, options.environment!) ? options.environment! : 'clear';
   const bounds = { minX: 40, minY: 50, maxX: width - 40, maxY: height - 50 };
   const rows = [.18, .34, .5, .66, .82].map(y => round(height * y));
   const banks = [.18, .31, .44];
@@ -63,8 +64,8 @@ export function createBattlefield(seed = 1, options = {}) {
   const wallRows = template.id === 'zigzag' ? [[.27, .1], [.63, .1]] : template.id === 'craterfield' ? [[.25, .14], [.61, .14]] : [[.27, .12], [.61, .12]];
   wallRows.forEach(([y, h], index) => solids.push({ id: `wall-${index}`, kind: 'wall',
     x: round(width / 2 - 18), y: round(height * y), width: 36, height: round(height * h) }));
-  const zones = [];
-  const addMirroredZone = (name, kind, x, y, w, h, moveCost, damagePerSecond = 0) => {
+  const zones: import("./terrain.js").TerrainZone[] = [];
+  const addMirroredZone = (name: string, kind: string, x: number, y: number, w: number, h: number, moveCost: number, damagePerSecond = 0) => {
     for (const team of [0, 1]) zones.push({ id: `${name}-${team}`, kind,
       x: round(team === 0 ? x : width - x - w), y: round(y), width: round(w), height: round(h), moveCost, damagePerSecond });
   };

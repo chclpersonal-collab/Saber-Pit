@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { sampleCombatPose } from './choreography.js?v=1.4.0';
 import { formMoveById } from './combat-forms.js?v=1.4.0';
 /** Depth-aware presentation rig. All lengths are local sprite pixels; z points
@@ -6,13 +5,23 @@ import { formMoveById } from './combat-forms.js?v=1.4.0';
  * sampleFighterRig -> drawFighterRig, inside the caller's existing sprite scale.
  * The rig owns facing/lean/crouch. The caller owns world position and airborne roll.
  */
-const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-const mix = (a, b, t) => a + (b - a) * t;
-const vec = (x, y, z = 0) => ({ x, y, z });
-const add = (a, b) => vec(a.x + b.x, a.y + b.y, a.z + b.z);
-const midpoint = (a, b, bend = 0, depth = 0) => vec((a.x+b.x)/2, (a.y+b.y)/2+bend, (a.z+b.z)/2+depth);
-const PROFILES = Object.freeze({
+interface Joint{x:number;y:number;z:number}
+interface ScreenPoint{x:number;y:number}
+type ProjectedJoint=ReturnType<typeof projectJoint>;
+interface RigBlade{hand:string;tip:string;hilt:string;trail:ProjectedJoint;trailJoint:Joint;trailOpacity:number;offhand:boolean;length:number}
+interface RigAnimation{direction?:number;plane?:string;stance?:string}
+interface RigMove{animation?:RigAnimation;motion?:string}
+interface RigActor{moving?:boolean;state?:string;facing?:number;team?:number;guard?:boolean;lane?:number;form?:string;comboUntil?:number;attack?:{kind?:string;move?:RigMove;offhand?:boolean;offhandResolveTick?:number;resolveTick?:number;startedTick?:number}|null}
+interface RigPose{phase?:string;direction?:number;depth?:number;plane?:string;angle?:number;bladeYaw?:number;twist?:number;lean?:number;crouch?:number;footwork?:number;extension?:number;handHeight?:number;offhandActive?:boolean;offAngle?:number;offBladeYaw?:number;offBladePitch?:number;bladePitch?:number;trail?:number;bodyRoll?:number}
+interface RigOptions{fighter?:RigActor;tick?:number;pose?:RigPose;motion?:string;move?:RigMove|null;swing?:{tick:number;form?:string;moveId?:string}|null;flight?:{airborne?:boolean;rotationAxis?:string;visualRotation?:number;rotation?:number;landingCompression?:number;tuck?:number;bank?:number}|null;dual?:boolean;reducedMotion?:boolean;aimAngle?:number;moving?:boolean}
+interface FighterRig{joints:Record<string,Joint>;projected:Record<string,ProjectedJoint>;blades:RigBlade[];phase:string;motion:string;twist:number;facing:number;dual:boolean;progress:number;aimAngle:number;yaw:number;backFacing:boolean}
+const finite = (n:number|undefined, fallback = 0) => Number.isFinite(n) ? n as number : fallback;
+const clamp = (n:number, lo:number, hi:number) => Math.max(lo, Math.min(hi, n));
+const mix = (a:number, b:number, t:number) => a + (b - a) * t;
+const vec = (x:number, y:number, z = 0) => ({ x, y, z });
+const add = (a:Joint, b:Joint) => vec(a.x + b.x, a.y + b.y, a.z + b.z);
+const midpoint = (a:Joint, b:Joint, bend = 0, depth = 0) => vec((a.x+b.x)/2, (a.y+b.y)/2+bend, (a.z+b.z)/2+depth);
+const PROFILES:Readonly<Record<string,{depth:number;twist:number;hand:number;spread:number}>> = Object.freeze({
   sweep: { depth: 11, twist: .72, hand: 0, spread: 6 },
   thrust: { depth: 3, twist: .28, hand: -1, spread: 9 },
   orbit: { depth: 16, twist: 1.05, hand: -4, spread: 7 },
@@ -26,7 +35,7 @@ const PROFILES = Object.freeze({
 
 /** Weak perspective keeps the established 2D art style while foreshortening
  * limbs and blades that turn into/out of the screen. */
-export function projectJoint(point = {}, facing = 1) {
+export function projectJoint(point:Partial<Joint> = {}, facing = 1) {
   const z = clamp(finite(point.z), -75, 75);
   const scale = 1 + z / 200;
   return { x: finite(point.x) * (facing < 0 ? -1 : 1) * scale,
@@ -35,7 +44,7 @@ export function projectJoint(point = {}, facing = 1) {
 
 export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = 'sweep',
   move = null, swing = null, flight = null, dual = false, reducedMotion = false, aimAngle = 0,
-  moving = fighter.moving ?? fighter.state === 'moving' } = {}) {
+  moving = fighter.moving ?? fighter.state === 'moving' }:RigOptions = {}):FighterRig {
   const profile = PROFILES[motion] || PROFILES.sweep;
   const animation = move?.animation || fighter.attack?.move?.animation || {};
   const yaw = !reducedMotion && flight?.airborne && flight.rotationAxis === 'yaw' ? finite(flight.visualRotation,finite(flight.rotation)) : 0;
@@ -44,13 +53,13 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
   const attacking = ['anticipation', 'strike', 'follow-through', 'recovery'].includes(phase);
   const attack = fighter.attack;
   const contactTick = attack?.offhand ? finite(attack.offhandResolveTick,attack.resolveTick) : attack?.resolveTick;
-  const startTick = attack?.offhand ? contactTick-7 : attack?.startedTick;
+  const startTick = attack?.offhand ? (contactTick as number)-7 : attack?.startedTick;
   const progress = attack ? clamp((tick-finite(startTick,tick)) / Math.max(1,finite(contactTick,tick+1)-finite(startTick,tick)),0,1)
     : swing ? clamp((tick-finite(swing.tick,tick))/22,0,1) : 0;
   const pulse = attacking ? Math.sin(progress * Math.PI) : 0;
   const direction = finite(pose.direction, finite(animation.direction,1));
   // Authored choreography depth is an accent, expanded into local rig pixels.
-  const depth = reducedMotion ? 0 : Number.isFinite(pose.depth) ? clamp(pose.depth * 2.8,-18,18) : profile.depth * pulse * direction;
+  const depth = reducedMotion ? 0 : Number.isFinite(pose.depth) ? clamp((pose.depth as number) * 2.8,-18,18) : profile.depth * pulse * direction;
   const plane = pose.plane || animation.plane || (motion==='thrust'?'thrust':motion==='cleave'?'vertical':'diagonal');
   const attackWeight = attacking && !reducedMotion ? 1 : 0;
   const swingYaw = finite(pose.bladeYaw, finite(pose.angle)-aimAngle);
@@ -92,7 +101,7 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
   // therefore travel back-to-front in X/Z, rather than merely rotating a saber
   // above an otherwise motionless hand. Keep inactive guard hands independent.
   const arc = reducedMotion ? 0 : pulse;
-  const placeGrip=(hand,angle,active)=>{
+  const placeGrip=(hand:Joint,angle:number,active:boolean)=>{
     if (!attacking || reducedMotion || !active) return;
     const azimuth=plane==='vertical'?0:angle;
     const radius=8+extension*.35;
@@ -123,7 +132,7 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
   const footMain = vec(spread+stride*7.6+reachStep,12-liftMain-stepLift,3+stride*1.4);
   const footOff = vec(-spread-stride*7.6-backBrace,12-liftOff,-3-stride*1.4);
 
-  const joints = { pelvis, neck, head:add(neck,vec(.3-lean*.12,-6,-twist*.5)),
+  const joints:Record<string,Joint> = { pelvis, neck, head:add(neck,vec(.3-lean*.12,-6,-twist*.5)),
     shoulderMain, shoulderOff, handMain, handOff,
     elbowMain:midpoint(shoulderMain,handMain,5.5+Math.sin(mainAngle)*arc*1.8,-2-twist*1.6),
     elbowOff:midpoint(shoulderOff,handOff,5.5+Math.sin(offAngle)*arc,-2+twist),
@@ -142,8 +151,8 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
       joints['knee'+side].x+=sign*tuck*3;
     }
   }
-  const blades = [];
-  const makeBlade = (hand, angle, length, isOff) => {
+  const blades:RigBlade[] = [];
+  const makeBlade = (hand:string, angle:number, length:number, isOff:boolean) => {
     const explicitYaw=isOff?pose.offBladeYaw:pose.bladeYaw;
     const explicitPitch=isOff?pose.offBladePitch:pose.bladePitch;
     const deviation=angle-aimAngle;
@@ -154,7 +163,7 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
       bladePitch=finite(explicitPitch,plane==='horizontal'?aimAngle:plane==='diagonal'?aimAngle+deviation*.7:plane==='thrust'?aimAngle+deviation*.15:angle);
     }
     // True spherical channels: horizontal azimuth never becomes screen Y.
-    const axisAt=(azimuth,elevation)=>vec(Math.cos(azimuth)*Math.cos(elevation),Math.sin(elevation),Math.sin(azimuth)*Math.cos(elevation));
+    const axisAt=(azimuth:number,elevation:number)=>vec(Math.cos(azimuth)*Math.cos(elevation),Math.sin(elevation),Math.sin(azimuth)*Math.cos(elevation));
     const axis=axisAt(bladeYaw,bladePitch);
     const tip = add(joints[hand],vec(axis.x*length,axis.y*length,axis.z*length));
     const hilt = add(joints[hand],vec(-axis.x*3.5,-axis.y*3.5,-axis.z*3.5));
@@ -179,18 +188,21 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
   // near arm becomes the far arm, with actual foreshortening at quarter turns.
   if (yaw) {
     const c=Math.cos(yaw), s=Math.sin(yaw);
-    const turn=p=>{const x=p.x,z=p.z;p.x=x*c+z*s;p.z=z*c-x*s;};
+    const turn=(p:Joint)=>{const x=p.x,z=p.z;p.x=x*c+z*s;p.z=z*c-x*s;};
     Object.values(joints).forEach(turn);
     for(const b of blades) { turn(b.trailJoint); b.trail=projectJoint(b.trailJoint,facing); }
   }
   // A linked cut inherits the previous physical silhouette as well as blade
   // orientation. Blend only the early chamber, never the real contact phase.
   // Rebuild rigid blades from normalized directions after blending the joints.
-  const linked = attack?.kind==='saber' && swing && startTick>=swing.tick && startTick-swing.tick<22 && fighter.comboUntil>startTick;
+  const linked = attack?.kind==='saber' && swing && (startTick as number)>=swing.tick && (startTick as number)-swing.tick<22 && (fighter.comboUntil as number)>(startTick as number);
   if (linked && !reducedMotion && progress<.28) {
     const oldFighter={...fighter,attack:null};
-    const oldMove=formMoveById(swing.form||fighter.form,swing.moveId);
-    const oldPose=sampleCombatPose({fighter:oldFighter,tick:startTick,swing,move:oldMove,motion:oldMove?.motion||motion,dual,aimAngle});
+    const oldMove=formMoveById((swing.form||fighter.form) as string,swing.moveId as string);
+    // Classic choreography is still migrating its option shape; this is the
+    // actual small subset the rig consumes from the composition boundary.
+    const compose=sampleCombatPose as unknown as (options:RigOptions)=>RigPose;
+    const oldPose=compose({fighter:oldFighter,tick:startTick,swing,move:oldMove,motion:oldMove?.motion||motion,dual,aimAngle});
     const prior=sampleFighterRig({fighter:oldFighter,tick:startTick,pose:oldPose,motion:oldMove?.motion||motion,move:oldMove,swing,flight,dual,aimAngle,moving:false});
     const t=clamp(progress/.28,0,1), blend=t*t*(3-2*t);
     const directions=blades.map(b=>{
@@ -198,7 +210,7 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
       const a=vec(mix(pt.x-ph.x,tip.x-hand.x,blend),mix(pt.y-ph.y,tip.y-hand.y,blend),mix(pt.z-ph.z,tip.z-hand.z,blend));
       const length=Math.hypot(a.x,a.y,a.z)||1;return vec(a.x/length,a.y/length,a.z/length);
     });
-    for(const [name,p] of Object.entries(joints))if(prior.joints[name])for(const axis of ['x','y','z'])p[axis]=mix(prior.joints[name][axis],p[axis],blend);
+    for(const [name,p] of Object.entries(joints))if(prior.joints[name])for(const axis of ['x','y','z'] as const)p[axis]=mix(prior.joints[name][axis],p[axis],blend);
     blades.forEach((b,i)=>{
       const axis=directions[i],hand=joints[b.hand];
       joints[b.tip]=add(hand,vec(axis.x*b.length,axis.y*b.length,axis.z*b.length));
@@ -214,21 +226,21 @@ export function sampleFighterRig({ fighter = {}, tick = 0, pose = {}, motion = '
  * changes draw order and geometry, never color/shading. Lengths and stroke widths
  * use sprite pixels (about four CSS pixels at the normal camera scale).
  * All additive light is isolated to the blade, and canvas state is restored. */
-export function drawFighterRig(ctx, rig, {teamColor='#8ee9d0',blade=teamColor,
-  effects='full',appearance='classic',dark='#071422'} = {}) {
+export function drawFighterRig(ctx:CanvasRenderingContext2D, rig:FighterRig, {teamColor='#8ee9d0',blade=teamColor,
+  effects='full',appearance='classic',dark='#071422'}:{teamColor?:string;blade?:string;effects?:string;appearance?:string;dark?:string} = {}) {
   const p=rig.projected;
   ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
   ctx.globalCompositeOperation='source-over';
-  const stroke=(points,color,width)=>{
+  const stroke=(points:readonly ScreenPoint[],color:string,width:number)=>{
     ctx.beginPath();points.forEach((a,i)=>i?ctx.lineTo(a.x,a.y):ctx.moveTo(a.x,a.y));
     ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
   };
   const broadcast=appearance==='broadcast';
-  const point=(x,y)=>({x,y});
-  const dot=(x,y,r,color)=>{
+  const point=(x:number,y:number)=>({x,y});
+  const dot=(x:number,y:number,r:number,color:string)=>{
     ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
   };
-  const limb=(names,leg)=>{
+  const limb=(names:readonly string[],leg=false)=>{
     const points=names.map(name=>p[name]);
     if (!broadcast) return stroke(points,teamColor,4);
     // A dark outline carries the silhouette over lit flooring; flat trim
@@ -245,7 +257,7 @@ export function drawFighterRig(ctx, rig, {teamColor='#8ee9d0',blade=teamColor,
       stroke([cuff,end],'#e7fcff',1.35);
     }
   };
-  const paintBlade=b=>{
+  const paintBlade=(b:RigBlade)=>{
     const hand=p[b.hand],tip=p[b.tip],hilt=p[b.hilt];
     // Exact additive three-pass saber. Minimal effects keeps a quiet core.
     ctx.save();ctx.globalCompositeOperation='lighter';

@@ -9,7 +9,7 @@ type Fighter={id?:Id;alive?:boolean;hp?:number;gear?:{weapon?:string;grip?:strin
  actionTime?:number;chainFrom?:string;chainDepth?:number;attackSerial?:number;staffLead?:string;weaponFlow?:boolean;
  form?:string;team?:number;airPhase?:string;airHeight?:number;x?:number;y?:number;vx?:number;vy?:number;face?:number;
  jumpKind?:string;jumpBearing?:number};
-type FXEvent={id:number;kind:string;x:number;y:number;fighterId?:Id;targetId?:Id;aId?:Id;bId?:Id;
+type FXEvent={id:number;kind:string;x?:number;y?:number;fighterId?:Id;targetId?:Id;aId?:Id;bId?:Id;
  effect?:string;region?:string;fatal?:boolean;injuryOutcome?:string;injuryTier?:string|number;pressureGraze?:boolean;
  contactX?:number;contactY?:number;contactSpace?:string;phase?:string;guardLane?:string;contact?:number;
  z?:number;groundY?:number;sx?:number;sy?:number;face?:number;angle?:number;feintBearing?:number;team?:number|string;blades?:Blade[]};

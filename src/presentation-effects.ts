@@ -1,23 +1,28 @@
-// @ts-nocheck
 /** Transient, renderer-owned ink. Never stored in a game, never consumes RNG.
  * Coordinates passed to sampleBlade and emitted effects use the caller's world
  * space. advance is real elapsed time, including during presentation hit-stop.
  * Reset on load/new round/reset/visibility/pause to prevent stale trail bridges. */
-const finite = n => Number.isFinite(n) ? n : 0;
-const clamp = n => Math.max(0, Math.min(1, n));
+interface PointInput{x?:number;y?:number}
+interface EffectPoint{x:number;y:number}
+interface Feedback extends PointInput{id?:string|number;type?:string;tick?:number;soldierId?:string|number;targetId?:string|number;outcome?:string;team?:number;x2?:number;y2?:number;abilityId?:string;family?:string}
+interface Contact extends EffectPoint{born:number;color:string;seed:number;count:number;clash:boolean}
+interface ForceMarker{born:number;from:EffectPoint;to:EffectPoint;color:string}
+interface BladeSample{time:number;hilt:EffectPoint;tip:EffectPoint;color:string}
+const finite = (n:number|undefined) => Number.isFinite(n) ? n as number : 0;
+const clamp = (n:number) => Math.max(0, Math.min(1, n));
 export const PRESENTATION_EFFECT_SECONDS = Object.freeze({ flash: 2.5 / 60, sparks: 10 / 60, shake: 10 / 60, trail: 6 / 60, force: .32 });
-const point = p => ({ x: finite(p?.x), y: finite(p?.y) });
-const identity = e => String(e.id ?? `${e.type}:${e.tick}:${e.soldierId}:${e.targetId}:${e.outcome}`);
-const colorOf = e => e.team === 1 ? '#ffc3a4' : '#a0fff1';
+const point = (p:PointInput|null|undefined) => ({ x: finite(p?.x), y: finite(p?.y) });
+const identity = (e:Feedback) => String(e.id ?? `${e.type}:${e.tick}:${e.soldierId}:${e.targetId}:${e.outcome}`);
+const colorOf = (e:Feedback) => e.team === 1 ? '#ffc3a4' : '#a0fff1';
 
 export function createPresentationEffects() {
   let now = 0, reduced = false, stopped = false;
-  const seen = new Set(), contacts = [], forces = [], trails = new Map();
-  function reset(existing = []) {
+  const seen = new Set<string>(), contacts:Contact[] = [], forces:ForceMarker[] = [], trails = new Map<string|number,BladeSample[]>();
+  function reset(existing:readonly Feedback[] = []) {
     now = 0; contacts.length = 0; forces.length = 0; trails.clear(); seen.clear();
     for (const e of existing) seen.add(identity(e));
   }
-  function advance(seconds, { reducedMotion = false, paused = false, visible = true } = {}) {
+  function advance(seconds:number, { reducedMotion = false, paused = false, visible = true } = {}) {
     reduced = !!reducedMotion; stopped = paused || !visible;
     if (stopped) { contacts.length = 0; forces.length = 0; trails.clear(); return; }
     now += Math.max(0, finite(seconds));
@@ -29,11 +34,11 @@ export function createPresentationEffects() {
       if (!samples.length) trails.delete(id);
     }
   }
-  function observe(effects = []) {
+  function observe(effects:readonly Feedback[] = []) {
     for (const e of effects) {
       const id = identity(e); if (seen.has(id)) continue; seen.add(id);
       if (stopped) continue;
-      if (e.type === 'saber' && ['hit', 'blocked'].includes(e.outcome) && !reduced) {
+      if (e.type === 'saber' && ['hit', 'blocked'].includes(e.outcome as string) && !reduced) {
         // One authoritative saber event, not the duplicate block/impact event.
         const seed = [...id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
         contacts.push({ born: now, x: finite(e.x2 ?? e.x), y: finite(e.y2 ?? e.y), color: colorOf(e), seed, count: 6 + seed % 5, clash: e.outcome === 'blocked' });
@@ -44,13 +49,13 @@ export function createPresentationEffects() {
     // Effects have monotonic per-game IDs; retaining recent IDs also bounds memory.
     if (seen.size > 4096) { const recent = [...seen].slice(-2048); seen.clear(); recent.forEach(id => seen.add(id)); }
   }
-  function sampleBlade(id, hilt, tip, { active = false, color = '#a0fff1' } = {}) {
+  function sampleBlade(id:string|number, hilt:PointInput, tip:PointInput, { active = false, color = '#a0fff1' } = {}) {
     if (reduced || stopped || !active) { trails.delete(id); return; }
     const samples = trails.get(id) || [];
     const last = samples.at(-1), a = point(hilt), b = point(tip);
     // A teleport, camera generation or interrupted sequence must not bridge.
     if (last && Math.hypot(a.x - last.hilt.x, a.y - last.hilt.y) > 100) samples.length = 0;
-    if (!samples.length || now - samples.at(-1).time >= 1 / 60 - 1e-8) {
+    if (!samples.length || now - samples[samples.length-1].time >= 1 / 60 - 1e-8) {
       samples.push({ time: now, hilt: a, tip: b, color });
       while (samples.length > 6) samples.shift();
     }
@@ -58,12 +63,12 @@ export function createPresentationEffects() {
   }
   function shake() {
     if (reduced || stopped || !contacts.length) return { x: 0, y: 0 };
-    const c = contacts.at(-1), t = (now - c.born) / PRESENTATION_EFFECT_SECONDS.shake;
+    const c = contacts[contacts.length-1], t = (now - c.born) / PRESENTATION_EFFECT_SECONDS.shake;
     if (t >= 1) return { x: 0, y: 0 };
     const amplitude = (c.clash ? 3 : 2) * (1 - t) ** 2;
     return { x: Math.sin(t * 42 + c.seed) * amplitude, y: Math.cos(t * 37 + c.seed) * amplitude * .65 };
   }
-  function draw(ctx) {
+  function draw(ctx:CanvasRenderingContext2D) {
     if (stopped) return;
     ctx.save();
     try {

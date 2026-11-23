@@ -13,6 +13,9 @@ await mkdir(build,{recursive:true});
 // Nested archived rulesets are frozen replay inputs, copied byte-for-byte.
 const assetPath=resolve(fileURLToPath(assetSource));
 await cp(assetSource,distOut,{recursive:true,filter:name=>dirname(name)!==assetPath||!name.endsWith('.js')});
+// The diagnostic page used to embed a large untyped controller. Keep the
+// original page runnable in the frozen release and ship the new template here.
+await cp(new URL('animation-lab.html',src),new URL('animation-lab.html',distOut));
 for(const base of ['tests','docs','scripts','package.json']){
   await cp(new URL(base,root),new URL(base,build),{recursive:true});
 }
@@ -38,5 +41,12 @@ for(const name of names){
     if(check.parseDiagnostics.length)throw new Error('Use a checked TS source for TypeScript syntax: '+name);
   }
   await writeFile(output,js);
+}
+for(const page of (await readdir(distOut)).filter(file=>file.endsWith('.html'))){
+  const markup=await readFile(new URL(page,distOut),'utf8');
+  for(const [,attrs,body] of markup.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)){
+    if(!body.trim()||/\btype\s*=\s*["']application\/(?:ld\+)?json["']/i.test(attrs))continue;
+    throw new Error(page+' has an inline script; emit executable code from src/ instead');
+  }
 }
 console.log('Built '+names.length+' browser modules → '+fileURLToPath(distOut));

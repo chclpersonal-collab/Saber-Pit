@@ -1,10 +1,27 @@
-// @ts-nocheck
+import type {StyleLabElements} from './game-dom.js';
+import type {SaberForm} from './arcade-save-types.js';
+import type {ArcadeEvent,ArcadeFighter,ArcadeOptions} from './arcade-engine-api.js';
+type LabStyle = 'king'|'queen'|'rook'|'bishop'|'knight'|'pawn';
+type LabDrill = 'strike'|'walk'|'jump';
+type Move = {id:string;name:string;reach:number;arc:number;mapAction?:string;kind?:string};
+type LabOptions = {style?:string;form?:string;technique?:string;weapon?:string;drill?:string;slot?:number;customDegrees?:number|null;entry?:string;range?:number;stance?:string;defense?:string;fromBearing?:number|null};
+type Timing = {reach:number;windupMs:number;afterReleaseMs:number;stamina:number};
+type LabResult = {id:string;label:string};
+type ReleaseWindow = {lane:boolean;angle:boolean;distance:number;reach:number};
+type LabState = {phase:'jumping'|'walking'|'turning'|'striking'|'recovering'|'done';
+ elapsed:number;remainder:number;committed:boolean;lastId:number;outcome:LabResult|null;window:ReleaseWindow|null;settleAt:number|null;
+ previous?:ReturnType<typeof fighterSamples>;jumpKind?:string;jumpPeak?:number;jumpLabel?:string;
+ timing?:Timing;title?:string;startedFrom?:string|null;damage?:number;knockbackDistance?:number;hitOrigin?:{x:number;y:number;measureAt:number}
+};
+type LabRound = ReturnType<typeof createStyleLabRound>;
+type CompareOptions = LabOptions & {slot:number;style:LabStyle;weapon:string};
+type ComparisonPane = {round:LabRound;fx:ReturnType<typeof createArcadeFX>;waves:ReturnType<typeof createArcadeSwingWaves>;stage:ReturnType<typeof createArcadeStage>};
 import {arcadeExpandedMovesFor} from './arcade-expanded-combat.js?v=3.1.0';
 import {ARCADE_SABER_OPTIONS} from './arcade-loadouts.js?v=3.1.0';
 import {fighterSamples,displayFighters} from './arcade-display.js?v=2.44.0';
 import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=3.2.0';
 import {ARCADE_MOTION_KEY,readArcadeReducedMotion} from './arcade-motion-preference.js?v=2.43.0';
-import {createArcade,stepArcade,ARCADE_FORMS,arcadeMovesFor} from './arcade-engine.js?v=3.0.0';
+import {createArcade,stepArcade,ARCADE_FORMS,arcadeMovesFor} from './arcade-engine-api.js';
 import {ARCADE_CHESS_STYLES,arcadeChessAllowsLane,arcadeChessMove,normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {createArcadeStage,drawArcadeStage} from './arcade-stage.js?v=4.0.0';
 import {drawArcadeFighter} from './arcade-painter.js?v=4.0.0';
@@ -13,62 +30,63 @@ import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
 
 const W=960,H=540, CX=480,CY=318,TICK=1/120, TURN_TIME=.48, SETTLE_TIME=.22;
-const styles=['king','queen','rook','bishop','knight','pawn'];
+const styles:readonly LabStyle[]=['king','queen','rook','bishop','knight','pawn'];
 const labels=['East','Southeast','South','Southwest','West','Northwest','North','Northeast'];
 export const STYLE_LAB_BEARINGS=Object.freeze(labels.map((label,i)=>Object.freeze({label,angle:i*Math.PI/4})));
-const clamp=(n,l,h)=>Math.max(l,Math.min(h,n));
-const wrap=(n)=>((n%8)+8)%8;
-const delta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
-const normalizedDegrees=n=>{const x=n%360;return x<0?x+360:x||0;};
-const entryNames={advance:'on the advance',retreat:'on the retreat',lateral:'out of a side step',guard:'out of guard',pivot:'during a pivot'};
-const bearingName=r=>r.customDegrees===null?STYLE_LAB_BEARINGS[r.slot].label:((Math.round(r.customDegrees*1000)/1000)%360)+'°';
+const clamp=(n:number,l:number,h:number)=>Math.max(l,Math.min(h,n));
+const wrap=(n:number)=>((n%8)+8)%8;
+const delta=(a:number,b:number)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+const normalizedDegrees=(n:number)=>{const x=n%360;return x<0?x+360:x||0;};
+const entryNames:Record<string,string|undefined>={advance:'on the advance',retreat:'on the retreat',lateral:'out of a side step',guard:'out of guard',pivot:'during a pivot'};
+const bearingName=(r:Pick<LabRound,'customDegrees'|'slot'>)=>r.customDegrees===null?STYLE_LAB_BEARINGS[r.slot].label:((Math.round(r.customDegrees*1000)/1000)%360)+'°';
 const travelNotes={
  king:'Tight pivot · free travel',queen:'Wide turn · free travel',rook:'Free travel · straight attacks',
  bishop:'Free travel · diagonal attacks',knight:'Free travel · flank attacks',pawn:'Free travel · short forward attack',
 };
 const startingRange={king:68,queen:108,rook:100,bishop:92,knight:80,pawn:65};
-const formOf=id=>Object.hasOwn(ARCADE_FORMS,id)?id:'shii_cho';
-const selectedMoves=form=>arcadeMovesFor(form,14,{tactical:true,rankCuts:true,circuitCuts:true,arenaCuts:true,exchangeVariety:true,minorMoves:true}).filter(m=>m.mapAction!=='force');
-const selectedStyle=id=>styles.includes(normalizeArcadeChessStyle(id))?id:'queen';
-export function styleLabMoveList(form,kit='single',family='saber'){
+const formOf=(id:unknown):SaberForm=>Object.hasOwn(ARCADE_FORMS,id as PropertyKey)?id as SaberForm:'shii_cho';
+const selectedMoves=(form:SaberForm):Move[]=>arcadeMovesFor(form,14,{tactical:true,rankCuts:true,circuitCuts:true,arenaCuts:true,exchangeVariety:true,minorMoves:true}).filter((m:Move)=>m.mapAction!=='force');
+const selectedStyle=(id:unknown):LabStyle=>styles.includes(normalizeArcadeChessStyle(id) as LabStyle)?id as LabStyle:'queen';
+export function styleLabMoveList(form:unknown,kit='single',family='saber'):Move[]{
  if(family==='saber')return selectedMoves(formOf(form));
  const weapon=ARCADE_SABER_OPTIONS.find(o=>o.id===kit)?.weapon;
  return arcadeExpandedMovesFor(14,{weapon,forceVariants:true}).filter(m=>m.kind===family);
 }
-const moveOf=(form,id,kit)=>['saber','force','free_hand'].flatMap(family=>styleLabMoveList(form,kit,family)).find(m=>m.id===id)??selectedMoves(form)[0];
-const guardFace=(bearing,stance)=>bearing+(stance==='side'?Math.PI/2:stance==='away'?0:Math.PI);
+const moveOf=(form:SaberForm,id?:string,kit?:string)=>['saber','force','free_hand'].flatMap(family=>styleLabMoveList(form,kit,family)).find(m=>m.id===id)??selectedMoves(form)[0];
+const guardFace=(bearing:number,stance:string)=>bearing+(stance==='side'?Math.PI/2:stance==='away'?0:Math.PI);
 
-export function createStyleLabRound(input={}){
+export function createStyleLabRound(input:LabOptions={}){
  const style=selectedStyle(input.style),form=formOf(input.form),move=moveOf(form,input.technique,input.weapon);
- const drill=['walk','jump'].includes(input.drill)?input.drill:'strike';
- const slot=wrap(Number.isInteger(input.slot)?input.slot:0);
- const customDegrees=Number.isFinite(input.customDegrees)?normalizedDegrees(input.customDegrees):null;
+ const drill=['walk','jump'].includes(input.drill!)?input.drill!:'strike';
+ const slot=wrap(Number.isInteger(input.slot)?input.slot!:0);
+ const customDegrees=Number.isFinite(input.customDegrees)?normalizedDegrees(input.customDegrees!):null;
  const bearing=customDegrees===null?STYLE_LAB_BEARINGS[slot].angle:customDegrees*Math.PI/180;
- const entry=['step','turn','guard'].includes(input.entry)?input.entry:'set';
+ const entry=['step','turn','guard'].includes(input.entry!)?input.entry!:'set';
  const range=clamp(Number(input.range)||92,42,156);
  const kit=ARCADE_SABER_OPTIONS.find(o=>o.id===input.weapon)??ARCADE_SABER_OPTIONS[0],weapon=kit.weapon;
- const stance=['side','away'].includes(input.stance)?input.stance:'facing';
+ const stance=['side','away'].includes(input.stance!)?input.stance!:'facing';
  const held=input.defense==='held'&&drill==='strike';
- const spin=Number.isFinite(input.fromBearing)?input.fromBearing:bearing-Math.PI/3;
- const g=createArcade({mode:'duel',rule:'control',terrain:'underpit',form,width:W,height:H,seed:351,
+ const spin=Number.isFinite(input.fromBearing)?input.fromBearing!:bearing-Math.PI/3;
+ const scenario:ArcadeOptions={mode:'duel',rule:'control',terrain:'underpit',form,width:W,height:H,seed:351,
    teamSizes:[1,1],teamForms:[[form],['soresu']],startingRanks:['SSS+V','SSS+V'],chessStyles:[style,'none'],
-   startingSaberWeapon:[weapon,'single'],startingSaberGrip:[kit.grip,'forward'],weaponFlow:true,arenaCuts:true,circuitCuts:true,styleTravel:true,styleChoreo:true,peasantMotion:true,exchangeVariety:true,stanceFlow:true,liveEntry:true,impactPhysics:true,recoveryFlow:true,balancePass:true,closeChoice:true,guardCounterplay:true,minorMoves:true,saberOnly:!move.kind,expandedCombat:Boolean(move.kind),forceVariants:Boolean(move.kind)});
+   startingSaberWeapon:[weapon,'single'],startingSaberGrip:[kit.grip,'forward'],weaponFlow:true,arenaCuts:true,circuitCuts:true,styleTravel:true,styleChoreo:true,peasantMotion:true,exchangeVariety:true,stanceFlow:true,liveEntry:true,impactPhysics:true,recoveryFlow:true,balancePass:true,closeChoice:true,guardCounterplay:true,minorMoves:true,saberOnly:!move.kind,expandedCombat:Boolean(move.kind),forceVariants:Boolean(move.kind)};
+ const g=createArcade(scenario);
  const [fighter,dummy]=g.fighters;
  Object.assign(fighter,{x:CX,y:CY,face:drill==='strike'?spin:0});
  Object.assign(dummy,{x:drill==='jump'?142:drill==='walk'?CX+210:CX+Math.cos(bearing)*range,y:drill==='jump'?444:drill==='walk'?CY+80:CY+Math.sin(bearing)*range,face:guardFace(bearing,stance),
    think:99,action:held?'guard':'stagger',actionDuration:40,displayName:'Training rival',
    ...(held?{actionTime:.2,parryTime:0,guardBearing:guardFace(bearing,stance),guardDirected:true,guardLane:'center'}:{})});
- return {style,form,slot,bearing,customDegrees,entry,range,stance,weapon,move,g,fighter,dummy,drill,
-   phase:drill==='jump'?'jumping':drill==='walk'?'walking':'turning',elapsed:0,remainder:0,committed:false,lastId:0,outcome:null,window:null,settleAt:null};
+ const state:LabState={phase:drill==='jump'?'jumping':drill==='walk'?'walking':'turning',elapsed:0,remainder:0,committed:false,lastId:0,outcome:null,window:null,settleAt:null};
+ return Object.assign({style,form,slot,bearing,customDegrees,entry,range,stance,weapon,move,g,fighter,dummy,drill},state);
 }
-function inspectRelease(r){
+function inspectRelease(r:LabRound):ReleaseWindow|null{
  const {fighter:f,dummy:t}=r,spec=f.attackSpec;
  if(!spec)return null;
  const dx=t.x-f.x,dy=t.y-f.y,bearing=Math.atan2(dy,dx),distance=Math.hypot(dx,dy);
  const lane=spec.expanded||arcadeChessAllowsLane(r.style,{bearing,face:f.face,targetFace:t.face,distance,promoted:f.chessPawn?.promoted===true,styleTravel:true});
- return {lane,angle:Math.abs(delta(bearing,f.face))<=spec.arc,distance,reach:spec.reach+t.radius};
+ return {lane:lane as boolean,angle:Math.abs(delta(bearing,f.face))<=spec.arc,distance,reach:spec.reach+t.radius};
 }
-function classify(r){
+function classify(r:LabRound){
  if(r.outcome)return;
  const w=r.window;
  if(!w){r.outcome={id:'miss',label:'No contact'};return;}
@@ -76,10 +94,10 @@ function classify(r){
  else if(w.distance>w.reach)r.outcome={id:'range',label:'Out of reach'};
  else r.outcome={id:'miss',label:'No contact'};
 }
-export function stepStyleLabRound(r,dt=TICK){
+export function stepStyleLabRound(r:LabRound,dt=TICK){
  if(r.phase==='done'||!Number.isFinite(dt)||dt<=0)return r;
  r.remainder+=clamp(dt,0,.20);
- while(r.remainder+1e-9>=TICK&&r.phase!=='done'){
+ while(r.remainder+1e-9>=TICK&&(r.phase as LabState['phase'])!=='done'){
    r.remainder=Math.max(0,r.remainder-TICK);r.elapsed+=TICK;
    const {g,fighter:f,dummy:d}=r;
    r.previous=fighterSamples(g.fighters);
@@ -89,8 +107,8 @@ export function stepStyleLabRound(r,dt=TICK){
      stepArcade(g,TICK,{jump:launching,x:launching?Math.cos(r.bearing):0,y:launching?Math.sin(r.bearing):0,
        aimX:CX+220,aimY:CY});
      if(launching){
-       const cue=g.events.findLast(e=>e.kind==='jump'&&e.fighterId===f.id);
-       if(cue){r.jumpKind=cue.jumpKind;r.jumpLabel=combatCallout(cue,f)?.label??'Jump';}
+       const cue=g.events.findLast((e:ArcadeEvent)=>e.kind==='jump'&&e.fighterId===f.id);
+       if(cue){r.jumpKind=cue.jumpKind;r.jumpLabel=combatCallout(cue as Parameters<typeof combatCallout>[0],f)?.label??'Jump';}
      }
      r.jumpPeak=Math.max(r.jumpPeak??0,f.airHeight);
      if(r.jumpKind&&f.airPhase==='grounded')r.settleAt??=r.elapsed+.18;
@@ -113,7 +131,7 @@ export function stepStyleLabRound(r,dt=TICK){
      }
      continue;
    }
-   let command={aimX:d.x,aimY:d.y};
+   let command:{aimX:number;aimY:number;x?:number;y?:number;guard?:boolean;technique?:string}={aimX:d.x,aimY:d.y};
    if(!r.committed&&r.elapsed>=TURN_TIME-.14&&r.entry!=='set'){
      const side=r.bearing+Math.PI/2, moving=r.entry==='step'||r.entry==='turn';
      const strength=r.entry==='turn'?.84:.50;
@@ -127,16 +145,16 @@ export function stepStyleLabRound(r,dt=TICK){
    if(!r.committed&&r.elapsed>=TURN_TIME){
      r.committed=true;r.phase='striking';command={...command,technique:r.move.id};
    }
-   if(!r.window&&f.attackSpec?.contact>0&&f.actionTime+TICK>=f.attackSpec.contact)r.window=inspectRelease(r);
+   if(!r.window&&f.attackSpec?.contact!>0&&f.actionTime+TICK>=f.attackSpec!.contact)r.window=inspectRelease(r);
    stepArcade(g,TICK,command);
    // Dummy teaches geometry only; it never deals damage or changes facing
    // patterns after the chosen setup. The attack and all results are engine-led.
    for(const e of g.events){
      if(e.id<=r.lastId)continue;
      r.lastId=e.id;
-     if(e.fighterId===f.id&&e.contact>0&&!e.offhand){
-       r.title=combatCallout(e,f)?.label??r.move.name.toUpperCase();
-       r.startedFrom=entryNames[e.entryKind]??null;
+     if(e.fighterId===f.id&&e.contact!>0&&!e.offhand){
+       r.title=combatCallout(e as Parameters<typeof combatCallout>[0],f)?.label??r.move.name.toUpperCase();
+       r.startedFrom=entryNames[e.entryKind!]??null;
        const spec=f.attackSpec;
        if(spec&&[spec.contact,spec.duration,spec.cost].every(Number.isFinite))r.timing={
          reach:Math.round(spec.reach),windupMs:Math.round(spec.contact*1000), afterReleaseMs:Math.round(Math.max(0,spec.duration-spec.contact)*1000),
@@ -145,12 +163,12 @@ export function stepStyleLabRound(r,dt=TICK){
      }
      if(e.fighterId===f.id&&e.targetId===d.id&&['hit','launch','ko'].includes(e.kind)){
        r.outcome={id:'hit',label:'Confirmed hit'};
-       r.damage=Math.round((r.damage??0)+(Number.isFinite(e.damage)?e.damage:0));
+       r.damage=Math.round((r.damage??0)+(Number.isFinite(e.damage)?e.damage!:0));
        // Measure motion of the rival's body, not the swing trail or screen shake.
        r.hitOrigin??={x:d.x,y:d.y,measureAt:r.elapsed+.18};
      }
      if(e.fighterId===f.id&&e.kind==='expanded_contact'){
-       const verb={anchor:'Slowed rival',veil:'Veiled rival',siphon:'Stamina siphon landed',echoStep:'Echo Step activated'}[e.effect];
+       const verb: string|undefined=({anchor:'Slowed rival',veil:'Veiled rival',siphon:'Stamina siphon landed',echoStep:'Echo Step activated'} as Record<string,string|undefined>)[e.effect!];
        if(verb)r.outcome={id:'effect',label:verb};
      }
      if(e.fighterId===f.id&&e.kind==='force_ward'&&!e.targetId)r.outcome={id:'effect',label:'Ward raised'};
@@ -166,19 +184,19 @@ export function stepStyleLabRound(r,dt=TICK){
  return r;
 }
 
-export const STYLE_LAB_COMPARE=Object.freeze(['king','queen','bishop'].map(style=>Object.freeze({
+export const STYLE_LAB_COMPARE=Object.freeze((['king','queen','bishop'] as const).map(style=>Object.freeze({
   style,form:'shii_cho',technique:'sc_open_cut',slot:1,range:88,weapon:'single',stance:'facing',
   fromBearing:Math.PI/4-Math.PI/3,
 })));
-export const styleLabCanCompareWeapons=family=>family==='saber';
-export function styleLabWeaponCompare(options={}){
+export const styleLabCanCompareWeapons=(family:string)=>family==='saber';
+export function styleLabWeaponCompare(options:LabOptions={}){
  const form=formOf(options.form);
  const technique=styleLabMoveList(form).some(m=>m.id===options.technique)?options.technique:selectedMoves(form)[0].id;
  return ['shoto','single','greatsaber'].map(weapon=>({...options,weapon,form,technique,drill:'strike'}));
 }
-const kitLabel=id=>ARCADE_SABER_OPTIONS.find(o=>o.id===id)?.label??id;
+const kitLabel=(id:string)=>ARCADE_SABER_OPTIONS.find(o=>o.id===id)?.label??id;
 function wire(){
- const $=id=>document.getElementById(id),canvas=$('labCanvas'),ctx=canvas.getContext('2d');
+ const $=<K extends keyof StyleLabElements>(id:K)=>document.getElementById(id) as StyleLabElements[K],canvas=$('labCanvas'),ctx=canvas.getContext('2d')!;
  let reduced=readArcadeReducedMotion();
  window.addEventListener('storage',event=>{if(event.key===ARCADE_MOTION_KEY||event.key===null)reduced=readArcadeReducedMotion();});
  const formSet=$('labForm'),moveSet=$('labMove'),styleSet=$('labStyle'),rangeSet=$('labRange');
@@ -186,19 +204,19 @@ function wire(){
  const buttons=$('labDirections'),cards=$('labResults'),fx=createArcadeFX(),swingWaves=createArcadeSwingWaves();
  const weaponCompare=$('labCompareWeapons'),weaponCompareHint=$('labWeaponCompareHint');
  const timing=$('labTiming'),family=$('labMoveFamily'),pace=$('labPace'),defense=$('labDefense');
- function showTiming(data){
+ function showTiming(data?:Timing|null){
    timing.hidden=!data;if(!data)return;
    timing.textContent=data.windupMs+' ms windup · '+data.afterReleaseMs+' ms after release · '+data.stamina+' stamina · '+data.reach+' px reach';
  }
- let slot=0,round=null,stage=null,isRunning=false,queue=[],auto=null,priorAngle=null,lastFrame=0,hold=0,drill='strike',comparison=[],comparisonNotes=[],compareType='style',compareOptions=STYLE_LAB_COMPARE,originalSlot=0,cellNotes=new Map();
- const opt=(name,value)=>new Option(name,value);
+ let slot=0,round:LabRound,stage:ReturnType<typeof createArcadeStage>,isRunning=false,queue:number[]=[],auto:'full'|'compare'|null=null,priorAngle:number|null=null,lastFrame=0,hold=0,drill:LabDrill='strike',comparison:ComparisonPane[]=[],comparisonNotes:(LabResult|null)[]=[],compareType:'style'|'weapons'='style',compareOptions:readonly CompareOptions[]=STYLE_LAB_COMPARE,originalSlot=0,cellNotes=new Map<number,LabResult>();
+ const opt=(name:string,value:string)=>new Option(name,value);
  weaponSet.replaceChildren(...ARCADE_SABER_OPTIONS.map(o=>opt(o.label,o.id)));weaponSet.value='single';
  styleSet.replaceChildren(...styles.map(id=>opt(ARCADE_CHESS_STYLES[id].label,id)));styleSet.value='queen';
- formSet.replaceChildren(...Object.entries(ARCADE_FORMS).map(([id,s])=>opt(s.label??s.name,id)));formSet.value='shii_cho';
+ formSet.replaceChildren(...Object.entries(ARCADE_FORMS as Record<string,{label?:string;name:string}>).map(([id,s])=>opt(s.label??s.name,id)));formSet.value='shii_cho';
  function moveList(){
    const chosen=moveSet.value;
    const freeAvailable=styleLabMoveList(formSet.value,weaponSet.value,'free_hand').length>0;
-   family.querySelector('option[value=free_hand]').disabled=!freeAvailable;
+   family.querySelector<HTMLOptionElement>('option[value=free_hand]')!.disabled=!freeAvailable;
    if(!freeAvailable&&family.value==='free_hand')family.value='saber';
    moveSet.replaceChildren(...styleLabMoveList(formSet.value,weaponSet.value,family.value).map(m=>opt(m.name,m.id)));
    if([...moveSet.options].some(o=>o.value===chosen))moveSet.value=chosen;
@@ -213,7 +231,7 @@ function wire(){
  function directions(){buttons.value=String(slot);buttons.disabled=isRunning;}
  buttons.addEventListener('change',()=>{if(!isRunning){comparison=[];comparisonNotes=[];cellNotes.clear();results();slot=wrap(Number(buttons.value));angleSet.value='';prepare(false);}});
  function detail(){
-   const style=auto==='compare'&&round?round.style:styleSet.value;
+   const style=auto==='compare'&&round?round.style:styleSet.value as LabStyle;
    $('labHint').textContent=style==='queen'?
      'Wide turn. Strike in any direction by turning to face it; each individual swing still has a limit.':
      style==='king'?'Tight pivot. Turn to any bearing, with short reach and a broad cut.':
@@ -234,37 +252,37 @@ function wire(){
      li.append(name,value);return li;
    }));
  }
- function announce(text){if(status.textContent!==text)status.textContent=text;}
- function prepare(go){
+ function announce(text:string){if(status.textContent!==text)status.textContent=text;}
+ function prepare(go:boolean){
    const previous=round?.fighter?.face;
-   if(go&&auto==='full'&&priorAngle===null&&Number.isFinite(previous))priorAngle=previous;
+   if(go&&auto==='full'&&priorAngle===null&&Number.isFinite(previous))priorAngle=previous!;
    round=createStyleLabRound({...options(),drill:go?drill:'strike'});
    stage=createArcadeStage(round.g.width,round.g.height,1,{mapId:'underpit',terrain:round.g.terrain});
    fx.reset();swingWaves.reset();hold=0;isRunning=go;showTiming(null);
    announce(go?auto==='compare'?'Comparing '+ARCADE_CHESS_STYLES[round.style].label+' · Open Cut':(drill==='jump'?'Jumping toward ':drill==='walk'?'Walking toward ':'Turning toward ')+bearingName(round)+'…':'Ready to practice.');
    directions();detail();
  }
- function refreshWeaponCompare(on){
+ function refreshWeaponCompare(on:boolean){
    const available=styleLabCanCompareWeapons(family.value);
    weaponCompare.disabled=!on||!available;
    weaponCompareHint.hidden=available;
  }
- function enabled(on){
+ function enabled(on:boolean){
    for(const el of [styleSet,formSet,moveSet,rangeSet,stanceSet,weaponSet,family,defense,angleSet,entrySet,$('labStrike'),$('labSpin'),$('labWalk'),$('labJump'),$('labCompare')])el.disabled=!on;
    refreshWeaponCompare(on);
    $('labStop').disabled=on;
    directions();
  }
- function start(all,type='strike'){
+ function start(all:boolean,type:LabDrill='strike'){
    if(isRunning)return;
    drill=type;comparison=[];comparisonNotes=[];cellNotes.clear();results();$('labResultSummary').textContent='Results';
    if(all){auto='full';queue=Array.from({length:8},(_,i)=>wrap(slot+i));priorAngle=STYLE_LAB_BEARINGS[slot].angle-Math.PI/4;}
    else {auto=null;queue=[slot];priorAngle=null;}
-   slot=queue.shift();prepare(true);enabled(false);
+   slot=queue.shift()!;prepare(true);enabled(false);
  }
- function startCompare(type='style'){
+ function startCompare(type:'style'|'weapons'='style'){
    if(isRunning||type==='weapons'&&!styleLabCanCompareWeapons(family.value))return;
-   compareType=type;compareOptions=type==='weapons'?styleLabWeaponCompare(options()):STYLE_LAB_COMPARE;
+   compareType=type;compareOptions=type==='weapons'?styleLabWeaponCompare({...options(),style:styleSet.value as LabStyle}) as CompareOptions[]:STYLE_LAB_COMPARE;
    drill='strike';auto='compare';originalSlot=slot;slot=compareOptions[0].slot;hold=0;showTiming(null);
    comparison=compareOptions.map(options=>{
      const r=createStyleLabRound(options);
@@ -281,17 +299,17 @@ function wire(){
    if(auto==='compare'){slot=originalSlot;comparison=[];comparisonNotes=[];results();}
    isRunning=false;auto=null;queue=[];hold=0;enabled(true);announce('Stopped. Choose a bearing to try again.');
  }
- function paintedRound(r){
+ function paintedRound(r:LabRound){
    const previous=r.phase==='done'?null:r.previous;
-   return {fighters:displayFighters(r.g.fighters,previous,r.remainder),time:previous?Math.max(0,r.g.time-TICK+Math.min(TICK,r.remainder)):r.g.time};
+   return {fighters:displayFighters(r.g.fighters,previous??null,r.remainder),time:previous?Math.max(0,r.g.time-TICK+Math.min(TICK,r.remainder)):r.g.time};
  }
- function paintFighters(fighters,time,waves){
+ function paintFighters(fighters:ArcadeFighter[],time:number,waves:ReturnType<typeof createArcadeSwingWaves>){
    const poses=fighters.slice().sort((a,b)=>a.y-b.y).map(actor=>({actor,rig:sampleArcadeFighter(actor,time,{reducedMotion:reduced})}));
-   if(!reduced)for(const {actor,rig} of poses)waves.sample(actor,arcadeBladeWorld(actor,rig),time);
+   if(!reduced)for(const {actor,rig} of poses)waves.sample(actor,arcadeBladeWorld(actor,rig) as Parameters<typeof waves.sample>[1],time);
    waves.draw(ctx,time,{reducedMotion:reduced});
    for(const {actor,rig} of poses)drawArcadeFighter(ctx,actor,time,{rig,reducedMotion:reduced,outline:true});
  }
- function paintComparison(w,h){
+ function paintComparison(w:number,h:number){
    const gutter=Math.max(1,w*.004),pane=(w-gutter*2)/3;
    for(const [i,{round:r,fx:localFX,waves:localWaves,stage:localStage}] of comparison.entries()){
      const start=i*(pane+gutter),scale=Math.min(pane/256,h/220);
@@ -307,14 +325,14 @@ function wire(){
      const label=(compareType==='weapons'?kitLabel(r.weapon):ARCADE_CHESS_STYLES[r.style].label).toUpperCase();
      ctx.strokeText(label,start+pane*.5,size+7,pane-8);ctx.fillText(label,start+pane*.5,size+7,pane-8);
      if(r.phase==='done'){
-       ctx.font='750 '+Math.max(10,size*.73)+'px system-ui';ctx.fillStyle=r.outcome.id==='hit'?'#d2edb5':'#ffe2a1';
-       ctx.strokeText(r.outcome.label,start+pane*.5,h-10,pane-7);
-       ctx.fillText(r.outcome.label,start+pane*.5,h-10,pane-7);
+       ctx.font='750 '+Math.max(10,size*.73)+'px system-ui';ctx.fillStyle=r.outcome!.id==='hit'?'#d2edb5':'#ffe2a1';
+       ctx.strokeText(r.outcome!.label,start+pane*.5,h-10,pane-7);
+       ctx.fillText(r.outcome!.label,start+pane*.5,h-10,pane-7);
      }
      ctx.restore();
    }
  }
- function draw(dt){
+ function draw(_dt:number){
    const box=canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
    const w=Math.max(1,Math.round(box.width*dpr)),h=Math.max(1,Math.round(box.height*dpr));
    if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
@@ -344,7 +362,7 @@ function wire(){
      ctx.strokeText(round.title,f.x,f.y-92,225);ctx.fillText(round.title,f.x,f.y-92,225);
    }
  }
- function frame(now){
+ function frame(now:number){
    const dt=lastFrame?Math.max(0,Math.min(.05,(now-lastFrame)/1000)):0;lastFrame=now;
    const selected=Number(pace.value), motionDt=dt*([.25,.5].includes(selected)?selected:1);
    if(isRunning&&auto==='compare'){
@@ -352,9 +370,9 @@ function wire(){
        if(pane.round.phase==='done')continue;
        stepStyleLabRound(pane.round,motionDt);
        pane.fx.observe(pane.round.g.events);pane.fx.update(motionDt,reduced);
-       if(pane.round.phase==='done'){
+       if((pane.round.phase as LabState['phase'])==='done'){
          const r=pane.round, t=r.timing;
-         comparisonNotes[i]=compareType==='weapons'&&t?{...r.outcome,label:r.outcome.label+' · '+t.reach+' px · '+t.windupMs+' ms · '+t.stamina+' stamina'}:r.outcome;
+         comparisonNotes[i]=compareType==='weapons'&&t?{...r.outcome!,label:r.outcome!.label+' · '+t.reach+' px · '+t.windupMs+' ms · '+t.stamina+' stamina'}:r.outcome;
          results();
        }
      }
@@ -366,15 +384,15 @@ function wire(){
      if(round.phase!=='done'){
        stepStyleLabRound(round,motionDt);fx.observe(round.g.events);
        if(round.phase==='striking'&&round.title)announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label+' · ':'')+round.title+' · '+bearingName(round));
-       if(round.phase==='done'){
+       if((round.phase as LabState['phase'])==='done'){
          showTiming(auto?null:round.timing);
-         if(round.drill==='strike'&&round.customDegrees===null){cellNotes.set(slot,round.outcome);results();}
-         const shown=(round.damage>0?' · '+round.damage+' damage':'')+(round.window?' · '+Math.round(round.window.distance)+' px at release':'')+(round.knockbackDistance>0?' · '+round.knockbackDistance+' px knockback':'')+(round.startedFrom?' · '+round.startedFrom:'');
-         announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label:bearingName(round))+': '+round.outcome.label+shown);
+         if(round.drill==='strike'&&round.customDegrees===null){cellNotes.set(slot,round.outcome!);results();}
+         const shown=(round.damage!>0?' · '+round.damage+' damage':'')+(round.window?' · '+Math.round(round.window.distance)+' px at release':'')+(round.knockbackDistance!>0?' · '+round.knockbackDistance+' px knockback':'')+(round.startedFrom?' · '+round.startedFrom:'');
+         announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label:bearingName(round))+': '+round.outcome!.label+shown);
        }
      }else if((hold+=dt)>.30){
        priorAngle=round.fighter.face;
-       if(queue.length){slot=queue.shift();prepare(true);}
+       if(queue.length){slot=queue.shift()!;prepare(true);}
        else {
          isRunning=false;
          if(auto==='full'){
@@ -402,6 +420,6 @@ function wire(){
       e.preventDefault();comparison=[];slot=wrap(slot+(e.code==='ArrowLeft'?-1:1));angleSet.value='';prepare(false);
    }
  });
- rangeSet.value=startingRange.queen;moveList();results();prepare(false);enabled(true);requestAnimationFrame(frame);
+ rangeSet.value=String(startingRange.queen);moveList();results();prepare(false);enabled(true);requestAnimationFrame(frame);
 }
 if(typeof document!=='undefined'&&document.getElementById('labCanvas'))wire();

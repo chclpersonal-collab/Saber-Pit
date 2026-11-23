@@ -17,8 +17,16 @@ function trial(n,map,lod,reduced,seed){
  const stage=createArcadeStage(s.width,s.height,1,{mapId:map,terrain:s.terrain});
  const rows=[];
  for(let i=0;i<720&&s.phase==='playing';i++){
-  let t=performance.now(), previous;
-  for(let j=0;j<2;j++){previous=fighterSamples(s.fighters);stepArcade(s,1/120);}
+  let t=performance.now(), previous, snapshot=0, step=0;
+  for(let j=0;j<2;j++){
+    const start=performance.now();
+    previous=fighterSamples(s.fighters);
+    const sampled=performance.now();
+    stepArcade(s,1/120);
+    const stepped=performance.now();
+    snapshot+=sampled-start;
+    step+=stepped-sampled;
+  }
   let a=performance.now();
   const byDepth=displayFighters(s.fighters,previous,.004).sort((x,y)=>x.y-y.y);
   const poses=byDepth.filter(f=>f.alive||f.actionTime<1.48).map(f=>({f,rig:sampleArcadeFighter(f,s.time,{reducedMotion:reduced})}));
@@ -28,7 +36,7 @@ function trial(n,map,lod,reduced,seed){
   for(const o of stage.obstacles)drawArcadeObstacle(ctx,stage,o);
   for(const {f,rig} of poses)drawArcadeFighter(ctx,f,s.time,{rig,lowDetail:lod,reducedMotion:reduced});
   let c=performance.now();
-  if(i>=120)rows.push({sim:a-t,prep:b-a,paint:c-b,frame:c-t,calls:commands-before});
+  if(i>=120)rows.push({step,snapshot,prep:b-a,paint:c-b,frame:c-t,calls:commands-before});
  }
  return rows;
 }
@@ -36,5 +44,5 @@ function metric(rows,key){const a=rows.map(r=>r[key]).sort((a,b)=>a-b);return {p
 trial(1,'crossroads',false,false,5);
 for(const [n,lod,reduced] of [[1,false,false],[5,false,false],[12,false,false],[12,true,false],[24,false,false],[24,true,false],[24,true,true]]){
  const rows=[9,29].flatMap(seed=>trial(n,'crossroads',lod,reduced,seed));
- console.log(JSON.stringify({fighters:n*2,lod,reduced,n:rows.length,...Object.fromEntries(['sim','prep','paint','frame','calls'].map(k=>[k,metric(rows,k)]))}));
+ console.log(JSON.stringify({fighters:n*2,lod,reduced,n:rows.length,...Object.fromEntries(['step','snapshot','prep','paint','frame','calls'].map(k=>[k,metric(rows,k)]))}));
 }

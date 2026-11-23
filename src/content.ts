@@ -1,11 +1,11 @@
-// @ts-nocheck
 /** Saber forms, Force disciplines, independent equipment quality and mirrored maps. */
+import type { ClassicFormId, FormMotion } from './combat-forms.js';
 import { combatFormProfile } from './combat-forms.js?v=1.4.0';
 export const CONTENT_VERSION = '4.0.0';
 const WIDTH = 960, HEIGHT = 540;
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const rounded = value => Math.round(value * 1000) / 1000;
-const freeze = value => {
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const rounded = (value: number) => Math.round(value * 1000) / 1000;
+const freeze = <T,>(value: T): T => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.values(value).forEach(freeze);
     Object.freeze(value);
@@ -15,7 +15,12 @@ const freeze = value => {
 
 // Lore traits summarize docs/saber-research.md. Numbers, move names and motions
 // are original game abstractions, never authoritative film choreography.
-const form = (id, name, primaryForm, variantOf, trait, motion, parameters) => ({
+interface FormParameters {
+  damageMultiplier: number; attackIntervalMultiplier: number; blockChance: number; blockCost: number;
+  counterMultiplier: number; dashCost: number; dashCooldown: number; energyRegen: number;
+  forceCostMultiplier: number; reachBonus: number;
+}
+const form = (id: ClassicFormId, name: string, primaryForm: string, variantOf: string | null, trait: string, motion: FormMotion, parameters: FormParameters) => ({
   id, name, primaryForm, variantOf, trait,
   moves: combatFormProfile(id).comboSteps,
   lore: { classification: 'game-adaptation', note: 'Form identities draw on canon and Legends; move names, trajectories and balance are original game adaptations.' },
@@ -44,7 +49,7 @@ export const FORMS = freeze(Object.fromEntries([
     { damageMultiplier: 1.15, attackIntervalMultiplier: .82, blockChance: .20, blockCost: 12, counterMultiplier: 1.12, dashCost: 18, dashCooldown: 3.4, energyRegen: 8, forceCostMultiplier: 1.20, reachBonus: 0 }),
   form('vaapad', 'Vaapad', 'VII', 'VII', 'A Form VII variant associated with Mace Windu and controlled intensity.', 'riposte',
     { damageMultiplier: 1.06, attackIntervalMultiplier: .94, blockChance: .44, blockCost: 13, counterMultiplier: 1.60, dashCost: 22, dashCooldown: 4, energyRegen: 8, forceCostMultiplier: 1.12, reachBonus: 1 }),
-].map(entry => [entry.id, entry])));
+].map(entry => [entry.id, entry] as const)) as Record<ClassicFormId, ReturnType<typeof form>>);
 
 // Seconds, world-space pixels and energy points. Powers are gameplay adaptations.
 // magazine/reload are inert compatibility metadata; the v4 engine spends energy.
@@ -70,7 +75,7 @@ export const QUALITY_LEVELS = freeze([
   { id: 'improved', label: 'Improved', quality: 2, damage: 1.14, interval: 0.93, accuracy: 0.05, range: 1.06, reload: 0.94 },
 ]);
 
-function variantId(family, quality) {
+function variantId(family: string, quality: number) {
   return quality === 1 ? family : `${QUALITY_LEVELS[quality].id}_${family}`;
 }
 
@@ -86,7 +91,7 @@ export const FORCE_POWERS = freeze(Object.fromEntries(WEAPON_FAMILIES.flatMap(fa
       reload: rounded(family.reload * q.reload),
       suppression: rounded(family.suppression * q.damage),
       energyCost: rounded(family.energyCost * q.reload),
-    }];
+    }] as const;
   })
 )));
 
@@ -97,25 +102,28 @@ export const SABERS = freeze(Object.fromEntries(QUALITY_LEVELS.map(q => {
     id, family: 'saber', name: `${q.label ? q.label + ' ' : ''}lightsaber`,
     quality: q.quality, tier: q.quality, slot: 'melee',
     damage: rounded(19 * q.damage), interval: rounded(.85 * q.interval), range: 44,
-  }];
+  }] as const;
 })));
 
 export const KNIVES = SABERS;
 export function startingLoadout() { return { weapon: 'force_push', meleeWeapon: 'saber' }; }
 
-function roll(rng) {
+function roll(rng: (() => unknown) | null | undefined) {
   const value = Number(typeof rng === 'function' ? rng() : Math.random());
   return Number.isFinite(value) ? clamp(value, 0, 1 - Number.EPSILON) : 0;
 }
 
-function changeRecord(slot, from, to, catalog, kind) {
+type WeaponChangeKind = 'mixed' | 'upgrade' | 'downgrade';
+type WeaponSlot = 'ranged' | 'melee';
+interface EquipmentCatalogRow {name: string; damage: number; interval: number; range: number; accuracy?: number; energyCost?: number}
+function changeRecord(slot: WeaponSlot, from: string, to: string, catalog: Record<string, EquipmentCatalogRow>, kind: WeaponChangeKind) {
   const a = catalog[from], b = catalog[to];
-  const delta = {
+  const delta: {damage: number; interval: number; range: number; accuracy?: number; energyCost?: number} = {
     damage: rounded(b.damage - a.damage), interval: rounded(b.interval - a.interval),
     range: rounded(b.range - a.range),
   };
-  if ('accuracy' in a) delta.accuracy = rounded(b.accuracy - a.accuracy);
-  if ('energyCost' in a) delta.energyCost = rounded(b.energyCost - a.energyCost);
+  if ('accuracy' in a) delta.accuracy = rounded(b.accuracy! - a.accuracy!);
+  if ('energyCost' in a) delta.energyCost = rounded(b.energyCost! - a.energyCost!);
   const meaning = kind === 'mixed' ? 'new role / tradeoffs' : kind === 'upgrade' ? 'better quality' : 'worse quality';
   return { slot, from, to, kind, changes: delta, label: `${a.name} → ${b.name} (${meaning})` };
 }
@@ -129,13 +137,13 @@ function changeRecord(slot, from, to, catalog, kind) {
 export function evolveLoadout(loadout = startingLoadout(), { rng = Math.random, probability = 1 } = {}) {
   const weapon = Object.hasOwn(WEAPONS, loadout?.weapon) ? loadout.weapon : 'force_push';
   const meleeWeapon = Object.hasOwn(KNIVES, loadout?.meleeWeapon) ? loadout.meleeWeapon : 'saber';
-  const out = { weapon, meleeWeapon, changes: [] };
+  const out = { weapon, meleeWeapon, changes: [] as ReturnType<typeof changeRecord>[] };
   const probabilityNumber = Number(probability);
   const chance = Number.isFinite(probabilityNumber) ? clamp(probabilityNumber, 0, 1) : 0;
-  for (const [key, slot, catalog] of [['weapon', 'ranged', WEAPONS], ['meleeWeapon', 'melee', KNIVES]]) {
+  for (const [key, slot, catalog] of [['weapon', 'ranged', WEAPONS], ['meleeWeapon', 'melee', KNIVES]] as const) {
     if (roll(rng) >= chance) continue;
     const from = out[key], current = catalog[from];
-    let to = from, kind;
+    let to = from, kind: WeaponChangeKind;
     if (slot === 'ranged' && roll(rng) < 0.35) {
       const alternatives = WEAPON_FAMILIES.filter(family => family.id !== current.family);
       const family = alternatives[Math.floor(roll(rng) * alternatives.length)];
@@ -153,7 +161,12 @@ export function evolveLoadout(loadout = startingLoadout(), { rng = Math.random, 
   return out;
 }
 
-function coverMap({ id, name, description, lanes, banks, craters }) {
+export type ClassicMapId = 'crossroads' | 'zigzag' | 'craterfield';
+interface CoverMapSpec {
+  id: ClassicMapId; name: string; description: string; lanes: number[];
+  banks: number[][]; craters: [number, number, number][];
+}
+function coverMap({ id, name, description, lanes, banks, craters }: CoverMapSpec) {
   const coverNodes = [0, 1].flatMap(team => banks.flatMap((row, bank) =>
     lanes.map((y, lane) => ({
       id: `${id}-${team}-${bank}-${lane}`, team, bank, lane,
@@ -188,7 +201,7 @@ export const MAPS = freeze([
   }),
 ]);
 
-function seedNumber(seed) {
+function seedNumber(seed: unknown) {
   if (typeof seed === 'number' && Number.isFinite(seed)) return seed >>> 0;
   let value = 2166136261;
   for (const char of String(seed)) value = Math.imul(value ^ char.charCodeAt(0), 16777619);
@@ -196,7 +209,7 @@ function seedNumber(seed) {
 }
 
 /** Each call returns detached mutable terrain so battle damage never leaks into another match. */
-export function getTerrain(id = 'crossroads') {
+export function getTerrain(id: string | null = 'crossroads') {
   const selected = MAPS.find(map => map.id === id) || MAPS[0];
   return { ...selected,
     coverNodes: selected.coverNodes.map(node => ({ ...node })),
@@ -205,7 +218,7 @@ export function getTerrain(id = 'crossroads') {
   };
 }
 
-export function createTerrain(seed = 1, id = null) {
+export function createTerrain(seed: unknown = 1, id: string | null = null) {
   return getTerrain(MAPS.some(map => map.id === id) ? id : MAPS[seedNumber(seed) % MAPS.length].id);
 }
 

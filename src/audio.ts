@@ -1,15 +1,18 @@
-// @ts-nocheck
 /** Optional, synthesized effects. No assets, network, or simulation state writes. */
-export function createAudio({ contextFactory } = {}) {
-  let context = null;
+interface AudioOptions{contextFactory?:()=>AudioContext|null}
+interface AudioEffect{id:number;type:string;outcome?:string;isCounter?:boolean}
+interface AudioFrame{seed?:string|number;round?:number;time:number;effects?:readonly AudioEffect[]}
+type AudioContact='hit'|'block'|'counter';
+export function createAudio({ contextFactory }:AudioOptions = {}) {
+  let context:AudioContext|null = null;
   let enabled = false;
   let generation = '';
   let lastEffect = 0;
   let lastTime = -1;
   let disposed = false;
-  const voices = new Set();
+  const voices = new Set<OscillatorNode>();
   const createContext = contextFactory || (() => {
-    const Constructor = globalThis.AudioContext || globalThis.webkitAudioContext;
+    const Constructor = globalThis.AudioContext || (globalThis as typeof globalThis & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
     return Constructor ? new Constructor() : null;
   });
 
@@ -31,7 +34,7 @@ export function createAudio({ contextFactory } = {}) {
     voices.clear();
   }
 
-  function tone(frequency, duration, volume, type = 'triangle', endFrequency = frequency) {
+  function tone(frequency:number, duration:number, volume:number, type:OscillatorType = 'triangle', endFrequency = frequency) {
     if (!enabled || !context || context.state !== 'running' || voices.size >= 12) return;
     try {
       const oscillator = context.createOscillator();
@@ -56,7 +59,7 @@ export function createAudio({ contextFactory } = {}) {
     } catch { /* Audio is optional; gameplay must never fail on audio errors. */ }
   }
 
-  function tick(game) {
+  function tick(game:AudioFrame|null|undefined) {
     if (disposed || !game) return;
     const key = `${game.seed}:${game.round}`;
     if (key !== generation || game.time < lastTime) {
@@ -68,16 +71,16 @@ export function createAudio({ contextFactory } = {}) {
     const effects = game.effects || [];
     let swings = 0;
     let force = false;
-    let contact = null;
+    let contact:AudioContact|null = null;
     for (const effect of effects) {
       if (!Number.isFinite(effect.id) || effect.id <= lastEffect) continue;
       lastEffect = Math.max(lastEffect, effect.id);
       if (effect.type === 'saber') swings += 1;
-      if (effect.type === 'force' && ['hit', 'blocked'].includes(effect.outcome)) force = true;
+      if (effect.type === 'force' && ['hit', 'blocked'].includes(effect.outcome as string)) force = true;
       if (effect.type === 'feedback') {
         const resolved = effect.outcome === 'blocked' ? 'block' : effect.outcome === 'hit' ? effect.isCounter ? 'counter' : 'hit' : null;
         const priority = { hit: 1, block: 2, counter: 3 };
-        if (resolved && (priority[resolved] > (priority[contact] || 0))) contact = resolved;
+        if (resolved && (priority[resolved] > (contact===null?0:priority[contact]||0))) contact = resolved;
       }
     }
     if (swings) tone(330, 0.12, 0.013, 'triangle', 115);
@@ -90,7 +93,7 @@ export function createAudio({ contextFactory } = {}) {
 
   return {
     unlock,
-    setEnabled(value) {
+    setEnabled(value:unknown) {
       enabled = !disposed && Boolean(value);
       if (!enabled) silence();
       return enabled;
