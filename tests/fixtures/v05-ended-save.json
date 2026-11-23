@@ -1,0 +1,2897 @@
+{
+  "version": 2,
+  "rulesVersion": 5,
+  "game": {
+    "seed": 42,
+    "rngState": 2875232681,
+    "round": 1,
+    "score": [
+      1,
+      0
+    ],
+    "draws": 0,
+    "history": [
+      {
+        "round": 1,
+        "winner": 0,
+        "reason": "Squad defeated",
+        "time": 15.7,
+        "terrain": "crossroads",
+        "survivors": [
+          5,
+          0
+        ],
+        "health": [
+          145.512,
+          0
+        ],
+        "objective": [
+          0,
+          0
+        ]
+      }
+    ],
+    "mutations": [],
+    "terrainChoice": null,
+    "autoCommand": true,
+    "doctrines": [
+      "balanced",
+      "balanced"
+    ],
+    "forms": [
+      [
+        "shii_cho",
+        "makashi",
+        "soresu",
+        "ataru",
+        "shien"
+      ],
+      [
+        "djem_so",
+        "niman",
+        "juyo",
+        "vaapad",
+        "shii_cho"
+      ]
+    ],
+    "careers": [
+      [
+        {
+          "merit": 57
+        },
+        {
+          "merit": 58
+        },
+        {
+          "merit": 58
+        },
+        {
+          "merit": 57
+        },
+        {
+          "merit": 58
+        }
+      ],
+      [
+        {
+          "merit": 14
+        },
+        {
+          "merit": 16
+        },
+        {
+          "merit": 16
+        },
+        {
+          "merit": 18
+        },
+        {
+          "merit": 14
+        }
+      ]
+    ],
+    "records": {
+      "origin": "saberfront",
+      "teams": [
+        {
+          "kills": 5,
+          "deaths": 0,
+          "assists": 4,
+          "environmentDeaths": 0
+        },
+        {
+          "kills": 0,
+          "deaths": 5,
+          "assists": 0,
+          "environmentDeaths": 0
+        }
+      ],
+      "soldiers": [
+        {
+          "id": "blue-0",
+          "team": 0,
+          "lane": 0,
+          "kills": 1,
+          "deaths": 0,
+          "assists": 1,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "blue-1",
+          "team": 0,
+          "lane": 1,
+          "kills": 1,
+          "deaths": 0,
+          "assists": 1,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "blue-2",
+          "team": 0,
+          "lane": 2,
+          "kills": 1,
+          "deaths": 0,
+          "assists": 0,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "blue-3",
+          "team": 0,
+          "lane": 3,
+          "kills": 1,
+          "deaths": 0,
+          "assists": 1,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "blue-4",
+          "team": 0,
+          "lane": 4,
+          "kills": 1,
+          "deaths": 0,
+          "assists": 1,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "red-0",
+          "team": 1,
+          "lane": 0,
+          "kills": 0,
+          "deaths": 1,
+          "assists": 0,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "red-1",
+          "team": 1,
+          "lane": 1,
+          "kills": 0,
+          "deaths": 1,
+          "assists": 0,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "red-2",
+          "team": 1,
+          "lane": 2,
+          "kills": 0,
+          "deaths": 1,
+          "assists": 0,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "red-3",
+          "team": 1,
+          "lane": 3,
+          "kills": 0,
+          "deaths": 1,
+          "assists": 0,
+          "environmentDeaths": 0
+        },
+        {
+          "id": "red-4",
+          "team": 1,
+          "lane": 4,
+          "kills": 0,
+          "deaths": 1,
+          "assists": 0,
+          "environmentDeaths": 0
+        }
+      ]
+    },
+    "roundReport": {
+      "round": 1,
+      "doctrines": [
+        "balanced",
+        "balanced"
+      ],
+      "careers": [
+        {
+          "soldierId": "blue-0",
+          "team": 0,
+          "lane": 0,
+          "name": "Blue 1",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 57,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.4,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 57,
+          "promoted": true
+        },
+        {
+          "soldierId": "blue-1",
+          "team": 0,
+          "lane": 1,
+          "name": "Blue 2",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 58,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.41818181818181815,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 58,
+          "promoted": true
+        },
+        {
+          "soldierId": "blue-2",
+          "team": 0,
+          "lane": 2,
+          "name": "Blue 3",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 58,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.41818181818181815,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 58,
+          "promoted": true
+        },
+        {
+          "soldierId": "blue-3",
+          "team": 0,
+          "lane": 3,
+          "name": "Blue 4",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 57,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.4,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 57,
+          "promoted": true
+        },
+        {
+          "soldierId": "blue-4",
+          "team": 0,
+          "lane": 4,
+          "name": "Blue 5",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 58,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.41818181818181815,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 58,
+          "promoted": true
+        },
+        {
+          "soldierId": "red-0",
+          "team": 1,
+          "lane": 0,
+          "name": "Red 1",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 14,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.4,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 14,
+          "promoted": false
+        },
+        {
+          "soldierId": "red-1",
+          "team": 1,
+          "lane": 1,
+          "name": "Red 2",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 16,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.45714285714285713,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 16,
+          "promoted": false
+        },
+        {
+          "soldierId": "red-2",
+          "team": 1,
+          "lane": 2,
+          "name": "Red 3",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 16,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.45714285714285713,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 16,
+          "promoted": false
+        },
+        {
+          "soldierId": "red-3",
+          "team": 1,
+          "lane": 3,
+          "name": "Red 4",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 18,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.5142857142857142,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 18,
+          "promoted": false
+        },
+        {
+          "soldierId": "red-4",
+          "team": 1,
+          "lane": 4,
+          "name": "Red 5",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 14,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.4,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 14,
+          "promoted": false
+        }
+      ],
+      "records": {
+        "teams": [
+          {
+            "kills": 5,
+            "deaths": 0,
+            "assists": 4,
+            "environmentDeaths": 0
+          },
+          {
+            "kills": 0,
+            "deaths": 5,
+            "assists": 0,
+            "environmentDeaths": 0
+          }
+        ],
+        "soldiers": [
+          {
+            "id": "blue-0",
+            "team": 0,
+            "lane": 0,
+            "kills": 1,
+            "deaths": 0,
+            "assists": 1,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "blue-1",
+            "team": 0,
+            "lane": 1,
+            "kills": 1,
+            "deaths": 0,
+            "assists": 1,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "blue-2",
+            "team": 0,
+            "lane": 2,
+            "kills": 1,
+            "deaths": 0,
+            "assists": 0,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "blue-3",
+            "team": 0,
+            "lane": 3,
+            "kills": 1,
+            "deaths": 0,
+            "assists": 1,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "blue-4",
+            "team": 0,
+            "lane": 4,
+            "kills": 1,
+            "deaths": 0,
+            "assists": 1,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "red-0",
+            "team": 1,
+            "lane": 0,
+            "kills": 0,
+            "deaths": 1,
+            "assists": 0,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "red-1",
+            "team": 1,
+            "lane": 1,
+            "kills": 0,
+            "deaths": 1,
+            "assists": 0,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "red-2",
+            "team": 1,
+            "lane": 2,
+            "kills": 0,
+            "deaths": 1,
+            "assists": 0,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "red-3",
+            "team": 1,
+            "lane": 3,
+            "kills": 0,
+            "deaths": 1,
+            "assists": 0,
+            "environmentDeaths": 0
+          },
+          {
+            "id": "red-4",
+            "team": 1,
+            "lane": 4,
+            "kills": 0,
+            "deaths": 1,
+            "assists": 0,
+            "environmentDeaths": 0
+          }
+        ]
+      }
+    },
+    "loadouts": [
+      {
+        "weaponTier": 1,
+        "knifeTier": 1,
+        "roster": [
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          }
+        ]
+      },
+      {
+        "weaponTier": 1,
+        "knifeTier": 1,
+        "roster": [
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          },
+          {
+            "weapon": "force_push",
+            "meleeWeapon": "saber"
+          }
+        ]
+      }
+    ],
+    "veterans": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "terrain": {
+      "id": "crossroads",
+      "name": "Crossroads",
+      "description": "Even lanes and balanced approaches to the signal post.",
+      "width": 960,
+      "height": 540,
+      "coverNodes": [
+        {
+          "id": "crossroads-0-0-0",
+          "team": 0,
+          "bank": 0,
+          "lane": 0,
+          "x": 175,
+          "y": 130
+        },
+        {
+          "id": "crossroads-0-0-1",
+          "team": 0,
+          "bank": 0,
+          "lane": 1,
+          "x": 175,
+          "y": 200
+        },
+        {
+          "id": "crossroads-0-0-2",
+          "team": 0,
+          "bank": 0,
+          "lane": 2,
+          "x": 175,
+          "y": 270
+        },
+        {
+          "id": "crossroads-0-0-3",
+          "team": 0,
+          "bank": 0,
+          "lane": 3,
+          "x": 175,
+          "y": 340
+        },
+        {
+          "id": "crossroads-0-0-4",
+          "team": 0,
+          "bank": 0,
+          "lane": 4,
+          "x": 175,
+          "y": 410
+        },
+        {
+          "id": "crossroads-0-1-0",
+          "team": 0,
+          "bank": 1,
+          "lane": 0,
+          "x": 295,
+          "y": 130
+        },
+        {
+          "id": "crossroads-0-1-1",
+          "team": 0,
+          "bank": 1,
+          "lane": 1,
+          "x": 295,
+          "y": 200
+        },
+        {
+          "id": "crossroads-0-1-2",
+          "team": 0,
+          "bank": 1,
+          "lane": 2,
+          "x": 295,
+          "y": 270
+        },
+        {
+          "id": "crossroads-0-1-3",
+          "team": 0,
+          "bank": 1,
+          "lane": 3,
+          "x": 295,
+          "y": 340
+        },
+        {
+          "id": "crossroads-0-1-4",
+          "team": 0,
+          "bank": 1,
+          "lane": 4,
+          "x": 295,
+          "y": 410
+        },
+        {
+          "id": "crossroads-0-2-0",
+          "team": 0,
+          "bank": 2,
+          "lane": 0,
+          "x": 430,
+          "y": 130
+        },
+        {
+          "id": "crossroads-0-2-1",
+          "team": 0,
+          "bank": 2,
+          "lane": 1,
+          "x": 430,
+          "y": 200
+        },
+        {
+          "id": "crossroads-0-2-2",
+          "team": 0,
+          "bank": 2,
+          "lane": 2,
+          "x": 430,
+          "y": 270
+        },
+        {
+          "id": "crossroads-0-2-3",
+          "team": 0,
+          "bank": 2,
+          "lane": 3,
+          "x": 430,
+          "y": 340
+        },
+        {
+          "id": "crossroads-0-2-4",
+          "team": 0,
+          "bank": 2,
+          "lane": 4,
+          "x": 430,
+          "y": 410
+        },
+        {
+          "id": "crossroads-1-0-0",
+          "team": 1,
+          "bank": 0,
+          "lane": 0,
+          "x": 785,
+          "y": 130
+        },
+        {
+          "id": "crossroads-1-0-1",
+          "team": 1,
+          "bank": 0,
+          "lane": 1,
+          "x": 785,
+          "y": 200
+        },
+        {
+          "id": "crossroads-1-0-2",
+          "team": 1,
+          "bank": 0,
+          "lane": 2,
+          "x": 785,
+          "y": 270
+        },
+        {
+          "id": "crossroads-1-0-3",
+          "team": 1,
+          "bank": 0,
+          "lane": 3,
+          "x": 785,
+          "y": 340
+        },
+        {
+          "id": "crossroads-1-0-4",
+          "team": 1,
+          "bank": 0,
+          "lane": 4,
+          "x": 785,
+          "y": 410
+        },
+        {
+          "id": "crossroads-1-1-0",
+          "team": 1,
+          "bank": 1,
+          "lane": 0,
+          "x": 665,
+          "y": 130
+        },
+        {
+          "id": "crossroads-1-1-1",
+          "team": 1,
+          "bank": 1,
+          "lane": 1,
+          "x": 665,
+          "y": 200
+        },
+        {
+          "id": "crossroads-1-1-2",
+          "team": 1,
+          "bank": 1,
+          "lane": 2,
+          "x": 665,
+          "y": 270
+        },
+        {
+          "id": "crossroads-1-1-3",
+          "team": 1,
+          "bank": 1,
+          "lane": 3,
+          "x": 665,
+          "y": 340
+        },
+        {
+          "id": "crossroads-1-1-4",
+          "team": 1,
+          "bank": 1,
+          "lane": 4,
+          "x": 665,
+          "y": 410
+        },
+        {
+          "id": "crossroads-1-2-0",
+          "team": 1,
+          "bank": 2,
+          "lane": 0,
+          "x": 530,
+          "y": 130
+        },
+        {
+          "id": "crossroads-1-2-1",
+          "team": 1,
+          "bank": 2,
+          "lane": 1,
+          "x": 530,
+          "y": 200
+        },
+        {
+          "id": "crossroads-1-2-2",
+          "team": 1,
+          "bank": 2,
+          "lane": 2,
+          "x": 530,
+          "y": 270
+        },
+        {
+          "id": "crossroads-1-2-3",
+          "team": 1,
+          "bank": 2,
+          "lane": 3,
+          "x": 530,
+          "y": 340
+        },
+        {
+          "id": "crossroads-1-2-4",
+          "team": 1,
+          "bank": 2,
+          "lane": 4,
+          "x": 530,
+          "y": 410
+        }
+      ],
+      "decorations": [
+        {
+          "type": "crater",
+          "x": 350,
+          "y": 80,
+          "radius": 20
+        },
+        {
+          "type": "crater",
+          "x": 610,
+          "y": 80,
+          "radius": 20
+        },
+        {
+          "type": "crater",
+          "x": 370,
+          "y": 310,
+          "radius": 16
+        },
+        {
+          "type": "crater",
+          "x": 590,
+          "y": 310,
+          "radius": 16
+        },
+        {
+          "type": "crater",
+          "x": 285,
+          "y": 458,
+          "radius": 12
+        },
+        {
+          "type": "crater",
+          "x": 675,
+          "y": 458,
+          "radius": 12
+        }
+      ],
+      "controlPoints": [
+        {
+          "id": "center",
+          "name": "Signal post",
+          "x": 480,
+          "y": 270,
+          "radius": 108
+        }
+      ],
+      "cosmeticTerrainOnly": true,
+      "objective": {
+        "id": "center",
+        "name": "Signal post",
+        "x": 480,
+        "y": 270,
+        "radius": 108
+      }
+    },
+    "tick": 942,
+    "time": 15.7,
+    "timeLeft": 74.3,
+    "roundDuration": 90,
+    "status": "ended",
+    "winner": 0,
+    "reason": "Squad defeated",
+    "playerOrder": "advance",
+    "enemyOrder": "advance",
+    "playerTactic": "counter",
+    "enemyTactic": "counter",
+    "forceCooldown": 5.3000000000000025,
+    "aiForceCooldown": 0,
+    "guardCooldown": 4.30000000000001,
+    "aiGuardCooldown": 4.30000000000001,
+    "effects": [
+      {
+        "id": 349,
+        "type": "feedback",
+        "x": 502.0285939687041,
+        "y": 136.9378503926692,
+        "x2": 502.0285939687041,
+        "y2": 136.9378503926692,
+        "team": 1,
+        "ttl": 0.06666666666666615,
+        "maxTtl": 0.7,
+        "outcome": "hit",
+        "damage": 17.1,
+        "kind": "saber",
+        "targetId": "blue-0",
+        "tick": 904,
+        "isCounter": false,
+        "soldierId": "red-1",
+        "form": "niman",
+        "motion": "weave",
+        "family": "saber",
+        "counter": false,
+        "text": "17.1"
+      },
+      {
+        "id": 352,
+        "type": "feedback",
+        "x": 485.7862676541486,
+        "y": 402.6002486002804,
+        "x2": 485.7862676541486,
+        "y2": 402.6002486002804,
+        "team": 0,
+        "ttl": 0.21666666666666612,
+        "maxTtl": 0.7,
+        "outcome": "hit",
+        "damage": 18.43,
+        "kind": "saber",
+        "targetId": "red-3",
+        "tick": 913,
+        "isCounter": false,
+        "soldierId": "blue-3",
+        "form": "ataru",
+        "motion": "leap",
+        "family": "saber",
+        "counter": false,
+        "text": "18.43"
+      },
+      {
+        "id": 355,
+        "type": "feedback",
+        "x": 544.9551032571921,
+        "y": 143.10589010178413,
+        "x2": 544.9551032571921,
+        "y2": 143.10589010178413,
+        "team": 0,
+        "ttl": 0.29999999999999943,
+        "maxTtl": 0.7,
+        "outcome": "blocked",
+        "damage": 3.04,
+        "kind": "saber",
+        "targetId": "red-1",
+        "tick": 918,
+        "isCounter": false,
+        "soldierId": "blue-0",
+        "form": "shii_cho",
+        "motion": "sweep",
+        "family": "saber",
+        "counter": false,
+        "text": "Block 3.04"
+      },
+      {
+        "id": 356,
+        "type": "block",
+        "x": 457.0055844444452,
+        "y": 270,
+        "x2": 500.1724688888988,
+        "y2": 270,
+        "team": 0,
+        "ttl": 0.03333333333333338,
+        "maxTtl": 0.35,
+        "soldierId": "blue-2",
+        "form": "soresu"
+      },
+      {
+        "id": 358,
+        "type": "feedback",
+        "x": 457.0055844444452,
+        "y": 270,
+        "x2": 457.0055844444452,
+        "y2": 270,
+        "team": 1,
+        "ttl": 0.38333333333333275,
+        "maxTtl": 0.7,
+        "outcome": "blocked",
+        "damage": 3.496,
+        "kind": "saber",
+        "targetId": "blue-2",
+        "tick": 923,
+        "isCounter": false,
+        "soldierId": "red-2",
+        "form": "juyo",
+        "motion": "flurry",
+        "family": "saber",
+        "counter": false,
+        "text": "Block 3.496"
+      },
+      {
+        "id": 360,
+        "type": "force",
+        "x": 499.10808185586455,
+        "y": 135.7582228464153,
+        "x2": 544.9551032571921,
+        "y2": 143.10589010178413,
+        "team": 0,
+        "ttl": 0.23000000000000004,
+        "maxTtl": 0.48,
+        "outcome": "hit",
+        "damage": 5.54,
+        "kind": "force",
+        "targetId": "red-1",
+        "tick": 927,
+        "isCounter": false,
+        "soldierId": "blue-1",
+        "form": "makashi",
+        "motion": "thrust",
+        "family": "force_push",
+        "counter": false
+      },
+      {
+        "id": 361,
+        "type": "feedback",
+        "x": 544.9551032571921,
+        "y": 143.10589010178413,
+        "x2": 544.9551032571921,
+        "y2": 143.10589010178413,
+        "team": 0,
+        "ttl": 0.4499999999999994,
+        "maxTtl": 0.7,
+        "outcome": "hit",
+        "damage": 5.54,
+        "kind": "force",
+        "targetId": "red-1",
+        "tick": 927,
+        "isCounter": false,
+        "soldierId": "blue-1",
+        "form": "makashi",
+        "motion": "thrust",
+        "family": "force_push",
+        "counter": false,
+        "text": "5.54"
+      },
+      {
+        "id": 362,
+        "type": "force",
+        "x": 442.3022844444452,
+        "y": 410,
+        "x2": 485.7862676541486,
+        "y2": 402.6002486002804,
+        "team": 0,
+        "ttl": 0.23000000000000004,
+        "maxTtl": 0.48,
+        "outcome": "hit",
+        "damage": 9.583,
+        "kind": "force",
+        "targetId": "red-3",
+        "tick": 927,
+        "isCounter": false,
+        "soldierId": "blue-4",
+        "form": "shien",
+        "motion": "redirect",
+        "family": "force_push",
+        "counter": false
+      },
+      {
+        "id": 363,
+        "type": "feedback",
+        "x": 485.7862676541486,
+        "y": 402.6002486002804,
+        "x2": 485.7862676541486,
+        "y2": 402.6002486002804,
+        "team": 0,
+        "ttl": 0.4499999999999994,
+        "maxTtl": 0.7,
+        "outcome": "hit",
+        "damage": 9.583,
+        "kind": "force",
+        "targetId": "red-3",
+        "tick": 927,
+        "isCounter": false,
+        "soldierId": "blue-4",
+        "form": "shien",
+        "motion": "redirect",
+        "family": "force_push",
+        "counter": false,
+        "text": "9.583"
+      },
+      {
+        "id": 364,
+        "type": "feedback",
+        "x": 544.9551032571921,
+        "y": 143.10589010178413,
+        "x2": 502.0285939687041,
+        "y2": 136.9378503926692,
+        "team": 1,
+        "ttl": 0.4499999999999994,
+        "maxTtl": 0.7,
+        "outcome": "interrupted",
+        "damage": 0,
+        "kind": "saber",
+        "targetId": "blue-0",
+        "tick": 927,
+        "isCounter": false,
+        "soldierId": "red-1",
+        "form": "niman",
+        "motion": "weave",
+        "family": "saber",
+        "counter": true,
+        "text": "Interrupted"
+      },
+      {
+        "id": 365,
+        "type": "stagger",
+        "x": 544.9551032571921,
+        "y": 143.10589010178413,
+        "x2": 544.9551032571921,
+        "y2": 143.10589010178413,
+        "team": 1,
+        "ttl": 0.15000000000000008,
+        "maxTtl": 0.4,
+        "soldierId": "red-1"
+      },
+      {
+        "id": 366,
+        "type": "stagger",
+        "x": 485.7862676541486,
+        "y": 402.6002486002804,
+        "x2": 485.7862676541486,
+        "y2": 402.6002486002804,
+        "team": 1,
+        "ttl": 0.15000000000000008,
+        "maxTtl": 0.4,
+        "soldierId": "red-3"
+      },
+      {
+        "id": 367,
+        "type": "death",
+        "x": 572.6022975777221,
+        "y": 147.53676430478947,
+        "x2": 572.6022975777221,
+        "y2": 147.53676430478947,
+        "team": 1,
+        "ttl": 0.4999999999999993,
+        "maxTtl": 0.75,
+        "soldierId": "red-1"
+      },
+      {
+        "id": 368,
+        "type": "death",
+        "x": 513.389447052751,
+        "y": 397.9029635239229,
+        "x2": 513.389447052751,
+        "y2": 397.9029635239229,
+        "team": 1,
+        "ttl": 0.4999999999999993,
+        "maxTtl": 0.75,
+        "soldierId": "red-3"
+      },
+      {
+        "id": 369,
+        "type": "rank",
+        "x": 499.10808185586455,
+        "y": 135.7582228464153,
+        "x2": 499.10808185586455,
+        "y2": 135.7582228464153,
+        "team": 0,
+        "ttl": 0.5499999999999993,
+        "maxTtl": 0.8,
+        "soldierId": "blue-1"
+      },
+      {
+        "id": 370,
+        "type": "rank",
+        "x": 442.3022844444452,
+        "y": 410,
+        "x2": 442.3022844444452,
+        "y2": 410,
+        "team": 0,
+        "ttl": 0.5499999999999993,
+        "maxTtl": 0.8,
+        "soldierId": "blue-4"
+      },
+      {
+        "id": 371,
+        "type": "telegraph",
+        "x": 502.0285939687041,
+        "y": 136.9378503926692,
+        "x2": 504.44982222223206,
+        "y2": 270,
+        "team": 0,
+        "ttl": 0.21666666666666673,
+        "maxTtl": 0.45,
+        "soldierId": "blue-0",
+        "targetId": "red-2",
+        "form": "shii_cho",
+        "kind": "force",
+        "motion": "sweep"
+      },
+      {
+        "id": 373,
+        "type": "saber",
+        "x": 462.71502888888966,
+        "y": 270,
+        "x2": 507.30951333334315,
+        "y2": 270,
+        "team": 0,
+        "ttl": 0.28,
+        "maxTtl": 0.28,
+        "outcome": "hit",
+        "damage": 1.174,
+        "kind": "saber",
+        "targetId": "red-2",
+        "tick": 942,
+        "isCounter": true,
+        "soldierId": "blue-2",
+        "form": "soresu",
+        "motion": "orbit",
+        "family": "saber",
+        "counter": true
+      },
+      {
+        "id": 374,
+        "type": "feedback",
+        "x": 507.30951333334315,
+        "y": 270,
+        "x2": 507.30951333334315,
+        "y2": 270,
+        "team": 0,
+        "ttl": 0.7,
+        "maxTtl": 0.7,
+        "outcome": "hit",
+        "damage": 1.174,
+        "kind": "saber",
+        "targetId": "red-2",
+        "tick": 942,
+        "isCounter": true,
+        "soldierId": "blue-2",
+        "form": "soresu",
+        "motion": "orbit",
+        "family": "saber",
+        "counter": true,
+        "text": "Counter 1.174"
+      },
+      {
+        "id": 375,
+        "type": "counter",
+        "x": 462.71502888888966,
+        "y": 270,
+        "x2": 507.30951333334315,
+        "y2": 270,
+        "team": 0,
+        "ttl": 0.4,
+        "maxTtl": 0.4,
+        "soldierId": "blue-2",
+        "form": "soresu",
+        "motion": "orbit"
+      },
+      {
+        "id": 376,
+        "type": "stagger",
+        "x": 507.30951333334315,
+        "y": 270,
+        "x2": 507.30951333334315,
+        "y2": 270,
+        "team": 1,
+        "ttl": 0.4,
+        "maxTtl": 0.4,
+        "soldierId": "red-2"
+      },
+      {
+        "id": 377,
+        "type": "death",
+        "x": 507.30951333334315,
+        "y": 270,
+        "x2": 507.30951333334315,
+        "y2": 270,
+        "team": 1,
+        "ttl": 0.75,
+        "maxTtl": 0.75,
+        "soldierId": "red-2"
+      }
+    ],
+    "events": [
+      {
+        "id": 4,
+        "time": 0,
+        "type": "form",
+        "team": 0,
+        "text": "Blue 4: Ataru"
+      },
+      {
+        "id": 5,
+        "time": 0,
+        "type": "form",
+        "team": 0,
+        "text": "Blue 5: Shien"
+      },
+      {
+        "id": 6,
+        "time": 0,
+        "type": "form",
+        "team": 1,
+        "text": "Red 1: Djem So"
+      },
+      {
+        "id": 7,
+        "time": 0,
+        "type": "form",
+        "team": 1,
+        "text": "Red 2: Niman"
+      },
+      {
+        "id": 8,
+        "time": 0,
+        "type": "form",
+        "team": 1,
+        "text": "Red 3: Juyo"
+      },
+      {
+        "id": 9,
+        "time": 0,
+        "type": "form",
+        "team": 1,
+        "text": "Red 4: Vaapad"
+      },
+      {
+        "id": 10,
+        "time": 1,
+        "type": "order",
+        "team": 0,
+        "text": "Blue: advance"
+      },
+      {
+        "id": 11,
+        "time": 1,
+        "type": "order",
+        "team": 1,
+        "text": "Red: advance"
+      },
+      {
+        "id": 12,
+        "time": 6,
+        "type": "guard",
+        "team": 0,
+        "text": "Blue: Guard stance"
+      },
+      {
+        "id": 13,
+        "time": 6,
+        "type": "order",
+        "team": 1,
+        "text": "Red: hold"
+      },
+      {
+        "id": 14,
+        "time": 6,
+        "type": "guard",
+        "team": 1,
+        "text": "Red: Guard stance"
+      },
+      {
+        "id": 15,
+        "time": 9,
+        "type": "force",
+        "team": 0,
+        "text": "Blue: Force surge"
+      },
+      {
+        "id": 16,
+        "time": 9,
+        "type": "order",
+        "team": 1,
+        "text": "Red: advance"
+      },
+      {
+        "id": 17,
+        "time": 9,
+        "type": "force",
+        "team": 1,
+        "text": "Red: Force surge"
+      },
+      {
+        "id": 18,
+        "time": 10,
+        "type": "order",
+        "team": 1,
+        "text": "Red: hold"
+      },
+      {
+        "id": 19,
+        "time": 11.066666666666666,
+        "type": "casualty",
+        "team": 1,
+        "text": "Red 1 fell to Blue 2"
+      },
+      {
+        "id": 20,
+        "time": 11.2,
+        "type": "casualty",
+        "team": 1,
+        "text": "Red 5 fell to Blue 5"
+      },
+      {
+        "id": 21,
+        "time": 12,
+        "type": "order",
+        "team": 0,
+        "text": "Blue: hold"
+      },
+      {
+        "id": 22,
+        "time": 12,
+        "type": "order",
+        "team": 1,
+        "text": "Red: advance"
+      },
+      {
+        "id": 23,
+        "time": 13,
+        "type": "order",
+        "team": 0,
+        "text": "Blue: advance"
+      },
+      {
+        "id": 24,
+        "time": 13,
+        "type": "guard",
+        "team": 0,
+        "text": "Blue: Guard stance"
+      },
+      {
+        "id": 25,
+        "time": 13,
+        "type": "guard",
+        "team": 1,
+        "text": "Red: Guard stance"
+      },
+      {
+        "id": 26,
+        "time": 15,
+        "type": "force",
+        "team": 0,
+        "text": "Blue: Force surge"
+      },
+      {
+        "id": 27,
+        "time": 15.45,
+        "type": "casualty",
+        "team": 1,
+        "text": "Red 2 fell to Blue 1"
+      },
+      {
+        "id": 28,
+        "time": 15.45,
+        "type": "casualty",
+        "team": 1,
+        "text": "Red 4 fell to Blue 4"
+      },
+      {
+        "id": 29,
+        "time": 15.7,
+        "type": "casualty",
+        "team": 1,
+        "text": "Red 3 fell to Blue 3"
+      },
+      {
+        "id": 30,
+        "time": 15.7,
+        "type": "career",
+        "team": 0,
+        "text": "Blue 1 promoted to E"
+      },
+      {
+        "id": 31,
+        "time": 15.7,
+        "type": "career",
+        "team": 0,
+        "text": "Blue 2 promoted to E"
+      },
+      {
+        "id": 32,
+        "time": 15.7,
+        "type": "career",
+        "team": 0,
+        "text": "Blue 3 promoted to E"
+      },
+      {
+        "id": 33,
+        "time": 15.7,
+        "type": "career",
+        "team": 0,
+        "text": "Blue 4 promoted to E"
+      },
+      {
+        "id": 34,
+        "time": 15.7,
+        "type": "career",
+        "team": 0,
+        "text": "Blue 5 promoted to E"
+      },
+      {
+        "id": 35,
+        "time": 15.7,
+        "type": "result",
+        "team": 0,
+        "text": "Blue won: squad defeated"
+      }
+    ],
+    "frontLine": 488.3703890583831,
+    "_accumulator": 0,
+    "_nextAiDecision": 960,
+    "nextEffectId": 378,
+    "nextEventId": 36,
+    "stats": {
+      "shots": [
+        18,
+        14
+      ],
+      "hits": [
+        14,
+        13
+      ],
+      "knifeHits": [
+        33,
+        28
+      ],
+      "damage": [
+        599.9999999999998,
+        462.4879999999999
+      ],
+      "suppression": [
+        470.79999999999995,
+        373.6
+      ],
+      "coverTime": [
+        31.299999999999503,
+        17.783333333333605
+      ],
+      "objectiveTime": [
+        0,
+        0
+      ],
+      "saberSwings": [
+        36,
+        29
+      ],
+      "saberHits": [
+        33,
+        28
+      ],
+      "forceCasts": [
+        18,
+        14
+      ],
+      "forceHits": [
+        14,
+        13
+      ],
+      "blocks": [
+        17,
+        11
+      ],
+      "counters": [
+        14,
+        6
+      ],
+      "kills": [
+        5,
+        0
+      ],
+      "deaths": [
+        0,
+        5
+      ],
+      "assists": [
+        4,
+        0
+      ],
+      "environmentDeaths": [
+        0,
+        0
+      ]
+    },
+    "objective": {
+      "id": "center",
+      "name": "Signal post",
+      "x": 480,
+      "y": 270,
+      "radius": 108,
+      "capture": 13.916666666666668,
+      "owner": null,
+      "points": [
+        0,
+        0
+      ],
+      "targetScore": 30,
+      "contested": false,
+      "presence": [
+        1,
+        0
+      ]
+    },
+    "squads": [
+      {
+        "team": 0,
+        "doctrine": "balanced",
+        "order": "advance",
+        "tactic": "counter",
+        "morale": 100,
+        "suppression": 0,
+        "readiness": 1,
+        "rallyUntil": 0
+      },
+      {
+        "team": 1,
+        "doctrine": "balanced",
+        "order": "advance",
+        "tactic": "counter",
+        "morale": 0,
+        "suppression": 0,
+        "readiness": 0,
+        "rallyUntil": 0
+      }
+    ],
+    "soldiers": [
+      {
+        "id": "blue-0",
+        "team": 0,
+        "lane": 0,
+        "name": "Blue 1",
+        "x": 502.0285939687041,
+        "y": 136.9378503926692,
+        "hp": 14.584,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Foundational bladework and broad control.",
+        "form": "shii_cho",
+        "technique": "Opening sweep",
+        "rank": 0,
+        "xp": 38.149,
+        "kills": 1,
+        "deaths": 0,
+        "assists": 1,
+        "environmentDeaths": 0,
+        "damageDealt": 109.56599999999999,
+        "suppression": 0,
+        "morale": 100,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 57,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.4,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 88.1,
+        "meritEarned": 57,
+        "contributors": [
+          {
+            "source": "red-0",
+            "damage": 5.290000000000006,
+            "tick": 646
+          },
+          {
+            "source": "red-1",
+            "damage": 17.099999999999994,
+            "tick": 692
+          },
+          {
+            "source": "red-1",
+            "damage": 17.1,
+            "tick": 745
+          },
+          {
+            "source": "red-1",
+            "damage": 2.736000000000004,
+            "tick": 798
+          },
+          {
+            "source": "red-1",
+            "damage": 17.099999999999998,
+            "tick": 851
+          },
+          {
+            "source": "red-1",
+            "damage": 17.1,
+            "tick": 904
+          }
+        ],
+        "energy": 32.55166666666713,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 900,
+        "counterUntil": 0,
+        "staggerUntil": 358,
+        "staggerImmuneUntil": 403,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 951,
+        "forceReadyTick": 1114,
+        "forceRequestedUntil": 0,
+        "attack": {
+          "kind": "force",
+          "target": "red-2",
+          "startedTick": 928,
+          "resolveTick": 955,
+          "counter": false,
+          "form": "shii_cho",
+          "weapon": "force_push"
+        },
+        "attackCooldown": 0.15,
+        "forceCooldown": 2.8666666666666667,
+        "combatState": "force",
+        "tacticalReason": "Cast across the gap",
+        "lastOutcome": {
+          "outcome": "blocked",
+          "damage": 3.04,
+          "kind": "saber",
+          "targetId": "red-1",
+          "tick": 918,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "force",
+        "cover": false,
+        "state": "firing",
+        "melee": false,
+        "target": "red-2",
+        "targetUntil": 0,
+        "facing": 1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 502.0285939687041,
+        "destinationY": 136.9378503926692,
+        "nextMoveTick": 316,
+        "lastShotTick": 928
+      },
+      {
+        "id": "blue-1",
+        "team": 0,
+        "lane": 1,
+        "name": "Blue 2",
+        "x": 494.56894804222355,
+        "y": 157.10230101661548,
+        "hp": 56.91,
+        "maxHp": 124,
+        "alive": true,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Precise, economical lightsaber dueling.",
+        "form": "makashi",
+        "technique": "Measured thrust",
+        "rank": 1,
+        "xp": 40.651,
+        "kills": 1,
+        "deaths": 0,
+        "assists": 1,
+        "environmentDeaths": 0,
+        "damageDealt": 130.43400000000003,
+        "suppression": 0,
+        "morale": 100,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 58,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.41818181818181815,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 96.7,
+        "meritEarned": 58,
+        "contributors": [
+          {
+            "source": "red-0",
+            "damage": 13,
+            "tick": 606
+          }
+        ],
+        "energy": 44.371666666667345,
+        "maxEnergy": 100,
+        "guard": true,
+        "guardUntil": 900,
+        "counterUntil": 0,
+        "staggerUntil": 584,
+        "staggerImmuneUntil": 629,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 787,
+        "forceReadyTick": 1086,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0,
+        "forceCooldown": 2.4,
+        "combatState": "guard",
+        "tacticalReason": "Close toward saber range",
+        "lastOutcome": {
+          "outcome": "hit",
+          "damage": 5.54,
+          "kind": "force",
+          "targetId": "red-1",
+          "tick": 927,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "run",
+        "cover": false,
+        "state": "moving",
+        "melee": false,
+        "target": "red-2",
+        "targetUntil": 0,
+        "facing": 1,
+        "moving": true,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 471.30951333334315,
+        "destinationY": 270,
+        "nextMoveTick": 410,
+        "lastShotTick": 900
+      },
+      {
+        "id": "blue-2",
+        "team": 0,
+        "lane": 2,
+        "name": "Blue 3",
+        "x": 462.71502888888966,
+        "y": 270,
+        "hp": 30.342,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Patient defense with compact blade movements.",
+        "form": "soresu",
+        "technique": "Shelter circle",
+        "rank": 0,
+        "xp": 39.402,
+        "kills": 1,
+        "deaths": 0,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 120,
+        "suppression": 0,
+        "morale": 100,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 58,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.41818181818181815,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 115,
+        "meritEarned": 58,
+        "contributors": [
+          {
+            "source": "red-2",
+            "damage": 21.85,
+            "tick": 589
+          },
+          {
+            "source": "red-2",
+            "damage": 3.915999999999997,
+            "tick": 610
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4960000000000018,
+            "tick": 659
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4960000000000018,
+            "tick": 707
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4959999999999956,
+            "tick": 749
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4960000000000018,
+            "tick": 797
+          },
+          {
+            "source": "red-2",
+            "damage": 3.915999999999997,
+            "tick": 832
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4960000000000018,
+            "tick": 881
+          },
+          {
+            "source": "red-2",
+            "damage": 3.4960000000000018,
+            "tick": 923
+          }
+        ],
+        "energy": 22.8500000000012,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 900,
+        "counterUntil": 0,
+        "staggerUntil": 544,
+        "staggerImmuneUntil": 589,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 988,
+        "forceReadyTick": 684,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0.7666666666666667,
+        "forceCooldown": 0,
+        "combatState": "saber",
+        "tacticalReason": "Use counter opening",
+        "lastOutcome": {
+          "outcome": "hit",
+          "damage": 1.174,
+          "kind": "saber",
+          "targetId": "red-2",
+          "tick": 942,
+          "isCounter": true
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "saber",
+        "cover": false,
+        "state": "firing",
+        "melee": false,
+        "target": "red-2",
+        "targetUntil": 0,
+        "facing": 1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 462.71502888888966,
+        "destinationY": 270,
+        "nextMoveTick": 316,
+        "lastShotTick": 931
+      },
+      {
+        "id": "blue-3",
+        "team": 0,
+        "lane": 3,
+        "name": "Blue 4",
+        "x": 440.83621697878124,
+        "y": 406.49034894886034,
+        "hp": 14.258,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Mobile offense associated with Force-assisted acrobatics.",
+        "form": "ataru",
+        "technique": "Vaulting cut",
+        "rank": 0,
+        "xp": 38.768,
+        "kills": 1,
+        "deaths": 0,
+        "assists": 1,
+        "environmentDeaths": 0,
+        "damageDealt": 114.72200000000001,
+        "suppression": 0,
+        "morale": 100,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 57,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.4,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 89,
+        "meritEarned": 57,
+        "contributors": [
+          {
+            "source": "red-3",
+            "damage": 32.224,
+            "tick": 773
+          },
+          {
+            "source": "red-3",
+            "damage": 5.156000000000002,
+            "tick": 834
+          }
+        ],
+        "energy": 16.47500000000072,
+        "maxEnergy": 100,
+        "guard": true,
+        "guardUntil": 0,
+        "counterUntil": 0,
+        "staggerUntil": 787,
+        "staggerImmuneUntil": 832,
+        "dashUntil": 503,
+        "dashReadyTick": 653,
+        "saberReadyTick": 941,
+        "forceReadyTick": 726,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0,
+        "forceCooldown": 0,
+        "combatState": "recover",
+        "tacticalReason": "Rebuild attack and guard reserve",
+        "lastOutcome": {
+          "outcome": "hit",
+          "damage": 18.43,
+          "kind": "saber",
+          "targetId": "red-3",
+          "tick": 913,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "guard",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-2",
+        "targetUntil": 0,
+        "facing": 1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 440.83621697878124,
+        "destinationY": 406.49034894886034,
+        "nextMoveTick": 410,
+        "lastShotTick": 898
+      },
+      {
+        "id": "blue-4",
+        "team": 0,
+        "lane": 4,
+        "name": "Blue 5",
+        "x": 447.0383736698026,
+        "y": 388.69866839952175,
+        "hp": 29.418,
+        "maxHp": 124,
+        "alive": true,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "The ranged-defense emphasis of Form V.",
+        "form": "shien",
+        "technique": "Returning guard",
+        "rank": 1,
+        "xp": 40.033,
+        "kills": 1,
+        "deaths": 0,
+        "assists": 1,
+        "environmentDeaths": 0,
+        "damageDealt": 125.27799999999999,
+        "suppression": 0,
+        "morale": 100,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 58,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.41818181818181815,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 82,
+        "meritEarned": 58,
+        "contributors": [
+          {
+            "source": "red-4",
+            "damage": 3.0399999999999916,
+            "tick": 600
+          },
+          {
+            "source": "red-3",
+            "damage": 3.2220000000000084,
+            "tick": 630
+          },
+          {
+            "source": "red-4",
+            "damage": 19,
+            "tick": 651
+          },
+          {
+            "source": "red-3",
+            "damage": 20.139999999999993,
+            "tick": 678
+          },
+          {
+            "source": "red-3",
+            "damage": 20.14,
+            "tick": 733
+          }
+        ],
+        "energy": 42.963333333333345,
+        "maxEnergy": 100,
+        "guard": true,
+        "guardUntil": 900,
+        "counterUntil": 0,
+        "staggerUntil": 358,
+        "staggerImmuneUntil": 403,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 794,
+        "forceReadyTick": 1086,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0,
+        "forceCooldown": 2.4,
+        "combatState": "guard",
+        "tacticalReason": "Close toward saber range",
+        "lastOutcome": {
+          "outcome": "hit",
+          "damage": 9.583,
+          "kind": "force",
+          "targetId": "red-3",
+          "tick": 927,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "run",
+        "cover": false,
+        "state": "moving",
+        "melee": false,
+        "target": "red-2",
+        "targetUntil": 0,
+        "facing": 1,
+        "moving": true,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 474.18951333334314,
+        "destinationY": 270,
+        "nextMoveTick": 316,
+        "lastShotTick": 900
+      },
+      {
+        "id": "red-0",
+        "team": 1,
+        "lane": 0,
+        "name": "Red 1",
+        "x": 540.8735393132949,
+        "y": 131.2962201323346,
+        "hp": 0,
+        "maxHp": 120,
+        "alive": false,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Form V emphasizes strong melee responses after defense.",
+        "form": "djem_so",
+        "technique": "Driving counter",
+        "rank": 0,
+        "xp": 8.686,
+        "kills": 0,
+        "deaths": 1,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 72.38000000000001,
+        "suppression": 13.083333333333334,
+        "morale": 91.69210133333154,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 14,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.4,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 65,
+        "meritEarned": 14,
+        "contributors": [
+          {
+            "source": "blue-1",
+            "damage": 2.990000000000002,
+            "tick": 611
+          },
+          {
+            "source": "blue-0",
+            "damage": 3.0399999999999996,
+            "tick": 629
+          },
+          {
+            "source": "blue-1",
+            "damage": 3.162000000000001,
+            "tick": 663
+          },
+          {
+            "source": "blue-0",
+            "damage": 12.556000000000001,
+            "tick": 664
+          }
+        ],
+        "energy": 3.5175000000008843,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 480,
+        "counterUntil": 718,
+        "staggerUntil": 678,
+        "staggerImmuneUntil": 723,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 671,
+        "forceReadyTick": 765,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0.11666666666666667,
+        "forceCooldown": 1.6833333333333333,
+        "combatState": "dead",
+        "tacticalReason": "Too exhausted to block",
+        "lastOutcome": {
+          "outcome": "blocked",
+          "damage": 5.29,
+          "kind": "saber",
+          "targetId": "blue-0",
+          "tick": 646,
+          "isCounter": true
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "stand",
+        "cover": false,
+        "state": "dead",
+        "melee": false,
+        "target": null,
+        "targetUntil": 0,
+        "facing": -1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 604.448291557966,
+        "destinationY": 131.60570950723766,
+        "nextMoveTick": 316,
+        "lastShotTick": 635
+      },
+      {
+        "id": "red-1",
+        "team": 1,
+        "lane": 1,
+        "name": "Red 2",
+        "x": 572.6022975777221,
+        "y": 147.53676430478947,
+        "hp": 0,
+        "maxHp": 120,
+        "alive": false,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "A blended discipline combining blade work and the Force.",
+        "form": "niman",
+        "technique": "Converging weave",
+        "rank": 0,
+        "xp": 12.015,
+        "kills": 0,
+        "deaths": 1,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 100.12599999999998,
+        "suppression": 16.95,
+        "morale": 73.51313333333098,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 16,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.45714285714285713,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 81.1,
+        "meritEarned": 16,
+        "contributors": [
+          {
+            "source": "blue-1",
+            "damage": 19.760000000000005,
+            "tick": 710
+          },
+          {
+            "source": "blue-0",
+            "damage": 19,
+            "tick": 723
+          },
+          {
+            "source": "blue-1",
+            "damage": 19.759999999999998,
+            "tick": 757
+          },
+          {
+            "source": "blue-0",
+            "damage": 18.999999999999996,
+            "tick": 774
+          },
+          {
+            "source": "blue-0",
+            "damage": 20.9,
+            "tick": 816
+          },
+          {
+            "source": "blue-0",
+            "damage": 3.04,
+            "tick": 918
+          },
+          {
+            "source": "blue-1",
+            "damage": 5.54,
+            "tick": 927
+          }
+        ],
+        "energy": 83.23333333333343,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 0,
+        "counterUntil": 0,
+        "staggerUntil": 946,
+        "staggerImmuneUntil": 991,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 979,
+        "forceReadyTick": 724,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0.8666666666666667,
+        "forceCooldown": 0,
+        "combatState": "dead",
+        "tacticalReason": "Use counter opening",
+        "lastOutcome": {
+          "outcome": "interrupted",
+          "damage": 0,
+          "kind": "saber",
+          "targetId": "blue-0",
+          "tick": 927,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "stand",
+        "cover": false,
+        "state": "dead",
+        "melee": false,
+        "target": null,
+        "targetUntil": 0,
+        "facing": -1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 544.9551032571921,
+        "destinationY": 143.10589010178413,
+        "nextMoveTick": 364,
+        "lastShotTick": 926
+      },
+      {
+        "id": "red-2",
+        "team": 1,
+        "lane": 2,
+        "name": "Red 3",
+        "x": 507.30951333334315,
+        "y": 270,
+        "hp": 0,
+        "maxHp": 120,
+        "alive": false,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Aggressive offense demanding emotional discipline.",
+        "form": "juyo",
+        "technique": "Relentless flurry",
+        "rank": 0,
+        "xp": 10.762,
+        "kills": 0,
+        "deaths": 1,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 89.65799999999996,
+        "suppression": 10,
+        "morale": 51.82622453333089,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 16,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.45714285714285713,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 86,
+        "meritEarned": 16,
+        "contributors": [
+          {
+            "source": "blue-2",
+            "damage": 2.522999999999996,
+            "tick": 594
+          },
+          {
+            "source": "blue-2",
+            "damage": 14.981000000000002,
+            "tick": 678
+          },
+          {
+            "source": "blue-2",
+            "damage": 14.981000000000002,
+            "tick": 726
+          },
+          {
+            "source": "blue-2",
+            "damage": 14.981000000000002,
+            "tick": 768
+          },
+          {
+            "source": "blue-2",
+            "damage": 2.3969999999999985,
+            "tick": 816
+          },
+          {
+            "source": "blue-2",
+            "damage": 14.981000000000002,
+            "tick": 851
+          },
+          {
+            "source": "blue-2",
+            "damage": 14.982,
+            "tick": 900
+          },
+          {
+            "source": "blue-2",
+            "damage": 1.174,
+            "tick": 942
+          }
+        ],
+        "energy": 10.786666666669115,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 480,
+        "counterUntil": 0,
+        "staggerUntil": 956,
+        "staggerImmuneUntil": 1001,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 950,
+        "forceReadyTick": 684,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0.13333333333333333,
+        "forceCooldown": 0,
+        "combatState": "dead",
+        "tacticalReason": "Rebuild attack and guard reserve",
+        "lastOutcome": {
+          "outcome": "blocked",
+          "damage": 3.496,
+          "kind": "saber",
+          "targetId": "blue-2",
+          "tick": 923,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "stand",
+        "cover": false,
+        "state": "dead",
+        "melee": false,
+        "target": null,
+        "targetUntil": 0,
+        "facing": -1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 507.30951333334315,
+        "destinationY": 270,
+        "nextMoveTick": 316,
+        "lastShotTick": 908
+      },
+      {
+        "id": "red-3",
+        "team": 1,
+        "lane": 3,
+        "name": "Red 4",
+        "x": 513.389447052751,
+        "y": 397.9029635239229,
+        "hp": 0,
+        "maxHp": 120,
+        "alive": false,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "A Form VII variant associated with Mace Windu and controlled intensity.",
+        "form": "vaapad",
+        "technique": "Reversal spiral",
+        "rank": 0,
+        "xp": 15.631,
+        "kills": 0,
+        "deaths": 1,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 130.244,
+        "suppression": 22.033333333333335,
+        "morale": 68.998293333331,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 18,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.5142857142857142,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 82.5,
+        "meritEarned": 18,
+        "contributors": [
+          {
+            "source": "blue-4",
+            "damage": 17.86,
+            "tick": 708
+          },
+          {
+            "source": "blue-3",
+            "damage": 2.9490000000000016,
+            "tick": 758
+          },
+          {
+            "source": "blue-3",
+            "damage": 2.948999999999998,
+            "tick": 802
+          },
+          {
+            "source": "blue-3",
+            "damage": 18.43,
+            "tick": 913
+          },
+          {
+            "source": "blue-4",
+            "damage": 9.583,
+            "tick": 927
+          }
+        ],
+        "energy": 24.053333333335495,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 900,
+        "counterUntil": 0,
+        "staggerUntil": 946,
+        "staggerImmuneUntil": 991,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 873,
+        "forceReadyTick": 726,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0,
+        "forceCooldown": 0,
+        "combatState": "dead",
+        "tacticalReason": "Wait for incoming attack",
+        "lastOutcome": {
+          "outcome": "blocked",
+          "damage": 5.156,
+          "kind": "saber",
+          "targetId": "blue-3",
+          "tick": 834,
+          "isCounter": true
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "stand",
+        "cover": false,
+        "state": "dead",
+        "melee": false,
+        "target": null,
+        "targetUntil": 0,
+        "facing": -1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 485.7862676541486,
+        "destinationY": 402.6002486002804,
+        "nextMoveTick": 372,
+        "lastShotTick": 825
+      },
+      {
+        "id": "red-4",
+        "team": 1,
+        "lane": 4,
+        "name": "Red 5",
+        "x": 488.218850000009,
+        "y": 410,
+        "hp": 0,
+        "maxHp": 120,
+        "alive": false,
+        "weapon": "force_push",
+        "meleeWeapon": "saber",
+        "role": "Foundational bladework and broad control.",
+        "form": "shii_cho",
+        "technique": "Opening sweep",
+        "rank": 0,
+        "xp": 8.41,
+        "kills": 0,
+        "deaths": 1,
+        "assists": 0,
+        "environmentDeaths": 0,
+        "damageDealt": 70.08,
+        "suppression": 22.999999999999986,
+        "morale": 76.41066666666497,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 14,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.4,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 59,
+        "meritEarned": 14,
+        "contributors": [
+          {
+            "source": "blue-4",
+            "damage": 22.324999999999996,
+            "tick": 612
+          },
+          {
+            "source": "blue-3",
+            "damage": 18.43,
+            "tick": 629
+          },
+          {
+            "source": "blue-4",
+            "damage": 22.325,
+            "tick": 648
+          },
+          {
+            "source": "blue-3",
+            "damage": 7.630000000000001,
+            "tick": 672
+          }
+        ],
+        "energy": 94.0175000000006,
+        "maxEnergy": 100,
+        "guard": false,
+        "guardUntil": 480,
+        "counterUntil": 0,
+        "staggerUntil": 626,
+        "staggerImmuneUntil": 671,
+        "dashUntil": 0,
+        "dashReadyTick": 0,
+        "saberReadyTick": 684,
+        "forceReadyTick": 498,
+        "forceRequestedUntil": 0,
+        "attack": null,
+        "attackCooldown": 0.2,
+        "forceCooldown": 0,
+        "combatState": "dead",
+        "tacticalReason": "Wait for saber recovery",
+        "lastOutcome": {
+          "outcome": "hit",
+          "damage": 19,
+          "kind": "saber",
+          "targetId": "blue-4",
+          "tick": 651,
+          "isCounter": false
+        },
+        "pinned": false,
+        "rallying": false,
+        "pinnedAtTick": -1000,
+        "stance": "stand",
+        "cover": false,
+        "state": "dead",
+        "melee": false,
+        "target": null,
+        "targetUntil": 0,
+        "facing": -1,
+        "moving": false,
+        "bank": 2,
+        "holdBank": 2,
+        "destinationX": 488.218850000009,
+        "destinationY": 410,
+        "nextMoveTick": 316,
+        "lastShotTick": 633
+      }
+    ]
+  }
+}

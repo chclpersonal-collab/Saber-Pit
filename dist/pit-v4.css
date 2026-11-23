@@ -1,0 +1,48 @@
+/* Arena shell only. The match canvas and mobile combat controls keep their own layout. */
+body.pit-v4[data-view=menu]{
+  --accent:#67e2cd;--accent-dark:#102b27;--edge:#303b3c;--edge-strong:#4d6061;
+  --stone:#151a1c;--field:#20282a;--muted:#a7b5b6;
+  background:radial-gradient(ellipse at 22% 12%,#162b2c 0%,#111719 32%,transparent 65%),#101416;
+}
+.pit-v4 .arena-launch{display:none}
+.pit-v4[data-view=menu] .arena-launch{
+  position:relative;display:block;grid-column:1;grid-row:2;padding:clamp(1rem,3vw,3rem);overflow:hidden;
+  border:1px solid var(--edge);background:linear-gradient(114deg,#172426 12%,#11191b 66%);
+}
+.pit-v4[data-view=menu] .arena-launch::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(134deg,transparent 0 15px,#73eddb18 16px 17px,transparent 18px 29px);
+  mask-image:linear-gradient(100deg,transparent 54%,#000);
+}
+.pit-v4 .launch-tag{display:flex;align-items:center;gap:.6rem;color:var(--accent);font:800 .72rem/1 var(--mono);letter-spacing:.19em}
+.pit-v4 .launch-tag i{width:.46rem;height:.46rem;background:var(--accent);transform:rotate(45deg);box-shadow:0 0 10px #67e2cd80}
+.pit-v4 .arena-launch h1{position:relative;margin:.85rem 0;font:950 clamp(3rem,7vw,6.8rem)/.87 var(--serif);letter-spacing:-.075em}
+.pit-v4 .arena-launch p{position:relative;margin:.8rem 0 1.05rem;color:#b8cdcb;font-size:clamp(.96rem,1.25vw,1.1rem)}
+.pit-v4 .launch-actions{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:.6rem}
+.pit-v4 .launch-actions button{display:inline-flex;justify-content:center;align-items:center;gap:.55rem;min-height:46px;padding:.6rem 1.05rem;border:1px solid #497874;background:#18302f;color:#ddf7f2;font-weight:900;border-radius:3px;font-size:1rem}
+.pit-v4 .launch-actions button:first-child{background:var(--accent);color:#102825;border-color:var(--accent)}
+.pit-v4 .launch-actions button:hover{filter:brightness(1.16)}
+.pit-v4 .launch-actions button:focus-visible,.pit-v4 .launch-setup:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.pit-v4 .launch-setup{position:relative;display:inline-flex;align-items:center;gap:.4rem;min-height:44px;margin-top:.4rem;color:#b0c6c4;text-underline-offset:.21em;font-weight:700}
+.pit-v4[data-view=menu] .mast{margin-bottom:clamp(.55rem,2vh,1.3rem)}
+.pit-v4[data-view=menu] .pit-nav a[aria-current],.pit-v4[data-view=menu] .pit-nav a:hover{border-color:var(--accent)}
+.pit-v4[data-view=menu] .entry{grid-row:2/span 2;scroll-margin-top:1rem}
+.pit-v4[data-view=menu] .arena-shell{grid-row:3;position:relative;top:0;margin-top:.78rem;align-self:start}
+.pit-v4[data-view=menu] .map-caption{padding:.55rem .8rem;background:#191e20}
+.pit-v4[data-view=menu] .map-caption strong{font-size:clamp(1rem,2vw,1.5rem)}
+.pit-v4[data-view=menu] .lobby{border-top:2px solid var(--accent)}
+.pit-v4[data-view=menu] .lobby-title h2{font:900 clamp(1.6rem,2.8vw,2.55rem)/1 var(--serif);letter-spacing:-.04em;margin:0}
+.pit-v4[data-view=menu] .setup-tabs button[aria-selected=true]{border-bottom-color:var(--accent);background:#223331}
+.pit-v4[data-view=menu] .lobby button.start-match{background:var(--accent);color:#102825}
+.pit-v4[data-view=menu] .lobby button:not(.start-match):hover,
+.pit-v4[data-view=menu] .lobby button[aria-pressed=true]{background:#243836;border-color:#57a69a}
+@media(max-width:700px){
+  .pit-v4[data-view=menu] .arena-launch{grid-row:2;grid-column:1;padding:.95rem}
+  .pit-v4 .arena-launch h1{font-size:clamp(2.7rem,12vw,4.2rem);margin:.55rem 0}
+  .pit-v4 .arena-launch h1 br{display:none}
+  .pit-v4 .arena-launch p{margin:.75rem 0}
+  .pit-v4 .launch-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pit-v4 .launch-actions button{padding-inline:.4rem;font-size:.93rem}
+  .pit-v4[data-view=menu] .entry{grid-row:3;grid-column:1}
+  .pit-v4[data-view=menu] .arena-shell{grid-row:4;grid-column:1;margin:0 0 .8rem}
+}

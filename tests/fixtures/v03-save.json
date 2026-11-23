@@ -1,0 +1,1830 @@
+{
+  "version": 1,
+  "game": {
+    "seed": 42,
+    "rngState": 2952762124,
+    "round": 2,
+    "score": [
+      0,
+      1
+    ],
+    "draws": 0,
+    "history": [
+      {
+        "round": 1,
+        "winner": 1,
+        "reason": "Squad eliminated",
+        "time": 24.716666666666665,
+        "terrain": "crossroads",
+        "survivors": [
+          0,
+          3
+        ],
+        "health": [
+          0,
+          71.94
+        ],
+        "objective": [
+          0.6166666666666669,
+          0
+        ]
+      }
+    ],
+    "mutations": [
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "worn_pistol",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -1.68,
+          "interval": 0.115,
+          "range": -44.4,
+          "accuracy": -0.06
+        },
+        "label": "Blue 1: Field pistol → Worn Field pistol (worse quality)",
+        "team": 0,
+        "soldierId": "blue-0"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "worn_knife",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -2.24,
+          "interval": 0.07,
+          "range": 0
+        },
+        "label": "Blue 1: Field knife → Worn knife (worse quality)",
+        "team": 0,
+        "soldierId": "blue-0"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "improved_pistol",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 1.68,
+          "interval": -0.08,
+          "range": 44.4,
+          "accuracy": 0.05
+        },
+        "label": "Blue 2: Field pistol → Improved Field pistol (better quality)",
+        "team": 0,
+        "soldierId": "blue-1"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "worn_knife",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -2.24,
+          "interval": 0.07,
+          "range": 0
+        },
+        "label": "Blue 2: Field knife → Worn knife (worse quality)",
+        "team": 0,
+        "soldierId": "blue-1"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "improved_pistol",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 1.68,
+          "interval": -0.08,
+          "range": 44.4,
+          "accuracy": 0.05
+        },
+        "label": "Blue 3: Field pistol → Improved Field pistol (better quality)",
+        "team": 0,
+        "soldierId": "blue-2"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "improved_knife",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 2.24,
+          "interval": -0.049,
+          "range": 0
+        },
+        "label": "Blue 3: Field knife → Improved knife (better quality)",
+        "team": 0,
+        "soldierId": "blue-2"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "carbine",
+        "kind": "mixed",
+        "changes": {
+          "damage": 1,
+          "interval": 0.1,
+          "range": 100,
+          "accuracy": 0.1
+        },
+        "label": "Blue 4: Field pistol → Carbine (new role / tradeoffs)",
+        "team": 0,
+        "soldierId": "blue-3"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "worn_knife",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -2.24,
+          "interval": 0.07,
+          "range": 0
+        },
+        "label": "Blue 4: Field knife → Worn knife (worse quality)",
+        "team": 0,
+        "soldierId": "blue-3"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "improved_pistol",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 1.68,
+          "interval": -0.08,
+          "range": 44.4,
+          "accuracy": 0.05
+        },
+        "label": "Blue 5: Field pistol → Improved Field pistol (better quality)",
+        "team": 0,
+        "soldierId": "blue-4"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "improved_knife",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 2.24,
+          "interval": -0.049,
+          "range": 0
+        },
+        "label": "Blue 5: Field knife → Improved knife (better quality)",
+        "team": 0,
+        "soldierId": "blue-4"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "carbine",
+        "kind": "mixed",
+        "changes": {
+          "damage": 1,
+          "interval": 0.1,
+          "range": 100,
+          "accuracy": 0.1
+        },
+        "label": "Red 1: Field pistol → Carbine (new role / tradeoffs)",
+        "team": 1,
+        "soldierId": "red-0"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "worn_knife",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -2.24,
+          "interval": 0.07,
+          "range": 0
+        },
+        "label": "Red 1: Field knife → Worn knife (worse quality)",
+        "team": 1,
+        "soldierId": "red-0"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "revolver",
+        "kind": "mixed",
+        "changes": {
+          "damage": 10,
+          "interval": 0.65,
+          "range": 30,
+          "accuracy": 0.03
+        },
+        "label": "Red 2: Field pistol → Revolver (new role / tradeoffs)",
+        "team": 1,
+        "soldierId": "red-1"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "worn_knife",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -2.24,
+          "interval": 0.07,
+          "range": 0
+        },
+        "label": "Red 2: Field knife → Worn knife (worse quality)",
+        "team": 1,
+        "soldierId": "red-1"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "shotgun",
+        "kind": "mixed",
+        "changes": {
+          "damage": 18,
+          "interval": 0.65,
+          "range": -415,
+          "accuracy": 0.14
+        },
+        "label": "Red 3: Field pistol → Shotgun (new role / tradeoffs)",
+        "team": 1,
+        "soldierId": "red-2"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "improved_knife",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 2.24,
+          "interval": -0.049,
+          "range": 0
+        },
+        "label": "Red 3: Field knife → Improved knife (better quality)",
+        "team": 1,
+        "soldierId": "red-2"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "worn_pistol",
+        "kind": "downgrade",
+        "changes": {
+          "damage": -1.68,
+          "interval": 0.115,
+          "range": -44.4,
+          "accuracy": -0.06
+        },
+        "label": "Red 4: Field pistol → Worn Field pistol (worse quality)",
+        "team": 1,
+        "soldierId": "red-3"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "improved_knife",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 2.24,
+          "interval": -0.049,
+          "range": 0
+        },
+        "label": "Red 4: Field knife → Improved knife (better quality)",
+        "team": 1,
+        "soldierId": "red-3"
+      },
+      {
+        "slot": "ranged",
+        "from": "pistol",
+        "to": "smg",
+        "kind": "mixed",
+        "changes": {
+          "damage": -6,
+          "interval": -0.77,
+          "range": -240,
+          "accuracy": -0.15
+        },
+        "label": "Red 5: Field pistol → SMG (new role / tradeoffs)",
+        "team": 1,
+        "soldierId": "red-4"
+      },
+      {
+        "slot": "melee",
+        "from": "knife",
+        "to": "improved_knife",
+        "kind": "upgrade",
+        "changes": {
+          "damage": 2.24,
+          "interval": -0.049,
+          "range": 0
+        },
+        "label": "Red 5: Field knife → Improved knife (better quality)",
+        "team": 1,
+        "soldierId": "red-4"
+      }
+    ],
+    "terrainChoice": null,
+    "autoCommand": true,
+    "doctrines": [
+      "guard",
+      "balanced"
+    ],
+    "careers": [
+      [
+        {
+          "merit": 15
+        },
+        {
+          "merit": 18
+        },
+        {
+          "merit": 17
+        },
+        {
+          "merit": 32
+        },
+        {
+          "merit": 28
+        }
+      ],
+      [
+        {
+          "merit": 60
+        },
+        {
+          "merit": 36
+        },
+        {
+          "merit": 78
+        },
+        {
+          "merit": 61
+        },
+        {
+          "merit": 33
+        }
+      ]
+    ],
+    "roundReport": {
+      "round": 1,
+      "doctrines": [
+        "balanced",
+        "balanced"
+      ],
+      "careers": [
+        {
+          "soldierId": "blue-0",
+          "team": 0,
+          "lane": 0,
+          "name": "Blue 1",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 15,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.42857142857142855,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 15,
+          "promoted": false
+        },
+        {
+          "soldierId": "blue-1",
+          "team": 0,
+          "lane": 1,
+          "name": "Blue 2",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 18,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.5142857142857142,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 18,
+          "promoted": false
+        },
+        {
+          "soldierId": "blue-2",
+          "team": 0,
+          "lane": 2,
+          "name": "Blue 3",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 17,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.4857142857142857,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 17,
+          "promoted": false
+        },
+        {
+          "soldierId": "blue-3",
+          "team": 0,
+          "lane": 3,
+          "name": "Blue 4",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 32,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.9142857142857143,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 32,
+          "promoted": false
+        },
+        {
+          "soldierId": "blue-4",
+          "team": 0,
+          "lane": 4,
+          "name": "Blue 5",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 28,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.8,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 28,
+          "promoted": false
+        },
+        {
+          "soldierId": "red-0",
+          "team": 1,
+          "lane": 0,
+          "name": "Red 1",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 60,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.45454545454545453,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 60,
+          "promoted": true
+        },
+        {
+          "soldierId": "red-1",
+          "team": 1,
+          "lane": 1,
+          "name": "Red 2",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 36,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.01818181818181818,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 36,
+          "promoted": true
+        },
+        {
+          "soldierId": "red-2",
+          "team": 1,
+          "lane": 2,
+          "name": "Red 3",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 78,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.7818181818181819,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 78,
+          "promoted": true
+        },
+        {
+          "soldierId": "red-3",
+          "team": 1,
+          "lane": 3,
+          "name": "Red 4",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "E",
+            "gradeIndex": 1,
+            "merit": 61,
+            "nextGrade": "D",
+            "nextThreshold": 90,
+            "progress": 0.4727272727272727,
+            "modifiers": {
+              "healthMultiplier": 1.022222,
+              "accuracyBonus": 0.008889,
+              "reloadMultiplier": 0.986667
+            }
+          },
+          "earned": 61,
+          "promoted": true
+        },
+        {
+          "soldierId": "red-4",
+          "team": 1,
+          "lane": 4,
+          "name": "Red 5",
+          "before": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 0,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "after": {
+            "grade": "F",
+            "gradeIndex": 0,
+            "merit": 33,
+            "nextGrade": "E",
+            "nextThreshold": 35,
+            "progress": 0.9428571428571428,
+            "modifiers": {
+              "healthMultiplier": 1,
+              "accuracyBonus": 0,
+              "reloadMultiplier": 1
+            }
+          },
+          "earned": 33,
+          "promoted": false
+        }
+      ]
+    },
+    "loadouts": [
+      {
+        "weaponTier": 0,
+        "knifeTier": 0,
+        "roster": [
+          {
+            "weapon": "worn_pistol",
+            "meleeWeapon": "worn_knife"
+          },
+          {
+            "weapon": "improved_pistol",
+            "meleeWeapon": "worn_knife"
+          },
+          {
+            "weapon": "improved_pistol",
+            "meleeWeapon": "improved_knife"
+          },
+          {
+            "weapon": "carbine",
+            "meleeWeapon": "worn_knife"
+          },
+          {
+            "weapon": "improved_pistol",
+            "meleeWeapon": "improved_knife"
+          }
+        ]
+      },
+      {
+        "weaponTier": 1,
+        "knifeTier": 0,
+        "roster": [
+          {
+            "weapon": "carbine",
+            "meleeWeapon": "worn_knife"
+          },
+          {
+            "weapon": "revolver",
+            "meleeWeapon": "worn_knife"
+          },
+          {
+            "weapon": "shotgun",
+            "meleeWeapon": "improved_knife"
+          },
+          {
+            "weapon": "worn_pistol",
+            "meleeWeapon": "improved_knife"
+          },
+          {
+            "weapon": "smg",
+            "meleeWeapon": "improved_knife"
+          }
+        ]
+      }
+    ],
+    "veterans": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        41.061,
+        0,
+        89.271,
+        43.267,
+        0
+      ]
+    ],
+    "terrain": {
+      "id": "zigzag",
+      "name": "Zigzag",
+      "description": "Staggered sandbags vary the distance between cover positions.",
+      "width": 960,
+      "height": 540,
+      "coverNodes": [
+        {
+          "id": "zigzag-0-0-0",
+          "team": 0,
+          "bank": 0,
+          "lane": 0,
+          "x": 150,
+          "y": 120
+        },
+        {
+          "id": "zigzag-0-0-1",
+          "team": 0,
+          "bank": 0,
+          "lane": 1,
+          "x": 170,
+          "y": 195
+        },
+        {
+          "id": "zigzag-0-0-2",
+          "team": 0,
+          "bank": 0,
+          "lane": 2,
+          "x": 150,
+          "y": 270
+        },
+        {
+          "id": "zigzag-0-0-3",
+          "team": 0,
+          "bank": 0,
+          "lane": 3,
+          "x": 170,
+          "y": 345
+        },
+        {
+          "id": "zigzag-0-0-4",
+          "team": 0,
+          "bank": 0,
+          "lane": 4,
+          "x": 150,
+          "y": 420
+        },
+        {
+          "id": "zigzag-0-1-0",
+          "team": 0,
+          "bank": 1,
+          "lane": 0,
+          "x": 280,
+          "y": 120
+        },
+        {
+          "id": "zigzag-0-1-1",
+          "team": 0,
+          "bank": 1,
+          "lane": 1,
+          "x": 305,
+          "y": 195
+        },
+        {
+          "id": "zigzag-0-1-2",
+          "team": 0,
+          "bank": 1,
+          "lane": 2,
+          "x": 280,
+          "y": 270
+        },
+        {
+          "id": "zigzag-0-1-3",
+          "team": 0,
+          "bank": 1,
+          "lane": 3,
+          "x": 305,
+          "y": 345
+        },
+        {
+          "id": "zigzag-0-1-4",
+          "team": 0,
+          "bank": 1,
+          "lane": 4,
+          "x": 280,
+          "y": 420
+        },
+        {
+          "id": "zigzag-0-2-0",
+          "team": 0,
+          "bank": 2,
+          "lane": 0,
+          "x": 415,
+          "y": 120
+        },
+        {
+          "id": "zigzag-0-2-1",
+          "team": 0,
+          "bank": 2,
+          "lane": 1,
+          "x": 438,
+          "y": 195
+        },
+        {
+          "id": "zigzag-0-2-2",
+          "team": 0,
+          "bank": 2,
+          "lane": 2,
+          "x": 415,
+          "y": 270
+        },
+        {
+          "id": "zigzag-0-2-3",
+          "team": 0,
+          "bank": 2,
+          "lane": 3,
+          "x": 438,
+          "y": 345
+        },
+        {
+          "id": "zigzag-0-2-4",
+          "team": 0,
+          "bank": 2,
+          "lane": 4,
+          "x": 415,
+          "y": 420
+        },
+        {
+          "id": "zigzag-1-0-0",
+          "team": 1,
+          "bank": 0,
+          "lane": 0,
+          "x": 810,
+          "y": 120
+        },
+        {
+          "id": "zigzag-1-0-1",
+          "team": 1,
+          "bank": 0,
+          "lane": 1,
+          "x": 790,
+          "y": 195
+        },
+        {
+          "id": "zigzag-1-0-2",
+          "team": 1,
+          "bank": 0,
+          "lane": 2,
+          "x": 810,
+          "y": 270
+        },
+        {
+          "id": "zigzag-1-0-3",
+          "team": 1,
+          "bank": 0,
+          "lane": 3,
+          "x": 790,
+          "y": 345
+        },
+        {
+          "id": "zigzag-1-0-4",
+          "team": 1,
+          "bank": 0,
+          "lane": 4,
+          "x": 810,
+          "y": 420
+        },
+        {
+          "id": "zigzag-1-1-0",
+          "team": 1,
+          "bank": 1,
+          "lane": 0,
+          "x": 680,
+          "y": 120
+        },
+        {
+          "id": "zigzag-1-1-1",
+          "team": 1,
+          "bank": 1,
+          "lane": 1,
+          "x": 655,
+          "y": 195
+        },
+        {
+          "id": "zigzag-1-1-2",
+          "team": 1,
+          "bank": 1,
+          "lane": 2,
+          "x": 680,
+          "y": 270
+        },
+        {
+          "id": "zigzag-1-1-3",
+          "team": 1,
+          "bank": 1,
+          "lane": 3,
+          "x": 655,
+          "y": 345
+        },
+        {
+          "id": "zigzag-1-1-4",
+          "team": 1,
+          "bank": 1,
+          "lane": 4,
+          "x": 680,
+          "y": 420
+        },
+        {
+          "id": "zigzag-1-2-0",
+          "team": 1,
+          "bank": 2,
+          "lane": 0,
+          "x": 545,
+          "y": 120
+        },
+        {
+          "id": "zigzag-1-2-1",
+          "team": 1,
+          "bank": 2,
+          "lane": 1,
+          "x": 522,
+          "y": 195
+        },
+        {
+          "id": "zigzag-1-2-2",
+          "team": 1,
+          "bank": 2,
+          "lane": 2,
+          "x": 545,
+          "y": 270
+        },
+        {
+          "id": "zigzag-1-2-3",
+          "team": 1,
+          "bank": 2,
+          "lane": 3,
+          "x": 522,
+          "y": 345
+        },
+        {
+          "id": "zigzag-1-2-4",
+          "team": 1,
+          "bank": 2,
+          "lane": 4,
+          "x": 545,
+          "y": 420
+        }
+      ],
+      "decorations": [
+        {
+          "type": "crater",
+          "x": 360,
+          "y": 65,
+          "radius": 17
+        },
+        {
+          "type": "crater",
+          "x": 600,
+          "y": 65,
+          "radius": 17
+        },
+        {
+          "type": "crater",
+          "x": 225,
+          "y": 305,
+          "radius": 14
+        },
+        {
+          "type": "crater",
+          "x": 735,
+          "y": 305,
+          "radius": 14
+        },
+        {
+          "type": "crater",
+          "x": 365,
+          "y": 465,
+          "radius": 20
+        },
+        {
+          "type": "crater",
+          "x": 595,
+          "y": 465,
+          "radius": 20
+        }
+      ],
+      "controlPoints": [
+        {
+          "id": "center",
+          "name": "Signal post",
+          "x": 480,
+          "y": 270,
+          "radius": 108
+        }
+      ],
+      "cosmeticTerrainOnly": true,
+      "objective": {
+        "id": "center",
+        "name": "Signal post",
+        "x": 480,
+        "y": 270,
+        "radius": 108
+      }
+    },
+    "tick": 60,
+    "time": 1,
+    "timeLeft": 89,
+    "roundDuration": 90,
+    "status": "playing",
+    "winner": null,
+    "reason": "",
+    "playerOrder": "hold",
+    "enemyOrder": "hold",
+    "playerTactic": "volley",
+    "enemyTactic": "volley",
+    "grenadeCooldown": 0,
+    "aiGrenadeCooldown": 6.0000000000000036,
+    "smokeCooldown": 0,
+    "aiSmokeCooldown": 3.0000000000000036,
+    "effects": [],
+    "grenades": [],
+    "smokes": [],
+    "events": [
+      {
+        "id": 1,
+        "time": 0,
+        "type": "round",
+        "team": null,
+        "text": "Round 2: capture the signal post or eliminate the other squad"
+      }
+    ],
+    "frontLine": 480,
+    "_accumulator": 0,
+    "_nextAiDecision": 90,
+    "nextEffectId": 20,
+    "nextEventId": 2,
+    "nextGrenadeId": 1,
+    "nextSmokeId": 1,
+    "stats": {
+      "shots": [
+        5,
+        2
+      ],
+      "hits": [
+        5,
+        0
+      ],
+      "knifeHits": [
+        0,
+        0
+      ],
+      "grenades": [
+        0,
+        0
+      ],
+      "smokes": [
+        0,
+        0
+      ],
+      "damage": [
+        35.69200000000001,
+        0
+      ],
+      "suppression": [
+        49.0222,
+        6.41732
+      ],
+      "coverTime": [
+        4.999999999999988,
+        4.999999999999988
+      ],
+      "objectiveTime": [
+        0,
+        0
+      ]
+    },
+    "objective": {
+      "id": "center",
+      "name": "Signal post",
+      "x": 480,
+      "y": 270,
+      "radius": 108,
+      "capture": 0,
+      "owner": null,
+      "points": [
+        0,
+        0
+      ],
+      "targetScore": 30,
+      "contested": false,
+      "presence": [
+        0,
+        0
+      ]
+    },
+    "squads": [
+      {
+        "team": 0,
+        "doctrine": "guard",
+        "order": "hold",
+        "tactic": "volley",
+        "morale": 84.50000000000028,
+        "suppression": 0,
+        "readiness": 1,
+        "rallyUntil": 0,
+        "nextVolleyTick": 204,
+        "volleyUntil": 0
+      },
+      {
+        "team": 1,
+        "doctrine": "balanced",
+        "order": "hold",
+        "tactic": "volley",
+        "morale": 83.35783488509968,
+        "suppression": 5.315999999999992,
+        "readiness": 1,
+        "rallyUntil": 0,
+        "nextVolleyTick": 208,
+        "volleyUntil": 62
+      }
+    ],
+    "soldiers": [
+      {
+        "id": "blue-0",
+        "team": 0,
+        "lane": 0,
+        "name": "Blue 1",
+        "x": 150,
+        "y": 120,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "worn_pistol",
+        "meleeWeapon": "worn_knife",
+        "role": "Mobile all-rounder",
+        "rank": 0,
+        "xp": 0.467,
+        "kills": 0,
+        "damageDealt": 3.888999999999996,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 15,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.42857142857142855,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 4.252699999999999,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-1",
+        "targetUntil": 65,
+        "facing": 1,
+        "ammo": 5,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 150,
+        "destinationY": 120,
+        "nextAttackTick": 90,
+        "nextMoveTick": 0,
+        "peekUntil": 106,
+        "nextPeekTick": 142,
+        "lastShotTick": 14,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "blue-1",
+        "team": 0,
+        "lane": 1,
+        "name": "Blue 2",
+        "x": 170,
+        "y": 195,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "improved_pistol",
+        "meleeWeapon": "worn_knife",
+        "role": "Mobile all-rounder",
+        "rank": 0,
+        "xp": 1.068,
+        "kills": 0,
+        "damageDealt": 8.896,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 18,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.5142857142857142,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 13.11,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-1",
+        "targetUntil": 65,
+        "facing": 1,
+        "ammo": 5,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 170,
+        "destinationY": 195,
+        "nextAttackTick": 93,
+        "nextMoveTick": 0,
+        "peekUntil": 121,
+        "nextPeekTick": 165,
+        "lastShotTick": 29,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "blue-2",
+        "team": 0,
+        "lane": 2,
+        "name": "Blue 3",
+        "x": 150,
+        "y": 270,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "improved_pistol",
+        "meleeWeapon": "improved_knife",
+        "role": "Mobile all-rounder",
+        "rank": 0,
+        "xp": 1.059,
+        "kills": 0,
+        "damageDealt": 8.826000000000008,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 17,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.4857142857142857,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 13.11,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-1",
+        "targetUntil": 65,
+        "facing": 1,
+        "ammo": 5,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 150,
+        "destinationY": 270,
+        "nextAttackTick": 99,
+        "nextMoveTick": 0,
+        "peekUntil": 127,
+        "nextPeekTick": 163,
+        "lastShotTick": 35,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "blue-3",
+        "team": 0,
+        "lane": 3,
+        "name": "Blue 4",
+        "x": 170,
+        "y": 345,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "carbine",
+        "meleeWeapon": "worn_knife",
+        "role": "Accurate at range, less mobile",
+        "rank": 0,
+        "xp": 0.631,
+        "kills": 0,
+        "damageDealt": 5.2549999999999955,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 32,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.9142857142857143,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 5.439499999999999,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-3",
+        "targetUntil": 65,
+        "facing": 1,
+        "ammo": 7,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 170,
+        "destinationY": 345,
+        "nextAttackTick": 108,
+        "nextMoveTick": 0,
+        "peekUntil": 125,
+        "nextPeekTick": 169,
+        "lastShotTick": 33,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "blue-4",
+        "team": 0,
+        "lane": 4,
+        "name": "Blue 5",
+        "x": 150,
+        "y": 420,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "improved_pistol",
+        "meleeWeapon": "improved_knife",
+        "role": "Mobile all-rounder",
+        "rank": 0,
+        "xp": 1.059,
+        "kills": 0,
+        "damageDealt": 8.826000000000008,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 28,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.8,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 13.11,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "red-3",
+        "targetUntil": 65,
+        "facing": 1,
+        "ammo": 5,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 150,
+        "destinationY": 420,
+        "nextAttackTick": 110,
+        "nextMoveTick": 0,
+        "peekUntil": 138,
+        "nextPeekTick": 174,
+        "lastShotTick": 46,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "red-0",
+        "team": 1,
+        "lane": 0,
+        "name": "Red 1",
+        "x": 810,
+        "y": 120,
+        "hp": 126.756,
+        "maxHp": 126.756,
+        "alive": true,
+        "weapon": "carbine",
+        "meleeWeapon": "worn_knife",
+        "role": "Accurate at range, less mobile",
+        "rank": 1,
+        "xp": 41.061,
+        "kills": 0,
+        "damageDealt": 0,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 60,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.45454545454545453,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 2.52109,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "blue-1",
+        "targetUntil": 65,
+        "facing": -1,
+        "ammo": 7,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 810,
+        "destinationY": 120,
+        "nextAttackTick": 97,
+        "nextMoveTick": 0,
+        "peekUntil": 113,
+        "nextPeekTick": 149,
+        "lastShotTick": 22,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "red-1",
+        "team": 1,
+        "lane": 1,
+        "name": "Red 2",
+        "x": 790,
+        "y": 195,
+        "hp": 101.056,
+        "maxHp": 122.667,
+        "alive": true,
+        "weapon": "revolver",
+        "meleeWeapon": "worn_knife",
+        "role": "Heavy shots, slow follow-up",
+        "rank": 0,
+        "xp": 0,
+        "kills": 0,
+        "damageDealt": 0,
+        "suppression": 17.436666666666625,
+        "morale": 81.04222795776306,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 36,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.01818181818181818,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 3.8962299999999996,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "blue-1",
+        "targetUntil": 65,
+        "facing": -1,
+        "ammo": 5,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 790,
+        "destinationY": 195,
+        "nextAttackTick": 130,
+        "nextMoveTick": 0,
+        "peekUntil": 114,
+        "nextPeekTick": 158,
+        "lastShotTick": 22,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "red-2",
+        "team": 1,
+        "lane": 2,
+        "name": "Red 3",
+        "x": 810,
+        "y": 270,
+        "hp": 126.756,
+        "maxHp": 126.756,
+        "alive": true,
+        "weapon": "shotgun",
+        "meleeWeapon": "improved_knife",
+        "role": "Close-range impact, short reach",
+        "rank": 1,
+        "xp": 89.271,
+        "kills": 0,
+        "damageDealt": 0,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 78,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.7818181818181819,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 0,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "blue-1",
+        "targetUntil": 65,
+        "facing": -1,
+        "ammo": 3,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 810,
+        "destinationY": 270,
+        "nextAttackTick": 8,
+        "nextMoveTick": 0,
+        "peekUntil": 124,
+        "nextPeekTick": 62,
+        "lastShotTick": -1000,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "red-3",
+        "team": 1,
+        "lane": 3,
+        "name": "Red 4",
+        "x": 790,
+        "y": 345,
+        "hp": 112.675,
+        "maxHp": 126.756,
+        "alive": true,
+        "weapon": "worn_pistol",
+        "meleeWeapon": "improved_knife",
+        "role": "Mobile all-rounder",
+        "rank": 1,
+        "xp": 43.267,
+        "kills": 0,
+        "damageDealt": 0,
+        "suppression": 9.143333333333334,
+        "morale": 82.24694646773449,
+        "career": {
+          "grade": "E",
+          "gradeIndex": 1,
+          "merit": 61,
+          "nextGrade": "D",
+          "nextThreshold": 90,
+          "progress": 0.4727272727272727,
+          "modifiers": {
+            "healthMultiplier": 1.022222,
+            "accuracyBonus": 0.008889,
+            "reloadMultiplier": 0.986667
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 0,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "blue-3",
+        "targetUntil": 65,
+        "facing": -1,
+        "ammo": 6,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 790,
+        "destinationY": 345,
+        "nextAttackTick": 20,
+        "nextMoveTick": 0,
+        "peekUntil": 136,
+        "nextPeekTick": 180,
+        "lastShotTick": -1000,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      },
+      {
+        "id": "red-4",
+        "team": 1,
+        "lane": 4,
+        "name": "Red 5",
+        "x": 810,
+        "y": 420,
+        "hp": 120,
+        "maxHp": 120,
+        "alive": true,
+        "weapon": "smg",
+        "meleeWeapon": "improved_knife",
+        "role": "Fast suppression, weak at range",
+        "rank": 0,
+        "xp": 0,
+        "kills": 0,
+        "damageDealt": 0,
+        "suppression": 0,
+        "morale": 84.50000000000028,
+        "career": {
+          "grade": "F",
+          "gradeIndex": 0,
+          "merit": 33,
+          "nextGrade": "E",
+          "nextThreshold": 35,
+          "progress": 0.9428571428571428,
+          "modifiers": {
+            "healthMultiplier": 1,
+            "accuracyBonus": 0,
+            "reloadMultiplier": 1
+          }
+        },
+        "objectiveSeconds": 0,
+        "suppressionDealt": 0,
+        "meritEarned": 0,
+        "pinned": false,
+        "rallying": false,
+        "stance": "peek",
+        "cover": true,
+        "state": "covered",
+        "melee": false,
+        "target": "blue-3",
+        "targetUntil": 65,
+        "facing": -1,
+        "ammo": 16,
+        "reloadUntil": 0,
+        "reloadStarted": 0,
+        "reloadProgress": 0,
+        "moving": false,
+        "bank": 0,
+        "holdBank": 0,
+        "destinationX": 810,
+        "destinationY": 420,
+        "nextAttackTick": 15,
+        "nextMoveTick": 0,
+        "peekUntil": 139,
+        "nextPeekTick": 175,
+        "lastShotTick": -1000,
+        "dodgeGrenadeId": null,
+        "pinnedAtTick": -1000,
+        "burstRemaining": 0
+      }
+    ]
+  }
+}

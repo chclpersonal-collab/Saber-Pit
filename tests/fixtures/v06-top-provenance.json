@@ -1,0 +1,66 @@
+{
+  "baseCommit": "490135f6f0ea4072d45d94a893895b64bb7f982c",
+  "localBaselineCommit": "a20cea97f4bdebf4b8bf8b8d50e9aecb95614769",
+  "sourceTree": "f1bb7b04a3abc314470630a50d5fb485c6ae9801",
+  "method": "Generated entirely through a natural v0.6 campaign in immutable baseline source. Both fighters earned the old 2400-merit cap through real rounds. No career merit, battle state or outcomes were hand-edited.",
+  "seed": 7332,
+  "configuration": {
+    "teamSizes": [
+      1,
+      1
+    ],
+    "mapSize": "small",
+    "terrain": "crossroads",
+    "environment": "clear",
+    "mode": "spectate",
+    "playerSlot": 0,
+    "opponentMode": "mixed",
+    "opponentForm": null
+  },
+  "sourceHashes": {
+    "app.js": "2b26df68e3a9f5f3282205d6699aa1fdd579b6caa7359d050cf9c4b4dd46efa6",
+    "audio.js": "115ccc477140a61e3c28444653b82fc5e494e2b044335f31ac0bbb3d2116b4b9",
+    "content.js": "e12009cc1aba106c24df2fd616a5ebf78c5e65241e830444d2a6e87d1f2352a6",
+    "environment.js": "924ba78587ae6cf3699f900be92ca9381f3be090315b18bb17f71e927870457a",
+    "input.js": "0f81418da859ddb7303bf3be6d678ceff093135f9c5fedff5245a79cefae3fa0",
+    "maps.js": "9b7120c3557198328e894a0e85c8ad080003ac02684e2f71d3a6dcaa8c0ed93a",
+    "migration.js": "4c446f364418533f16c327a3be9374079c95a95f102b37de1d2067fde0cc9975",
+    "opponents.js": "314b8cf7cb1aa5830e69222d44c902acd514e4847021ce452d4cc396ac2edfd9",
+    "persistence.js": "3fcd4bebc9a7925b45ae076750296987ced336135cf40a268285d3409a63e130",
+    "preferences.js": "cba447e8801d9b577e6c0d6396b57583d6ab417e4f1257885300fb0f00c898f5",
+    "progression.js": "19d761b532970ac006f56502128d0b701de734c79d3f6b59dc4d9faa15032522",
+    "sim.js": "0c7fcd1391ac9c0db7f8f451f4fb36d46b54d70d286d1736f558ee6363d88ffb",
+    "tactics.js": "566e3436ed677223c7601e2858b3a72262d9a58fa7adddbe5f1b7666f6658d2b",
+    "terrain.js": "12ced26c6f84fb236f1ee3c2230af7c05947841f4cc8169423c122c5c30382dc"
+  },
+  "fixtures": [
+    {
+      "file": "tests/fixtures/v06-top-ended-save.json",
+      "rulesVersion": 6,
+      "round": 78,
+      "tick": 3718,
+      "status": "ended",
+      "merit": [
+        2400,
+        2400
+      ],
+      "pendingAttacks": 0,
+      "canonicalEnvelopeSha256": "fb1c8b8c106ab0d6ec2139a2a0d5cdbc175e435f94e7d58e7674c8078bb9ad78",
+      "fileSha256": "31b29413446a4d64fd19621e626a51badf05501a6baf79923b75407ba484e022"
+    },
+    {
+      "file": "tests/fixtures/v06-top-active-save.json",
+      "rulesVersion": 6,
+      "round": 79,
+      "tick": 128,
+      "status": "playing",
+      "merit": [
+        2400,
+        2400
+      ],
+      "pendingAttacks": 1,
+      "canonicalEnvelopeSha256": "40a4670f4366a9cfc11b0299f51187fa0716a28fb1e183071dce0213865410cc",
+      "fileSha256": "4d20501db411aa8de42b895221b24fd2e00f7fab2dedd92c67cdd6aebab4a814"
+    }
+  ]
+}

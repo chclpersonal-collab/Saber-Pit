@@ -1,0 +1,65 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as duel from '../dist/arcade-tournament.js';
+import * as squad from '../dist/squad-tournament.js';
+import * as quest from '../dist/arcade-quests.js';
+import {BACKUP_FORMAT,MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from '../dist/arcade-backup.js';
+const store=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
+const win=()=>({winnerIndex:0,kills:[1,0],deaths:[0,1],time:10,reason:'elimination'});
+function progress(disk){
+  const a=duel.startTournament(duel.loadTournament(disk),{seed:48});
+  const winner=duel.nextTournamentBout(a).fighterIds[0];
+  duel.runTournamentStep(a,win);const hero=duel.saveTournamentHero(a,winner);
+  duel.setTournamentHeroElo(a,winner,827,'D');duel.setTournamentHeroGender(a,winner,'nonbinary');duel.saveTournament(a,disk);
+  const b=squad.startSquadTournament(squad.loadSquadTournament(disk),{seed:19});
+  squad.runSquadStep(b,win);squad.saveSquadTournament(b,disk);
+  const q=quest.loadQuests(disk);
+  quest.deployQuest(q,hero.id,[hero],123456);quest.saveQuests(q,disk);
+}
+test('portable backup round-trip preserves Heroes, separate peaks, active brackets and quest',()=>{
+  const original=store(), restored=store();progress(original);
+  const blob=exportArcadeBackup(original,{now:new Date('2026-11-23T12:00:00Z')});
+  assert.ok(blob.ok,blob.error);
+  assert.equal(blob.bundle.format,BACKUP_FORMAT);
+  const inspected=inspectArcadeBackup(blob.text);
+  assert.ok(inspected.ok,inspected.error);
+  assert.equal(inspected.summary.duel.heroes,1);
+  assert.equal(inspected.summary.quest.attempts,1);
+  assert.ok(inspected.summary.duel.peaks>0&&inspected.summary.squad.peaks>0);
+  assert.ok(restoreArcadeBackup(inspected,restored).ok);
+  assert.deepEqual(duel.loadTournament(restored),duel.loadTournament(original));
+  assert.deepEqual(squad.loadSquadTournament(restored),squad.loadSquadTournament(original));
+  assert.deepEqual(quest.loadQuests(restored),quest.loadQuests(original));
+});
+test('selection replaces included keys only, and rejects damaged or unsupported files',()=>{
+  const source=store(), target=store();progress(source);
+  target.setItem(duel.TOURNAMENT_KEY,'existing solo');
+  target.setItem('unrelated:preferences','untouched');
+  const inspected=inspectArcadeBackup(exportArcadeBackup(source).text);
+  assert.ok(restoreArcadeBackup(inspected,target,{sections:['quest']}).ok);
+  assert.equal(target.getItem(duel.TOURNAMENT_KEY),'existing solo');
+  assert.equal(target.getItem(squad.SQUAD_TOURNAMENT_KEY),null);
+  assert.equal(target.getItem('unrelated:preferences'),'untouched');
+  assert.equal(inspectArcadeBackup('x'.repeat(MAX_BACKUP_BYTES+1)).ok,false);
+  assert.equal(inspectArcadeBackup('{').ok,false);
+  assert.equal(inspectArcadeBackup(JSON.stringify({...inspected.bundle,sections:{malicious:{}}})).ok,false);
+  const broken=structuredClone(inspected.bundle);
+  const first=Object.values(broken.sections.duel.records)[0];first.form='invalid';
+  assert.equal(inspectArcadeBackup(JSON.stringify(broken)).ok,false);
+  const partial=inspectArcadeBackup(exportArcadeBackup(source,{sections:['squad']}).text);
+  assert.deepEqual(Object.keys(partial.summary),['squad']);
+  assert.equal(restoreArcadeBackup(partial,target,{sections:['duel']}).ok,false);
+});
+test('failed multi-section write rolls back earlier changes and never touches unrelated saves',()=>{
+  const source=store(), target=store();progress(source);
+  const first=duel.TOURNAMENT_KEY, second=squad.SQUAD_TOURNAMENT_KEY;
+  target.setItem(first,'before');target.setItem('other','never');
+  const inspected=inspectArcadeBackup(exportArcadeBackup(source).text);
+  const unstable={...target,setItem(key,value){if(key===second)throw Error('Quota');target.setItem(key,value);}};
+  const result=restoreArcadeBackup(inspected,unstable);
+  assert.equal(result.ok,false);assert.equal(result.rollback,true);
+  assert.equal(target.getItem(first),'before');
+  assert.equal(target.getItem(second),null);
+  assert.equal(target.getItem(quest.QUEST_STORAGE_KEY),null);
+  assert.equal(target.getItem('other'),'never');
+});

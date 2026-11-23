@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1119">
+<title>Saber Pit · Animation lab</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;color:#e5eff5;background:#0b1119}*{box-sizing:border-box}body{margin:0}main{max-width:1400px;margin:auto;padding:28px 24px 50px}header{display:flex;align-items:start;justify-content:space-between;gap:20px;border-bottom:1px solid #334a5a;padding-bottom:20px}h1{font-size:27px;margin:0 0 9px}h2{font-size:18px;margin:0 0 8px}p{color:#a9bfce;font-size:13px;line-height:1.7;margin:0}a{color:#8fe3da}.toolbar{position:sticky;top:0;z-index:3;background:#0b1119f5;padding:15px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #334a5a;margin-bottom:22px}button,select{font:inherit;font-size:13px;background:#1a3040;color:#e7f2f8;border:1px solid #536d7e;border-radius:4px;min-height:44px;padding:10px 14px;cursor:pointer}button:hover{background:#294957}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #f3d296;outline-offset:3px}button[aria-pressed=true]{background:#83ded5;color:#102731;border-color:#a5eee5}.toolbar label{display:flex;align-items:center;gap:8px;font-size:12px}.toolbar output{font:12px ui-monospace,monospace;color:#a6d8da;margin-left:auto}#scrub{width:160px;accent-color:#83ded5;min-height:44px}#grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.move{margin:0;border:1px solid #334e5e;background:#101e2a;border-radius:5px;overflow:hidden;min-width:0}.move.selected{border-color:#83ded5;box-shadow:inset 0 3px #83ded5}.move canvas{display:block;width:100%;height:auto;background:#0b1721}.move figcaption{padding:13px}.move button{width:100%;text-align:left;border:0;background:transparent;padding:0;min-height:44px;font-weight:650;font-size:13px;color:#e3f3f8}.move button:hover{color:#83ded5}.move .meta{font:10px/1.7 ui-monospace,monospace;color:#a7becb}.phase{color:#8fe3da;font:11px/1.7 ui-monospace,monospace;min-height:19px}.strip-section{margin-top:28px;border-top:1px solid #334a5a;padding-top:24px}.strip-heading{display:flex;justify-content:space-between;gap:12px;align-items:start}.strip{display:grid;grid-template-columns:repeat(5,minmax(180px,1fr));overflow:auto;gap:10px;margin-top:18px;padding-bottom:10px}.frame{margin:0;background:#101e2a;border:1px solid #334e5e;border-radius:4px}.frame canvas{width:100%;height:auto;display:block}.frame figcaption{font:11px/1.8 ui-monospace,monospace;padding:10px;color:#bdd2de}.note{margin-top:22px;max-width:900px;font-size:12px}.error{padding:20px;color:#ffb59b;border:1px solid #915f50} @media(max-width:1050px){#grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:740px){main{padding:20px 14px 36px}#grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}header{display:block}header a{display:inline-block;margin-top:12px}h1{font-size:23px}.toolbar{gap:8px}.toolbar output{margin-left:0}.move figcaption{padding:10px}.strip-heading{display:block}.strip-heading p{margin-top:8px}}@media(max-width:420px){#grid{grid-template-columns:1fr}.move canvas{max-height:360px;object-fit:contain}.toolbar label:last-of-type{width:100%}#scrub{flex:1}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body><main>
+<header><div><h1>Animation lab</h1><p>Actual game poses and fighter rig, enlarged 4×. Select a move to inspect five rendered frames.</p></div><a href="./index.html">Back to game</a></header>
+<div class="toolbar" aria-label="Playback controls"><button id="pause" type="button" aria-pressed="false">Pause</button><button id="step" type="button">Step +1 tick</button><button id="restart" type="button">Restart</button><label>Speed <select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><label>Facing <select id="facing"><option value="1">Right</option><option value="-1">Left</option></select></label><label><input id="trails" type="checkbox" checked>Blade trails</label><label><input id="reducePreview" type="checkbox">Reduced motion (this page)</label><label>Tick <input id="scrub" type="range" min="0" max="95" step="1" value="0" aria-label="Animation tick"></label><output id="clock">Tick 0 / 95</output></div>
+<div id="error" class="error" role="alert" hidden></div>
+<section class="strip-section" aria-label="Native scale presentation samples"><h2>At game scale</h2><p>Production rig at 1 CSS pixel per rig pixel. Staged renderer fixtures: not a live match, extra hits, or proof of gameplay outcomes.</p><canvas id="gaitDemo" role="img" aria-label="Native-scale alternating walk and stop demonstration" style="display:block;width:100%;height:150px;background:#0b1721;margin-top:12px"></canvas><canvas id="pairDemo" role="img" aria-label="Native-scale coordinated exchange and blade-lock demonstration" style="display:block;width:100%;height:170px;background:#0b1721;margin:12px 0 24px"></canvas><p id="pairStatus" class="phase"></p></section><section id="grid" aria-label="Looping move comparison"></section>
+<section class="strip-section" aria-labelledby="strip-title"><div class="strip-heading"><div><h2 id="strip-title">Keyframes</h2><p id="strip-description"></p></div><p>Same renderer · fixed ticks · no captured images</p></div><div id="strip" class="strip"></div></section>
+<p class="note">Presentation-only test: each saber attack starts at tick 0 and contacts at tick 60, followed by the game’s real swing and recovery states. Ataru uses its authored jump timing and the game’s airborne sampler. The loop resets at tick 96. These are controlled visual samples, not a live match or evidence of hits. No game saves or preferences are read or changed.</p>
+</main>
+<script type="module">
+import { formMoveById } from './combat-forms.js?v=1.4.0';
+import { sampleCombatPose } from './choreography.js?v=1.4.0';
+import { sampleFighterRig, drawFighterRig } from './pose-rig.js?v=1.5.0';
+import { createPresentationEffects } from './presentation-effects.js?v=1.4.0';
+import { sampleSharedCombatBeats, applySharedCombatBeat } from './combat-sequences.js?v=1.4.0';
+import { startAirborne, sampleAirborne } from './airborne.js?v=1.4.0';
+const definitions=[
+ ['Horizontal · left sweep','shii_cho','opening_sweep'],
+ ['Horizontal · right sweep','shii_cho','reverse_horizon'],
+ ['Diagonal · rising','makashi','rising_disengage'],
+ ['Diagonal · falling','shii_cho','crossing_cut'],
+ ['Thrust · centerline','makashi','measured_thrust'],
+ ['Ataru · vault','ataru','vaulting_cut'],
+ ['Ataru · corkscrew','ataru','corkscrew_return'],
+ ['Ataru · somersault','ataru','somersault_descent']
+];
+const $=id=>document.getElementById(id),loop=96;
+let tick=0,paused=matchMedia('(prefers-reduced-motion: reduce)').matches,lastTime=null,selected=0;
+$('reducePreview').checked=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const labReduced=()=>$('reducePreview').checked;
+const examples=definitions.map(([label,form,id])=>({label,form,id,move:formMoveById(form,id)}));
+function stateFor(example,time){
+ const fighter={id:1,team:0,form:example.form,facing:Number($('facing').value),x:0,y:0,lane:0,alive:true,moving:false,guard:false};
+ const attack={kind:'saber',form:example.form,moveId:example.id,startedTick:0,resolveTick:60,aimX:100,aimY:0};
+ const swing=time>=60?{tick:60,form:example.form,moveId:example.id,motion:example.move.motion,outcome:'hit',x2:100,y2:0}:null;
+ if(time<60)fighter.attack=attack;
+ if(example.move.jump)startAirborne(fighter,0,example.move.jump,{x:fighter.facing,y:0});
+ const flight=sampleAirborne(fighter,time);
+ const pose=sampleCombatPose({fighter,tick:time,move:example.move,motion:example.move.motion,swing,aimAngle:0,reducedMotion:labReduced()});
+ const rig=sampleFighterRig({fighter,tick:time,pose,move:example.move,motion:example.move.motion,swing,flight,aimAngle:0,moving:false,reducedMotion:labReduced()});
+ return {fighter,flight,pose,rig};
+}
+function paint(canvas,example,time,scale=4){
+ const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height,{flight,pose,rig}=stateFor(example,time);
+ ctx.clearRect(0,0,w,h);ctx.fillStyle='#0b1721';ctx.fillRect(0,0,w,h);
+ const ground=h-58,origin=w*(Number($('facing').value)<0?.57:.43);
+ ctx.strokeStyle='#213746';ctx.lineWidth=1;ctx.beginPath();
+ for(let x=20;x<w;x+=32){ctx.moveTo(x,20);ctx.lineTo(x,ground+14);}for(let y=20;y<=ground+14;y+=32){ctx.moveTo(20,y);ctx.lineTo(w-20,y);}ctx.stroke();
+ ctx.strokeStyle='#557181';ctx.beginPath();ctx.moveTo(20,ground+12*scale);ctx.lineTo(w-20,ground+12*scale);ctx.stroke();
+ const travel=(flight.x||0)*scale,depth=(flight.y||0)*scale;
+ ctx.fillStyle='#040c12aa';ctx.beginPath();ctx.ellipse(origin+travel,ground+11*scale,11*scale,3*scale,0,0,Math.PI*2);ctx.fill();
+ ctx.save();ctx.translate(origin+travel,ground-flight.height*scale+depth);ctx.scale(scale,scale);
+ if(flight.airborne&&!labReduced())ctx.rotate((flight.rotationAxis==='yaw'?(flight.bank||0):(flight.visualRotation??flight.rotation))*rig.facing);
+ drawFighterRig(ctx,rig, {appearance:'broadcast',teamColor:'#83ded5',dark:'#284b58',blade:'#83ded5',team:0,effects:$('trails').checked?'full':'minimal'});ctx.restore();
+ ctx.font='11px ui-monospace, monospace';ctx.fillStyle='#a7becb';ctx.fillText(`${scale}× · tick ${Math.floor(time)}`,15,20);
+ return pose;
+}
+
+// These controlled fixtures use the same samplers/draw calls as the game.
+// No authoritative state is stepped or saved here.
+function surface(id,height) {
+ const canvas=$(id),width=Math.max(300,Math.floor(canvas.clientWidth));
+ if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+ const ctx=canvas.getContext('2d');ctx.clearRect(0,0,width,height);
+ ctx.fillStyle='#0b1721';ctx.fillRect(0,0,width,height);
+ ctx.strokeStyle='#334e5e';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(15,height-35);ctx.lineTo(width-15,height-35);ctx.stroke();
+ ctx.font='12px ui-monospace,monospace';ctx.fillStyle='#bdd2de';return {ctx,width,height};
+}
+const labEffects=createPresentationEffects();let labPreviousTick=null;
+function nativeSamples(time) {
+ const reduced=labReduced();
+ const gait=surface('gaitDemo',150),moving=time<60,walkTick=Math.min(time,60);
+ gait.ctx.fillText('1x · walk → stop · alternating knees and feet',15,24);
+ for(let i=0;i<2;i++) {
+  const fighter={id:'walk-'+i,team:i,facing:i?-1:1,lane:i,moving,alive:true};
+  const rig=sampleFighterRig({fighter,tick:walkTick,moving,reducedMotion:reduced});
+  const travel=walkTick*Math.min(1.8,(gait.width-100)/300),origin=i?gait.width-65-travel:65+travel;
+  gait.ctx.save();gait.ctx.translate(origin,103);drawFighterRig(gait.ctx,rig, {appearance:'broadcast',teamColor:i?'#ffab8b':'#83ded5'});gait.ctx.restore();
+ }
+ const pair=surface('pairDemo',170),center=pair.width/2;
+ if(labPreviousTick!==null&&time<labPreviousTick)labEffects.reset();
+ const delta=labPreviousTick===null||time<labPreviousTick?0:(time-labPreviousTick)/60;
+ labEffects.advance(delta,{reducedMotion:reduced,paused:false,visible:true});
+ pair.ctx.fillText('1x · staged exchange → blade lock → break-away',15,24);
+ const a={id:'lab-a',team:0,x:center-23,y:115,alive:true,form:'shii_cho',facing:1,lane:0};
+ const b={id:'lab-b',team:1,x:center+23,y:115,alive:true,form:'shii_cho',facing:-1,lane:1};
+ const event={id:1,tick:30,targetId:b.id,outcome:'blocked',form:'shii_cho',moveId:'opening_sweep',motion:'sweep',x2:b.x,y2:b.y};
+ if(time<30)a.attack={kind:'saber',target:b.id,startedTick:0,resolveTick:30,form:'shii_cho',moveId:'opening_sweep',aimX:b.x,aimY:b.y};
+ const swings=time>=30?new Map([[a.id,event]]):new Map();
+ if(time>=30&&(labPreviousTick===null||labPreviousTick<30))labEffects.observe([{id:'lab-contact',type:'saber',outcome:'blocked',x:a.x,y:a.y,x2:center,y2:115,team:0}]);
+ if(time>=70&&(labPreviousTick===null||labPreviousTick<70))labEffects.observe([{id:'lab-force',type:'force',abilityId:'force_push',x:a.x,y:a.y,x2:b.x,y2:b.y,team:0}]);
+ const beats=sampleSharedCombatBeats({fighters:[a,b],swings,tick:time,reducedMotion:reduced});
+ for(const fighter of [a,b]) {
+  const swing=swings.get(fighter.id),move=formMoveById('shii_cho','opening_sweep');
+  let pose=sampleCombatPose({fighter,tick:time,swing,move,aimAngle:0,reducedMotion:reduced});
+  pose=applySharedCombatBeat(pose,beats.get(fighter.id),reduced);
+  const rig=sampleFighterRig({fighter,tick:time,pose,move,swing,reducedMotion:reduced});
+  for(const blade of rig.blades){const h=rig.projected[blade.hilt],t=rig.projected[blade.tip];labEffects.sampleBlade(fighter.id+blade.hand,{x:fighter.x+h.x,y:fighter.y+h.y},{x:fighter.x+t.x,y:fighter.y+t.y},{active:pose.phase==='strike'||pose.phase==='follow-through',color:fighter.team?'#ffab8b':'#83ded5'});}
+  pair.ctx.save();pair.ctx.translate(fighter.x,fighter.y);drawFighterRig(pair.ctx,rig, {appearance:'broadcast',teamColor:fighter.team?'#ffab8b':'#83ded5',effects:$('trails').checked?'full':'minimal'});pair.ctx.restore();
+ }
+ labEffects.draw(pair.ctx);labPreviousTick=time;
+ $('pairStatus').textContent='Fixture tick '+Math.floor(time)+' · '+(beats.get(a.id)?.phase||'ready')+' · 1x production rig';
+}
+
+function choose(index){selected=index;examples.forEach((e,i)=>{e.figure.classList.toggle('selected',i===index);e.button.setAttribute('aria-pressed',String(i===index));});const e=examples[index];$('strip-title').textContent=e.label+' · keyframes';$('strip-description').textContent=`${e.move.name} / ${e.move.animation.path}`;
+ const times=e.move.jump?[0,Math.round(e.move.jump.durationTicks*.5),60,70,82]:[0,33,60,70,82];
+ $('strip').replaceChildren(...times.map(t=>{const figure=document.createElement('figure');figure.className='frame';const canvas=document.createElement('canvas');canvas.width=360;canvas.height=440;const pose=paint(canvas,e,t,3);canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`${e.label}, tick ${t}, ${pose.phase}`);const caption=document.createElement('figcaption');caption.textContent=`Tick ${t} · ${pose.phase}`;figure.append(canvas,caption);return figure;}));
+}
+function updatePause(){ $('pause').textContent=paused?'Play':'Pause';$('pause').setAttribute('aria-pressed',String(paused)); }
+function render(){nativeSamples(tick);for(const e of examples){const pose=paint(e.canvas,e,tick);e.phase.textContent=pose.phase;e.canvas.setAttribute('aria-label',`${e.label}, ${pose.phase}, tick ${Math.floor(tick)}`);}$('scrub').value=Math.floor(tick);$('clock').value=`Tick ${Math.floor(tick)} / 95`;}
+try{
+ for(const [index,e] of examples.entries()){
+  if(!e.move)throw new Error(`Missing authored move: ${e.form}/${e.id}`);
+  const figure=document.createElement('figure');figure.className='move';const canvas=document.createElement('canvas');canvas.width=480;canvas.height=560;canvas.setAttribute('role','img');
+  const caption=document.createElement('figcaption'),button=document.createElement('button'),meta=document.createElement('div'),phase=document.createElement('div');button.type='button';button.textContent=e.label;button.addEventListener('click',()=>choose(index));meta.className='meta';meta.textContent=e.move.name;phase.className='phase';caption.append(button,meta,phase);figure.append(canvas,caption);$('grid').append(figure);Object.assign(e,{figure,canvas,button,phase});
+ }
+ $('pause').addEventListener('click',()=>{paused=!paused;updatePause();});$('step').addEventListener('click',()=>{paused=true;tick=(Math.floor(tick)+1)%loop;updatePause();render();});$('restart').addEventListener('click',()=>{tick=0;render();});$('scrub').addEventListener('input',()=>{paused=true;tick=Number($('scrub').value);updatePause();render();});
+ for(const id of ['facing','trails','reducePreview'])$(id).addEventListener('change',()=>{choose(selected);render();});
+ choose(0);updatePause();render();
+ function animate(now){if(lastTime!==null&&!paused){tick=(tick+Math.min((now-lastTime)/1000,.1)*60*Number($('speed').value))%loop;render();}lastTime=now;requestAnimationFrame(animate);}requestAnimationFrame(animate);
+ window.animationLab={sample:(index,t)=>stateFor(examples[index],t),select:choose,definitions:definitions.map(x=>[...x])};
+}catch(error){$('error').hidden=false;$('error').textContent=`Animation lab could not render: ${error.message}`;console.error(error);}
+</script>
+</body></html>

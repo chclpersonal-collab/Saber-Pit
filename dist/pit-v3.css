@@ -1,0 +1,67 @@
+/* Saber Pit 3.00 battle console. The legacy layout remains the control fallback. */
+:root{--void:#0d0e10;--bg:#101112;--stone:#191b1d;--field:#222529;--edge:#35393f;--edge-strong:#5a6169;--text:#f1f2f0;--soft:#d0d3d6;--muted:#a9aeb4;--amber:#f6ca56;--blue:#89e4f3;--red:#ffa4c0;--serif:system-ui,-apple-system,"Segoe UI",sans-serif}
+body.pit-v3{background:radial-gradient(ellipse at 20% -10%,#26282b 0%,transparent 52%),var(--bg)}
+.pit-v3 .mast{border:0;border-bottom:1px solid var(--edge);margin-bottom:12px;min-height:72px;gap:12px}
+.pit-v3 .identity{text-decoration:none}
+.pit-v3 .wordmark{font:950 clamp(1.1rem,2vw,1.65rem)/1 var(--serif);letter-spacing:.02em}
+.pit-v3 .wordmark span{font:800 .7rem/1 var(--mono);color:var(--amber);margin-top:.32rem}
+.pit-v3 .mark{width:34px;height:34px}
+.pit-nav{display:flex;min-width:0;align-self:stretch;align-items:center}
+.pit-nav a{min-height:44px;display:flex;align-items:center;padding:0 clamp(.35rem,1.2vw,1rem);font-weight:750;color:var(--muted);white-space:nowrap;text-decoration:none;border-bottom:2px solid transparent}
+.pit-nav a:hover,.pit-nav a[aria-current]{color:var(--text);border-color:var(--amber)}
+.pit-v3[data-view=game] .pit-nav{display:none}
+.pit-v3 :is(.mast-right button,.lobby button,.lobby select,.lobby input,.dialog,.dialog-actions button,.loadout,.actions button){border-radius:0}
+.pit-v3 .mast-right button:hover,.pit-v3 .lobby button:not(.start-match):hover,.pit-v3 .lobby button[aria-pressed=true]{background:#30353a;border-color:var(--amber)}
+.pit-v3[data-view=menu] #app{display:grid;width:min(1536px,calc(100% - 52px));gap:0 clamp(12px,2vw,28px);grid-template-columns:minmax(0,1.55fr) minmax(370px,1fr);align-items:start}
+.pit-v3[data-view=menu] .mast{grid-row:1;grid-column:1/-1;margin-bottom:clamp(.75rem,2.7vh,1.5rem)}
+.pit-v3[data-view=menu] .entry{grid-column:2;grid-row:2;min-width:0}
+.pit-v3[data-view=menu] .arena-shell{grid-column:1;grid-row:2;top:12px;border:1px solid var(--edge-strong);box-shadow:0 12px 56px #0008}
+.pit-v3 .arena-shell::after{content:"";position:absolute;inset:0;pointer-events:none;border:1px solid #ffffff0e}
+.pit-v3 .grain{display:none}
+.pit-v3 .map-caption{background:#181b1e;border-top:1px solid var(--edge-strong);padding:clamp(.85rem,1.75vw,1.5rem)}
+.pit-v3 .map-caption strong{font:900 clamp(1.4rem,3.5vw,2.7rem)/1 var(--serif);letter-spacing:-.04em}
+.pit-v3 .map-caption .folio-mark{display:none}
+.pit-v3 .lobby{padding:clamp(.8rem,1.55vw,1.4rem);box-shadow:0 15px 35px #0006;border-top:2px solid var(--amber);margin-bottom:16px}
+.pit-v3 .lobby-title{margin:0 0 1rem}
+.pit-v3 .lobby-title h1{font:850 clamp(1.8rem,3.4vw,3.2rem)/1 var(--serif);letter-spacing:-.052em}
+.pit-v3 .eyebrow{font-size:.72rem}
+.pit-v3 .setup-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:1rem;border-bottom:1px solid var(--edge-strong);gap:.35rem}
+.pit-v3 .setup-tabs button{position:relative;background:transparent;color:var(--muted);border:1px solid transparent;font-weight:800;padding-inline:.2rem;white-space:nowrap}
+.pit-v3 .setup-tabs button[aria-selected=true]{color:var(--text);border-bottom:3px solid var(--amber);background:#292c2e}
+.pit-v3 .presets{margin:0 0 .85rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}
+.pit-v3 .presets button{min-height:44px;padding-inline:.25rem;font-weight:750;line-height:1.15}
+.pit-v3 .team-counts{margin-block:.55rem}
+.pit-v3 .team-pick{background:#171a1d;border-color:var(--edge)}
+.pit-v3 .team-pick.blue{border-inline-start:3px solid var(--blue)}
+.pit-v3 .team-pick.pink{border-inline-start:3px solid var(--red)}
+.pit-v3 .lobby-fold summary{min-height:44px}
+.pit-v3 .lobby-bottom{margin-top:.65rem;background:var(--stone);position:sticky;bottom:env(safe-area-inset-bottom,0px);z-index:4;box-shadow:0 -4px 12px #191b1dc9;padding-top:.55rem}
+.pit-v3 .lobby button.start-match{min-height:48px;border:0;background:var(--amber);color:#121313;letter-spacing:.04em;text-transform:uppercase;clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+.pit-v3 .lobby button.start-match:focus-visible{outline-offset:-5px}
+.pit-v3 .lobby-links{margin-top:.3rem;justify-content:space-between;gap:.4rem}
+.pit-v3 .lobby-links :is(button,a){min-height:38px;text-decoration:none}
+.pit-v3 .dialog,.pit-v3 .guide{background:#1b1d20;border:1px solid var(--edge-strong);border-top:3px solid var(--amber);box-shadow:0 18px 62px #080808d9}
+.pit-v3 .hud .health,.pit-v3 .hud .clock{background:#131619dc;border-color:#747c86;border-radius:0}
+.pit-v3 .actions button,.pit-v3 .floor-ui,.pit-v3 .mobile-tools,.pit-v3 .technique-bar{background-color:#1a1d20;border-color:var(--edge)}
+.pit-v3 .actions button[data-held=true],.pit-v3 .actions button:hover{background-color:#2e3338;border-color:var(--amber)}
+@media(max-width:900px){
+ .pit-v3[data-view=menu] #app{width:calc(100% - 24px);grid-template-columns:minmax(0,1.1fr) minmax(300px,1fr)}
+ .pit-v3 .mast{gap:.35rem}
+ .pit-nav a{font-size:.88rem;padding:0 .4rem}
+}
+@media(max-width:700px){
+ .pit-v3[data-view=menu] #app{grid-template-columns:minmax(0,1fr);row-gap:.55rem}
+ .pit-v3[data-view=menu] .mast{display:grid;grid-template-columns:minmax(0,1fr) auto;margin-bottom:0;padding-top:.3rem}
+ .pit-v3[data-view=menu] .pit-nav{grid-row:2;grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+ .pit-nav a{justify-content:center;padding:0 .16rem;font-size:clamp(.78rem,3.4vw,.92rem)}
+ .pit-v3[data-view=menu] .entry{width:100%;grid-row:3;grid-column:1}
+ .pit-v3[data-view=menu] .arena-shell{position:relative;grid-row:2;grid-column:1;top:0;margin:0}
+ .pit-v3[data-view=menu] .arena-shell canvas{max-height:30svh;object-fit:contain}
+ .pit-v3[data-view=menu] .map-caption{display:none}
+ .pit-v3 .lobby-bottom{padding-bottom:.2rem}
+ .pit-v3 .lobby-links :is(button,a){min-height:44px}
+}
+@media(max-height:520px) and (orientation:landscape) and (max-width:1100px){
+ .pit-v3[data-view=game] .mast{min-height:37px;margin-bottom:3px}
+ .pit-v3[data-view=menu] .mast{min-height:44px}
+}

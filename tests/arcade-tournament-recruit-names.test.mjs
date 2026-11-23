@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {startTournament,loadTournament,saveTournament,nextTournamentBout,runTournamentStep} from '../dist/arcade-tournament.js';
+import {fighterFamilyName,recruitFighterFamilies} from '../dist/arcade-fighter-names.js';
+const result={winnerIndex:0,time:5,reason:'elimination',kills:[1,0],deaths:[0,1]};
+test('new seasons avoid retained surnames without rewriting two existing fighters with a shared surname',()=>{
+ const stored=new Map, storage={getItem:k=>stored.get(k),setItem:(k,v)=>stored.set(k,v)};
+ const state=startTournament(loadTournament(storage),{seed:37});
+ const entries=state.active.entrants;
+ const unique=new Set(entries.map(id=>fighterFamilyName(state.records[id].name)));
+ assert.equal(unique.size,24);assert.ok([...unique].every(f=>recruitFighterFamilies.includes(f)));
+ const [one,two]=entries;
+ state.records[one].name='Nara Elderqiu'; state.records[two].name='Yueho Elderqiu';
+ while(nextTournamentBout(state))runTournamentStep(state,()=>result);
+ const before=Object.fromEntries(Object.values(state.records).map(f=>[f.id,{name:f.name,elo:f.elo}]));
+ const peak=structuredClone(state.peaks);
+ startTournament(state,{seed:38});
+ for(const [id,old] of Object.entries(before))assert.deepEqual({name:state.records[id].name,elo:state.records[id].elo},old);
+ assert.deepEqual(state.peaks,peak);
+ const retired=new Set(Object.values(before).map(f=>fighterFamilyName(f.name)));
+ const newcomers=state.active.entrants.filter(id=>!Object.hasOwn(before,id)).map(id=>fighterFamilyName(state.records[id].name));
+ assert.ok(newcomers.length>0&&newcomers.every(name=>!retired.has(name)));
+ assert.equal(new Set(newcomers).size,newcomers.length);
+ saveTournament(state,storage);
+ assert.deepEqual(loadTournament(storage).records,state.records);
+});

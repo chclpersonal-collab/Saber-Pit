@@ -1,0 +1,34 @@
+{
+  "commit": "b53aa6e5cbab371090780dac7718a8f626ea97f2",
+  "method": "Generated with unmodified v0.5 createGame/setForm/step/nextRound/saveCampaign; natural pending attacks, all nine forms across slots",
+  "sourceHashes": {
+    "app.js": "7a7537d1bdbddaa2c2368a1cbbd6a87bde43b4757ff88a3dcf7e4319ff4e9bd8",
+    "audio.js": "115ccc477140a61e3c28444653b82fc5e494e2b044335f31ac0bbb3d2116b4b9",
+    "content.js": "e12009cc1aba106c24df2fd616a5ebf78c5e65241e830444d2a6e87d1f2352a6",
+    "migration.js": "09031ac0ac9086f552b89c6b470922bdec712e13572e9a710380ca86cb844859",
+    "persistence.js": "2d1aaaee5eccdffc30f1a2118fbd7f7e8f3a405f7094228ba8aedae16b790918",
+    "progression.js": "19d761b532970ac006f56502128d0b701de734c79d3f6b59dc4d9faa15032522",
+    "sim.js": "a5ac4ff3a21f0485e508160b7e37d2bcb26525182fd729ee824bd34109b89541",
+    "tactics.js": "b67d5257bf7c18a53d481ad6fef2d97cdba2ed19e640b539bdae0d3d5da10d71"
+  },
+  "fixtures": [
+    {
+      "file": "tests/fixtures/v05-ended-save.json",
+      "round": 1,
+      "tick": 942,
+      "status": "ended",
+      "pendingAttacks": 1,
+      "canonicalEnvelopeSha256": "24a7822e2ff4b04f45381ae6b37e153ab92bb5c14949baa87766f4c1d6c751f4",
+      "fileSha256": "94b4654237f56e086364fce474f70fce295e9e183a0aabcb7416ff69e9c16865"
+    },
+    {
+      "file": "tests/fixtures/v05-active-save.json",
+      "round": 2,
+      "tick": 134,
+      "status": "playing",
+      "pendingAttacks": 1,
+      "canonicalEnvelopeSha256": "4bfc2efdb3692019b787fb8e8556318c95416c300a93cb11725282ea8e99263d",
+      "fileSha256": "ac64bda3c4c1d103b0e4c3a9c1dbb0a95a2fbddd8b76848ff9442fcf2667e625"
+    }
+  ]
+}

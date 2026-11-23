@@ -1,0 +1,31 @@
+@font-face{font-family:PitGrotesk;src:url("./art/space-grotesk.woff") format("woff");font-style:normal;font-weight:300 700;font-display:swap}
+:root{--pit-display:PitGrotesk,system-ui,sans-serif}
+.pit-v4 .arena-launch h1,.pit-v4 .lobby-title h2,
+.ops-shell :is(.ops-brand,.ops-hero h1,.rpg-header h1,.rpg-battle h2,.rpg-panel h2),
+.pit-v4-lab :is(h1,h2),.pit-credits h1{font-family:var(--pit-display)}
+.pit-v4[data-view=menu] .arena-launch{
+  background:linear-gradient(95deg,#101719 4%,#10191af2 43%,#10191a48 100%),url("./art/spring-cavern.png") 100% 40%/cover,#10191a;
+}
+.pit-v4[data-view=menu] .arena-launch::before{
+  background:radial-gradient(at 81% 35%,#85ebd023,transparent 56%);
+  mask-image:none;
+}
+.pit-v4[data-view=menu] .arena-launch h1{font-weight:700;letter-spacing:-.085em}
+.pit-v4 .launch-actions svg{width:1.1rem;height:1.1rem;flex:none}
+.ops-idle .rpg-viewport[data-scene=scout],.ops-idle .rpg-viewport{background:#101018 linear-gradient(#101018ca,#101018ec),url("./art/rocky-night.png") center top/auto 100% repeat-x}
+.ops-idle .rpg-viewport .rpg-cavern{mix-blend-mode:screen}
+body.pit-v4-lab{--ground:#101416;--panel:#181f21;--field:#1f292b;--edge:#3a5051;--gold:#67e2cd;--text:#eaf6f3;--muted:#b0c9c4;background:radial-gradient(at 50% -20%,#203f3c,transparent 64%),var(--ground)}
+.pit-v4-lab .field-bar{background:#172526}
+.pit-v4-lab .intro h1{letter-spacing:-.07em}
+.pit-v4-lab .back,.pit-v4-lab button{transition:background-color .12s ease,border-color .12s ease}
+.pit-v4-lab :is(a,button,select):focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.pit-credits{background:#101719;color:#eafff8;font:1rem/1.6 var(--pit-display);padding:clamp(1.1rem,5vw,3rem)}
+.pit-credits main{max-width:44rem;margin:auto}
+.pit-credits a{color:#79e8d6;text-underline-offset:.18em}
+.pit-credits li{margin-block:.8rem}
+.pit-credits h1{font-size:clamp(2.5rem,7vw,4rem);line-height:1.1}
+@media(max-width:700px){
+  .pit-v4[data-view=menu] .arena-launch{
+    background:linear-gradient(90deg,#101719 0%,#10191ae3 46%,#10191a72 100%),url("./art/spring-cavern.png") center/cover,#10191a;
+  }
+}

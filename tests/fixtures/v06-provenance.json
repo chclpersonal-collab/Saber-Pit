@@ -1,0 +1,66 @@
+{
+  "baseCommit": "490135f6f0ea4072d45d94a893895b64bb7f982c",
+  "method": "Generated using unmodified v0.6 source extracted from immutable git archive HEAD (a20cea97f4bdebf4b8bf8b8d50e9aecb95614769), not the changing v0.7 worktree. Natural asymmetric 7v11 fog/craterfield campaign; no fixture state was hand-edited.",
+  "configuration": {
+    "teamSizes": [
+      7,
+      11
+    ],
+    "mapSize": "large",
+    "terrain": "craterfield",
+    "environment": "fog",
+    "mode": "spectate",
+    "playerSlot": 0,
+    "opponentMode": "mixed",
+    "opponentForm": null
+  },
+  "sourceHashes": {
+    "app.js": "2b26df68e3a9f5f3282205d6699aa1fdd579b6caa7359d050cf9c4b4dd46efa6",
+    "audio.js": "115ccc477140a61e3c28444653b82fc5e494e2b044335f31ac0bbb3d2116b4b9",
+    "content.js": "e12009cc1aba106c24df2fd616a5ebf78c5e65241e830444d2a6e87d1f2352a6",
+    "environment.js": "924ba78587ae6cf3699f900be92ca9381f3be090315b18bb17f71e927870457a",
+    "input.js": "0f81418da859ddb7303bf3be6d678ceff093135f9c5fedff5245a79cefae3fa0",
+    "maps.js": "9b7120c3557198328e894a0e85c8ad080003ac02684e2f71d3a6dcaa8c0ed93a",
+    "migration.js": "4c446f364418533f16c327a3be9374079c95a95f102b37de1d2067fde0cc9975",
+    "opponents.js": "314b8cf7cb1aa5830e69222d44c902acd514e4847021ce452d4cc396ac2edfd9",
+    "persistence.js": "3fcd4bebc9a7925b45ae076750296987ced336135cf40a268285d3409a63e130",
+    "preferences.js": "cba447e8801d9b577e6c0d6396b57583d6ab417e4f1257885300fb0f00c898f5",
+    "progression.js": "19d761b532970ac006f56502128d0b701de734c79d3f6b59dc4d9faa15032522",
+    "sim.js": "0c7fcd1391ac9c0db7f8f451f4fb36d46b54d70d286d1736f558ee6363d88ffb",
+    "tactics.js": "566e3436ed677223c7601e2858b3a72262d9a58fa7adddbe5f1b7666f6658d2b",
+    "terrain.js": "12ced26c6f84fb236f1ee3c2230af7c05947841f4cc8169423c122c5c30382dc"
+  },
+  "fixtures": [
+    {
+      "file": "tests/fixtures/v06-ended-save.json",
+      "rulesVersion": 6,
+      "round": 1,
+      "tick": 1327,
+      "status": "ended",
+      "pendingAttacks": 2,
+      "canonicalEnvelopeSha256": "c863c2d5f76dad6c6e57dec4b5af2856d1ad34a464aef227ce6778d798bc7a6f",
+      "fileSha256": "967b7c612d5c7a9c12ad526915623c8bcc1f6f2e91ab4b0da0790dfb3ff5ddf3"
+    },
+    {
+      "file": "tests/fixtures/v06-active-save.json",
+      "rulesVersion": 6,
+      "round": 2,
+      "tick": 375,
+      "status": "playing",
+      "pendingAttacks": 2,
+      "canonicalEnvelopeSha256": "ca7c9aae0f70e68eb62ab68dd4270476db904e4fb4405cb1d1b66ae1a97997d3",
+      "fileSha256": "56690761cc9e4a336e5906eddd54d635e9f7ac01cba872b1913db50141ce9756"
+    }
+  ],
+  "localBaselineCommit": "a20cea97f4bdebf4b8bf8b8d50e9aecb95614769",
+  "sourceTree": "f1bb7b04a3abc314470630a50d5fb485c6ae9801",
+  "generation": {
+    "seed": 7331,
+    "sequence": [
+      "createGame with configuration and autoCommand true",
+      "step 90 seconds, then save ended state",
+      "nextRound, then step 1/60 until first pending attack, then save active state"
+    ],
+    "stateEditedByHand": false
+  }
+}

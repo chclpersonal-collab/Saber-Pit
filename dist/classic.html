@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0915">
+  <meta name="description" content="A saber fighting game. Set the teams, map and rules, then watch or play.">
+  <title>Saber Pit</title>
+  <link rel="stylesheet" href="./style.css?v=1.5.0">
+</head>
+<body>
+  <main class="shell" id="game">
+    <header class="masthead">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 38 40" fill="none" aria-hidden="true"><path d="M3 7h11v10h10V7h11M3 19h11v10h10V19h11M3 31h9m14 0h9" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>
+        <div><h1>Saber Pit</h1><p class="brand-subtitle">Arena control</p></div>
+      </div>
+      <div class="utility-controls" id="battleUtilities" hidden aria-label="Match controls">
+        <button id="mainMenuBtn" class="utility" aria-label="Pause and open the menu">Menu</button>
+        <button id="battleOptionsBtn" class="utility" aria-label="Pause and open settings">Settings</button>
+        <button id="speedBtn" class="utility speed" title="Change game speed" aria-label="Game speed: 1 times">1×</button>
+        <button id="pauseBtn" class="utility" title="Pause (P)" aria-label="Pause game" aria-pressed="false"><svg id="pauseIcon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12M14 4v12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span id="pauseLabel">Pause</span></button>
+        <button id="resetBtn" class="utility icon-only" title="New game setup" aria-label="Open new game setup. Your save stays unchanged."><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7a6 6 0 1 1-.2 5M4 3v4h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </header>
+
+
+    <section id="startMenu" class="start-menu" aria-labelledby="menuHeading">
+      <div class="menu-hero"><p class="menu-kicker">SABER COMBAT</p><h2 id="menuHeading" tabindex="-1">Enter the pit</h2><p>Take the blade yourself, command a squad, or watch both sides fight.</p>
+      <figure class="arena-diagram release-hero" aria-label="Stylized illustration of two saber fighters">
+        <svg viewBox="0 0 560 320" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="heroBg" x1="0" x2="560" y1="320" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#0c2338"/><stop offset=".55" stop-color="#180e28"/><stop offset="1" stop-color="#3c132d"/></linearGradient>
+            <radialGradient id="heroHot"><stop stop-color="#fff" stop-opacity=".86"/><stop offset=".13" stop-color="#f8b8ff" stop-opacity=".35"/><stop offset="1" stop-color="#a580ff" stop-opacity="0"/></radialGradient>
+            <pattern id="heroGrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 40H40V0" stroke="#d0b6ff" stroke-opacity=".11"/></pattern>
+            <clipPath id="heroClip"><path d="M0 0H560V320H0Z"/></clipPath>
+          </defs>
+          <g clip-path="url(#heroClip)">
+            <path d="M0 0H560V320H0Z" fill="url(#heroBg)"/><path d="M0 0H560V320H0Z" fill="url(#heroGrid)"/>
+            <path d="m-20 292 360-360M10 340 428-78M215 343 418 140M268 362 529 101M375 328 607 96" stroke="#bc9bfa" stroke-opacity=".17" stroke-width="2"/>
+            <path d="m0 296 147-32m88 20 174-32m-375 52 82-14m304-28 116-22" stroke="#a99acb" stroke-opacity=".48"/>
+            <g class="hero-blue">
+              <path d="m163 169-38 42-49 17 11 15 55-11 38-27 27 31-5 31 18 5 17-45-25-57Z" fill="#111b36" stroke="#73d9ff" stroke-width="4" stroke-linejoin="round"/>
+              <path d="m162 172 32-50 29-12 14 36-36 49-29 1Z" fill="#132946" stroke="#b4eeff" stroke-width="4" stroke-linejoin="round"/>
+              <path d="m194 114 13-28 31-5 20 22-10 21-31 4Z" fill="#142c48" stroke="#bbeeff" stroke-width="4"/><path d="m222 100 27-5-8 12-21 5" fill="#a8ecff"/>
+              <path d="m202 142 31 21 29-23m-69 35 39 7 40-27" stroke="#080e21" stroke-width="20" stroke-linecap="round"/>
+              <path d="m202 142 31 21 29-23m-69 35 39 7 40-27" stroke="#70d9ff" stroke-width="9" stroke-linecap="round"/>
+              <path d="m263 155 26-21" stroke="#c4ecee" stroke-width="11" stroke-linecap="round"/>
+              <path d="m286 137 87-81" stroke="#31caff" stroke-opacity=".19" stroke-width="31" stroke-linecap="round"/><path d="m286 137 87-81" stroke="#42cdff" stroke-width="13" stroke-linecap="round"/><path d="m286 137 87-81" stroke="#ecfdff" stroke-width="5" stroke-linecap="round"/>
+            </g>
+            <g class="hero-red">
+              <path d="m390 161 58 24 38 34 29-1 6 15-46 13-52-30-23-9-36 35-7 28-19 1-7-44 32-61Z" fill="#311830" stroke="#f98f9c" stroke-width="4" stroke-linejoin="round"/>
+              <path d="m391 106 28 26-18 57-32 9-17-24 7-47Z" fill="#482038" stroke="#ffc4cc" stroke-width="4" stroke-linejoin="round"/>
+              <path d="m380 107-17-19 9-27 30-4 22 18-5 25-23 13Z" fill="#482038" stroke="#ffc4cc" stroke-width="4"/><path d="m368 83 24-9-3 13-18 7" fill="#ff9ba9"/>
+              <path d="m382 129-32 22-28-18m65 26-29 11-40-24" stroke="#190d21" stroke-width="20" stroke-linecap="round"/>
+              <path d="m382 129-32 22-28-18m65 26-29 11-40-24" stroke="#f78298" stroke-width="9" stroke-linecap="round"/>
+              <path d="m325 143-31-22" stroke="#f2d0d6" stroke-width="11" stroke-linecap="round"/>
+              <path d="m300 126-94-67" stroke="#ff4679" stroke-opacity=".20" stroke-width="31" stroke-linecap="round"/><path d="m300 126-94-67" stroke="#ff6791" stroke-width="13" stroke-linecap="round"/><path d="m300 126-94-67" stroke="#fff0f3" stroke-width="5" stroke-linecap="round"/>
+            </g>
+            <g class="hero-sparks"><circle cx="297" cy="126" r="69" fill="url(#heroHot)"/><path d="m296 115 6-22m-15 28-24-8m45 18 22 12m-36-6-14 28m31-46 22-11" stroke="#fff5da" stroke-width="3" stroke-linecap="round"/><circle cx="297" cy="126" r="4" fill="white"/></g>
+            <path d="M17 47V17h30m466 0h30v30M17 273v30h30m466 0h30v-30" stroke="#decff9" stroke-opacity=".55" stroke-width="2"/>
+          </g>
+        </svg>
+      </figure><div class="menu-shortcuts"><button id="continueSessionBtn" class="small-primary" disabled>Continue</button><button id="loadCheckpointBtn" disabled>Load save</button><button id="optionsBtn">Settings</button><button id="controlsBtn">How to play</button></div><p id="menuSaveStatus" class="menu-note" role="status"></p></div>
+      <form id="setupForm" class="setup-card">
+        <section class="quick-fights" aria-labelledby="quickFightsTitle"><h3 id="quickFightsTitle">Quick fights</h3><p>Jump in with one click. Your save stays untouched until you save or start the next round.</p>
+          <div class="quick-grid">
+            <button type="button" data-quick-fight="duel"><span class="fight-icon" aria-hidden="true">◇</span><strong>Duel</strong><small>Play · 1 vs 1</small></button>
+            <button type="button" data-quick-fight="relic"><span class="fight-icon" aria-hidden="true">◆</span><strong>Relic rush</strong><small>Command · 3 vs 3</small></button>
+            <button type="button" data-quick-fight="showdown"><span class="fight-icon" aria-hidden="true">✦</span><strong>Showdown</strong><small>Watch · 5 vs 5</small></button>
+          </div>
+        </section>
+        <div class="setup-heading"><div><h3>Custom match</h3></div><span class="menu-note">1–15 per team</span></div>
+        <div class="setup-presets"><button id="masterTrialBtn" type="button" aria-describedby="setupPresetStatus">Master trial</button><p id="setupPresetStatus" class="setup-hint" role="status">Try one master against five novices. Sets the choices below; you still press Start.</p></div><fieldset class="mode-choices"><legend>How do you want to play?</legend><label class="mode-choice"><input type="radio" name="playMode" value="spectate" checked><span><strong>Watch</strong><small>Both teams play automatically. Select fighters to see their stats.</small></span></label><label class="mode-choice"><input type="radio" name="playMode" value="play"><span><strong>Play</strong><small>Control one fighter. Your teammates fight automatically.</small></span></label><label class="mode-choice"><input type="radio" name="playMode" value="command"><span><strong>Command</strong><small>Give orders to your AI team. Inspect any fighter.</small></span></label></fieldset>
+        <div class="setup-grid"><label>Rules<select id="setupMatchMode" aria-describedby="matchRulesHint"></select></label><label>Round length<select id="setupRoundDuration" aria-describedby="matchRulesHint"></select></label><label>Combat modifier<select id="setupModifier" aria-describedby="modifierHint"></select></label><label>Your team size<input id="setupTeam0" type="number" min="1" max="15" step="1" value="5" required></label><label>Enemy team size<input id="setupTeam1" type="number" min="1" max="15" step="1" value="5" required></label><label>Map<select id="setupTerrain"></select></label><label>Map size<select id="setupMapSize"></select></label><label>Weather<select id="setupEnvironment"></select></label><label>Seed<input id="setupSeed" type="number" min="1" max="4294967295" step="1" required></label><label>Enemy forms<select id="setupOpponentForm"></select></label><label id="playerSlotField" hidden>Your fighter<select id="setupPlayerSlot"></select></label><label>Speed<select id="setupSpeed"><option value="1">1× · Normal</option><option value="2">2×</option><option value="4">4×</option></select></label></div>
+        <p id="matchRulesHint" class="setup-hint rules-hint"></p><p id="modifierHint" class="setup-hint"></p><p id="environmentHint" class="setup-hint"></p><p id="opponentHint" class="setup-hint">Mixed forms change each round, using the game’s seed.</p>
+        <fieldset class="squad-tactics"><legend>Team tactics</legend><p class="setup-hint">Set how each team fights. These settings affect AI fighters; you control your own movement and attacks.</p><div class="tactics-teams"><section aria-labelledby="friendlyTacticsHeading"><h4 id="friendlyTacticsHeading">Your team</h4><div class="setup-grid"><label>Team style<select id="setupDoctrine" aria-describedby="friendlyTacticsHint"></select></label><label>Deployment<select id="setupDeployment0" aria-describedby="setupDeploymentHint0"></select></label><label>Formation<select id="setupFormation0" aria-describedby="friendlyTacticsHint"></select></label><label>Target priority<select id="setupPriority0" aria-describedby="friendlyTacticsHint"></select></label></div><p id="setupDeploymentHint0" class="setup-hint"></p><p id="friendlyTacticsHint" class="setup-hint"></p></section><section aria-labelledby="enemyTacticsHeading"><h4 id="enemyTacticsHeading">Enemy team</h4><div class="setup-grid"><label>Team style<select id="setupEnemyDoctrine" aria-describedby="enemyTacticsHint"></select></label><label>Deployment<select id="setupDeployment1" aria-describedby="setupDeploymentHint1"></select></label><label>Formation<select id="setupFormation1" aria-describedby="enemyTacticsHint"></select></label><label>Target priority<select id="setupPriority1" aria-describedby="enemyTacticsHint"></select></label></div><p id="setupDeploymentHint1" class="setup-hint"></p><p id="enemyTacticsHint" class="setup-hint"></p></section></div></fieldset>
+        <details id="setupStartingOptions" class="setup-forms starting-options"><summary>Starting rank and gear</summary><p id="startingOptionsHelp" class="setup-hint">These choices apply to every fighter on that team in a new game. Starting ranks set training and combat skill; kills, form stats and awards start at zero. Gear can change between rounds.</p><p id="dualSabersHelp" class="setup-hint">Dual sabers add a delayed, shorter offhand strike to your chosen form. Each contact can miss or be blocked. Extra energy and recovery are the tradeoff.</p><div class="starting-teams"><section aria-labelledby="startingTeam0Heading"><h4 id="startingTeam0Heading">Your team</h4><div class="setup-grid"><label>Starting rank<select id="setupStartingRank0" aria-describedby="startingOptionsHelp startingHint0"></select></label><label>Saber quality<select id="setupStartingSaber0" aria-describedby="startingOptionsHelp"></select></label><label class="dual-saber-option"><input id="setupStartingDualSabers0" type="checkbox" aria-describedby="dualSabersHelp">Jar’Kai · dual sabers</label><label>Force ability<select id="setupStartingForce0" aria-describedby="startingHint0"></select></label><label>Force quality<select id="setupStartingForceQuality0" aria-describedby="startingOptionsHelp"></select></label></div><p id="startingHint0" class="setup-hint"></p></section><section aria-labelledby="startingTeam1Heading"><h4 id="startingTeam1Heading">Enemy team</h4><div class="setup-grid"><label>Starting rank<select id="setupStartingRank1" aria-describedby="startingOptionsHelp startingHint1"></select></label><label>Saber quality<select id="setupStartingSaber1" aria-describedby="startingOptionsHelp"></select></label><label class="dual-saber-option"><input id="setupStartingDualSabers1" type="checkbox" aria-describedby="dualSabersHelp">Jar’Kai · dual sabers</label><label>Force ability<select id="setupStartingForce1" aria-describedby="startingHint1"></select></label><label>Force quality<select id="setupStartingForceQuality1" aria-describedby="startingOptionsHelp"></select></label></div><p id="startingHint1" class="setup-hint"></p></section></div></details>
+        <details class="setup-forms"><summary>Choose your team’s forms</summary><div class="setup-form-preset"><label>Same form for everyone<select id="setupAllForms"></select></label><button id="applyAllFormsBtn" type="button">Apply</button><button id="mixPlayerFormsBtn" type="button">Mixed forms</button></div><div id="setupFormChoices" class="setup-form-choices"></div></details>
+        <p class="menu-note">Ranks and stats carry over between rounds. A new game won’t replace your save until you save it or start the next round.</p><p id="setupError" role="alert" class="setup-error"></p><button id="startBattleBtn" class="start-battle-btn" type="submit">Start </button>
+      </form>
+    </section>
+    <dialog id="optionsDialog" class="menu-dialog" aria-labelledby="optionsHeading"><form method="dialog"><header><div><h2 id="optionsHeading">Settings</h2></div><button id="closeOptionsBtn" aria-label="Close settings">Done</button></header><div class="setup-grid"><label>Team colors<select id="optionColors"></select></label><label>Motion<select id="optionMotion"><option value="system">Device setting</option><option value="reduce">Reduced motion</option></select></label><label>Visual effects<select id="optionEffects"><option value="full">Full</option><option value="minimal">Low</option></select></label><label class="check-option"><input id="optionTactical" type="checkbox">Show targets and ranges</label><label class="check-option"><input id="optionSound" type="checkbox">Sound effects</label></div><p class="menu-note">Settings are saved on this device. The game stays paused when you close this menu.</p><p id="preferencesStatus" role="status"></p></form></dialog>
+    <dialog id="controlsDialog" class="menu-dialog" aria-labelledby="controlsHeading"><form method="dialog"><header><h2 id="controlsHeading">How to play</h2><button id="closeControlsBtn" aria-label="Close controls">Done</button></header><p>Control: reach 30 signal points or defeat the other team. At the time limit, compare signal points, then survivors, then health. Elimination: defeat the other team, or lead on survivors and then health when time runs out. An exact tie is a draw. Rounds last 45, 90 or 150 seconds. Ranks and stats carry over.</p><p><b>Relic:</b> collect the relic at center and carry it to your home circle. Three deliveries win. Carriers move 28% slower and cannot dash. A defeated carrier drops the relic; either team can recover it. Each delivery resets it at center after two seconds. At time limit: deliveries, survivors, then health.</p><p><b>Saber only:</b> turns off Force attacks for both teams. Movement, guard and sabers still work.</p><h3>Play</h3><ul><li>WASD or arrow keys: move</li><li>J: saber strike · K: Force · Shift: dash</li><li>Hold Space or L: guard</li><li>Click an enemy in sight to lock on. Tab switches targets while the map is focused; Shift+Tab moves focus off the map. On touch screens, use Cycle target. The yellow ring marks your target. Without a lock, you aim at the nearest enemy in sight.</li><li>P or Escape: pause. Touch controls work by holding a direction or Guard. Activating these buttons with a keyboard takes a short step or toggles Guard.</li></ul><h3>Watch</h3><p>Both teams fight automatically. Select a fighter or use Previous and Next to inspect living fighters. Filter by team, or choose Relic carrier. Arrow keys cycle fighters while the map has focus. To play, pause and select a living teammate.</p><p>Higher ranks read attacks sooner, conserve energy, predict visible movement and link form-specific combinations. Ataru vaults have real height and landing recovery. K uses a ready Force ability chosen for the situation; the fighter panel shows its unlocked repertoire. Jar’Kai adds a shorter offhand strike and costs more energy and recovery. Short early attack taps queue for eight simulation ticks; pausing clears them. These moves and rank unlocks are game adaptations.</p><p><a href="./guide.html" target="_blank" rel="noopener">Combat guide and lore notes</a></p></form></dialog>
+    <div id="battleSurface" hidden>
+    <section class="battle-card" aria-label="Battle">
+      <div class="scoreboard">
+        <div class="team team-player">
+          <div class="team-heading"><span class="team-sigil player-sigil" aria-hidden="true"></span><h2>Your team</h2><strong id="playerCount">5<span>/5</span></strong></div>
+          <div class="unit-pips" id="playerPips" aria-hidden="true"></div>
+          <p class="loadout" id="playerLoadout">Sabers &amp; Force</p>
+        </div>
+        <div class="round-clock"><span id="roundLabel">ROUND 01</span><strong id="timer">1:30</strong><span class="campaign-score"><span class="score-label">Rounds won</span><span id="matchScore" class="match-score" title="Rounds won: your team — enemy team">0 — 0</span></span></div>
+        <div class="team team-enemy">
+          <div class="team-heading"><strong id="enemyCount">5<span>/5</span></strong><h2>Enemy team</h2><span class="team-sigil enemy-sigil" aria-hidden="true"></span></div>
+          <div class="unit-pips" id="enemyPips" aria-hidden="true"></div>
+          <p class="loadout" id="enemyLoadout">Sabers &amp; Force</p>
+        </div>
+      </div>
+      <div class="objective-brief"><div><strong id="objectiveStatus" role="status" aria-live="polite" aria-atomic="true">Capture the center signal</strong><p id="objectiveDetail"></p></div><span id="ruleModifier" class="rule-modifier">Standard</span></div>
+      <div class="battlefield" id="battlefield">
+        <canvas id="battleCanvas" width="960" height="540" aria-label="Map. Choose Watch or Play, then press Start." role="img" tabindex="0" aria-describedby="canvasHelp"></canvas>
+        <div class="field-corner corner-left"><span class="field-dot"></span><span id="fieldStatus">PLAYING</span></div>
+        <div class="field-corner corner-right" id="mapName">THE CROSSING</div>
+        <div class="objective-hud" id="objectiveHud" role="group" aria-label="Current round objective"><span id="objectiveRule">SIGNAL · 30 TO WIN</span><strong id="objectiveScore" title="Current round objective score: your team : enemy team">0 : 0</strong><div class="capture-track"><i id="captureLeft"></i><i id="captureRight"></i></div></div>
+        <output class="fight-callout" id="fightCallout" aria-hidden="true" hidden></output>
+        <div class="field-key" id="canvasHelp">Select a fighter for stats</div>
+        <div id="environmentStatus" class="environment-status"></div>
+        <section class="unit-inspector" id="unitInspector" hidden aria-label="Fighter stats">
+          <div class="inspector-heading"><strong id="unitName">YOUR FIGHTER 01</strong><span class="weapon-rank" title="Combat experience"><span class="sr-only">Combat experience: </span><span id="unitRank">RECRUIT</span></span><button id="closeInspectorBtn" aria-label="Close fighter inspection"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div>
+          <div class="inspector-vitals"><span id="unitHealth">120 / 120 HP</span><span id="unitState">READY</span></div>
+          <div class="unit-health-track"><i id="unitHealthBar"></i></div>
+          <p id="unitForm" class="unit-form"></p>
+          <p id="unitEnergy" class="unit-energy"></p>
+          <p id="unitIntent" class="unit-intent"></p>
+          <p id="unitOutcome" class="unit-outcome"></p>
+          <p id="unitWeapons"></p><p id="unitMood"></p><p id="unitRole"></p>
+          <div class="career-readout" aria-label="Training across rounds"><div class="career-heading"><span>Rank <strong id="unitGrade">F</strong></span><span id="unitMerit">0 training points</span></div><p id="unitPower"></p></div>
+          <p id="unitMastery" class="unit-mastery"></p><p id="unitCommendations" class="unit-commendations"></p><p id="unitRecords" class="unit-records"></p><button id="takeControlBtn" hidden>Play as this fighter</button>
+        </section>
+        <div class="paused-overlay" id="pausedOverlay" hidden><span class="pause-disc" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg></span><strong>Paused</strong><span><span id="pauseReason">Select a fighter to see their stats.</span></span><button id="resumeBtn" class="small-primary">Resume </button><button id="spectateBtn" class="pause-spectate" hidden>Watch instead</button></div>
+        <div class="result-overlay" id="resultOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-describedby="resultDescription">
+          <div class="result-card">
+            <div class="result-emblem" id="resultEmblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6.5 7 .9-5 5 1.3 7-6.3-3.5L5.7 21l1.3-6.6-5-5 7-.9Z"/></svg></div>
+            <p class="eyebrow" id="resultEyebrow">ROUND OVER</p>
+            <h2 id="resultTitle">Round won</h2>
+            <p id="resultDescription">Your team won.</p>
+            <p id="resultRules" class="result-rules"></p><p id="resultObjective" class="result-objective" hidden></p><p id="resultHealth" class="result-health" hidden></p>
+            <section class="round-recap" aria-labelledby="roundRecapHeading"><h3 id="roundRecapHeading">Round recap</h3><p id="roundRecapTotals"></p><ol id="roundRecap"></ol><p id="roundRecapCoverage"></p></section>
+            <div class="result-tally"><span><i class="tally-dot player-dot"></i><b id="resultPlayer">5</b> alive</span><span><i class="tally-dot enemy-dot"></i><b id="resultEnemy">0</b> alive</span></div>
+            <section class="round-briefing" aria-labelledby="briefingHeading">
+              <h3 id="briefingHeading">Team progress</h3>
+              <p id="resultCareer"></p>
+              <ul id="resultPromotions"></ul><h3>Form stats</h3><p class="mastery-explainer">Each fighter keeps separate stats for each form. Switching forms keeps those records.</p><div id="resultMastery" class="mastery-report"></div><h3>Round awards</h3><div id="resultCommendations" class="commendation-report"></div>
+              <h3 class="doctrine-heading" id="doctrineHeading">Your team’s style next round</h3>
+              <div class="doctrine-choices" id="doctrineChoices" role="group" aria-labelledby="doctrineHeading" aria-describedby="doctrineHint"></div>
+              <p id="doctrineHint"></p><details class="next-tactics"><summary>More tactics for next round</summary><div class="tactics-plan-grid"><label>Your deployment<select id="nextDeployment0"></select></label><label>Your formation<select id="nextFormation0"></select></label><label>Your targets<select id="nextPriority0"></select></label><label>Enemy team style<select id="nextEnemyDoctrine"></select></label><label>Enemy deployment<select id="nextDeployment1"></select></label><label>Enemy formation<select id="nextFormation1"></select></label><label>Enemy targets<select id="nextPriority1"></select></label></div><p>These changes apply next round.</p></details>
+              <details class="form-plan" open>
+                <summary>Forms <span>Your team</span></summary>
+                <p id="formHint">Choose each fighter’s form for next round. Forms change damage, defense, speed and energy use. <a href="./guide.html" target="_blank" rel="noopener">Form guide <span class="sr-only">(opens in a new tab)</span></a></p>
+                <div id="formChoices" class="form-choices" role="group" aria-label="Form for each fighter" aria-describedby="formHint"></div>
+              </details>
+            </section>
+            <p class="next-round-note">Ranks, form stats and awards carry over. Sabers and Force abilities can change each round.</p>
+            <button id="nextRoundBtn" class="next-round-btn">Next round </button><button id="inspectResultBtn" class="inspect-result-btn">See final positions</button>
+          </div>
+        </div>
+        <div class="round-review-bar" id="roundReviewBar" hidden><button id="reviewResultBtn">Round result</button><button id="reviewNextBtn">Next round →</button></div>
+        <div class="mutation-banner" id="mutationBanner" hidden aria-live="polite"></div>
+        <div class="order-toast" id="orderToast" aria-hidden="true"></div>
+      </div>
+      <div class="inspection-controls" id="inspectionControls" aria-label="Inspect fighters"><p id="inspectionStatus">Select a fighter to inspect</p><div><label class="sr-only" for="inspectTeam">Fighters to inspect</label><select id="inspectTeam"><option value="all">Both teams</option><option value="0">Your team</option><option value="1">Enemy team</option></select><button type="button" id="previousFighterBtn" aria-label="Inspect previous fighter">Previous</button><button type="button" id="nextFighterBtn" aria-label="Inspect next fighter">Next</button><button type="button" id="inspectCarrierBtn" hidden>Relic carrier</button></div></div>
+      <p id="squadPosition" class="squad-position" hidden></p>
+      <div class="field-caption"><span><i class="status-dot"></i><span id="commandStatus">Holding position</span></span><span id="seedLabel">SEED 00001</span></div>
+    </section>
+
+    <section id="directControls" class="direct-controls" hidden aria-labelledby="directHeading"><div class="direct-heading"><div><h2 id="directHeading">Your fighter</h2><p id="controlledStatus"></p></div><span>WASD move · J strike · K Force · Space guard · Shift dash · Tab target</span></div><div class="direct-readouts"><p id="targetStatus" class="target-status">Auto aim · nearest visible enemy</p><p id="combatStatus" class="combat-status" role="status" aria-live="polite" aria-atomic="true">No attacks yet</p></div><div class="combat-rhythm" aria-label="Current technique and energy costs"><p id="comboStatus">1/1 · Opening sweep</p><p id="combatReadiness">Strike and Force spend energy</p></div><div class="direct-control-row"><div class="direction-pad" role="group" aria-label="Move fighter"><button type="button" data-move-x="0" data-move-y="-1" aria-label="Move up">↑</button><button type="button" data-move-x="-1" data-move-y="0" aria-label="Move left">←</button><button type="button" data-move-x="0" data-move-y="1" aria-label="Move down">↓</button><button type="button" data-move-x="1" data-move-y="0" aria-label="Move right">→</button></div><div class="fighter-actions" role="group" aria-label="Fighter actions"><button type="button" data-player-action="attack"><strong>Strike</strong><small>J</small></button><button type="button" data-player-action="force"><strong>Force</strong><small>K</small></button><button type="button" data-player-action="guard"><strong>Guard</strong><small>Hold · Space</small></button><button type="button" data-player-action="dash"><strong>Dash</strong><small>Shift</small></button><button type="button" id="cycleTargetBtn" data-player-action="cycle"><strong>Cycle target</strong><small>Tab · next enemy</small></button></div></div><p class="direct-help">Click the map to use keyboard controls. Click an enemy or press Tab to lock on. Shift+Tab leaves the map. Hold touch controls to move or guard. Tap attacks near the end of recovery to link the next move. Pause to switch fighters.</p></section>
+    <section class="command-deck" aria-label="Game controls and reports">
+      <div class="command-intro"><div><h2>Game controls</h2><p>Pause and select a teammate to play.</p></div><p class="doctrine-status">Team style <strong id="doctrineLabel">Balanced</strong></p></div>
+      <p id="teamOrderStatus" class="team-order-status" hidden></p><p id="teamOrderHelp" class="team-order-help" hidden>Orders move your AI teammates; your fighter stays under your control. Dashed markers show the order reference point.</p>
+      <div class="command-row" id="teamCommandRow">
+        <div class="movement-commands" role="group" aria-label="Your team movement" aria-describedby="teamOrderHelp">
+          <button class="command-btn" id="advanceBtn" data-order="advance" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 5 7 7-7 7m7-14 7 7-7 7"/></svg><span>Advance</span><kbd>A</kbd></button>
+          <button class="command-btn is-active" id="holdBtn" data-order="hold" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14M12 5v14M19 5v14"/></svg><span>Hold</span><kbd>S</kbd></button>
+          <button class="command-btn" id="retreatBtn" data-order="retreat" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m18 5-7 7 7 7m-7-14-7 7 7 7"/></svg><span>Retreat</span><kbd>D</kbd></button>
+          <button type="button" class="command-btn" id="flankBtn" data-order="flank" aria-pressed="false"><span>Flank</span></button><button type="button" class="command-btn" id="regroupBtn" data-order="regroup" aria-pressed="false"><span>Regroup</span></button>
+        </div>
+        <div class="support-commands" role="group" aria-label="Team abilities">
+        <button class="grenade-btn" id="grenadeBtn"><span class="grenade-fill" id="grenadeFill"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8a6 6 0 0 1 0 8m5-12a11 11 0 0 1 0 16m5-13a7 7 0 0 1 0 10m5-8a4 4 0 0 1 0 6"/></svg><span class="grenade-label"><b>Team Force attack</b><small id="grenadeHint">Use Force abilities</small></span><kbd>SPACE</kbd></button>
+        <button class="grenade-btn smoke-btn" id="smokeBtn"><span class="grenade-fill" id="smokeFill"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4Z"/><path d="m8 12 3 3 5-6"/></svg><span class="grenade-label"><b>Team guard</b><small id="smokeHint">Block incoming attacks</small></span><kbd>F</kbd></button>
+        </div>
+      </div>
+      <div class="secondary-controls" aria-label="Battle options">
+        <button id="autoBtn" aria-pressed="false"><span class="toggle-dot"></span><span id="autoLabel">Auto off</span></button>
+        <button id="intelBtn" aria-pressed="false"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 7V2h5m4 0h5v5m0 4v5h-5m-4 0H2v-5M6 9h6m-3-3v6"/></svg>Targets &amp; ranges</button>
+        <button id="soundBtn" aria-pressed="false"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 7v4h3l4 3V4L6 7H3m10-1c2 1 2 5 0 6"/></svg><span id="soundLabel">Sound off</span></button>
+        <button id="detailsBtn" aria-expanded="false" aria-controls="detailsPanel"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 14V9m6 5V3m6 11V6"/></svg>Stats</button>
+      </div>
+      <section class="details-panel" id="detailsPanel" hidden aria-label="Match stats">
+        <header><div><h2>Match stats</h2></div><span id="tacticSummary"></span></header>
+        <section class="combat-cues" aria-labelledby="combatCuesHeading">
+          <div class="report-section-heading"><h3 id="combatCuesHeading">Attack markers</h3><a href="./guide.html#combatHeading" target="_blank" rel="noopener">Combat guide <span class="sr-only">(opens in a new tab)</span></a></div>
+          <ul class="combat-legend" id="combatLegend">
+            <li class="cue-windup"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="12" r="7"/><path d="M10 12h11m-4-4 4 4-4 4"/></svg><span>Windup</span></li>
+            <li class="cue-hit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.5 6.5L21 7l-4 5 4 5-6.5-1.5L12 22l-2.5-6.5L3 17l4-5-4-5 6.5 1.5Z"/></svg><span>Hit</span></li>
+            <li class="cue-block"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 4-8 9-8 9s-8-5-8-9V6Z"/></svg><span>Block</span></li>
+            <li class="cue-counter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 7 7-7 7m7-14 7 7-7 7"/></svg><span>Counter</span></li>
+            <li class="cue-miss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg><span>No hit</span></li>
+          </ul>
+          <p>Windup markers show an attack starting. Numbers show damage dealt. Blocks can reduce damage without stopping it. Gray crosses mean the attack missed, lost its target, was out of range or was interrupted.</p>
+        </section>
+        <section class="campaign-records" id="campaignRecords" aria-labelledby="campaignRecordsHeading">
+          <h3 id="campaignRecordsHeading">Game totals <span>All rounds</span></h3>
+          <div class="campaign-team-record"><h4>Your team</h4><p><strong id="campaignPlayerKills">0</strong> kills <span aria-hidden="true">/</span> <strong id="campaignPlayerDeaths">0</strong> deaths</p><dl class="record-breakdown"><div><dt>Assists</dt><dd id="campaignPlayerAssists">0</dd></div><div><dt>Hazard deaths</dt><dd id="campaignPlayerEnvironmentDeaths">0</dd></div></dl></div>
+          <div class="campaign-team-record enemy-record"><h4>Enemy team</h4><p><strong id="campaignEnemyKills">0</strong> kills <span aria-hidden="true">/</span> <strong id="campaignEnemyDeaths">0</strong> deaths</p><dl class="record-breakdown"><div><dt>Assists</dt><dd id="campaignEnemyAssists">0</dd></div><div><dt>Hazard deaths</dt><dd id="campaignEnemyEnvironmentDeaths">0</dd></div></dl></div>
+          <p class="campaign-records-note">Hazard deaths are included in deaths.</p>
+        </section>
+        <div class="report-section-heading"><h3 id="roundMetricsHeading">This round</h3><p>Your team / enemy team</p></div><div class="report-grid" id="reportGrid" role="group" aria-labelledby="roundMetricsHeading" aria-describedby="roundMetricsHelp"></div><p class="report-help" id="roundMetricsHelp">Hits include blocks. Damage is the amount of health lost.</p>
+        <div class="report-columns"><section><h3>Fighter stats</h3><div class="roster" id="unitRoster"></div><p class="roster-help">Kills / deaths / assists across all rounds. Your team uses circles; the enemy uses squares.</p><p class="career-help">Ranks run from F to SSS+ (entry), then SSS+ I through SSS+ V. Replacements keep their team position’s rank and stats. A new game uses your starting rank and gear choices, with no past match stats. <a href="./guide.html" target="_blank" rel="noopener">Combat guide <span class="sr-only">(opens in a new tab)</span></a></p></section><section><h3>Recent events</h3><ol class="event-log" id="eventLog"></ol></section></div>
+        <details class="mutation-details" id="mutationDetails" hidden><summary>Equipment changes <span id="mutationCount"></span></summary><ul id="mutationList"></ul></details>
+        <div class="campaign-actions"><div><strong>Saved game</strong><p id="saveStatus" role="status">Save this game on this device.</p></div><button id="saveCampaignBtn">Save game</button><button id="resumeCampaignBtn">Load save</button></div>
+        <div class="report-actions"><span id="reportSeed"></span><button id="copySeedBtn">Copy seed</button><button id="exportBtn">Export save data</button></div>
+      </section>
+    </section>
+    <footer class="footer"><p><span class="help-mark">?</span> <span id="footerRules">Control: reach 30 signal points or defeat the enemy.</span> Walls block attacks. Force passes over sandbags. Striped areas cause damage.</p><p class="footer-tag">v1.4.0 · Motion overhaul</p></footer>
+    </div>
+    <p class="sr-only" id="announcer" aria-live="polite" aria-atomic="true"></p>
+    <output id="debugState" hidden></output>
+  </main>
+  <script type="module" src="./app.js?v=1.5.0"></script>
+</body>
+</html>

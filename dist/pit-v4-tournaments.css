@@ -1,0 +1,213 @@
+/* v4 tournament surfaces. Keep legacy layouts/components and their JS contracts. */
+body.ops-shell.pit-v4-tournaments {
+  --pit-base: #101519;
+  --pit-panel: #171e23;
+  --pit-well: #11191d;
+  --pit-tile: #1d282e;
+  --pit-line: #32434a;
+  --pit-line-strong: #547278;
+  --pit-text: #eef5f4;
+  --pit-muted: #aebdc1;
+  --pit-accent: #67e2cd;
+  --pit-accent-ink: #092225;
+  --pit-gold: #e2bd83;
+  --pit-selection: #213c3d;
+  --ops-bg: var(--pit-base);
+  --ops-panel: var(--pit-panel);
+  --ops-field: var(--pit-well);
+  --ops-tile: var(--pit-tile);
+  --ops-edge: var(--pit-line);
+  --ops-edge-hi: var(--pit-line-strong);
+  --ops-copy: var(--pit-text);
+  --ops-muted: var(--pit-muted);
+  --ops-amber: var(--pit-accent);
+  background: radial-gradient(ellipse at 68% -12rem, #253a3e 0%, transparent 39rem), var(--pit-base);
+}
+body.pit-v4-tournaments :is(#tournamentApp,.gauntlet-shell) {
+  width: min(88rem, calc(100% - 2.5rem));
+  padding-inline: 0;
+}
+.pit-v4-tournaments .ops-dock {
+  position: static;
+  width: auto;
+  margin-bottom: 1rem;
+  padding: .52rem 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--pit-line);
+}
+.pit-v4-tournaments .ops-brand { margin: 0; }
+.pit-v4-tournaments .ops-mark { width: 30px; }
+.pit-v4-tournaments .ops-nav { display: flex; justify-content: end; gap: .35rem; }
+.pit-v4-tournaments .ops-nav a {
+  grid-template-columns: 16px auto;
+  padding-inline: .66rem;
+  border-radius: .55rem;
+}
+.pit-v4-tournaments .ops-nav a small,.pit-v4-tournaments .ops-dock-foot { display: none; }
+.pit-v4-tournaments .ops-nav a[aria-current=page] {
+  background: var(--pit-selection);
+  border-color: var(--pit-line-strong);
+  color: var(--pit-accent);
+}
+body.pit-v4-tournaments :is(.ops-hero,.panel) {
+  border: 1px solid var(--pit-line);
+  border-radius: .9rem;
+  box-shadow: 0 10px 22px #02070822;
+}
+body.pit-v4-tournaments :is(.ops-hero,.panel)::before,
+body.pit-v4-tournaments :is(.ops-hero,.panel)::after { content: none; }
+body.pit-v4-tournaments .ops-hero {
+  margin-block: 0 .8rem;
+  border-color: var(--pit-line-strong);
+  background: linear-gradient(110deg,var(--pit-panel),#1b3134);
+  grid-template-columns: minmax(0,1fr) clamp(7rem,21vw,15rem);
+  min-height: clamp(8.3rem,18vw,11rem);
+  padding: clamp(1rem,3vw,1.8rem);
+  align-items: center;
+  gap: clamp(.65rem,3vw,2.2rem);
+}
+body.pit-v4-tournaments .ops-hero h1 {
+  font-size: clamp(2.1rem,5.6vw,4.1rem);
+  letter-spacing: -.06em;
+  font-weight: 800;
+  margin-block: .22rem .55rem;
+  text-wrap: balance;
+}
+.pit-v4-tournaments .ops-hero-copy .ops-kicker { color: var(--pit-accent); }
+.pit-v4-tournaments .ops-hero-art { max-height: 8.6rem; }
+.pit-v4-tournaments .ops-hero .g-hero-amber { stroke: var(--pit-accent); }
+
+body.pit-v4-tournaments .format-picker {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr)) minmax(9rem,.89fr);
+  gap: .3rem;
+  padding: .32rem;
+  margin: 0 0 .95rem;
+  background: var(--pit-well);
+  border: 1px solid var(--pit-line);
+  border-radius: .75rem;
+}
+body.pit-v4-tournaments .format-picker :is(button,a) {
+  min-height: 44px;
+  min-width: 0;
+  color: var(--pit-muted);
+  border: 1px solid transparent;
+  border-radius: .52rem;
+  background: none;
+  box-shadow: none;
+  gap: .45rem;
+  padding: .35rem .52rem;
+}
+body.pit-v4-tournaments .format-picker :is(button,a):hover {
+  background: var(--pit-tile);
+  border-color: var(--pit-line);
+  color: var(--pit-text);
+}
+body.pit-v4-tournaments .format-picker :is([aria-pressed=true],[aria-current=page]) {
+  background: var(--pit-selection);
+  border-color: var(--pit-line-strong);
+  color: var(--pit-accent);
+  box-shadow: inset 0 -2px var(--pit-accent);
+}
+body.pit-v4-tournaments .format-picker :is(.peak-link,.g-career-link) {
+  color: var(--pit-gold);
+  margin-inline-start: 0;
+  border-inline-start-color: var(--pit-line);
+  justify-content: center;
+}
+.pit-v4-tournaments .ops-format-mark {
+  border-color: var(--pit-line-strong);
+  border-radius: .25rem;
+  margin: 0;
+}
+.pit-v4-tournaments :is(.desk,.gauntlet-grid,.g-main,.g-aside,.left-column,.right-column) {
+  gap: clamp(.65rem,1.3vw,1.1rem);
+}
+.pit-v4-tournaments :is(.section-top,.g-section-top) { align-items: center; }
+body.pit-v4-tournaments .panel h2 {
+  font-size: clamp(1.22rem,2.6vw,1.65rem);
+  letter-spacing: -.028em;
+}
+body.pit-v4-tournaments :is(.next,.g-next,.fixture,.g-group,.g-final,.g-role-reports > section,
+  .bout-plans,.badge,.g-badge,.team-members li,.learned li,.plan-fighter,.g-fighter,.hero-portrait) {
+  border-radius: .52rem;
+  border-color: var(--pit-line);
+}
+body.pit-v4-tournaments :is(.next,.g-next) {
+  background: linear-gradient(110deg,var(--pit-well),var(--pit-tile));
+  border-left: 2px solid var(--pit-line-strong);
+}
+body.pit-v4-tournaments :is(.next[data-tone=active],.g-next:has(~ .g-progress:not([hidden])),.fixture.is-next) {
+  border-color: var(--pit-line-strong);
+  box-shadow: inset 2px 0 var(--pit-accent);
+}
+body.pit-v4-tournaments :is(.board tr.selected,.g-table-window tr.g-selected,.g-group .g-advances) { background: var(--pit-selection); }
+body.pit-v4-tournaments :is(.board-window,.g-table-window) {
+  scrollbar-color: var(--pit-line-strong) var(--pit-well);
+  overscroll-behavior-inline: contain;
+}
+body.pit-v4-tournaments :is(button,.button,input:not([type=checkbox]),select) { border-radius: .45rem; }
+body.pit-v4-tournaments :is(button.primary,.button.primary) {
+  background: var(--pit-accent);
+  border-color: var(--pit-accent);
+  color: var(--pit-accent-ink);
+}
+body.pit-v4-tournaments :is(button.primary,.button.primary):not(:disabled):hover { background: #a1f5e8; border-color: #a1f5e8; }
+body.pit-v4-tournaments :is(.mastery-title,.g-medals .g-ordinal) {
+  border-color: #816a48;
+  background: #3b3022;
+  border-radius: .25rem;
+  color: var(--pit-gold);
+}
+body.pit-v4-tournaments :is(dialog.replay,.reset-dialog,.gauntlet-shell dialog) {
+  border-radius: .85rem;
+  border-color: var(--pit-line-strong);
+  box-shadow: 0 18px 75px #000b;
+}
+.pit-v4-tournaments :is(.g-ledger,#leadersTitle,#gLedgerTitle,.peak-board) { scroll-margin-top: 1rem; }
+.pit-v4-tournaments progress { accent-color: var(--pit-accent); }
+
+@media (min-width: 920px) {
+  body.pit-v4-tournaments :is(.desk,.gauntlet-grid) { grid-template-columns: minmax(0,1.03fr) minmax(0,1fr); }
+}
+@media (max-width: 820px) {
+  body.pit-v4-tournaments :is(#tournamentApp,.gauntlet-shell) { width: calc(100% - 1.3rem); }
+  body.pit-v4-tournaments :is(.desk,.gauntlet-grid) { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 740px) {
+  body.pit-v4-tournaments .ops-dock { grid-template-columns: minmax(0,1fr); gap: .3rem; margin-bottom: .65rem; }
+  body.pit-v4-tournaments .ops-nav {
+    display: grid;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+    gap: .25rem;
+  }
+  body.pit-v4-tournaments .ops-nav a {
+    grid-template-columns: minmax(0,1fr);
+    padding: .26rem .08rem;
+    background: var(--pit-well);
+    border-color: var(--pit-line);
+    text-align: center;
+  }
+  body.pit-v4-tournaments .ops-hero { grid-template-columns: minmax(0,1fr) clamp(3.6rem,19vw,6.5rem); }
+  body.pit-v4-tournaments .format-picker { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  body.pit-v4-tournaments .format-picker :is(.peak-link,.g-career-link) {
+    grid-column: 1 / -1;
+    border: 0;
+    border-top: 1px solid var(--pit-line);
+    border-radius: 0;
+  }
+}
+@media (max-width: 430px) {
+  body.pit-v4-tournaments .format-picker :is(button,a) { font-size: .77rem; padding-inline: .28rem; text-align: center; }
+  body.pit-v4-tournaments .format-picker .ops-format-mark { display: none; }
+  body.pit-v4-tournaments .ops-hero h1 { font-size: clamp(1.8rem,8.2vw,2.4rem); }
+  body.pit-v4-tournaments .g-next { margin-block: .58rem; }
+}
+@media (forced-colors: active) {
+  body.pit-v4-tournaments .format-picker :is([aria-current=page],[aria-pressed=true]) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

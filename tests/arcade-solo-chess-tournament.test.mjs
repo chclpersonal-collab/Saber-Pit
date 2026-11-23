@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {arcadeChessStyleForId} from '../dist/arcade-chess-styles.js';
+import {createTournamentReplay,playTournamentBout,TOURNAMENT_REPLAY_RULESET} from '../dist/arcade-tournament-sim.js';
+import {loadTournament,nextTournamentBout,runTournamentStep,saveTournament,startTournament} from '../dist/arcade-tournament.js';
+import {stepArcade} from '../dist/arcade-engine.js';
+
+const styles=['king','queen','rook','bishop','knight','pawn'];
+const store=()=>{const values=new Map();return {getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};};
+test('style follows each individual rather than seed, side, or roster order',()=>{
+  const [a,b]=[{id:'f-pyre-daywell',form:'niman'},{id:'f-hazel-starford',form:'juyo'}];
+  const bout={fighters:[a,b],seed:123,limit:150,grade:'SSS+V',terrain:'underpit'};
+  const wanted=[a,b].map(f=>arcadeChessStyleForId(f.id));
+  assert.ok(wanted.every(x=>styles.includes(x)));
+  assert.deepEqual(createTournamentReplay(bout).fighters.map(f=>f.chessStyle),wanted);
+  assert.deepEqual(createTournamentReplay({...bout,seed:44,fighters:[b,a]}).fighters.map(f=>f.chessStyle),wanted.slice().reverse());
+  const saved={...bout,ruleset:13,fighters:[{...a,chessStyle:'bishop'},{...b,chessStyle:'rook'}]};
+  assert.deepEqual(createTournamentReplay(saved).fighters.map(f=>f.chessStyle),['bishop','rook']);
+  assert.throws(()=>createTournamentReplay({...saved,fighters:[a,b]}),/recorded style/);
+  const old=createTournamentReplay({...saved,ruleset:12});
+  assert.equal(old.config.chessStyles,undefined);
+  assert.ok(old.fighters.every(f=>f.chessStyle===undefined));
+});
+test('new solo bout saves exact style through reload and replays authoritative combat unchanged',()=>{
+  const memory=store(), state=startTournament(loadTournament(memory),{seed:459,limit:45,terrain:'crossroads',fieldSize:32});
+  const input=nextTournamentBout(state);
+  assert.ok(input.fighters.every(f=>styles.includes(f.chessStyle)));
+  let original;
+  runTournamentStep(state,bout=>original=playTournamentBout(bout));
+  assert.equal(original.replay.ruleset,TOURNAMENT_REPLAY_RULESET);
+  assert.equal(original.replay.ruleset,30);
+  assert.deepEqual(original.replay.fighters.map(f=>f.chessStyle),input.fighters.map(f=>f.chessStyle));
+  saveTournament(state,memory);
+  const loaded=loadTournament(memory), replay=loaded.active.lastReplay;
+  assert.deepEqual(replay.fighters.map(f=>f.chessStyle),original.replay.fighters.map(f=>f.chessStyle));
+  const game=createTournamentReplay(replay);
+  assert.equal(game.config.perfectParryStamina,undefined);
+  for(let i=0;i<5450&&game.phase==='playing';i++)stepArcade(game,1/120);
+  assert.equal(game.time,original.time);
+  assert.equal(game.endReason,original.reason);
+  assert.deepEqual(game.fighters.map(f=>f.stats),original.stats);
+});

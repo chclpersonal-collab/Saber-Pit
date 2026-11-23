@@ -1,0 +1,427 @@
+/* Saber Pit ops console: bracket desk, dispatch and save archive.
+   Behaviour and canvas renderers remain in their existing modules. */
+body.ops-shell {
+  --ops-amber: #f6ca56;
+  --ops-bg: #090909;
+  --ops-panel: #151515;
+  --ops-field: #0e0e0e;
+  --ops-tile: #1c1c1c;
+  --ops-edge: #383838;
+  --ops-edge-hi: #595959;
+  --ops-copy: #f1f1f1;
+  --ops-muted: #b5b5b5;
+  --ops-type: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ops-label: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --ops-notch: 15px;
+  --bg: var(--ops-bg);
+  --stone: var(--ops-panel);
+  --field: var(--ops-field);
+  --line: var(--ops-edge);
+  --warm: var(--ops-amber);
+  --muted: var(--ops-muted);
+  --bright: var(--ops-copy);
+  --red: var(--ops-copy);
+  --green: var(--ops-copy);
+  --ink: var(--ops-bg);
+  --page: var(--ops-bg);
+  --panel: var(--ops-panel);
+  --panel-hi: var(--ops-tile);
+  --edge: var(--ops-edge);
+  --soft-edge: var(--ops-edge);
+  --cream: var(--ops-copy);
+  --amber: var(--ops-amber);
+  --amber-pale: var(--ops-amber);
+  --soft: var(--ops-muted);
+  --gold: var(--ops-amber);
+  --serif: var(--ops-type);
+  --mono: var(--ops-label);
+  --label: var(--ops-label);
+  min-height: 100svh;
+  margin: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 63px, #ffffff04 63px 64px), var(--ops-bg);
+  color: var(--ops-copy);
+  font: 15px/1.5 var(--ops-type);
+}
+.ops-shell :is(#tournamentApp, .quest-shell, .backup-shell) {
+  width: min(82rem, calc(100% - 2rem));
+  max-width: none;
+  margin-inline: auto;
+  padding: 0 0 max(2.5rem, env(safe-area-inset-bottom));
+}
+.ops-shell [hidden] { display: none !important; }
+.ops-shell :where(a, button, input, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ops-amber);
+  outline-offset: 3px;
+}
+.ops-shell :is(h1, h2, h3) { font-family: var(--ops-type); }
+.ops-shell :is(.kicker, .quest-kicker, .eyebrow) {
+  color: var(--ops-amber);
+  font: 710 .71rem/1.35 var(--ops-label);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+/* Global secondary-page navigation */
+.ops-dock {
+  padding: .75rem 0;
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .75rem 1.15rem;
+  border-bottom: 1px solid var(--ops-edge);
+}
+.ops-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .62rem;
+  min-height: 44px;
+  color: var(--ops-copy);
+  text-decoration: none;
+  width: fit-content;
+}
+.ops-brand strong {
+  display: block;
+  font: 900 1.03rem/1.05 var(--ops-type);
+  white-space: nowrap;
+  letter-spacing: -.035em;
+}
+.ops-brand small, .ops-dock-foot {
+  display: block;
+  margin-top: .23rem;
+  color: var(--ops-muted);
+  font: 650 .57rem/1.2 var(--ops-label);
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+.ops-mark {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 37px;
+  color: var(--ops-amber);
+}
+.ops-mark svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linejoin: round; }
+.ops-nav {
+  display: flex;
+  justify-content: end;
+  gap: .25rem;
+  min-width: 0;
+}
+.ops-nav a {
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr);
+  align-items: center;
+  column-gap: .46rem;
+  min-height: 44px;
+  color: var(--ops-muted);
+  padding: .38rem .56rem;
+  border: 1px solid transparent;
+  font-size: .78rem;
+  font-weight: 720;
+  line-height: 1.12;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ops-nav a svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+.ops-nav a small { display: none; color: var(--ops-muted); font: .66rem/1 var(--ops-label); }
+.ops-nav a:hover { color: var(--ops-copy); background: var(--ops-panel); border-color: var(--ops-edge); }
+.ops-nav a[aria-current=page] { color: var(--ops-amber); background: #f6ca5610; border-color: #f6ca565e; }
+.ops-dock-foot { display: none; margin-block: .8rem 0; }
+.ops-dock-foot i { display: inline-block; width: .35rem; aspect-ratio: 1; background: var(--ops-amber); margin-inline-end: .28rem; vertical-align: .02rem; }
+@media (min-width: 1100px) {
+  .ops-shell :is(#tournamentApp, .backup-shell) { padding-inline-start: 12.85rem; }
+  .ops-dock {
+    position: fixed;
+    inset-block-start: 1.2rem;
+    inset-inline-start: max(1rem, calc((100vw - 82rem) / 2));
+    z-index: 1;
+    width: 11.9rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .7rem;
+    padding: .8rem;
+    background: #101010;
+    border: 1px solid var(--ops-edge);
+  }
+  .ops-brand { margin-block-end: .25rem; }
+  .ops-nav { display: grid; justify-content: stretch; }
+  .ops-nav a { grid-template-columns: 19px minmax(0, 1fr) auto; }
+  .ops-nav a small, .ops-dock-foot { display: block; }
+}
+@media (max-width: 680px) {
+  .ops-shell :is(#tournamentApp, .quest-shell, .backup-shell) { width: calc(100% - 1.25rem); }
+  .ops-dock { grid-template-columns: minmax(0, 1fr); gap: .45rem; padding-block: .38rem .58rem; }
+  .ops-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .24rem; }
+  .ops-nav a {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-content: center;
+    min-height: 48px;
+    row-gap: .2rem;
+    padding-inline: .11rem;
+    font-size: clamp(.61rem, 2.75vw, .77rem);
+    background-color: #101010;
+    border-color: var(--ops-edge);
+  }
+}
+
+/* Cut corners are painted behind content, so they never crop focus outlines. */
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel) {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel)::before,
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel)::after {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  content: "";
+  pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - var(--ops-notch)) 0, 100% var(--ops-notch), 100% 100%, var(--ops-notch) 100%, 0 calc(100% - var(--ops-notch)));
+  background: var(--ops-edge);
+}
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel)::after {
+  inset: 1px;
+  z-index: -1;
+  --ops-notch: 14px;
+  background: linear-gradient(160deg, #1a1a1a, var(--ops-panel) 55%);
+}
+.ops-shell :is(.schedule, .quest-grid aside, .archive-cloud)::before {
+  background: linear-gradient(110deg, #f6ca5680 0 2.1rem, var(--ops-edge) 2.1rem);
+}
+.ops-shell .ops-hero {
+  --ops-notch: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(7rem, 25vw, 17rem);
+  align-items: center;
+  align-content: center;
+  gap: clamp(.3rem, 2.6vw, 1.5rem);
+  min-height: clamp(10rem, 20vw, 16rem);
+  margin: 1rem 0 .85rem;
+  padding: clamp(1rem, 3.45vw, 2.6rem);
+  overflow: visible;
+}
+.ops-shell .ops-hero::before { background: linear-gradient(145deg, #f6ca56ae, var(--ops-edge) 37%); }
+.ops-shell .ops-hero::after {
+  --ops-notch: 23px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, #ffffff0a 22px 23px),
+    repeating-linear-gradient(0deg, transparent 0 22px, #ffffff0a 22px 23px),
+    linear-gradient(115deg, #161616, #101010 74%);
+}
+.ops-hero-copy { min-width: 0; }
+.ops-shell .ops-hero h1 {
+  margin: .36rem 0 .53rem;
+  color: var(--ops-copy);
+  font: 900 clamp(2.05rem, 6.1vw, 4.7rem)/.94 var(--ops-type);
+  letter-spacing: -.063em;
+  text-wrap: balance;
+}
+.ops-shell .ops-hero-copy p:not(.ops-kicker, .ops-hero-meta) {
+  max-width: 50ch;
+  color: var(--ops-muted);
+  font-size: .93rem;
+  text-wrap: pretty;
+}
+.ops-shell .ops-hero-meta { margin-top: .68rem; color: var(--ops-copy); font-size: .66rem; }
+.ops-hero-art {
+  justify-self: end;
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+@media (max-width: 680px) {
+  .ops-shell .ops-hero { grid-template-columns: minmax(0, 1fr) clamp(4.2rem, 24vw, 6.5rem); min-height: 8.65rem; }
+  .ops-shell .ops-hero-copy p:not(.ops-kicker, .ops-hero-meta) { font-size: .83rem; }
+  .ops-shell .ops-hero h1 { font-size: clamp(1.92rem, 8.6vw, 3rem); }
+}
+@media (max-width: 350px) {
+  .ops-shell .ops-hero { grid-template-columns: minmax(0, 1fr) 3.6rem; }
+}
+
+/* Shared actionable surfaces and inputs. Semantic status remains textual. */
+.ops-shell :is(button, .button) {
+  min-height: 44px;
+  border: 1px solid var(--ops-edge-hi);
+  border-radius: 0;
+  background: #202020;
+  color: var(--ops-copy);
+  font: 640 .87rem/1.22 var(--ops-type);
+  padding: .55rem .78rem;
+  box-shadow: none;
+}
+.ops-shell :is(button:not(:disabled), .button):hover { color: var(--ops-copy); background: #303030; border-color: #858585; }
+.ops-shell :is(button.primary, .quest-controls button, button.quest-primary) { background: var(--ops-amber); border-color: var(--ops-amber); color: #101010; font-weight: 800; }
+.ops-shell :is(button.primary, .quest-controls button, button.quest-primary):not(:disabled):hover { background: #fff; color: #101010; border-color: #fff; }
+.ops-shell button:disabled { opacity: .48; cursor: default; }
+.ops-shell :is(select, input:not([type=checkbox],[type=radio])) {
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--ops-edge-hi);
+  border-radius: 0;
+  color: var(--ops-copy);
+  background: var(--ops-field);
+  font: 650 .86rem/1.3 var(--ops-type);
+}
+.ops-shell select { padding: .47rem .56rem; }
+.ops-shell :is(input, progress) { accent-color: var(--ops-amber); }
+.ops-shell :is(.panel, .quest-panel, .backup-panel) h2 {
+  color: var(--ops-copy);
+  font-size: clamp(1.28rem, 2.8vw, 1.62rem);
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: -.035em;
+}
+.ops-shell :is(.panel, .quest-panel, .backup-panel) p { overflow-wrap: anywhere; }
+
+/* Bracket desk / solo and squad are separate views of the same app. */
+.ops-tournament .circuit-schematic {
+  color: var(--ops-edge-hi);
+  padding-block: .1rem;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  fill: none;
+  overflow: visible;
+}
+.ops-tournament .circuit-schematic :is(.schematic-duel, .schematic-squad) { stroke: var(--ops-amber); stroke-width: 3; }
+.ops-tournament :is(.heading-squad, .schematic-squad) { display: none; }
+.ops-tournament #tournamentApp:has(#squadFormat[aria-pressed=true]) :is(.heading-duel, .schematic-duel) { display: none; }
+.ops-tournament #tournamentApp:has(#squadFormat[aria-pressed=true]) :is(.heading-squad, .schematic-squad) { display: inline; }
+.ops-tournament .format-picker { gap: .35rem; }
+.ops-tournament .format-picker button[aria-pressed=true] {
+  color: var(--ops-amber);
+  background: #f6ca5610;
+  border-color: #f6ca568f;
+  box-shadow: inset 0 -2px var(--ops-amber);
+}
+.ops-format-mark {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.48rem;
+  min-height: 1.48rem;
+  margin-inline-end: .38rem;
+  border: 1px solid currentColor;
+  font: 650 .62rem/1 var(--ops-label);
+}
+.ops-tournament :is(.badge, .next, .fixture, .learned li, .team-members li, .bout-plans, .plan-fighter, .hero-portrait) {
+  border-color: var(--ops-edge);
+  border-radius: 0;
+  background: var(--ops-field);
+}
+.ops-tournament .next { padding: .85rem; }
+.ops-tournament .next:is([data-tone=active], [data-tone=win]) { border-color: var(--ops-amber); }
+.ops-tournament .badge { color: var(--ops-copy); white-space: nowrap; }
+.ops-tournament .fixture.is-next { border-color: #f6ca568f; box-shadow: inset 2px 0 var(--ops-amber); }
+.ops-tournament .board tr.selected { background: #f6ca5612; }
+.ops-tournament .board-window { scrollbar-color: #606060 #171717; }
+.ops-tournament :is(th, td) { border-color: var(--ops-edge); }
+.ops-tournament .fighter-button { justify-content: space-between; background: transparent; border-color: transparent; text-align: start; }
+.ops-tournament .fighter-button:not(:disabled):hover { background: #272727; }
+.ops-tournament .board .fighter-button { justify-content: start; padding-inline: .23rem; }
+.ops-tournament .hero-rows .fighter-button { border-color: var(--ops-edge); }
+.ops-tournament :is(.learned strong, .career-table .survival-rate, .profile-actions .quiet, .reset-action) { color: var(--ops-copy); }
+.ops-tournament :is(.profile-actions .quiet, .reset-action) { border-color: var(--ops-edge-hi); }
+.ops-tournament .reset-action { background: transparent; }
+.ops-tournament .mastery-title { border-color: #f6ca568f; border-radius: 0; background: #f6ca5610; color: var(--ops-amber); }
+.ops-tournament .tour-guide summary { min-height: 42px; align-content: center; }
+.ops-tournament :is(.reset-dialog, .replay) { border-color: var(--ops-edge-hi); color: var(--ops-copy); background: var(--ops-panel); }
+.ops-tournament :is(.reset-dialog, .replay)::backdrop { background: #080808e6; }
+.ops-tournament :is(#replayArena, #questArena) { background: var(--ops-bg); border-color: var(--ops-edge); }
+.ops-tournament :is(.reset-dialog, .replay) .danger { border-color: #f6ca568f; color: var(--ops-amber); }
+@media (min-width: 1100px) {
+  .ops-tournament .desk { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+}
+@media (max-width: 515px) {
+  .ops-tournament .format-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-tournament .format-picker .peak-link { margin-inline-start: 0; grid-column: 1/-1; justify-self: stretch; color: var(--ops-amber); }
+  .ops-tournament .new-setup .settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Dispatch stage and field journal. */
+.ops-idle .quest-bell {
+  position: static;
+  z-index: auto;
+  transform: none;
+  opacity: .95;
+  width: min(100%, 14rem);
+  filter: none;
+}
+.ops-idle .quest-grid {
+  display: grid;
+  grid-template-columns: minmax(15rem, .84fr) minmax(0, 1.16fr);
+  grid-template-areas: "dispatch journal";
+  align-items: start;
+  gap: .75rem;
+}
+.ops-idle .quest-grid aside { grid-area: dispatch; }
+.ops-idle .quest-grid > section { grid-area: journal; }
+.ops-idle .quest-panel h2 { margin-block: .25rem .5rem; }
+.ops-idle .quest-panel :is(.quest-status, .quest-sources, aside > p:not(.quest-kicker)) { color: var(--ops-muted); }
+.ops-idle .quest-status { color: var(--ops-copy); }
+.ops-idle .quest-dialogue { gap: .58rem; margin-top: .75rem; }
+.ops-idle .quest-dialogue li { background: var(--ops-field); border-color: var(--ops-edge-hi); }
+.ops-idle .quest-dialogue li strong { color: var(--ops-amber); }
+.ops-idle .quest-dialogue li p {
+  color: var(--ops-copy);
+  font: .94rem/1.44 var(--ops-type);
+}
+.ops-idle .quest-hero-profile, .ops-idle #questPortrait { margin-inline: 0; background: #111; border-color: var(--ops-edge); }
+.ops-idle .quest-progress progress, .ops-idle .quest-progress progress::-webkit-progress-bar { background: var(--ops-field); border-radius: 0; }
+.ops-idle .quest-result { border-color: var(--ops-amber); background: #f6ca5610; }
+.ops-idle .quest-result :is(p, li) { color: var(--ops-copy); }
+.ops-idle :is(#questArena, .quest-duel) { border-color: var(--ops-edge); }
+.ops-idle #questReplayPace { display: flex; align-items: center; gap: .6rem; margin-top: .63rem; }
+@media (max-width: 720px) {
+  .ops-idle .quest-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "dispatch" "journal"; }
+}
+
+/* Cloud/device sync and explicit local backup flows. */
+.ops-backup .symbol {
+  position: static;
+  z-index: auto;
+  transform: none;
+  width: min(100%, 9.8rem);
+  stroke: var(--ops-amber);
+  opacity: .93;
+}
+.ops-backup .archive-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, .86fr) minmax(0, 1.14fr);
+  gap: .75rem;
+  align-items: start;
+}
+.ops-backup .backup-grid { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.ops-backup .backup-panel > p:not(.eyebrow) { color: var(--ops-muted); }
+.ops-backup .archive-actions, .ops-backup .archive-recovery { display: grid; gap: .45rem; margin-top: .82rem; }
+.ops-backup .archive-actions button { margin: 0; width: 100%; }
+.ops-backup .archive-recovery { padding-top: .72rem; border-top: 1px solid var(--ops-edge); font-size: .84rem; }
+.ops-backup #cloudCompare { display: grid; gap: .48rem; padding: .72rem; border: 1px solid var(--ops-edge); background: var(--ops-field); font-size: .84rem; }
+.ops-backup #cloudCompare > p { color: var(--ops-muted); }
+.ops-backup .backup-status:is([data-tone=success]) { color: var(--ops-amber); }
+.ops-backup .backup-status:is([data-tone=error]) { color: var(--ops-copy); border-inline-start: 2px solid var(--ops-amber); padding-inline-start: .55rem; }
+.ops-backup input::file-selector-button { background: var(--ops-tile); border-color: var(--ops-edge-hi); color: var(--ops-copy); }
+.ops-backup :is(.section-row, fieldset) { border-color: var(--ops-edge); }
+.ops-backup .section-row small { color: var(--ops-muted); }
+.ops-backup .warning { color: var(--ops-amber); }
+@media (max-width: 760px) {
+  .ops-backup .archive-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (forced-colors: active) {
+  .ops-nav a[aria-current=page] { border-color: Highlight; }
+  .ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel) { border: 1px solid CanvasText; }
+}
+/* Keep status regions mounted for live announcements, even before they have a message. */
+.ops-backup .backup-status:empty { display: block; min-height: 0; margin: 0; }
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel)::before,
+.ops-shell :is(.ops-hero, .panel, .quest-panel, .backup-panel)::after { border: 0; }
+
+.ops-tournament #autoSeasons { border-color: var(--ops-amber); color: var(--ops-amber); }
+.ops-tournament #autoSeasons[aria-pressed=true] { color: #111; background: var(--ops-amber); }
+.ops-tournament .schedule > .actions:has(#autoSeasons[aria-pressed=true]) > button:not(#autoSeasons) { display: none; }
+.ops-tournament .auto-resume-hint { margin-top: .43rem; max-width: 52ch; }

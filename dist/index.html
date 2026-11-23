@@ -1,0 +1,177 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101112"><meta name="description" content="Saber Pit. Hand-inked saber duels and squad battles.">
+<title>Saber Pit</title><link rel="stylesheet" href="./arcade.css?v=2.40.0"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=4.00.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
+<body class="pit-v3 pit-v4">
+<main id="app">
+  <header class="mast"><a href="./index.html" class="identity" aria-label="Saber Pit home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">SABER PIT<span>VERSION 4.00.0</span></div></a>
+  <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
+  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" hidden>Stats</button><button type="button" id="sound" aria-pressed="false">Sound off</button><button type="button" id="motion" aria-pressed="false">Reduced motion</button><button type="button" id="pause" hidden>Pause</button></div></header>
+  <section class="arena-launch" aria-labelledby="arenaLaunchTitle">
+    <div class="launch-tag"><i aria-hidden="true"></i> THE ARENA</div>
+    <h1 id="arenaLaunchTitle">Enter <br>the Pit.</h1>
+    <p>Fight or spectate.</p>
+    <div class="launch-actions">
+      <button type="submit" form="lobby" data-launch="play"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="./pit-v4-icons.svg#play"/></svg> Play match</button>
+      <button type="submit" form="lobby" data-launch="watch"><span aria-hidden="true">◉</span> Watch AI</button>
+    </div>
+    <a class="launch-setup" href="#entry">Customize match</a>
+  </section>
+  <section id="entry" class="entry" aria-labelledby="lobbyHeading">
+    <form id="lobby" class="lobby">
+      <div class="lobby-title"><div><p class="eyebrow">LOADOUT &amp; RULES</p><h2 id="lobbyHeading">Match setup</h2></div><button type="button" id="continueRun" hidden>Continue run</button></div>
+      <div class="setup-tabs" hidden role="tablist" aria-label="Match setup">
+        <button role="tab" type="button" id="setup-tab-match" aria-controls="setup-panel-match">Match</button>
+        <button role="tab" type="button" id="setup-tab-roster" aria-controls="setup-panel-roster">Fighters</button>
+        <button role="tab" type="button" id="setup-tab-rules" aria-controls="setup-panel-rules">Rules &amp; more</button>
+      </div>
+      <div class="setup-section" id="setup-panel-match">
+      <div class="presets" aria-label="Presets"><button type="button" data-preset="duel">Duel</button><button type="button" data-preset="squad">Squad</button><button type="button" data-preset="watch">Showdown</button><button type="button" data-preset="master" title="Watch an SSS+ V fighter take on 15 F fighters">Master trial</button><button type="button" id="watchHero" aria-describedby="watchHeroHelp">Watch a Hero</button></div>
+      <div class="lobby-grid">
+        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
+        <label>Rules<select id="rule"><option value="elimination">Elimination</option><option value="control">Control</option><option value="relic">Relic</option></select></label>
+        <label>Map<select id="mapPick"></select></label>
+        <label>Map size<select id="mapSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
+      </div>
+      <div class="team-counts">
+        <label class="team-pick blue">Blue fighters<input id="count0" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
+        <span aria-hidden="true">VS</span>
+        <label class="team-pick pink">Pink fighters<input id="count1" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
+      </div>
+      <p id="watchHeroHelp" class="hero-help">Sets up a saved Hero against three SSS+ V fighters. Start when ready.</p>
+      </div>
+      <div class="setup-section" id="setup-panel-roster">
+      <div class="lobby-grid saber-settings">
+        <div><label>Blue saber<select id="saberKit0" aria-describedby="kitHint0"></select></label><p id="kitHint0" class="saber-kit-hint"></p><label class="saber-phase-setting"><input id="dualPhase0" type="checkbox" aria-label="Blue dual-phase ignition"> Dual-phase ignition</label></div>
+        <div><label>Pink saber<select id="saberKit1" aria-describedby="kitHint1"></select></label><p id="kitHint1" class="saber-kit-hint"></p><label class="saber-phase-setting"><input id="dualPhase1" type="checkbox" aria-label="Pink dual-phase ignition"> Dual-phase ignition</label></div>
+      </div>
+      <div class="lobby-grid fighter-settings" id="fighterSettings">
+        <label>Fighter look<select id="bodyStyle"><option value="femboy">Femboy</option><option value="woman">Slim-thick woman</option><option value="rabbit">Rabbit duelist</option></select></label>
+      </div>
+      <section class="lobby-forms" aria-labelledby="lobbyFormsHeading">
+        <h2 id="lobbyFormsHeading">Saber forms</h2>
+        <div class="lobby-grid" id="yourFormRow">
+          <label id="styleLabel">Your form<select id="style" aria-describedby="formDetail airFormDetail"></select></label>
+          <label id="playerSlotLabel">You control<select id="playerSlot"></select></label>
+        </div>
+        <p id="formDetail" class="sr"></p>
+        <p id="airFormDetail" class="air-form-detail"></p>
+        <div class="lobby-grid" id="teamFormRow">
+          <label id="blueDefaultLabel" class="blue">Blue default<select id="groupForms0"></select></label>
+          <label class="pink">Pink default<select id="groupForms1"></select></label>
+        </div>
+        <details class="per-fighter all-overrides"><summary>Fighter overrides</summary>
+          <div class="lobby-grid"><div id="roster0"></div><div id="roster1"></div></div>
+        </details>
+      </section>
+      <details class="lobby-fold" id="chessStyleOptions"><summary>Chess style</summary>
+        <p class="hero-help">All fighters can move in any direction. Chess styles change attack lanes and reach. <a href="./style-lab.html">Try them in the Style Lab.</a></p>
+        <div class="lobby-grid fold-inner">
+          <div><label>Blue chess style<select id="chessStyles0" aria-describedby="chessStyleHint0"></select></label><p id="chessStyleHint0" class="saber-kit-hint"></p></div>
+          <div><label>Pink chess style<select id="chessStyles1" aria-describedby="chessStyleHint1"></select></label><p id="chessStyleHint1" class="saber-kit-hint"></p></div>
+        </div>
+      </details>
+      <details class="lobby-fold" id="teamOptions"><summary>Teams &amp; ranks</summary><div class="team-options" id="teamControls"></div><details class="rank-floors"><summary>Elo floors</summary><dl id="rankFloorList"></dl><p>Higher Elo improves AI decisions. Rank sets move unlocks; Elo does not add damage or health.</p></details></details>
+      <details class="lobby-fold" id="heroOptions"><summary>Heroes</summary>
+        <div class="lobby-grid hero-options">
+          <div><label>Blue Hero<select id="heroChoice0"></select></label><small class="hero-elo-hint" id="heroEloHint0" hidden></small><label id="heroPosLabel0">Blue Hero slot<select id="heroPos0"></select></label></div>
+          <div><label>Pink Hero<select id="heroChoice1"></select></label><small class="hero-elo-hint" id="heroEloHint1" hidden></small><label id="heroPosLabel1">Pink Hero slot<select id="heroPos1"></select></label></div>
+        </div>
+        <p id="heroHelp" class="hero-help">Heroes fight at SSS+ V. Select Spectator to leave every fighter under AI control.</p>
+        <p id="heroEmpty" class="hero-help" hidden>Save a fighter in <a href="./tournament.html">Tournament</a> to bring them here.</p>
+      </details>
+      </div>
+      <div class="setup-section" id="setup-panel-rules">
+      <details class="lobby-fold" id="roundOptions" open><summary>Match settings</summary><div class="lobby-grid fold-inner">
+        <label>Round length<select id="duration"><option value="45">45 sec</option><option value="75">75 sec</option><option value="90">90 sec</option><option value="150">150 sec</option></select></label>
+        <label>Speed<select id="pace"><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+        <label>Weather<select id="weatherPick"><option value="clear">Clear</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="sandstorm">Sandstorm</option></select></label>
+        <label>Seed<input type="number" id="matchSeed" min="1" max="4294967295" step="1" inputmode="numeric" placeholder="Random"></label>
+        <label class="switch-setting"><input id="saberOnly" type="checkbox"> Sabers only</label>
+      </div><button type="button" id="resetSetup" class="quiet">Reset setup</button></details>
+      </div>
+      <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch">Start match</button>
+      <div class="lobby-links"><button id="formsGuide" type="button">Form guide</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
+      <output class="sr" id="setupStatus"></output>
+    </form>
+  </section>
+  <div class="arena-shell" id="arenaShell">
+    <canvas id="arena" width="1120" height="640" tabindex="0" aria-label="Saber Pit arena"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+    <section id="hud" class="hud" aria-label="Match status" hidden>
+      <div class="health blue"><div class="hud-label"><strong id="blueName">Your side</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><div id="blueInjuries" class="injury-ribbon"></div><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina" title="At 30% stamina or lower, holding guard is weaker. Perfect parries and clean saber hits restore stamina."></progress></div>
+      <div class="clock"><span id="round">Round 1</span><strong id="clock">0:45</strong></div>
+      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Rival side</strong></div><div id="redInjuries" class="injury-ribbon"></div></div>
+    </section>
+    <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
+    <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
+    <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
+      <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" data-home>Setup</button></div></div>
+    </section>
+    <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
+      <div class="dialog"><p class="eyebrow" id="resultRound"></p><h2 id="resultTitle"></h2><p id="resultText"></p><p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><div class="dialog-actions">
+      <button type="button" id="again" class="primary">Next round</button><button type="button" id="resultStats">Stats</button><button type="button" data-home>Setup</button></div></div>
+    </section>
+  </div>
+  <div class="floor-ui" id="floorUI" hidden>
+    <div class="loadout"><span id="profileText">Duelist</span><strong id="modeLabel">Duel</strong></div><div id="commandBar" hidden aria-label="Team orders"><button type="button" data-order="push">Push</button><button type="button" data-order="hold">Hold</button><button type="button" data-order="regroup">Regroup</button><button type="button" data-order="flank">Flank</button></div>
+    <section id="heroWatch" class="hero-watch" aria-label="Hero watch" hidden>
+      <div class="hero-watch-profile"><p class="eyebrow">HERO WATCH</p>
+        <label for="heroWatchChoice" class="sr">Watched Hero</label><select id="heroWatchChoice"></select>
+        <span id="heroWatchPlan"></span></div>
+      <div class="hero-watch-activity"><strong id="heroWatchMove"></strong><span id="heroWatchTrakata"></span></div>
+      <div class="hero-watch-actions"><button id="heroWatchFocus" type="button" aria-pressed="false">Follow Hero</button><button id="heroWatchStats" type="button">Hero stats</button></div>
+    </section>
+    <div class="touch-pad" aria-label="Movement controls">
+      <button type="button" id="touchStick" class="touch-stick" aria-label="Movement stick" title="Drag to move. Keyboard and screen readers can switch to arrow controls."><span class="stick-thumb" aria-hidden="true"></span></button>
+      <button type="button" id="walkTouch" aria-pressed="false" aria-label="Toggle walking">Walk</button>
+      <button type="button" data-move="up" aria-label="Move up">↑</button><button type="button" data-move="left" aria-label="Move left">←</button><button type="button" data-move="down" aria-label="Move down">↓</button><button type="button" data-move="right" aria-label="Move right">→</button>
+    </div>
+    <div class="actions" id="actions" aria-label="Combat controls">
+      <button type="button" data-action="strike"><kbd>J</kbd><b>Slash</b><small>Chain slashes</small></button>
+      <button type="button" data-action="heavy" aria-label="Signature attack"><kbd>K</kbd><b class="action-full">Signature</b><b class="action-compact" aria-hidden="true">Heavy</b><small id="signatureHint">Heavy attack</small></button>
+      <button type="button" id="forceAction" data-action="force"><kbd>F</kbd><b>Force</b><small id="forceHint">Force</small></button>
+      <button type="button" data-action="jump" title="A form-specific jump"><kbd>Q</kbd><b>Jump</b><small id="airControlHint">Form footwork</small></button>
+      <button type="button" data-action="dash"><kbd>Shift</kbd><b>Dash</b><small>Dash + slash</small></button>
+      <button type="button" data-action="guard" title="Aim at the threat and tap as the strike lands. Perfect parries restore stamina. Holding guard is weaker at 30% stamina or lower."><kbd>Space</kbd><b>Guard</b><small id="guardHint">Aim · tap to parry</small></button>
+      <button type="button" id="feintAction" data-action="feint" title="Bait a guard, or cancel an early windup. Follow with Slash, Signature, or a Technique."><kbd>X</kbd><b>Feint</b><small>Bait their guard</small></button>
+      <button type="button" id="quickTechnique" class="quick-technique" data-action="technique" aria-label="Use selected technique" hidden><b>Tech.</b></button>
+      <button type="button" id="phaseAction" data-action="phase" aria-label="Extend blade" aria-pressed="false" hidden><kbd>V</kbd><b id="phaseLabel">Extend</b><small id="phaseHint">Short reach</small></button>
+    </div>
+  </div>
+  <div id="mobileTools" class="mobile-tools" aria-label="Phone controls" hidden>
+    <button type="button" id="touchLayout" aria-label="Switch movement controls">Move: Stick</button>
+    <button type="button" id="touchSide" aria-label="Switch attack hand">Hand: Right</button>
+    <button type="button" id="resetAim" aria-label="Reset to automatic aim" title="Tap a fighter to lock aim. Tap here to clear.">Aim: Auto</button>
+    <button type="button" id="gameFullscreen" aria-label="Toggle full screen" hidden>Full screen</button>
+  </div>
+  <div id="techniqueBar" class="technique-bar" hidden><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div>
+  <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
+  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><h2 id="guideTitle">The seven saber forms</h2><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Saber Pit.</p></dialog>
+  <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
+    <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
+    <section class="injury-report moves-used" aria-labelledby="injuryHeading">
+      <div class="injury-top"><h3 id="injuryHeading">Body condition</h3><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
+      <dl class="fighter-damage" aria-label="Selected fighter damage this round"><div><dt>Damage dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>Damage taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
+      <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
+      <p class="report-note" id="injuryReference"></p>
+      <details class="recent-events"><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
+    </section>
+    <div class="report-layout">
+      <section><h3>This round</h3><table aria-label="This round totals"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
+      <section><h3>Fighter careers</h3><table aria-label="Fighter ranks and all-round kills, deaths and assists"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank / training</th><th scope="col">K / D / A</th></tr></thead><tbody id="fighterStats"></tbody></table><p class="report-note">K / D / A are totals across rounds. Training points are awarded when a round ends.</p></section>
+    </div>
+
+    <details class="recent-events"><summary>Recent events</summary><ol id="recentEvents"></ol></details><div class="seed-tools"><span id="reportSeed"></span><button type="button" id="copySeed">Copy seed</button></div>
+  </dialog>
+  <dialog id="rankDialog" class="guide reports" aria-labelledby="rankTitle">
+    <div class="guide-head"><div><p class="eyebrow">FIGHTER CAREERS</p><h2 id="rankTitle">Saves</h2></div><form method="dialog"><button type="submit">Done</button></form></div>
+    <p class="report-note">Use old ranks from Classic or pick up where you left off.</p>
+
+    <div class="career-actions"><button type="button" id="useClassic">Use Classic ranks</button><button type="button" id="resumeCareer">Continue saved run</button></div>
+    <p class="report-note" id="careerStatus" role="status"></p>
+
+  </dialog>
+  <p id="announce" class="sr" aria-live="polite"></p>
+</main>
+<script type="module" src="./arcade.js?v=4.0.0"></script><script type="module" src="./pit-v3-ui.js?v=4.00.0"></script></body></html>
