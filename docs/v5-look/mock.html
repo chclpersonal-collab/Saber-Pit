@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Saber Pit v5 look</title>
+<style>
+@font-face{font-family:"Lilita One";src:url(fonts/lilita-one-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:Nunito;font-weight:700;src:url(fonts/nunito-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:Nunito;font-weight:800;src:url(fonts/nunito-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:Nunito;font-weight:900;src:url(fonts/nunito-latin-900-normal.woff2) format("woff2")}
+:root{
+  --night:#140b2e;--deep:#22164f;--panel:#2b1f63;--panel-hi:#3d2d86;--line:#5a47b8;
+  --sun:#ffb347;--ember:#ff6b4a;--gold:#ffd23f;--gold-dk:#d99a00;
+  --blue:#2ec4ff;--blue-dk:#0a6fb3;--red:#ff4d6d;--red-dk:#b3133a;--mint:#3df5a7;
+  --white:#fff;--soft:#c9c0ff;
+  --display:"Lilita One",system-ui,sans-serif;--ui:Nunito,system-ui,sans-serif;
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:var(--night);color:var(--white);font:800 16px/1.2 var(--ui);overflow:hidden}
+[hidden]{display:none!important}
+.stage{position:fixed;inset:0}
+canvas.bg{position:absolute;inset:0;width:100%;height:100%}
+.out{paint-order:stroke fill;-webkit-text-stroke:5px #1a0f3a}
+
+/* ---------- chunky buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;border:0;border-radius:16px;font:400 1.35rem/1 var(--display);letter-spacing:.02em;color:#2a1600;
+  background:linear-gradient(#ffe36e,var(--gold));box-shadow:0 6px 0 var(--gold-dk),0 10px 22px #0008;padding:.7em 1.3em;text-shadow:0 1px 0 #fff6}
+.btn.blue{color:#fff;background:linear-gradient(#5ad6ff,#1aa3f0);box-shadow:0 6px 0 var(--blue-dk),0 10px 22px #0008;text-shadow:0 2px 0 #0a4d80}
+.btn.ghost{color:#fff;background:linear-gradient(#4a3a9a,#33267a);box-shadow:0 6px 0 #1d1350,0 10px 22px #0008;text-shadow:0 2px 0 #1d1350}
+
+/* ---------- menu ---------- */
+.menu{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr;padding:22px 32px}
+.topbar{display:flex;align-items:center;gap:16px}
+.logo{font:400 3.2rem/0.9 var(--display);letter-spacing:.01em;background:linear-gradient(#fff 30%,#ffe08a 60%,#ff9a3c);-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #3a1a00) drop-shadow(0 0 18px #ff8a3d88);transform:rotate(-3deg)}
+.logo small{display:block;font-size:.9rem;letter-spacing:.3em;background:none;color:var(--blue);-webkit-text-fill-color:var(--blue);filter:none;margin-top:4px;text-shadow:0 0 12px #2ec4ff}
+.player{margin-left:auto;display:flex;align-items:center;gap:12px;background:#1d1347cc;border:2px solid var(--line);border-radius:999px;padding:6px 18px 6px 6px;backdrop-filter:blur(6px)}
+.avatar{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#ffe1c4 0 26%,transparent 27%),radial-gradient(circle at 50% 110%,var(--blue) 0 48%,transparent 49%),linear-gradient(#3d6cff,#22164f);border:3px solid var(--blue);box-shadow:0 0 14px #2ec4ff88}
+.player b{display:block;font:400 1.15rem/1 var(--display)}
+.rank{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--gold)}
+.rank i{display:inline-block;width:14px;height:14px;background:var(--gold);clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%)}
+.coins{display:flex;gap:10px;margin-left:8px}
+.pill{display:flex;align-items:center;gap:6px;background:#140b2e;border-radius:999px;padding:5px 12px 5px 6px;font-size:.95rem}
+.pill i{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff7b0,var(--gold) 50%,var(--gold-dk));box-shadow:0 0 8px #ffd23f88}
+.pill i.gem{border-radius:4px;transform:rotate(45deg) scale(.8);background:linear-gradient(135deg,#9ff,var(--blue))}
+.hub{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:18px;align-self:end;height:min(62vh,470px);margin-bottom:18px}
+.card{position:relative;border-radius:22px;overflow:hidden;border:3px solid #ffffff22;box-shadow:0 12px 0 #0c0624,0 18px 40px #000a;display:flex;flex-direction:column;justify-content:flex-end;padding:18px;isolation:isolate}
+.card canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
+.card h2{margin:0;font:400 2rem/1 var(--display);text-shadow:0 3px 0 #0008}
+.card p{margin:.25em 0 0;font-size:.95rem;color:#ffffffd0}
+.card.big{grid-row:1/3}
+.card.big h2{font-size:3.4rem}
+.card .btn{align-self:flex-start;margin-top:14px}
+.card .tag{position:absolute;top:14px;right:14px;font:400 .95rem/1 var(--display);background:var(--red);padding:6px 10px;border-radius:10px;transform:rotate(4deg);box-shadow:0 3px 0 var(--red-dk)}
+.card .tag.new{background:var(--mint);color:#06301f;box-shadow:0 3px 0 #149a63}
+.nav{display:none}
+
+/* ---------- fight HUD ---------- */
+.hud{position:absolute;inset:0;pointer-events:none}
+.fighter{position:absolute;top:18px;display:flex;align-items:center;gap:12px;width:min(38vw,440px)}
+.fighter.left{left:22px}.fighter.right{right:22px;flex-direction:row-reverse;text-align:right}
+.port{flex:none;width:78px;height:78px;border-radius:50%;border:4px solid var(--blue);background:radial-gradient(circle at 50% 40%,#ffe1c4 0 24%,transparent 25%),radial-gradient(circle at 50% 115%,#1b8fd6 0 50%,transparent 51%),radial-gradient(circle,#4c7dff,#1b1150);box-shadow:0 0 0 4px #0c0624,0 0 22px #2ec4ffaa;position:relative}
+.right .port{border-color:var(--red);background:radial-gradient(circle at 50% 40%,#e9b994 0 24%,transparent 25%),radial-gradient(circle at 50% 115%,#c42a4a 0 50%,transparent 51%),radial-gradient(circle,#ff6a7f,#3a0b20);box-shadow:0 0 0 4px #0c0624,0 0 22px #ff4d6daa}
+.port .lv{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:400 .85rem/1 var(--display);background:var(--gold);color:#2a1600;padding:3px 7px;border-radius:8px;box-shadow:0 2px 0 var(--gold-dk)}
+.fbody{flex:1;min-width:0}
+.fname{font:400 1.5rem/1 var(--display);letter-spacing:.01em}
+.fname em{font:900 .78rem/1 var(--ui);font-style:normal;color:var(--gold);margin:0 6px;vertical-align:3px}
+.bar{position:relative;height:22px;margin-top:6px;border-radius:12px;background:#0c0624;border:3px solid #0c0624;overflow:hidden;transform:skewX(-14deg)}
+.right .bar{transform:skewX(14deg)}
+.bar .trail,.bar .hp{position:absolute;inset:0;border-radius:8px}
+.bar .trail{background:#fff;width:var(--trail)}
+.bar .hp{width:var(--hp);background:linear-gradient(#8ff0ff,var(--blue) 55%,#1a8fd0)}
+.right .bar .trail{left:auto;right:0}.right .bar .hp{left:auto;right:0;background:linear-gradient(#ffb0bd,var(--red) 55%,#c8284a)}
+.bar.low .hp{animation:pulse .6s ease-in-out infinite alternate}
+@keyframes pulse{to{filter:brightness(1.5)}}
+.pips{display:flex;gap:6px;margin-top:7px}
+.right .pips{justify-content:flex-end}
+.pips i{width:16px;height:16px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px #ffd23f99,inset 0 -3px 0 var(--gold-dk)}
+.pips i.off{background:#0c0624;box-shadow:inset 0 0 0 2px #ffffff33}
+.force{display:flex;gap:4px;margin-top:7px}
+.right .force{justify-content:flex-end}
+.force b{width:26px;height:8px;border-radius:4px;background:#a77bff;box-shadow:0 0 8px #a77bffaa}
+.force b.off{background:#ffffff22;box-shadow:none}
+.clock{position:absolute;top:14px;left:50%;transform:translateX(-50%);text-align:center}
+.clock b{display:block;font:400 3rem/1 var(--display);text-shadow:0 4px 0 #0c0624,0 0 20px #0008}
+.clock span{display:inline-block;margin-top:2px;font:900 .8rem/1 var(--ui);letter-spacing:.2em;background:#0c0624cc;padding:5px 10px;border-radius:999px;color:var(--soft)}
+.dmg{position:absolute;font:400 3.2rem/1 var(--display);color:#fff;-webkit-text-stroke:6px #ff2d55;paint-order:stroke fill;transform:rotate(-8deg);text-shadow:0 6px 0 #5a0018}
+.call{position:absolute;font:400 2.2rem/1 var(--display);color:var(--gold);-webkit-text-stroke:5px #3a1a00;paint-order:stroke fill;transform:rotate(-6deg)}
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
+.skill{position:relative;width:64px;height:64px;border-radius:18px;background:linear-gradient(#4a3a9a,#2b1f63);box-shadow:0 5px 0 #140b2e,0 8px 18px #0008;display:grid;place-items:center}
+.skill svg{width:34px;height:34px}
+.skill kbd{position:absolute;top:-8px;left:-6px;font:900 .72rem/1 var(--ui);background:#fff;color:#22164f;border-radius:6px;padding:3px 6px;box-shadow:0 2px 0 #0006}
+.skill .cd{position:absolute;inset:0;border-radius:18px;background:conic-gradient(#0c0624cc var(--cd),transparent 0);display:grid;place-items:center;font:400 1.3rem/1 var(--display)}
+.skill.ready{background:linear-gradient(#b48cff,#7a45f0);box-shadow:0 5px 0 #3d1a99,0 0 22px #a77bffaa}
+.menuBtn{position:absolute;top:20px;right:50%;margin-right:-150px;width:44px;height:44px;border-radius:14px;background:#0c0624aa;display:grid;place-items:center;pointer-events:auto}
+
+/* squad HUD */
+.teams{position:absolute;top:16px;left:22px;right:22px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px}
+.side{display:flex;align-items:center;gap:10px}
+.side.r{flex-direction:row-reverse}
+.side .score{font:400 3rem/1 var(--display);text-shadow:0 4px 0 #0c0624}
+.side.b .score{color:var(--blue)}.side.r .score{color:var(--red)}
+.roster{display:flex;gap:5px;flex-wrap:wrap;max-width:320px}
+.side.r .roster{justify-content:flex-end}
+.roster i{width:24px;height:24px;border-radius:50%;border:3px solid var(--blue);background:radial-gradient(circle at 50% 42%,#ffe1c4 0 26%,#1b8fd6 27%)}
+.side.r .roster i{border-color:var(--red);background:radial-gradient(circle at 50% 42%,#e9b994 0 26%,#c42a4a 27%)}
+.roster i.ko{filter:grayscale(1) brightness(.45);border-color:#555}
+.obj{display:flex;gap:10px}
+.obj i{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font:400 1.4rem/1 var(--display);transform:rotate(45deg);box-shadow:0 4px 0 #0008}
+.obj i span{transform:rotate(-45deg)}
+.obj .b{background:var(--blue)}.obj .r{background:var(--red)}.obj .n{background:#ffffff33}
+.feed{position:absolute;right:22px;top:110px;display:grid;gap:6px;justify-items:end}
+.feed div{display:flex;align-items:center;gap:8px;background:#0c0624bb;border-radius:10px;padding:5px 10px;font-size:.92rem}
+.feed .bn{color:var(--blue)}.feed .rn{color:var(--red)}
+.feed svg{width:18px;height:18px}
+
+/* phone */
+@media (max-width:600px){
+  .menu{padding:14px 14px 92px}
+  .logo{font-size:2.3rem}
+  .player{padding:4px 10px 4px 4px;gap:8px}.avatar{width:38px;height:38px}.player>div:not(.coins){display:none}
+  .coins{margin-left:0}.pill{font-size:.85rem}
+  .hub{grid-template-columns:1fr 1fr;grid-template-rows:1.5fr 1fr 1fr;height:auto;align-self:stretch;margin:16px 0 0}
+  .card.big{grid-column:1/3;grid-row:auto}
+  .card.big h2{font-size:2.6rem}
+  .card h2{font-size:1.4rem}.card p{display:none}.card:not(.big) .btn{display:none}
+  .card{padding:12px;border-radius:18px}
+  .nav{display:flex;position:absolute;left:10px;right:10px;bottom:12px;justify-content:space-around;background:#1d1347ee;border:2px solid var(--line);border-radius:22px;padding:8px}
+  .nav a{display:grid;justify-items:center;gap:3px;color:var(--soft);font-size:.72rem;text-decoration:none}
+  .nav a svg{width:26px;height:26px}
+  .nav a.on{color:#fff}.nav a.on svg{filter:drop-shadow(0 0 6px var(--gold))}
+  .fighter{top:10px;width:44vw;gap:6px}.fighter.left{left:8px}.fighter.right{right:8px}
+  .port{width:46px;height:46px;border-width:3px}.port .lv{font-size:.65rem;bottom:-6px}
+  .fname{font-size:1rem}.fname em{display:none}
+  .bar{height:14px;border-width:2px;margin-top:4px}
+  .pips i{width:10px;height:10px}.force b{width:14px;height:5px}
+  .clock{top:72px}.clock b{font-size:2rem}.clock span{display:none}
+  .menuBtn{top:auto;bottom:auto;right:auto;left:50%;margin:0;transform:translateX(-50%);top:120px;display:none}
+  .dmg{font-size:2.2rem}.call{font-size:1.5rem}
+  .dock{display:none}
+  .pad{position:absolute;bottom:22px;left:16px;width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,#ffffff14 0 60%,#ffffff22 61% 63%,transparent 64%);pointer-events:auto}
+  .pad::after{content:"";position:absolute;left:38px;top:38px;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#c9c0ff);box-shadow:0 4px 0 #6a5acd,0 0 16px #c9c0ff88}
+  .acts{position:absolute;right:14px;bottom:18px;width:178px;height:178px;pointer-events:auto}
+  .acts .skill{position:absolute;border-radius:50%;width:58px;height:58px}
+  .acts .skill.main{width:84px;height:84px;right:0;bottom:0;background:linear-gradient(#ff8aa0,var(--red));box-shadow:0 6px 0 var(--red-dk),0 0 20px #ff4d6d88}
+  .acts .skill.main svg{width:44px;height:44px}
+  .acts .skill kbd{display:none}
+  .teams{left:8px;right:8px;top:8px;gap:6px}.side .score{font-size:2rem}.roster{max-width:120px;gap:3px}.roster i{width:14px;height:14px;border-width:2px}
+  .obj i{width:28px;height:28px;font-size:.9rem;border-radius:8px}.obj{gap:6px}
+  .feed{top:64px;right:8px}.feed div{font-size:.72rem;padding:4px 7px}
+}
+@media (min-width:601px){.pad,.acts{display:none}}
+</style>
+</head>
+<body>
+<div class="stage">
+<canvas class="bg" id="bg"></canvas>
+
+<!-- MENU -->
+<section class="menu" id="menu" hidden>
+  <div class="topbar">
+    <div class="logo">SABER PIT<small>v5</small></div>
+    <div class="player">
+      <span class="avatar"></span>
+      <div><b>Makashi</b><span class="rank"><i></i>F rank · 1240 Elo</span></div>
+    </div>
+  </div>
+  <div class="hub">
+    <article class="card big"><canvas data-art="duel"></canvas><span class="tag">RANKED</span><h2>Arena</h2><p>Duel or squads. Last blade standing.</p><button class="btn">▶ Play</button></article>
+    <article class="card"><canvas data-art="fronts"></canvas><span class="tag new">NEW</span><h2>Three Fronts</h2><p>3 lanes. Towers. Push the core.</p><button class="btn blue">Play</button></article>
+    <article class="card"><canvas data-art="tour"></canvas><h2>Tournament</h2><p>Season 4 · week 2</p><button class="btn ghost">Open</button></article>
+    <article class="card"><canvas data-art="gaunt"></canvas><h2>Gauntlet</h2><p>Floor 12 of 30</p><button class="btn ghost">Climb</button></article>
+    <article class="card"><canvas data-art="heroes"></canvas><h2>Heroes</h2><p>3 upgrades ready</p><button class="btn ghost">Manage</button></article>
+  </div>
+  <nav class="nav">
+    <a class="on" href="#"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>Home</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M6 2h12v4a6 6 0 0 1-5 5.9V15h3v3H8v-3h3v-3.1A6 6 0 0 1 6 6zM2 4h3v3a3 3 0 0 1-3-3zm17 0h3a3 3 0 0 1-3 3z"/><rect x="7" y="19" width="10" height="3" rx="1"/></svg>Ranked</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>Heroes</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M4 4h16v16H4zM8 8v8h8V8z"/></svg>Saves</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 4-2.2-.6.6-2.2-2-1.2-1.6 1.6L14 7.2 12 6l-2 1.2-1.8.4L6.6 6l-2 1.2.6 2.2L3 10v4l2.2.6-.6 2.2 2 1.2 1.6-1.6 1.8.4L12 18l2-1.2 1.8-.4 1.6 1.6 2-1.2-.6-2.2L21 14z"/></svg>Settings</a>
+  </nav>
+</section>
+
+<!-- DUEL HUD -->
+<section class="hud" id="duel" hidden>
+  <div class="fighter left"><div class="port"><span class="lv">F</span></div><div class="fbody"><div class="fname">Makashi<em>1240</em></div><div class="bar" style="--hp:72%;--trail:80%"><div class="trail"></div><div class="hp"></div></div><div class="pips"><i></i><i class="off"></i></div><div class="force"><b></b><b></b><b></b><b class="off"></b></div></div></div>
+  <div class="clock"><b>1:23</b><span>ROUND 2</span></div>
+  <div class="fighter right"><div class="port"><span class="lv">E</span></div><div class="fbody"><div class="fname">Djem So<em>1188</em></div><div class="bar low" style="--hp:24%;--trail:41%"><div class="trail"></div><div class="hp"></div></div><div class="pips"><i></i><i class="off"></i></div><div class="force"><b></b><b class="off"></b><b class="off"></b><b class="off"></b></div></div></div>
+  <div class="dmg" id="dmg">-17</div>
+  <div class="call" id="call">COUNTER!</div>
+  <div class="dock">
+    <div class="skill"><kbd>J</kbd><svg viewBox="0 0 24 24"><path d="M4 20 18 6l2-4-4 2L2 18z" fill="#fff"/></svg></div>
+    <div class="skill"><kbd>K</kbd><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 18 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M12 12 20 4" stroke="#ffd23f" stroke-width="3" stroke-linecap="round"/></svg><div class="cd" style="--cd:40%">2</div></div>
+    <div class="skill ready"><kbd>F</kbd><svg viewBox="0 0 24 24"><path d="M12 2c1 5 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4 1-7 1-9z" fill="#fff"/></svg></div>
+    <div class="skill"><kbd>⇧</kbd><svg viewBox="0 0 24 24"><path d="M3 12h11M3 7h8M3 17h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="m14 6 7 6-7 6z" fill="#fff"/></svg></div>
+    <div class="skill"><kbd>␣</kbd><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5z" fill="#fff"/></svg></div>
+  </div>
+  <div class="pad"></div>
+  <div class="acts">
+    <div class="skill main"><svg viewBox="0 0 24 24"><path d="M4 20 18 6l2-4-4 2L2 18z" fill="#fff"/></svg></div>
+    <div class="skill ready" style="right:96px;bottom:4px"><svg viewBox="0 0 24 24"><path d="M12 2c1 5 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4 1-7 1-9z" fill="#fff"/></svg></div>
+    <div class="skill" style="right:6px;bottom:96px"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5z" fill="#fff"/></svg></div>
+    <div class="skill" style="right:82px;bottom:76px;width:48px;height:48px"><svg viewBox="0 0 24 24"><path d="M3 12h11M3 7h8M3 17h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="m14 6 7 6-7 6z" fill="#fff"/></svg></div>
+  </div>
+</section>
+
+<!-- SQUAD HUD -->
+<section class="hud" id="squad" hidden>
+  <div class="teams">
+    <div class="side b"><span class="score">7</span><div class="roster"><i></i><i></i><i></i><i class="ko"></i><i></i><i></i><i class="ko"></i><i></i><i></i><i></i></div></div>
+    <div class="obj"><i class="b"><span>A</span></i><i class="n"><span>B</span></i><i class="r"><span>C</span></i></div>
+    <div class="side r"><span class="score">4</span><div class="roster"><i></i><i class="ko"></i><i></i><i class="ko"></i><i></i><i class="ko"></i><i></i><i></i><i class="ko"></i><i></i></div></div>
+  </div>
+  <div class="feed">
+    <div><span class="bn">Soresu</span><svg viewBox="0 0 24 24"><path d="M4 20 18 6l2-4-4 2L2 18z" fill="#fff"/></svg><span class="rn">Vaapad</span></div>
+    <div><span class="rn">Ataru</span><svg viewBox="0 0 24 24"><path d="M12 2c1 5 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4 1-7 1-9z" fill="#a77bff"/></svg><span class="bn">Niman</span></div>
+  </div>
+</section>
+</div>
+
+<script>
+const view=new URLSearchParams(location.search).get('view')||'duel';
+document.getElementById(view).hidden=false;
+const cv=document.getElementById('bg'),dpr=Math.min(2,devicePixelRatio||1);
+const W=innerWidth,H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;
+const g=cv.getContext('2d');g.scale(dpr,dpr);
+
+/* ---------- scene painters ---------- */
+function rnd(seed){let s=seed;return()=>((s=Math.imul(s^s>>>15,2246822507)^Math.imul(s^s>>>13,3266489909))>>>0)/4294967296;}
+function sky(c,w,h,top='#2a1466',mid='#c2408a',low='#ffb347'){
+  const s=c.createLinearGradient(0,0,0,h);s.addColorStop(0,top);s.addColorStop(.55,mid);s.addColorStop(.8,low);s.addColorStop(1,'#ffd98a');c.fillStyle=s;c.fillRect(0,0,w,h);
+  // sun
+  const sx=w*.62,sy=h*.6,r=Math.min(w,h)*.16;const sg=c.createRadialGradient(sx,sy,0,sx,sy,r*3);sg.addColorStop(0,'#fff6d0');sg.addColorStop(.25,'#ffd27acc');sg.addColorStop(1,'#ff8a3d00');c.fillStyle=sg;c.fillRect(0,0,w,h);
+  c.fillStyle='#fff3c4';c.beginPath();c.arc(sx,sy,r*.55,0,7);c.fill();
+  // stars
+  const R=rnd(7);c.fillStyle='#ffffffaa';for(let i=0;i<70;i++){const x=R()*w,y=R()*h*.35;c.globalAlpha=.3+R()*.7;c.fillRect(x,y,1.6,1.6);}c.globalAlpha=1;
+}
+function ridge(c,w,h,y,amp,col,seed,spikes=false){
+  const R=rnd(seed);c.fillStyle=col;c.beginPath();c.moveTo(0,h);let x=0;c.lineTo(0,y);
+  while(x<w){const nx=x+40+R()*90;const ny=y-R()*amp;if(spikes&&R()>.7){c.lineTo(x+(nx-x)*.45,ny-amp*.9);c.lineTo(x+(nx-x)*.55,ny-amp*.9);} c.lineTo(nx,ny);x=nx;}
+  c.lineTo(w,h);c.fill();
+}
+function temple(c,x,base,s,col){
+  c.fillStyle=col;c.fillRect(x-s*.5,base-s*.9,s,s*.9);
+  c.beginPath();c.moveTo(x-s*.7,base-s*.9);c.lineTo(x,base-s*1.5);c.lineTo(x+s*.7,base-s*.9);c.fill();
+  c.fillRect(x-s*.08,base-s*1.9,s*.16,s*.5);
+  c.fillStyle='#ffcf6a';for(let i=-1;i<=1;i++){c.globalAlpha=.85;c.fillRect(x+i*s*.25-s*.05,base-s*.6,s*.1,s*.18);}c.globalAlpha=1;
+}
+function glow(c,x,y,r,col){const gg=c.createRadialGradient(x,y,0,x,y,r);gg.addColorStop(0,col);gg.addColorStop(1,col.slice(0,7)+'00');c.fillStyle=gg;c.fillRect(x-r,y-r,r*2,r*2);}
+function platform(c,w,h,py){
+  // floating stone stage with lit rim
+  const L=w*.08,Rr=w*.92,th=h*.11;
+  c.save();
+  c.fillStyle='#0d0722';c.beginPath();c.moveTo(L+30,py+th);c.lineTo(Rr-30,py+th);c.lineTo(Rr-90,py+th*2.4);c.lineTo(w*.56,py+th*3.2);c.lineTo(w*.44,py+th*3.1);c.lineTo(L+90,py+th*2.3);c.closePath();c.fill();
+  const top=c.createLinearGradient(0,py,0,py+th);top.addColorStop(0,'#7c5fd6');top.addColorStop(.18,'#4d3a9e');top.addColorStop(1,'#2a1d63');
+  c.fillStyle=top;c.beginPath();c.roundRect(L,py,Rr-L,th,14);c.fill();
+  // tiles
+  c.strokeStyle='#ffffff14';c.lineWidth=2;for(let x=L+60;x<Rr;x+=70){c.beginPath();c.moveTo(x,py+6);c.lineTo(x-10,py+th);c.stroke();}
+  // rim light from sun
+  const rim=c.createLinearGradient(L,0,Rr,0);rim.addColorStop(0,'#ffb34700');rim.addColorStop(.62,'#ffe7a8');rim.addColorStop(1,'#ffb34700');
+  c.fillStyle=rim;c.fillRect(L+10,py,Rr-L-20,4);
+  // emblem
+  c.globalAlpha=.25;c.strokeStyle='#ffd23f';c.lineWidth=3;c.beginPath();c.ellipse(w/2,py+th*.5,th*1.5,th*.32,0,0,7);c.stroke();c.globalAlpha=1;
+  c.restore();
+  // torches
+  for(const tx of [L+24,Rr-24]){c.fillStyle='#1a1040';c.fillRect(tx-5,py-70,10,70);glow(c,tx,py-78,70,'#ff9a3dcc');c.fillStyle='#ffe28a';c.beginPath();c.ellipse(tx,py-80,7,12,0,0,7);c.fill();}
+}
+/* stick fighter: thick limbs, round joints, team color body, outline */
+function fighter(c,o){
+  const {x,y,s,team,pose}=o;const col=team==='b'?'#2ec4ff':'#ff4d6d',dk=team==='b'?'#0a4d80':'#7a0f2a',skin=team==='b'?'#ffe1c4':'#e9b994';
+  const P=pose;const J=(a)=>[x+a[0]*s,y+a[1]*s];
+  const seg=(a,b,wd,cl)=>{c.strokeStyle=cl;c.lineWidth=wd;c.lineCap='round';c.beginPath();c.moveTo(...J(a));c.lineTo(...J(b));c.stroke();};
+  const limb=(pts,wd)=>{for(const [ww,cl] of [[wd+7,'#0c0624'],[wd,col]]){c.strokeStyle=cl;c.lineWidth=ww;c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(...J(pts[0]));for(const p of pts.slice(1))c.lineTo(...J(p));c.stroke();}};
+  // shadow
+  c.fillStyle='#0c062266';c.beginPath();c.ellipse(x,y+1.02*s,0.45*s,0.07*s,0,0,7);c.fill();
+  limb(P.backLeg,s*.11);limb(P.backArm,s*.1);
+  limb([P.hip,P.neck],s*.17);
+  // belt/sash accent
+  c.strokeStyle=dk;c.lineWidth=s*.05;c.beginPath();c.moveTo(...J([P.hip[0]-.08,P.hip[1]-.08]));c.lineTo(...J([P.hip[0]+.08,P.hip[1]-.12]));c.stroke();
+  limb(P.frontLeg,s*.12);
+  // head
+  const [hx,hy]=J(P.head);c.fillStyle='#0c0624';c.beginPath();c.arc(hx,hy,s*.16,0,7);c.fill();c.fillStyle=skin;c.beginPath();c.arc(hx,hy,s*.125,0,7);c.fill();
+  c.fillStyle=dk;c.beginPath();c.arc(hx,hy-s*.02,s*.13,Math.PI*1.05,Math.PI*1.95);c.fill();
+  c.fillStyle='#0c0624';const ex=P.face||1;c.fillRect(hx+ex*s*.04,hy-s*.01,s*.03,s*.05);
+  limb(P.frontArm,s*.11);
+  // saber
+  const [h1x,h1y]=J(P.frontArm[P.frontArm.length-1]);const ang=P.saber,len=s*1.05;const tx=h1x+Math.cos(ang)*len,ty=h1y+Math.sin(ang)*len;
+  c.save();c.globalCompositeOperation='lighter';
+  for(const [wd,a] of [[s*.22,.18],[s*.13,.35],[s*.07,.8]]){c.strokeStyle=col;c.globalAlpha=a;c.lineWidth=wd;c.lineCap='round';c.beginPath();c.moveTo(h1x,h1y);c.lineTo(tx,ty);c.stroke();}
+  c.globalAlpha=1;c.strokeStyle='#fff';c.lineWidth=s*.035;c.beginPath();c.moveTo(h1x,h1y);c.lineTo(tx,ty);c.stroke();c.restore();
+  c.strokeStyle='#cfd6e6';c.lineWidth=s*.07;c.lineCap='butt';c.beginPath();c.moveTo(h1x-Math.cos(ang)*s*.14,h1y-Math.sin(ang)*s*.14);c.lineTo(h1x,h1y);c.stroke();
+  return {tip:[tx,ty],hilt:[h1x,h1y],col};
+}
+function smear(c,cx,cy,r,a0,a1,col){
+  c.save();c.globalCompositeOperation='lighter';
+  for(let i=0;i<14;i++){const t=i/13;c.globalAlpha=.05+.4*t;c.strokeStyle=i>10?'#fff':col;c.lineWidth=r*(.08+.25*t);c.beginPath();c.arc(cx,cy,r*(.55+.45*t),a0,a0+(a1-a0)*(.3+.7*t),a1<a0);c.stroke();}
+  c.restore();
+}
+function spark(c,x,y,r,col){
+  c.save();c.globalCompositeOperation='lighter';glow(c,x,y,r*2.4,col+'cc');
+  c.fillStyle='#fff';c.beginPath();for(let i=0;i<16;i++){const a=i/16*Math.PI*2,rr=i%2?r*.28:r*(.9+((i*37)%5)/10);c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.closePath();c.fill();
+  c.strokeStyle='#fff';c.lineWidth=3;for(let i=0;i<8;i++){const a=i/8*Math.PI*2+.2;c.beginPath();c.moveTo(x+Math.cos(a)*r*1.2,y+Math.sin(a)*r*1.2);c.lineTo(x+Math.cos(a)*r*2,y+Math.sin(a)*r*2);c.stroke();}
+  c.restore();
+}
+function speedLines(c,w,h){c.save();c.globalAlpha=.10;c.strokeStyle='#fff';const R=rnd(3);for(let i=0;i<40;i++){const y=R()*h,x=R()*w;c.lineWidth=1+R()*3;c.beginPath();c.moveTo(x,y);c.lineTo(x+120+R()*200,y);c.stroke();}c.restore();}
+
+const poses={
+  lunge:{hip:[-.05,.28],neck:[.12,-.3],head:[.2,-.5],frontLeg:[[-.05,.28],[.25,.55],[.4,1]],backLeg:[[-.05,.28],[-.35,.6],[-.62,.98]],frontArm:[[.08,-.22],[.36,-.1],[.6,-.18]],backArm:[[.08,-.22],[-.2,-.05],[-.42,-.18]],saber:-0.25,face:1},
+  hurt:{hip:[.08,.32],neck:[.22,-.22],head:[.3,-.42],frontLeg:[[.08,.32],[-.12,.62],[-.05,1]],backLeg:[[.08,.32],[.32,.62],[.46,.98]],frontArm:[[.18,-.15],[-.1,-.3],[-.25,-.5]],backArm:[[.18,-.15],[.45,-.3],[.6,-.55]],saber:-2.2,face:-1},
+  guard:{hip:[0,.3],neck:[-.04,-.3],head:[-.06,-.52],frontLeg:[[0,.3],[-.22,.62],[-.3,1]],backLeg:[[0,.3],[.25,.62],[.36,1]],frontArm:[[-.02,-.22],[-.25,-.05],[-.32,-.3]],backArm:[[-.02,-.22],[.2,-.05],[.1,.1]],saber:-1.9,face:-1},
+  run:{hip:[0,.3],neck:[.15,-.28],head:[.24,-.48],frontLeg:[[0,.3],[.32,.5],[.25,.9]],backLeg:[[0,.3],[-.25,.58],[-.55,.62]],frontArm:[[.1,-.2],[.3,0],[.5,.05]],backArm:[[.1,-.2],[-.15,-.05],[-.3,.1]],saber:.15,face:1},
+  air:{hip:[0,.2],neck:[.05,-.38],head:[.1,-.6],frontLeg:[[0,.2],[.3,.35],[.15,.6]],backLeg:[[0,.2],[-.2,.45],[-.45,.4]],frontArm:[[.05,-.3],[.3,-.55],[.45,-.8]],backArm:[[.05,-.3],[-.25,-.2],[-.45,-.35]],saber:-1.0,face:1},
+};
+function mirror(p){const m=a=>[-a[0],a[1]];const o={};for(const k in p){const v=p[k];o[k]=k==='saber'?Math.PI-v:k==='face'?-v:Array.isArray(v[0])?v.map(m):m(v);}return o;}
+
+function arenaScene(c,w,h,mode){
+  sky(c,w,h);
+  ridge(c,w,h,h*.62,h*.12,'#7a2f7e',11,true);
+  temple(c,w*.18,h*.6,h*.12,'#5a2167');temple(c,w*.83,h*.62,h*.1,'#5a2167');
+  ridge(c,w,h,h*.7,h*.1,'#4a1a5e',21);
+  ridge(c,w,h,h*.8,h*.06,'#2d1048',31);
+  // haze
+  const hz=c.createLinearGradient(0,h*.55,0,h*.85);hz.addColorStop(0,'#ff9ad500');hz.addColorStop(1,'#ff9ad533');c.fillStyle=hz;c.fillRect(0,h*.55,w,h*.3);
+  const py=h*(w<600?.66:.72);platform(c,w,h,py);
+  // falling embers
+  const R=rnd(99);for(let i=0;i<40;i++){c.globalAlpha=.4+R()*.6;c.fillStyle=R()>.5?'#ffd27a':'#ff8a5c';c.beginPath();c.arc(R()*w,R()*h*.9,1+R()*2.2,0,7);c.fill();}c.globalAlpha=1;
+  if(mode==='duel'){
+    const s=w<600?h*.09:h*.16;const ax=w*(w<600?.4:.43),bx=w*(w<600?.66:.6);
+    speedLines(c,w,h);
+    const a=fighter(c,{x:ax,y:py-s*1.02,s,team:'b',pose:poses.lunge});
+    smear(c,a.hilt[0],a.hilt[1],s*1.05,-2.1,-0.25,'#2ec4ff');
+    fighter(c,{x:bx,y:py-s*1.02-s*.06,s,team:'r',pose:mirror(poses.hurt)});
+    spark(c,a.tip[0]+s*.05,a.tip[1]+s*.02,s*.28,'#ffffff');
+    // knockback dust
+    c.fillStyle='#ffffff55';for(let i=0;i<6;i++){c.beginPath();c.arc(bx+s*.3+i*s*.12,py-4-i*2,s*(.08-i*.008),0,7);c.fill();}
+    const d=document.getElementById('dmg'),cl=document.getElementById('call');
+    d.style.left=(bx+s*.1)+'px';d.style.top=(py-s*2.9)+'px';cl.style.left=(ax-s*1.4)+'px';cl.style.top=(py-s*2.75)+'px';
+  }
+  if(mode==='squad'){
+    const s=w<600?h*.05:h*.085;const R2=rnd(5);
+    // capture zones
+    for(const [zx,col] of [[.22,'#2ec4ff'],[.5,'#ffffff'],[.78,'#ff4d6d']]){c.save();c.globalAlpha=.35;c.strokeStyle=col;c.lineWidth=4;c.setLineDash([12,10]);c.beginPath();c.ellipse(w*zx,py+h*.05,s*2.2,s*.45,0,0,7);c.stroke();c.restore();}
+    const list=[];for(let i=0;i<9;i++)list.push({x:w*(.12+R2()*.36),t:'b',p:['run','lunge','guard','air'][i%4]});for(let i=0;i<8;i++)list.push({x:w*(.52+R2()*.36),t:'r',p:['run','guard','lunge','hurt'][i%4]});
+    list.sort((p,q)=>p.x-q.x);
+    for(const f of list){const air=f.p==='air';const pose=f.t==='b'?poses[f.p]:mirror(poses[f.p]);fighter(c,{x:f.x,y:py-s*1.02-(air?s*.9:0)+R2()*6,s,team:f.t,pose});}
+    spark(c,w*.5,py-s*1.2,s*.35,'#ffffff');smear(c,w*.47,py-s*1.3,s,-2.2,-.4,'#2ec4ff');
+  }
+}
+function cardArt(cv,kind){
+  const r=cv.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);const w=r.width,h=r.height;
+  const pal={duel:['#3b1a8a','#ff5f8f','#ffb347'],fronts:['#0b3a6e','#1fa3c9','#7af0c8'],tour:['#4a1060','#c23a6a','#ffd23f'],gaunt:['#2a0f20','#8a1a3a','#ff7a3d'],heroes:['#1b2a6a','#5a5ae6','#c9a0ff']}[kind];
+  const gr=c.createLinearGradient(0,0,w*.3,h);gr.addColorStop(0,pal[0]);gr.addColorStop(.6,pal[1]);gr.addColorStop(1,pal[2]);c.fillStyle=gr;c.fillRect(0,0,w,h);
+  glow(c,w*.75,h*.3,Math.max(w,h)*.6,'#ffffff44');
+  ridge(c,w,h,h*.78,h*.12,'#00000055',kind.length*13);
+  const s=Math.min(h*.32,w*.22);
+  if(kind==='duel'){const a=fighter(c,{x:w*.42,y:h*.42,s,team:'b',pose:poses.lunge});fighter(c,{x:w*.72,y:h*.44,s,team:'r',pose:mirror(poses.guard)});spark(c,a.tip[0],a.tip[1],s*.3,'#ffffff');}
+  if(kind==='fronts'){c.globalAlpha=.5;c.strokeStyle='#fff';c.lineWidth=6;for(const k of [-1,0,1]){c.beginPath();c.moveTo(w*.15,h*.85);c.quadraticCurveTo(w*(.5+k*.25),h*(.5-k*.0),w*.85,h*.15);c.stroke();}c.globalAlpha=1;
+    for(const [x,y,cl] of [[w*.15,h*.85,'#2ec4ff'],[w*.85,h*.15,'#ff4d6d']]){c.fillStyle=cl;c.beginPath();c.moveTo(x,y-22);c.lineTo(x+16,y);c.lineTo(x,y+22);c.lineTo(x-16,y);c.fill();glow(c,x,y,50,cl+'aa');}
+    fighter(c,{x:w*.62,y:h*.36,s:s*.75,team:'b',pose:poses.run});}
+  if(kind==='tour'){c.fillStyle='#ffd23f';c.beginPath();const x=w*.7,y=h*.42;c.moveTo(x-30,y-40);c.lineTo(x+30,y-40);c.lineTo(x+22,y);c.quadraticCurveTo(x,y+18,x-22,y);c.closePath();c.fill();c.fillRect(x-6,y+10,12,20);c.fillRect(x-20,y+28,40,9);glow(c,x,y-10,90,'#ffd23f66');}
+  if(kind==='gaunt'){for(let i=0;i<5;i++){c.fillStyle='#00000055';c.fillRect(w*.5+i*18,h*(.7-i*.1),w,h);}fighter(c,{x:w*.72,y:h*.12,s:s*.7,team:'b',pose:poses.air});}
+  if(kind==='heroes'){for(const [i,t] of [[0,'b'],[1,'r'],[2,'b']])fighter(c,{x:w*(.52+i*.16),y:h*(.36+(i%2)*.04),s:s*.7,team:t,pose:i===1?mirror(poses.guard):poses.guard});}
+}
+
+if(view==='menu'){
+  // backdrop: arena scene dimmed + vignette
+  arenaScene(g,W,H,'none');g.fillStyle='#140b2eaa';g.fillRect(0,0,W,H);
+  const v=g.createRadialGradient(W/2,H*.4,H*.2,W/2,H/2,H*.95);v.addColorStop(0,'#00000000');v.addColorStop(1,'#000000aa');g.fillStyle=v;g.fillRect(0,0,W,H);
+  document.fonts.ready.then(()=>document.querySelectorAll('[data-art]').forEach(cv=>cardArt(cv,cv.dataset.art)));
+}else arenaScene(g,W,H,view);
+document.fonts.ready.then(()=>document.body.dataset.ready='1');
+</script>
+</body>
+</html>
