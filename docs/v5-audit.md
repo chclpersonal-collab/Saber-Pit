@@ -80,3 +80,95 @@ Phone layout is `@media(max-width:740px)` in `dist/arcade.css`.
   imported into 4.x (`inspectArcadeBackup` rejects unknown sections). That's
   fine, but v5 must keep importing every 4.x backup. Add a test with a
   4.1.4 backup fixture.
+
+## Bugs the player reported (Nov 24)
+
+### B1 · Losing to F-rank opponents
+
+Sim: a scripted player against an F-rank AI, the Arena's own options, F vs F
+duel, 100 seeds each, on main (4.1.4) and on the v5 candidate (7da379c). The
+numbers were the same on both.
+
+| Player script | Win % | Player hits / swings | AI hits / swings |
+| --- | --- | --- | --- |
+| AI on both sides (baseline) | 55-59 | 10.7 / 20 | 11.0 / 20 |
+| Walk in and swing | 48 | 5.5 / 13.4 | 9.8 / ~13 |
+| Swing, guard 0.22 s after seeing a windup | 44 | 5.3 / 12.2 | 8.5 / ~12 |
+| Do nothing | 0 (dead in 9.8 s) | 0 | 15.2 |
+
+- The player already deals full damage and the AI only 0.72x
+  (`arcade-engine.ts` damage scale). Damage isn't the problem.
+- The player loses the exchanges. 49% of player swings are cut off by an AI
+  hit before contact, against 20% of AI swings. AI-vs-AI is 32/33%, even.
+- The AI lands 69% of its swings. A basic player lands 37%.
+- Ruled out: a slower F-rank decision clock (x1.3, x1.6) and a 0.12-0.28 s
+  delay before the AI may swing after the player steps into reach. Neither
+  moved the numbers. The AI's edge is positioning and reads, not reaction
+  time, so slowing its brain doesn't help.
+- What does move it, F and E only, only against the human player, duel:
+
+| F/E AI damage scale | Walk-and-swing win % | Swing-and-guard win % | Idle player survives |
+| --- | --- | --- | --- |
+| 0.72 (now) | 49 | 46 | 9.8 s |
+| 0.60 | 51 | 62 | 14.7 s |
+| 0.50 | 62 | 72 | 20.1 s |
+
+**Proposed patch:** F = 0.55, E = 0.62, D and up unchanged, only when the
+victim is the human player. A new `noviceScale` entry in
+`ARENA_MOTION_FLOW` keeps old replays on 0.72. F should stay able to kill an
+idle player, and it does (about 17 s).
+Longer term, F-rank AI should whiff more: an F that hits 69% of swings reads
+like a much higher rank.
+
+### B2 · Force ability has no Mixed option
+
+Team forms offer Mixed, but Force ability (`startingForceFamily`) offers only
+Push, Burst and Pulse (`arcade.ts:989`). `normalizeArcadeGear` turns any other
+value into Push (`arcade-loadouts.ts:26`), and each side carries exactly one
+`forceFamily`.
+**Fix:** add `mixed` to the option list. In squads, fighters rotate Push,
+Burst, Pulse by slot. For the player, the Force button cycles Push → Pulse →
+Burst, and `forceHint` shows the next one. Older builds read `mixed` as
+Push, so saves stay safe.
+
+### B3 · Auto battle only works for some setups
+
+`autoDuelStart` is disabled unless the lobby is Elo-rated (`arcade.ts:1090`,
+`arenaLobbyRating`). So Auto battle is off for:
+- Control and Relic.
+- Commander.
+- Uneven teams.
+- Teams over 15v15.
+- Any setup with a saved Hero.
+The Duel preset keeps the last saved Hero picks (only Master clears them,
+`arcade.ts:1165`). So Duel can show "Unrated · Saved Hero selected" and grey
+out Auto battle.
+**Fix:**
+- Allow Auto battle for every setup.
+- Keep only Elo rated-only, and label the run "Auto battle · unrated".
+- Have the Duel and Squad presets clear Hero picks the same way Master does.
+
+## QoL gaps across options and menus
+
+Checked every control on Arena, Classic, Tournament, Gauntlet, Idle RPG,
+Style Lab and Backup.
+
+| # | Where | Missing | Proposed fix |
+| --- | --- | --- | --- |
+| Q1 | Arena | No difficulty separate from rank | Easy / Normal / Hard sets the AI damage scale and whiff rate for the player's opponents, unrated on Easy |
+| Q2 | Arena | Keys are fixed (`keyMap`, `arcade.ts:89`) | Rebind screen saved in localStorage, plus a key list in the pause menu |
+| Q3 | Arena, Classic | Sound is only on or off | Master, effects and music volume sliders |
+| Q4 | Arena | No team colour option (Classic has one) | Reuse Classic's Team colors, including a colour-blind pair |
+| Q5 | Arena | HUD text 8-9 px, no size option | HUD scale 100/125/150% (see R1) |
+| Q6 | Arena | No Restart or Rematch from pause or results | Restart same seed and Rematch new seed buttons |
+| Q7 | Arena | Speed is locked while you play (`pace` disabled) | Allow 0.75x for practice, unrated |
+| Q8 | Arena | Camera follow is off outside Elimination or above 6 fighters | Follow the player in every rule (see R4) |
+| Q9 | Arena | Elo, Auto battle and Hero picks depend on hidden rules | Show why an option is off next to it, not only in the rating line |
+| Q10 | Arena, Classic | No saved custom presets | "Save as preset" next to Duel/Squad/Showdown, 3 slots |
+| Q11 | Arena | Force ability can't be Mixed | See B2 |
+| Q12 | Arena (touch) | No haptics option | Vibrate on hit and parry, off by default |
+| Q13 | Tournament, Gauntlet | No skip-to-result on a watched bout | Skip button that resolves the bout at once |
+| Q14 | Idle RPG | Rewards and salvage are claimed one by one | Claim all |
+| Q15 | Style Lab | No loop or slow-motion step | Loop toggle and 0.25x frame step |
+| Q16 | Backup | No reminder or auto-backup | Weekly reminder, or auto-download after a promotion |
+| Q17 | All pages | Settings live on each page separately | One shared settings panel for sound, motion, colours and HUD |
