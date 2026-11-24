@@ -233,6 +233,7 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
 #results .unr,#results .r-unr{display:none}
 #results.unrated .unr{display:inline-block}#results.unrated .r-unr{display:block}
 #results.unrated .rated,#results.unrated .r-rated{display:none}
+.hits{display:flex;gap:18px;justify-content:center;margin-top:10px;font:800 .85rem/1 var(--ui);color:#a59cd6}.hits b{font:400 1.1rem/1 var(--display);color:#fff;margin-left:4px}
 .savedtag{font:900 .78rem/1 var(--ui);color:var(--mint)}
 .bfoot{margin-top:8px;font-size:.76rem}.bhead .sc{white-space:nowrap}@media (max-width:600px){.bhead{flex-wrap:wrap;gap:8px}.bhead .muted{font-size:.8rem}}
 .statsbtn{position:absolute;top:84px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;border:0;border-radius:12px;padding:7px 10px;background:#0c0624cc;color:#fff;font:400 .95rem/1 var(--display);pointer-events:auto}
@@ -251,7 +252,7 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
     <a class="pcard" href="#stats" title="Your stats">
       <span class="avatar"></span>
       <div class="who"><b>Makashi</b><span>Woman · Djem So</span></div>
-      <div class="pstats"><div><span class="rk sm">E</span></div><div><b>1258</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div><div><b>58%</b><span>WIN</span></div></div>
+      <div class="pstats"><div><span class="rk sm">E</span></div><div><b>245</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div><div><b>58%</b><span>WIN</span></div></div>
     </a>
   </div>
   <div class="hub">
@@ -274,11 +275,11 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
 <!-- MODE SELECT -->
 <section class="scr" id="modes" hidden>
   <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Play</div>
-    <a class="pcard"><span class="avatar"></span><div class="pstats"><div><span class="rk sm">E</span></div><div><b>1258</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div></div></a></div>
+    <a class="pcard"><span class="avatar"></span><div class="pstats"><div><span class="rk sm">E</span></div><div><b>245</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div></div></a></div>
   <div class="modes">
     <div class="mlist">
-      <div class="mrow"><canvas data-art="duel"></canvas><div><b>Duel</b><span>1v1 · Ranked</span></div><em>1258</em></div>
-      <div class="mrow on"><canvas data-art="squad"></canvas><div><b>Squads</b><span>Team · up to 15v15</span></div><em>1231</em></div>
+      <div class="mrow"><canvas data-art="duel"></canvas><div><b>Duel</b><span>1v1 · Rated</span></div><em>245</em></div>
+      <div class="mrow on"><canvas data-art="squad"></canvas><div><b>Squads</b><span>Team · up to 15v15</span></div><em></em></div>
       <div class="phoneopts glass">
         <div><p class="lab">RULES</p><div class="chips"><button class="chip">Elimination</button><button class="chip on">Control</button><button class="chip">Relic</button></div></div>
         <div><p class="lab">MAP</p><div class="chips"><button class="chip">Small</button><button class="chip on">Medium</button><button class="chip">Large</button></div></div>
@@ -295,7 +296,7 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
         <div><p class="lab">PLAY AS</p><div class="chips"><button class="chip on">Fighter</button><button class="chip">Commander</button><button class="chip">Watch</button></div></div>
         <div><p class="lab">ROUND</p><div class="chips"><button class="chip">45</button><button class="chip on">90</button><button class="chip">150</button></div></div>
       </div>
-      <div class="mgo"><button class="btn gold">▶ Play</button><button class="btn ghost">Loadout</button><div class="rec"><b>41W · 29L</b><br>K/D 1.31 in Squads</div></div>
+      <div class="mgo"><button class="btn gold">▶ Play</button><button class="btn ghost">Loadout</button><div class="rec"><b>41W · 29L</b><br>in Squads</div></div>
     </div>
   </div>
   <div class="phonego"><button class="btn ghost">Loadout</button><button class="btn">▶ Play</button></div>
@@ -363,20 +364,20 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
 <section id="board" hidden>
   <div class="dim"></div>
   <div class="board glass">
-    <div class="bhead"><div class="sc"><span class="b">7</span> – <span class="r">4</span></div><span class="muted">Control · Medium · 1:42</span><span class="rated">RATED</span><span class="hint" style="margin-left:auto"><kbd>B</kbd> hold</span></div>
+    <div class="bhead"><div class="sc"><span class="b">7</span> – <span class="r">4</span></div><span class="muted">Control · Medium · 1:42</span><span class="unr" style="display:inline-block">UNRATED</span><span class="hint" style="margin-left:auto"><kbd>B</kbd> hold</span></div>
     <table class="sb">
       <tr><th>FIGHTER</th><th>K</th><th>D</th><th>DMG</th><th>ELO</th></tr>
       <tr class="team b"><td colspan="5">Teal</td></tr>
-      <tr class="me"><td><span class="dot b"></span><span class="rk sm">E</span>Makashi</td><td>4</td><td>1</td><td>612</td><td>1240</td></tr>
-      <tr><td><span class="dot b"></span><span class="rk sm">D</span>Soresu</td><td>3</td><td>2</td><td>540</td><td>1302</td></tr>
-      <tr><td><span class="dot b"></span><span class="rk sm">E</span>Ataru</td><td>2</td><td>2</td><td>388</td><td>1190</td></tr>
-      <tr class="ko"><td><span class="dot b"></span><span class="rk sm">F</span>Niman</td><td>0</td><td>3</td><td>144</td><td>1032</td></tr>
+      <tr class="me"><td><span class="dot b"></span><span class="rk sm">E</span>Makashi</td><td>4</td><td>1</td><td>612</td><td>236</td></tr>
+      <tr><td><span class="dot b"></span><span class="rk sm">D</span>Soresu</td><td>3</td><td>2</td><td>540</td><td>—</td></tr>
+      <tr><td><span class="dot b"></span><span class="rk sm">E</span>Ataru</td><td>2</td><td>2</td><td>388</td><td>—</td></tr>
+      <tr class="ko"><td><span class="dot b"></span><span class="rk sm">F</span>Niman</td><td>0</td><td>3</td><td>144</td><td>—</td></tr>
       <tr class="team r"><td colspan="5">Coral</td></tr>
-      <tr><td><span class="dot r"></span><span class="rk sm">D</span>Vaapad</td><td>3</td><td>3</td><td>570</td><td>1311</td></tr>
-      <tr><td><span class="dot r"></span><span class="rk sm">E</span>Djem So</td><td>2</td><td>2</td><td>402</td><td>1188</td></tr>
-      <tr class="ko"><td><span class="dot r"></span><span class="rk sm">F</span>Shii-Cho</td><td>0</td><td>4</td><td>120</td><td>1004</td></tr>
+      <tr><td><span class="dot r"></span><span class="rk sm">D</span>Vaapad</td><td>3</td><td>3</td><td>570</td><td>—</td></tr>
+      <tr><td><span class="dot r"></span><span class="rk sm">E</span>Djem So</td><td>2</td><td>2</td><td>402</td><td>—</td></tr>
+      <tr class="ko"><td><span class="dot r"></span><span class="rk sm">F</span>Shii-Cho</td><td>0</td><td>4</td><td>120</td><td>—</td></tr>
     </table>
-    <div class="bfoot muted">Elo is each fighter's saved rating before this match.</div>
+    <div class="bfoot muted">Control is unrated. Elo shows a saved rating where one exists, otherwise —.</div>
   </div>
 </section>
 
@@ -389,18 +390,19 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
       <h1 class="win">VICTORY</h1>
       <div class="rsub">Duel · 2–1 rounds · 2:41 <span class="rated">RATED</span><span class="unr">UNRATED</span></div>
       <div class="tiles">
-        <div class="tile"><b>3/1</b><span>K/D</span></div>
+        <div class="tile"><b>3</b><span>KILLS</span></div>
+        <div class="tile"><b>1</b><span>DEATHS</span></div>
         <div class="tile"><b>412</b><span>DAMAGE</span></div>
-        <div class="tile best"><b>64%</b><span>ACCURACY</span></div>
-        <div class="tile"><b>2–1</b><span>ROUNDS</span></div>
+        <div class="tile best"><b>7</b><span>PARRIES</span></div>
       </div>
+      <div class="hits"><span>Saber hits <b>14</b></span><span>Swings <b>22</b></span></div>
       <div class="elo glass r-rated">
-        <div class="elorow"><span class="rk">E</span><span class="num">1258</span><span class="delta">+18</span><span class="savedtag">✓ saved</span><span class="muted" style="margin-left:auto;font-size:.85rem">vs Djem So · 1188</span></div>
-        <div class="ebar" style="--a:52%;--g:9%"><i></i><i></i></div>
-        <div class="elofoot"><span>E</span><span>42 to D</span></div>
+        <div class="elorow"><span class="rk">E</span><span class="num">245</span><span class="delta">+9</span><span class="savedtag">✓ saved</span><span class="muted" style="margin-left:auto;font-size:.85rem">vs Djem So · 228</span></div>
+        <div class="ebar" style="--a:36%;--g:9%"><i></i><i></i></div>
+        <div class="elofoot"><span>E</span><span>55 to D</span></div>
       </div>
       <div class="elo glass r-unr">
-        <div class="elorow"><span class="rk">E</span><span class="num">1240</span><span class="muted" style="font-size:.95rem">Unrated bout. Elo not changed.</span></div>
+        <div class="elorow"><span class="rk">E</span><span class="num">236</span><span class="muted" style="font-size:.95rem">Unrated bout. Elo not changed.</span></div>
       </div>
       <div class="rbtns"><button class="btn gold">Continue</button><button class="btn ghost">Stats</button><span class="hint" style="margin-left:auto"><kbd>Space</kbd> hold to skip</span></div>
     </div>
@@ -417,7 +419,7 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
     <button class="btn ghost">Controls</button>
     <button class="btn ghost">Restart round</button>
     <button class="btn warn">Leave match</button>
-    <div class="pstrip"><span>Round <b>2</b></span><span>K/D <b>1/0</b></span><span>Elo <b>1240</b></span></div>
+    <div class="pstrip"><span>Round <b>2</b></span><span>K/D <b>1/0</b></span><span>Elo <b>236</b></span></div>
   </div>
 </section>
 
@@ -426,10 +428,10 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
   <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Stats</div>
     <div class="seg" style="margin-left:auto"><button class="on">All</button><button>Duel</button><button>Squads</button><button>Fronts</button><button>Gauntlet</button></div></div>
   <div class="stats">
-    <div class="shero glass"><span class="avatar"></span><div class="nm"><b>Makashi</b><span>212 matches · peak 1302</span></div>
+    <div class="shero glass"><span class="avatar"></span><div class="nm"><b>Makashi</b><span>212 matches · peak 262</span></div>
       <div class="big4">
         <div><span class="rk" style="min-width:40px;height:40px;font-size:1.4rem">E</span><span style="display:block;margin-top:4px">RANK</span></div>
-        <div><b>1258</b><span>ELO</span><small class="up">+46 week</small></div>
+        <div><b>245</b><span>ELO</span><small class="up">+21 week</small></div>
         <div><b>1.42</b><span>K/D</span><small class="up">+0.08</small></div>
         <div><b>58%</b><span>WIN</span><small class="muted">123–89</small></div>
       </div></div>
@@ -444,15 +446,15 @@ table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92r
     </div>
     <div class="panel glass"><h3>Last matches<span class="muted" style="margin-left:auto;font:800 .78rem var(--ui)">K/D · ELO</span></h3>
       <div class="hist">
-        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:41</span></div><span class="kd">3/1</span><span class="ed up">+18</span></div>
-        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Control<span>Woman · Djem So · 4:10</span></div><span class="kd">4/1</span><span class="ed up">+12</span></div>
-        <div class="hrow"><span class="wl l">L</span><div class="md">Duel<span>Femboy · Ataru · 1:58</span></div><span class="kd">1/2</span><span class="ed down">−15</span></div>
-        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Relic<span>Woman · Makashi · 3:22</span></div><span class="kd">2/0</span><span class="ed up">+9</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:41</span></div><span class="kd">3/1</span><span class="ed up">+9</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Control<span>Woman · Djem So · 4:10</span></div><span class="kd">4/1</span><span class="ed muted">—</span></div>
+        <div class="hrow"><span class="wl l">L</span><div class="md">Duel<span>Femboy · Ataru · 1:58</span></div><span class="kd">1/2</span><span class="ed down">−8</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Elimination<span>Woman · Makashi · 3:22</span></div><span class="kd">2/0</span><span class="ed up">+6</span></div>
         <div class="hrow"><span class="wl l">L</span><div class="md">Three Fronts<span>Rabbit · Soresu · 11:40</span></div><span class="kd">5/6</span><span class="ed muted">—</span></div>
-        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:05</span></div><span class="kd">2/0</span><span class="ed up">+16</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:05</span></div><span class="kd">2/0</span><span class="ed up">+8</span></div>
         <div class="hrow"><span class="wl w">W</span><div class="md">Gauntlet<span>Woman · Djem So · floor 12</span></div><span class="kd">6/0</span><span class="ed muted">—</span></div>
-        <div class="hrow"><span class="wl l">L</span><div class="md">Squads · Elimination<span>Woman · Djem So · 2:50</span></div><span class="kd">1/1</span><span class="ed down">−11</span></div>
-        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Makashi · 3:02</span></div><span class="kd">2/1</span><span class="ed up">+14</span></div>
+        <div class="hrow"><span class="wl l">L</span><div class="md">Squads · Elimination<span>Woman · Djem So · 2:50</span></div><span class="kd">1/1</span><span class="ed down">−6</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Makashi · 3:02</span></div><span class="kd">2/1</span><span class="ed up">+7</span></div>
       </div></div>
   </div>
 </section>
@@ -485,11 +487,11 @@ function lookArt(cv){const [c,w,h]=fit(cv);const lk=cv.dataset.look;
   const gg=c.createRadialGradient(w/2,h*.75,4,w/2,h*.7,w*.7);gg.addColorStop(0,'#3d2d86');gg.addColorStop(1,'#140b2e00');c.fillStyle=gg;c.fillRect(0,0,w,h);
   fighter(c,{x:w*.5,gy:h*.92,h:h*.72,look:lk,team:0,act:'guard',t:.2,face:1,ring:false});}
 function eloChart(el){
-  const R=rnd(17);let e=1180;const pts=[];for(let i=0;i<30;i++){e+=Math.round((R()-.42)*30);pts.push(e);}pts[29]=1258;pts[28]=1240;pts[27]=1228;
+  const R=rnd(17);let e=170;const pts=[];for(let i=0;i<30;i++){e+=Math.round((R()-.42)*12);pts.push(e);}pts[29]=245;pts[28]=236;pts[27]=230;
   const r=el.getBoundingClientRect(),w=r.width,h=r.height,pad=[8,44,22,8];
-  const lo=Math.floor((Math.min(...pts)-10)/50)*50,hi=Math.ceil((Math.max(...pts)+10)/50)*50;
+  const lo=Math.floor((Math.min(...pts)-5)/25)*25,hi=Math.ceil((Math.max(...pts)+5)/25)*25;
   const X=i=>pad[3]+i*(w-pad[1]-pad[3])/29,Y=v=>pad[0]+(hi-v)*(h-pad[0]-pad[2])/(hi-lo);
-  let grid='';for(let v=lo;v<=hi;v+=50)grid+=`<line x1="${pad[3]}" x2="${w-pad[1]}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ffffff14" stroke-width="1"/><text x="${w-pad[1]+6}" y="${Y(v)+4}" fill="#a59cd6" font-size="11" font-weight="800">${v}</text>`;
+  let grid='';for(let v=lo;v<=hi;v+=25)grid+=`<line x1="${pad[3]}" x2="${w-pad[1]}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ffffff14" stroke-width="1"/><text x="${w-pad[1]+6}" y="${Y(v)+4}" fill="#a59cd6" font-size="11" font-weight="800">${v}</text>`;
   const line=pts.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
   const area=`${X(0)},${h-pad[2]} ${line} ${X(29)},${h-pad[2]}`;
   const lx=X(29),ly=Y(pts[29]);
@@ -498,7 +500,7 @@ function eloChart(el){
   <polygon points="${area}" fill="url(#ea)"/><polyline points="${line}" fill="none" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
   <line x1="${lx}" x2="${lx}" y1="${pad[0]}" y2="${h-pad[2]}" stroke="#ffffff55" stroke-dasharray="3 4"/>
   <circle cx="${lx}" cy="${ly}" r="6" fill="#ffd23f" stroke="#1d1347" stroke-width="2"/>
-  <g transform="translate(${lx-118},${ly<54?ly+12:ly-46})"><rect width="108" height="36" rx="9" fill="#140b2e" stroke="#5a47b8"/><text x="10" y="15" fill="#fff" font-size="12" font-weight="900">1258 <tspan fill="#3df5a7">+18</tspan></text><text x="10" y="29" fill="#a59cd6" font-size="10.5" font-weight="800">Win · Duel</text></g></svg>`;
+  <g transform="translate(${lx-118},${ly<54?ly+12:ly-46})"><rect width="108" height="36" rx="9" fill="#140b2e" stroke="#5a47b8"/><text x="10" y="15" fill="#fff" font-size="12" font-weight="900">245 <tspan fill="#3df5a7">+9</tspan></text><text x="10" y="29" fill="#a59cd6" font-size="10.5" font-weight="800">Win · Duel</text></g></svg>`;
 }
 
 if(view==='home'){show('home');arenaScene(g,W,H,'none');dimBg();}
