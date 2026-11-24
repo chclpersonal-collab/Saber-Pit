@@ -9,6 +9,7 @@ interface Stage{image:HTMLCanvasElement;terrain:StageTerrain;id:string;obstacles
 export const ARCADE_MAP_SIZES = MAP_SIZES;
 const RINGS = ['underpit','foundry','ember_ring'];
 export const ARCADE_MAPS = Object.freeze(Object.fromEntries([
+  ['three_causeways','Three Causeways','Broad floodgate court with three lanes and mirrored masonry cover.'],
   ['high_bastion','High Bastion','Grand siege court: central gate, perimeter approaches, and vent crossings.'],
   ['crossroads','Crossroads','Three approach lanes divided by physical cover and short center walls.'],
   ['zigzag','Zigzag','Staggered cover breaks up straight approaches.'],
@@ -40,6 +41,21 @@ function useCavernArt(stage:Stage,repaint:()=>void){
 const dimensions=(w:number,h:number)=>[saneSize(w,1120),saneSize(h,640)];
 export function createArcadeTerrain(mapId:string|undefined,w:number,h:number,round=1) {
   const [width,height]=dimensions(w,h), id=resolveArcadeMap(mapId,round), entry=ARCADE_MAPS[id];
+  if(id==='three_causeways'){
+    const sx=width/2400,sy=height/1350;
+    const bounds={minX:72*sx,minY:258*sy,maxX:2328*sx,maxY:1260*sy};
+    const box=(kind:string,x:number,y:number,w:number,h:number)=>({kind,x:x*sx,y:y*sy,width:w*sx,height:h*sy});
+    const pair=(kind:string,x:number,y:number,w:number,h:number)=>[box(kind,x,y,w,h),box(kind,2400-x-w,y,w,h)];
+    // Two flood-control bands separate the causeways without turning them
+    // into lock-in tunnels. The gaps alongside every wall allow rotations.
+    const solids=[
+      ...pair('wall',730,510,254,98),...pair('wall',730,902,254,108),
+      box('wall',1080,517,240,85),box('wall',1080,913,240,90),
+      ...pair('barricade',496,475,106,45),...pair('barricade',496,987,106,45),
+      ...pair('barricade',925,608,70,54),...pair('barricade',925,857,70,45),
+    ];
+    return {...entry,width,height,bounds,playBounds:{...bounds},solids,zones:[]};
+  }
   if(id==='high_bastion'){
     const bounds={minX:width*.033,minY:height*.205,maxX:width*.967,maxY:height*.938};
     const sx=width/1920,sy=height/1080;

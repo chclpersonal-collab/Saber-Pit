@@ -85,6 +85,8 @@ type HeroCurrentField = keyof Pick<Stats,'wins'|'draws'|'losses'|'kills'|'deaths
 interface DomMap {
   soloFormat: HTMLButtonElement;
   squadFormat: HTMLButtonElement;
+  showCareer: HTMLButtonElement;
+  leadersTitle: HTMLHeadingElement;
   showPeaks: HTMLButtonElement;
   copyActiveSeed: HTMLButtonElement;
   boutProgress: HTMLProgressElement;
@@ -402,9 +404,11 @@ function renderPeaks(){
     body.append(row);
   }
 }
-$('showPeaks').addEventListener('click',()=>{
-  const heading=$('peaksTitle');heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});
-});
+for(const [control, target] of [['showCareer','leadersTitle'],['showPeaks','peaksTitle']] as const){
+  $(control).addEventListener('click',()=>{
+    const heading=$(target);heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});
+  });
+}
 function renderTeam(){
   const team=isSquad()?squadState.teams?.[selectedTeamId!]:null;
   $('teamProfile').hidden=!team;

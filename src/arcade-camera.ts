@@ -48,17 +48,32 @@ export function composeArcadeFrame(viewWidth:number,viewHeight:number,worldWidth
 
 /** Portrait camera: retain the fighter, include a nearby opponent, and allow a full-map toggle. */
 export function portraitActionFrame(width:number,height:number,viewWidth:number,viewHeight:number,
-  anchor:CameraPoint&{airHeight?:number},nearby?:CameraPoint&{airHeight?:number}):ActionFocus {
+  anchor:CameraPoint&{airHeight?:number},nearby?:CameraPoint&{airHeight?:number},minimumZoom=2.05):ActionFocus {
   if(!(viewWidth>0&&viewHeight>0))return {x:width/2,y:height/2,zoom:1};
   const rival=nearby&&Math.hypot(anchor.x-nearby.x,anchor.y-nearby.y)<260?nearby:anchor;
   const anchorTop=anchor.y-Math.max(0,anchor.airHeight??0);
   const rivalTop=rival.y-Math.max(0,rival.airHeight??0);
   const base=Math.min(viewWidth/width,viewHeight/height);
-  const zoom=Math.max(viewWidth/(width*base),viewHeight/(height*base),2.05);
+  const zoom=Math.max(viewWidth/(width*base),viewHeight/(height*base),minimumZoom);
   const halfWidth=Math.min(width/2,viewWidth/(2*base*zoom));
   const halfHeight=Math.min(height/2,viewHeight/(2*base*zoom));
   return {
     x:clamp(anchor.x+(rival.x-anchor.x)*.32,halfWidth,width-halfWidth),
     y:clamp((Math.max(anchor.y,rival.y)+Math.min(anchorTop,rivalTop))/2-32,halfHeight,height-halfHeight),zoom
   };
+}
+
+
+export function canFocusCauseways(mapId:string|undefined,fighters:number){
+  return mapId==='three_causeways'&&fighters>6;
+}
+type ActiveFocusFighter=CameraPoint&{id:string;team:number;control?:boolean;airHeight?:number;alive:boolean};
+/** Explicit Stats selection when watching; somebody else's pick never steals Play camera. */
+export function selectArenaFocus<T extends ActiveFocusFighter>(width:number,height:number,fighters:readonly T[],settings:{preferred?:string;previous?:string;hero?:T}={}){
+  const alive=fighters.filter(f=>f.alive);
+  const anchor=settings.hero?.alive?settings.hero:alive.find(f=>f.control)??alive.find(f=>f.id===settings.preferred)??alive.find(f=>f.id===settings.previous)
+    ??alive.reduce<T|undefined>((best,f)=>!best||(f.x-width/2)**2+(f.y-height/2)**2<(best.x-width/2)**2+(best.y-height/2)**2?f:best,undefined);
+  const rival=anchor?alive.reduce<T|undefined>((best,f)=>f.team!==anchor.team&&
+    (!best||(f.x-anchor.x)**2+(f.y-anchor.y)**2<(best.x-anchor.x)**2+(best.y-anchor.y)**2)?f:best,undefined):undefined;
+  return {anchor,rival};
 }

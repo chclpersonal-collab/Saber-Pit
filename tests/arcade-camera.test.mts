@@ -63,3 +63,34 @@ test('portrait view fills a taller phone canvas without sacrificing edge framing
     assert.ok(Math.hypot(point.x-anchor.x,point.y-anchor.y)<1e-8);
   }
 });
+
+test('Causeways large-match focus is opt-in locally and retains the selected living fighter',async()=>{
+ const {canFocusCauseways,selectArenaFocus}=await import('../dist/arcade-camera.js');
+ assert.equal(canFocusCauseways('three_causeways',30),true);
+ assert.equal(canFocusCauseways('three_causeways',6),false);
+ assert.equal(canFocusCauseways('high_bastion',30),false);
+ const a={...f(510,375),id:'a',team:0,alive:true};
+ const b={...f(680,765),id:'b',team:0,alive:true};
+ const c={...f(700,790),id:'c',team:1,alive:true};
+ const d={...f(680,1000),id:'d',team:1,alive:true};
+ assert.deepEqual(selectArenaFocus(2400,1350,[a,b,c,d],{preferred:'b',previous:'a'}),{anchor:b,rival:c});
+ assert.equal(selectArenaFocus(2400,1350,[a,{...b,alive:false},c,d],{preferred:'b',previous:'a'}).anchor,a);
+ assert.equal(selectArenaFocus(2400,1350,[{...a,control:true},b,c,d],{preferred:'b'}).anchor?.id,'a');
+});
+
+test('Causeways desktop and short landscape focus can return to full framing and both project pointer aim exactly',async()=>{
+ for(const box of [{left:36,top:101,width:1178,height:663},{left:12,top:63,width:790,height:355}]){
+  const anchor=f(650,470,48),rival=f(740,498);
+  const wide={x:1200,y:675,zoom:1};
+  const target=portraitActionFrame(2400,1350,box.width,box.height,anchor,rival,1.64);
+  const close=stepActionFrame(wide,target,2400,1350,0,true);
+  assert.ok(close.zoom>=1.64);
+  assert.deepEqual(stepActionFrame(close,wide,2400,1350,0,true),wide);
+  for(const focus of [wide,close]){
+   const t=composeArcadeFrame(box.width*2,box.height*2,2400,1350,focus);
+   const px=box.left+(t.x+anchor.x*t.scale)/2,py=box.top+(t.y+anchor.y*t.scaleY)/2;
+   const mapped=screenToArena(px,py,box,box.width*2,box.height*2,t);
+   assert.ok(Math.hypot(mapped.x-anchor.x,mapped.y-anchor.y)<1e-8);
+  }
+ }
+});

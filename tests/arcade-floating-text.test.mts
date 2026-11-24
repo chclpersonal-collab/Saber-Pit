@@ -47,3 +47,15 @@ test('multiple markers stay bound and share space without stacking; focused acto
  assert.equal(fx.update(.03,[event(3,actors[1].id,'parry')],actors,{focusId:actors[1].id}),1);
  const parry=canvas();fx.draw(parry.ctx);assert.deepEqual(parry.fills.map(p=>p.text),['PARRY']);
 });
+test('ordinary close-duel subtitles sit beside heads, but focus parry still names its actor',()=>{
+ const fx=createArcadeFloatingText(),roster=[f('blue',560,430),f('pink',572,350)];
+ fx.update(0,[event(1,'blue','rush',{technique:'thrust',contact:.19}),event(2,'pink','slash',{technique:'slash',contact:.19})],roster,{focusId:'blue'});
+ const rendered=canvas();fx.draw(rendered.ctx,{reducedMotion:true});
+ const subtitles=rendered.fills.filter(row=>row.text==='ROOK STYLE');
+ assert.equal(subtitles.length,2);
+ assert(subtitles.some(row=>row.x+row.width*.5<roster[0].x-30));
+ assert(subtitles.some(row=>row.x-row.width*.5>roster[1].x+30));
+ fx.update(.03,[event(3,'blue','parry')],roster,{focusId:'blue'});
+ const parry=canvas();fx.draw(parry.ctx,{reducedMotion:true});
+ assert.equal(parry.fills.find(row=>row.text==='PARRY').x,roster[0].x);
+});

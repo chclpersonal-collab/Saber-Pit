@@ -5,7 +5,7 @@ interface Cue{label:string;style:string;priority:number;tone:string;life:number;
 interface Point{x:number;y:number}
 interface CueActor extends Point{id:string;airHeight?:number;control?:boolean;chessStyle?:string;chessPawn?:{promoted?:boolean}}
 interface CueEvent{id:number;fighterId?:string;kind:string;x?:number;y?:number}
-interface Caption extends Cue,Point{actor:string;offsetY:number;width:number;height:number;size:number;focus:boolean;born:number;count?:number}
+interface Caption extends Cue,Point{actor:string;offsetY:number;width:number;height:number;size:number;focus:boolean;born:number;count?:number;duelSide?:number}
 const maxLabels=6;
 const max=(n:number,lo:number,hi:number)=>Math.min(hi,Math.max(lo,n));
 const finite=(n:unknown,fallback=0)=>Number.isFinite(n)?n as number:fallback;
@@ -28,6 +28,9 @@ function chooseOffset(x:number,y:number,w:number,h:number,spots:readonly Caption
  }
  return null;
 }
+function finitelyNear(a:CueActor,b:CueActor){
+ return Math.abs(a.x-b.x)<170&&Math.abs(a.y-finite(a.airHeight)-b.y+finite(b.airHeight))<156;
+}
 const fadeTail=(life:number)=>Math.min(.32,life*.45);
 function visibleAlpha(age:number,life:number){
  return max((life-age)/fadeTail(life),0,1);
@@ -43,12 +46,13 @@ function labelAt(f:CueActor|undefined,e:CueEvent){
  * in the existing world transform after the fighters. No DOM or sim writes. */
 export function createArcadeFloatingText(){
  let lastId=0,time=0,roster=0;
+ let duel:readonly CueActor[]=[];
  const critical=new Map<string,Caption>();
  const active:Caption[]=[], seen=new Map<string,number>(), cooldown=new Map<string,number>(), promoted=new Set<string>();
  return {
-   reset(){lastId=time=roster=0;active.length=0;critical.clear();seen.clear();cooldown.clear();promoted.clear();},
+   reset(){lastId=time=roster=0;active.length=0;duel=[];critical.clear();seen.clear();cooldown.clear();promoted.clear();},
    update(dt:number,events:readonly CueEvent[]=[],fighters:readonly CueActor[]=[],{focusId,crowd=fighters.length>6}:{focusId?:string|null;crowd?:boolean}={}){
-     time+=max(finite(dt),0,.25);roster=fighters.length;
+     time+=max(finite(dt),0,.25);roster=fighters.length;duel=roster===2?fighters:[];
      for(let i=active.length-1;i>=0;i--)if(time>=active[i].born+active[i].life)active.splice(i,1);
      for(const [key,item] of critical)if(time>=item.born+item.life)critical.delete(key);
      if(!events.length||events[events.length-1].id<=lastId)return active.length+critical.size;
@@ -109,7 +113,13 @@ export function createArcadeFloatingText(){
        const offset=chooseOffset(at.x,at.y,width,height,active.filter((_,i)=>i!==remove));
        if(!offset)continue;
        if(remove>=0)active.splice(remove,1);
-       active.push({...short,actor,...at,offsetY:offset.y,width,height,size:sizeOf(cue,crowd),
+       // Keep ordinary two-line cues beside a tight duel instead of above
+       // a face (the lower subtitle is otherwise within the head silhouette).
+       const first=duel[0], second=duel[1];
+       const inCloseDuel=first&&second&&finitelyNear(first,second);
+       const left=first&&second&&(first.x<second.x||first.x===second.x&&first.id<second.id)?first:second;
+       const duelSide=inCloseDuel&&short.style&&short.priority<4?(actor===left?.id?-1:1):undefined;
+       active.push({...short,actor,...at,duelSide,offsetY:offset.y,width,height,size:sizeOf(cue,crowd),
          focus,born:time,life:Math.max(.70,finite(cue.life,.75)+.16)});
        placed.add(actor);
        seen.set(cue.key,time+(cue.priority<=2?1.18:.91));
@@ -132,19 +142,30 @@ export function createArcadeFloatingText(){
        const label=arcadeCalloutText(shown),merged=shown.count>1;
        const age=Math.max(0,time-item.born);
        const rise=reducedMotion?0:26*pop(max(age/item.life,0,1));
-       const y=shown.y-rise;
+       let x=shown.x,y=shown.y-rise;
        ctx.globalAlpha=inherited*visibleAlpha(age,item.life);
        ctx.font='900 '+item.size+'px system-ui, sans-serif';
        ctx.lineWidth=4;ctx.strokeStyle=palette.ink;
        ctx.fillStyle=item.priority>=4?palette.bright:palette.gold;
        const labelWidth=merged?Math.min(213,Math.max(item.width,label.length*item.size*.54)):item.width;
-       ctx.strokeText(label,shown.x,y,labelWidth);
-       ctx.fillText(label,shown.x,y,labelWidth);
+       if(item.duelSide&&!merged&&duel.length===2){
+         const [a,b]=duel, half=(labelWidth+4)*.5;
+         const left=Math.min(a.x,b.x)-38-half, right=Math.max(a.x,b.x)+38+half;
+         const prefer=item.duelSide<0?left:right;
+         const t=ctx.getTransform?.(), width=ctx.canvas?.width;
+         if(t&&width&&t.a>0&&((prefer-half)*t.a+t.e<4||(prefer+half)*t.a+t.e>width-4)){
+           // A tight camera near the edge can have neither side. Keep the
+           // original horizontal anchor, but above both heads rather than on them.
+           y=Math.min(y,Math.min(a.y-finite(a.airHeight),b.y-finite(b.airHeight))-125-(item.duelSide<0?32:0));
+         }else x=prefer;
+       }
+       ctx.strokeText(label,x,y,labelWidth);
+       ctx.fillText(label,x,y,labelWidth);
        if(item.style&&!merged){
          ctx.font='800 '+Math.max(11,Math.round(item.size*.64))+'px system-ui, sans-serif';
          ctx.lineWidth=3;ctx.fillStyle=palette.light;
-         ctx.strokeText(item.style,shown.x,y+15,item.width);
-         ctx.fillText(item.style,shown.x,y+15,item.width);
+         ctx.strokeText(item.style,x,y+15,item.width);
+         ctx.fillText(item.style,x,y+15,item.width);
        }
      }
      ctx.restore();

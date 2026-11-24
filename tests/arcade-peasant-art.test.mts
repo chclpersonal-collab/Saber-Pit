@@ -24,8 +24,9 @@ test('painter keeps the exact shared physical rig and preserves each real staff 
  assert.equal(c.depth(),0);
  assert.deepEqual(r,snap);
  assert.deepEqual(arcadeBladeWorld(f,r),old);
- const glowing=c.records.filter(([style,width])=>style==='#6ac7bf'&&width===8);
+ const glowing=c.records.filter(([style,width])=>style==='#86eafe'&&width===5.7);
  assert.equal(glowing.length,2);
+ assert.equal(c.records.filter(([style,width])=>style==='#fffefd'&&width===2.6).length,2);
  const spans=[Math.hypot(r.blade.x-r.emitter.x,r.blade.y-r.emitter.y),
   Math.hypot(r.offBlade.x-r.offEmitter.x,r.offBlade.y-r.offEmitter.y)].sort();
  assert.deepEqual(glowing.map(p=>p[2].at(-1)[1]).sort(),spans);
@@ -33,14 +34,14 @@ test('painter keeps the exact shared physical rig and preserves each real staff 
 test('blade-off and portrait keep art without illuminating a blade; ghost has no live stroke',()=>{
  for(const options of [{hideSabers:true},{ghost:true}]){
   const c=paint();drawArcadePeasantFighter(c.ctx,f,0,options);
-  assert.ok(!c.records.some(([style,width])=>style==='#6ac7bf'&&width===8));
+  assert.ok(!c.records.some(([style,width])=>style==='#86eafe'&&width===5.7||style==='#fffefd'));
   assert.equal(c.depth(),0);
  }
  const c=paint();drawArcadePeasantFighter(c.ctx,{...f,saberOff:true});
- assert.ok(!c.records.some(([style,width])=>style==='#6ac7bf'&&width===8));
+ assert.ok(!c.records.some(([style,width])=>style==='#86eafe'&&width===5.7||style==='#fffefd'));
  assert.ok(c.records.some(([style,width])=>style==='#786455'&&width===3.2));
  const p=paint();drawArcadePeasantFighterPreview(p.ctx,f,{framing:'portrait'});
- assert.ok(!p.records.some(([style,width])=>style==='#6ac7bf'&&width===8));
+ assert.ok(!p.records.some(([style,width])=>style==='#86eafe'&&width===5.7));
 });
 test('boot orientation tracks all actual foot-to-toe headings without a facing flip',async()=>{
  const {peasantBootBearing}=await import('../dist/arcade-peasant-art.js');
@@ -72,7 +73,7 @@ test('new mantle, boot shafts and pale mitts render on the shared rig',()=>{
  drawArcadePeasantFighter(c.ctx,f,0,{rig:r,hideSabers:true});
  const inked=c.records.filter(([,type])=>type==='fill').map(([colour])=>colour);
  assert.ok(inked.includes('#67564c')&&inked.includes('#4a3e3b'));
- assert.ok(inked.includes('#f1ddd4')&&inked.includes('#d5c5bf'));
+ assert.ok(inked.includes('#d9ceca')&&inked.includes('#b6aab1'));
  assert.ok(c.records.some(([style,width])=>style==='#211a19'&&width===3.5));
  assert.equal(c.depth(),0);
 });
@@ -83,7 +84,7 @@ test('live Arena Peasant route draws interrupted blade continuity, yet returns t
  const draw=(target,t)=>{
    const c=paint(),rig=sampleArcadeFighter(target,t);
    assert.equal(drawArenaFighter(c.ctx,target,t,{rig}),rig);
-   return c.records.filter(([style,width])=>['#6ac7bf','#97cfe8'].includes(style)&&width===8)
+   return c.records.filter(([style,width])=>['#86eafe','#c2c6ff'].includes(style)&&width===5.7)
      .map(([, , ,trace])=>trace);
  };
  const swing=draw(actor,1);
@@ -97,4 +98,56 @@ test('live Arena Peasant route draws interrupted blade continuity, yet returns t
  const later=draw(actor,1.120);
  const settledBaseline=draw({...actor,recoveryFlow:false},1.120);
  assert.ok(later.every((part,i)=>dist(part,settledBaseline[i])<1e-7));
+});
+
+
+test('each body reads as a different silhouette at the same appearance seed; low detail retains team and white blade',()=>{
+ const measure=(body,team)=>{
+  const c=paint();
+  drawArcadePeasantFighter(c.ctx,{...f,body,team},0,{lowDetail:true,outline:false});
+  const robe=c.records.find(([style,kind])=>style==='#60566f'&&kind==='fill');
+  assert.ok(robe);
+  assert.equal(c.records.filter(([style])=>style==='#fffefd').length,2);
+  const markers=c.records.filter(([style,width])=>style===(team?'#e3938c':'#97cfe3')&&width===1.7);
+  assert.deepEqual(markers.map(([, ,points])=>points.length),team?[2,2]:[3]);
+  return robe[2].slice(1).map(([kind,x,y])=>[kind,x-robe[2][0][1],y-robe[2][0][2]]);
+ };
+ assert.equal(new Set(['woman','femboy','rabbit'].map((body,i)=>JSON.stringify(measure(body,i%2)))).size,3);
+});
+
+
+test('women show seeded tied long hair or braid with team ribbon at broadside and both face axes',()=>{
+ const inspect=(body,appearanceSeed,face,reducedMotion)=>{
+  const p=paint();
+  drawArcadePeasantFighter(p.ctx,{...f,body,appearanceSeed,face},0,{hideSabers:true,lowDetail:true,reducedMotion});
+  const ribbon=p.records.filter(([style,kind,points])=>style==='#97cfe3'&&kind==='fill'&&points[0]?.[0]==='ellipse');
+  const segments=p.records.filter(([,kind,points])=>kind==='fill'&&points[0]?.[0]==='ellipse'&&points[0][3]>2.9&&points[0][3]<=5.6&&points[0][2]>4);
+  const tail=p.records.find(([style])=>style==='#7c6576');
+  return {ribbon,segments,tail};
+ };
+ for(const a of [0,Math.PI,Math.PI/2,-Math.PI/2])for(const low of [false,true]){
+  assert.ok(inspect('woman',52,a,low).tail);
+  assert.equal(inspect('woman',52,a,low).ribbon.length,1);
+  const braid=inspect('woman',85,a,low);
+  assert.equal(braid.ribbon.length,1);
+  assert.ok(braid.segments.length>=3);
+  assert.equal(inspect('femboy',52,a,low).ribbon.length,0);
+ }
+});
+
+
+test('depth-facing idle/guard retains exact sole and reduces cuff gap at nonzero world position only',()=>{
+ const aligned={...f,x:391,y:271,face:Math.PI/2,action:'guard',actionTime:.20,actionDuration:.45,airPhase:'grounded',vx:0};
+ const rig=sampleArcadeFighter(aligned,.1);
+ const paintCuff=(actor)=>{
+  const p=paint();
+  assert.equal(drawArcadePeasantFighter(p.ctx,actor,.1,{rig,hideSabers:true}),rig);
+  return p.records.filter(([style,kind,points])=>style==='#67564c'&&kind==='fill'&&points.length>2);
+ };
+ const near=paintCuff(aligned), fast=paintCuff({...aligned,vx:100});
+ const origin=paintCuff({...aligned,x:0,y:0});
+ assert.deepEqual(near,origin);
+ assert.equal(near.length,2);
+ assert.deepEqual(near[1],fast[1]); // sole including its toe path
+ assert.ok(near[0][2][1][2]<fast[0][2][1][2]-1); // upper cuff only
 });

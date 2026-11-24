@@ -424,7 +424,6 @@ body[data-view=game] #arena{touch-action:pan-y}
   }
   body[data-view=game] #cameraView{min-height:44px}
 }
-++ dist/arcade.css
 /* Keys dialog (Pause > Keys) */
 .keys-dialog{width:min(440px,calc(100% - 24px))}
 .keys-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
@@ -438,3 +437,18 @@ body[data-view=game] #arena{touch-action:pan-y}
 @media(max-width:420px){.keys-list{grid-template-columns:1fr}}
 /* Touch-only screens have no keyboard to rebind; their pause menu stays as it was. */
 @media(any-hover:none){html:not([data-arena-keyboard=true]) #keysOpen{display:none}}
+
+/* Force cards keep all powers visible and show selection order. */
+.force-pool[data-force-setting] > summary { min-height:44px;align-content:center; }
+.force-card-count { float:right;font-variant-numeric:tabular-nums;color:var(--soft); }
+.force-card-note { margin:.45rem 0;color:var(--soft);line-height:1.4;font-size:.85rem; }
+.force-card-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem; }
+.force-card-grid button.force-card { display:grid;gap:.15rem;text-align:left;min-height:44px;border-radius:.38rem;padding:.45rem;min-width:0;white-space:normal;font-weight:400; }
+.force-card-heading { display:flex;align-items:center;justify-content:space-between;gap:.35rem; }
+.force-card-order { min-width:1em;text-align:center;font-variant-numeric:tabular-nums; }
+.force-card > small { color:var(--soft);font-size:.78rem; }
+.force-card > span:nth-child(4) { font-size:.8rem;line-height:1.25; }
+.force-card-grid button.force-card[aria-pressed=true] { border-color:var(--gold,#e8b66d); }
+.force-card-grid button.force-card[aria-disabled=true]:not([aria-pressed=true]) { border-style:dashed; }
+.force-card-actions { display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem; }
+.force-card-actions button { min-height:44px; }

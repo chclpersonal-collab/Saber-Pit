@@ -1,6 +1,6 @@
 # Saber Pit
 
-Saber Pit 5.1.1 is a 2D browser-based saber arena. Play or spectate custom fights, push three lanes in Three Fronts, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
+Saber Pit 5.2.0 is a 2D browser-based saber arena. Play or spectate custom fights, push three lanes in Three Fronts, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
 
 ## Run locally
 

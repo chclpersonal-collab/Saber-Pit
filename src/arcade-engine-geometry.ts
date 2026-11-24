@@ -129,7 +129,8 @@ interface SpawnArena extends Pick<ArcadeGeometry, 'terrain' | 'bounds'> {
   width: number;
   height: number;
   fighters: readonly ArcadePoint[];
-  config: { formations: readonly string[]; deployments: readonly string[] };
+  terrain: ArcadeGeometry['terrain'] & {id?:string};
+  config: { formations: readonly string[]; deployments: readonly string[]; teamSizes?:readonly number[] };
 }
 
 function masterPath(s: PathArena,f: PathFighter,enemy: ArcadePoint): ArcadePoint | null{
@@ -191,7 +192,14 @@ export function spawnPosition(s: SpawnArena,team: 0 | 1,slot: number,count: numb
   const {bounds:b}=s, mid=(b.minY+b.maxY)/2, xSpan=b.maxX-b.minX;
   const dir=team===0?1:-1, edge=team===0?b.minX:b.maxX, formation=s.config.formations[team];
   let x,y;
-  if(count<=3&&formation==='line'){
+  if(s.terrain.id==='three_causeways'&&count>=6&&s.config.teamSizes?.every(n=>n>=6)){
+    // This authored map opens three independent paths; put actual front
+    // ranks in all three. Other arenas retain their original formations.
+    const lane=slot%3, file=Math.floor(slot/3), rank=Math.floor(file/2);
+    const offset=(file%2===0?-1:1)*(formation==='spread'?50:40);
+    y=( [765,375,1135][lane]+offset)*s.height/1350;
+    x=edge+dir*(xSpan*(formation==='spread'?.33:.30)-rank*49-(formation==='wedge'&&lane!==0?28:0));
+  }else if(count<=3&&formation==='line'){
     x=s.width*(team===0?(slot>0?.23:.31):(slot>0?.77:.69));
     y=clamp(s.height*.5+(slot>0?(slot%2?1:-1)*Math.min(110,s.height*.18):0),b.minY,b.maxY);
   }else{

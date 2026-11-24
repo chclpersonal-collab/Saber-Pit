@@ -30,13 +30,18 @@ export const ARCADE_MAPS={
   crossroads:['Crossroads','Multiple approaches around central walls.'],
   zigzag:['Zigzag','Staggered barriers break up direct approaches.'],
   craterfield:['Craterfield','Rough ground and dangerous vents. Watch your footing.'],
+  three_causeways:['Three Causeways','Wide 2400 × 1350 floodgate court. Three broad routes, stone cover, and crossovers.'],
   high_bastion:['High Bastion','Grand 1920 × 1080 siege court with perimeter routes, a central gate, and jumpable vent seams.']
 };
 export const SIZE={
   small:[960,540], medium:[1280,720], large:[1600,900]
 };
+const FIXED_MAP_SIZES:Readonly<Record<string,readonly [number,number]|undefined>>={high_bastion:[1920,1080],three_causeways:[2400,1350]};
+export function arenaFixedMapSize(mapId:string){
+  return Object.hasOwn(FIXED_MAP_SIZES,mapId)?FIXED_MAP_SIZES[mapId]:undefined;
+}
 export function arenaWorldSize(mapId:string,size:keyof typeof SIZE){
-  return mapId==='high_bastion'?[1920,1080]:SIZE[size];
+  return arenaFixedMapSize(mapId)??SIZE[size];
 }
 export const presets={
   duel:{participation:'play',teamSizes:[1,1],rule:'elimination'},

@@ -8,12 +8,12 @@
 <body>
 <main class="shell">
   <header class="mast">
-    <a class="brand" href="index.html"><span aria-hidden="true">◈</span><b>SABER PIT <small>VERSION 5.1.1</small></b></a>
+    <a class="brand" href="index.html"><span aria-hidden="true">◈</span><b>SABER PIT <small>VERSION 5.2.0</small></b></a>
     <nav aria-label="Game modes"><a href="index.html">Arena</a><a href="moba.html" aria-current="page">Three Fronts</a><a href="tournament.html">Tournaments</a><a href="idle-rpg.html">Idle RPG</a></nav>
   </header>
   <section class="intro" aria-labelledby="fronts-title">
-    <div><p class="eyebrow"><i></i> SIEGE OPERATION / 01</p><h1 id="fronts-title">The Three Fronts</h1><p class="intro-copy">Break a lane. Breach the citadel.</p></div>
-    <div class="tags"><span>5 VS 5</span><span>3 LANES</span><span>SOLO + AI</span></div>
+    <div><h1 id="fronts-title">Three Fronts</h1></div>
+    <div class="tags"><span>MOBA</span><span>5v5</span><span>Solo + AI</span></div>
   </section>
   <section class="battle" aria-label="Battlefield">
     <div class="score">
@@ -24,15 +24,15 @@
     <div class="viewport">
       <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Three-lane battle arena"></canvas>
       <div class="overlay" id="brief">
-        <p class="eyebrow">FIELD BRIEFING</p><h2>Choose your front</h2><p>Pick a lane and follow your minions. Break one enemy tower, then turn toward the exposed Core at the center of their base.</p>
+        <h2>Choose a lane</h2><p>Destroy a tower to expose the enemy Core.</p>
         <div class="form-pick"><label for="saberForm">Saber form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint"></p></div>
         <label class="bell-toggle"><input id="bellRally" type="checkbox" aria-describedby="bellHelp"><span>Bell Rally <small>Optional objective</small></span></label><p class="bell-help" id="bellHelp">Hold the center ring uncontested to reinforce one minion in the next mid wave.</p>
         <div class="deploy" aria-label="Choose front and deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
         <small>Blue: you + 4 AI allies · Red: 5 AI rivals · no Arena Elo changes</small>
       </div>
       <div class="overlay" id="finished" hidden>
-        <p class="eyebrow">OPERATIONS REPORT</p><h2 id="result"></h2><p id="resultInfo"></p>
-        <button type="button" id="restart">Choose another front</button>
+        <h2 id="result"></h2><p id="resultInfo"></p>
+        <button type="button" id="restart">Choose another lane</button>
       </div>
     </div>
     <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready to deploy</b><span>HP <b id="heroHP">—</b></span><span>Stamina <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints">WASD move · M map · Esc pause</small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
