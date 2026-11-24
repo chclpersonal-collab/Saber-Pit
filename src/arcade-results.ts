@@ -4,14 +4,15 @@
  */
 export type RoundSaveOutcome='saved'|'conflict'|'session-only'|'unavailable'|'untracked';
 export type RoundLine={kills:unknown;deaths:unknown;damage:unknown;parries:unknown;saberHits:unknown;saberSwings:unknown};
-export type RoundElo={who?:string|null;rank:string;ratingBefore:unknown;ratingAfter:unknown;delta:unknown;floor:number;nextRank:string|null;nextFloor:number|null};
+/** cap is the current Elo cap for this rank; Elo never promotes the training rank. */
+export type RoundElo={who?:string|null;rank:string;ratingBefore:unknown;ratingAfter:unknown;delta:unknown;floor:number;cap:unknown};
 export type RoundResultInput={
   mode:string;teamSizes:readonly number[];round:number;seconds:number;rated:boolean;save:RoundSaveOutcome;
   /** Whose line this is: the player's fighter, or a side's total when watching. */
   who:string|null;line:RoundLine;elo?:RoundElo|null;
 };
 export type RoundEloView=
-  {kind:'saved';who:string|null;rank:string;rating:string;delta:string;up:boolean;toNext:string;pct:number;gainPct:number}|
+  {kind:'saved';who:string|null;rank:string;rating:string;delta:string;up:boolean;toCap:string;bar:boolean;pct:number;gainPct:number}|
   {kind:'unrecorded';text:string}|
   {kind:'unrated';text:string};
 export type RoundResultModel={
@@ -39,17 +40,18 @@ export function resultElo(input:Pick<RoundResultInput,'rated'|'save'|'elo'>):Rou
   if(!input.rated)return {kind:'unrated',text:'Unrated round. Elo unchanged.'};
   if(input.save!=='saved'||!input.elo)return {kind:'unrecorded',text:'Elo not recorded.'};
   const e=input.elo, after=num(e.ratingAfter,e.floor), before=num(e.ratingBefore,after), delta=num(e.delta,after-before);
-  // Arena Elo starts at 100 whatever the career rank, so a rating can sit below its rank's floor.
+  const cap=typeof e.cap==='number'&&Number.isFinite(e.cap)?e.cap:null;
+  // Arena Elo starts at 100 whatever the training rank, so a rating can sit below its rank's floor.
   const low=after<e.floor?Math.floor(Math.min(before,after)/100)*100:e.floor;
-  const top=e.nextFloor===null?null:Math.max(e.nextFloor,low+1);
+  const top=cap===null?null:Math.max(cap,low+1);
   const span=top===null?1:top-low;
-  const pct=top===null?1:Math.min(1,Math.max(0,(after-low)/span));
+  const pct=top===null?0:Math.min(1,Math.max(0,(after-low)/span));
   const gainPct=top===null||delta<=0?0:Math.min(pct,Math.max(0,delta/span));
   const left=top===null?0:top-after;
   return {
     kind:'saved',who:e.who??null,rank:e.rank,rating:text(after),delta:(delta>0?'+':delta<0?'−':'±')+text(Math.abs(delta)),up:delta>0,
-    toNext:top===null?'Top rank':left>.5?text(left)+' to '+e.nextRank:'At cap · rank up to raise it',
-    pct,gainPct,
+    toCap:top===null?'No Elo cap':left>.25?text(left)+' to current Elo cap':'At current Elo cap',
+    bar:top!==null,pct,gainPct,
   };
 }
 

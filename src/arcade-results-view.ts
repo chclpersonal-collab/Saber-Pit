@@ -10,7 +10,7 @@ export function renderRoundResult(root:HTMLElement,model:RoundResultModel){
   if(who){who.textContent=model.who??'';who.hidden=!model.who;}
   if(tiles)tiles.replaceChildren(...model.tiles.map(t=>{
     const box=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');
-    dt.textContent=t.label;dd.textContent=t.value;box.append(dd,dt);return box;
+    dt.textContent=t.label;dd.textContent=t.value;box.append(dt,dd);return box;
   }));
   if(hits)hits.textContent=model.hits;
   if(!elo)return;
@@ -26,10 +26,15 @@ export function renderRoundResult(root:HTMLElement,model:RoundResultModel){
   const unit=document.createElement('span');unit.className='r-unit';unit.textContent='Elo';
   const delta=document.createElement('b');delta.className='r-delta';delta.dataset.up=String(e.up);delta.dataset.flat=String(e.delta.startsWith('±'));delta.textContent=e.delta;
   const saved=document.createElement('span');saved.className='r-saved';saved.textContent='✓ saved';
-  if(e.who){const who=document.createElement('span');who.className='r-unit';who.textContent=e.who;head.append(who);}
   head.append(rank,rating,unit,delta,saved);
-  const bar=document.createElement('div');bar.className='r-bar';bar.setAttribute('aria-hidden','true');
-  bar.style.setProperty('--pct',(e.pct*100).toFixed(1)+'%');bar.style.setProperty('--gain',(e.gainPct*100).toFixed(1)+'%');
-  const next=document.createElement('p');next.className='r-next';next.textContent=e.toNext;
-  elo.replaceChildren(head,bar,next);
+  const parts:HTMLElement[]=[];
+  if(e.who){const who=document.createElement('p');who.className='r-elo-who';who.textContent=e.who+' · Elo';parts.push(who);}
+  parts.push(head);
+  if(e.bar){
+    const bar=document.createElement('div');bar.className='r-bar';bar.setAttribute('aria-hidden','true');
+    bar.style.setProperty('--pct',(e.pct*100).toFixed(1)+'%');bar.style.setProperty('--gain',(e.gainPct*100).toFixed(1)+'%');
+    parts.push(bar);
+  }
+  const next=document.createElement('p');next.className='r-next';next.textContent=e.toCap;parts.push(next);
+  elo.replaceChildren(...parts);
 }

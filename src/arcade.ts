@@ -572,17 +572,16 @@ function showEnd(){
   const promotions=promoted.length>1?' · '+promoted.length+' promotions':selected.promoted?' · Promoted':'';
   const saveNotice=conflict?'Save changed in another tab. Return to Setup to continue that save.':
     sessionOnly?'Session only. Saved run unchanged.':persisted?'':'Save unavailable.';
-  const progress=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions;
+  const progress=(mode==='watch'?'Blue fighter 1: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions;
   // Elo now lives in the result card's own block; this line keeps training and save notices.
   $('rankResult').textContent=ratingUnrecorded?saveNotice:progress+(saveNotice?' · '+saveNotice:'');
   const me=game.fighters.find(f=>f.control), lineKeys=['kills','deaths','damage','parries','saberHits','saberSwings'] as const;
-  const next=SOLDIER_GRADES[selected.after.gradeIndex+1];
   renderRoundResult($('result'),buildRoundResult({
     mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:settled.rated,save:tracked?saveResult:'untracked',
-    who:me?null:mode==='watch'?'Blue side':'Your side',
+    who:me?null:mode==='watch'?'Blue side totals':'Your side totals',
     line:me?me.stats:Object.fromEntries(lineKeys.map(k=>[k,game.stats?.[k]?.[0]])) as Record<typeof lineKeys[number],number>,
-    elo:persisted&&settled.rated?{who:me?null:'Blue lead',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
-      floor:eloFloor(selected.after.grade),nextRank:next?gradeDisplayLabel(next.label):null,nextFloor:next?eloFloor(next.label):null}:null,
+    elo:persisted&&settled.rated?{who:me?null:'Blue fighter 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
+      floor:eloFloor(selected.after.grade),cap:selected.ratingCap}:null,
   }));
   $('again').textContent='Next round';
   updateHUD();

@@ -4,9 +4,10 @@
 #result .r-top .eyebrow{margin:0;font-variant-numeric:tabular-nums}
 #result .r-badge{font:900 .64rem/1 system-ui,sans-serif;letter-spacing:.14em;padding:4px 7px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--muted,#a69b89);color:var(--soft,#c9bead)}
 #result .r-badge[data-rated=true]{background:var(--r-gold);color:#2a1600;box-shadow:none}
-#result .r-who{margin:0 0 4px;font-size:.78rem;color:var(--muted,#a69b89)}
+#result .r-who,#result .r-elo-who{margin:0 0 4px;font:900 .64rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#a69b89)!important}
+#result .r-elo-who{margin-bottom:6px}
 #result .r-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 0}
-#result .r-tiles div{padding:8px 4px;border-radius:10px;background:#ffffff0f;box-shadow:inset 0 0 0 1px #ffffff1a;text-align:center;min-width:0}
+#result .r-tiles div{display:flex;flex-direction:column-reverse;align-items:center;padding:8px 4px;border-radius:10px;background:#ffffff0f;box-shadow:inset 0 0 0 1px #ffffff1a;text-align:center;min-width:0}
 #result .r-tiles dd{margin:0;font:800 1.55rem/1 var(--display,system-ui);font-variant-numeric:tabular-nums;color:var(--text,#f3eadb)}
 #result .r-tiles dt{margin-top:4px;font:800 .62rem/1 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted,#a69b89)}
 #result .r-hits{margin:6px 0 10px;text-align:center;font:700 .8rem/1 system-ui,sans-serif;color:var(--muted,#a69b89)!important;font-variant-numeric:tabular-nums}
