@@ -143,6 +143,11 @@ function entries(value: BackupStates[BackupSection],config: SectionConfig,k: Bac
   return {label:config.label,seasons:career.season,records:Object.keys(k==='duel'?(career as DuelSave).records:(career as SquadSave).teams).length,
     heroes:k==='duel'?Object.keys((career as DuelSave).heroes).length:0,peaks:Object.keys(career.peaks??{}).length};
 }
+/** True when this browser holds at least one section a backup would include. */
+export function hasArcadeSaves(storage?: StorageReader | null): boolean {
+  try{const source=store(storage);return !!source&&Object.values(CONFIG).some(c=>source.getItem(c.key)!==null);}
+  catch{return false;}
+}
 export function inspectArcadeBackup(text: unknown): BackupInspection | BackupFailure {
   try{
     if(typeof text!=='string'||text.length>MAX_BACKUP_BYTES||bytes(text)>MAX_BACKUP_BYTES)return fail('This file is larger than the backup limit.');

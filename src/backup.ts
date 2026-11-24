@@ -1,5 +1,6 @@
 import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js';
 import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=4.01.1';
+import {daysSinceBackup,markBackupSaved} from './backup-reminder.js';
 const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
 const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');
@@ -55,10 +56,13 @@ $('downloadBackup').addEventListener('click',()=>{
     url=URL.createObjectURL(new Blob([result.text],{type:'application/json'}));
     const a=node('a');a.href=url;a.download='saber-pit-save-'+result.bundle.createdAt!.slice(0,10)+'.json';a.hidden=true;
     document.body.append(a);a.click();a.remove();
+    markBackupSaved();lastBackup();
     announce('Backup ready. Look in your downloads.','success');
   }catch{announce('The browser could not start the download.','error');}
   finally{if(url)setTimeout(()=>URL.revokeObjectURL(url!),2000);}
 });
+function lastBackup(){const d=daysSinceBackup(),el=document.getElementById('backupLast');if(el)el.textContent=d===null?'':d===0?'Last download: today':'Last download: '+d+(d===1?' day':' days')+' ago';}
+lastBackup();
 confirm.addEventListener('change',sync);
 sections.addEventListener('change',()=>{confirm.checked=false;sync();});
 replace.addEventListener('click',()=>{
