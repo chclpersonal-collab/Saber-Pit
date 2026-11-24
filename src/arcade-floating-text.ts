@@ -1,4 +1,5 @@
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
+import {declutterArcadeCallouts,arcadeCalloutBudget,arcadeCalloutText} from './arcade-callout-declutter.js?v=5.1.0';
 
 interface Cue{label:string;style:string;priority:number;tone:string;life:number;key:string}
 interface Point{x:number;y:number}
@@ -41,12 +42,12 @@ function labelAt(f:CueActor|undefined,e:CueEvent){
 /** Read-only combat event view. Call update with wall-clock seconds and draw
  * in the existing world transform after the fighters. No DOM or sim writes. */
 export function createArcadeFloatingText(){
- let lastId=0,time=0;
+ let lastId=0,time=0,roster=0;
  const active:Caption[]=[], seen=new Map<string,number>(), cooldown=new Map<string,number>(), promoted=new Set<string>();
  return {
-   reset(){lastId=time=0;active.length=0;seen.clear();cooldown.clear();promoted.clear();},
+   reset(){lastId=time=roster=0;active.length=0;seen.clear();cooldown.clear();promoted.clear();},
    update(dt:number,events:readonly CueEvent[]=[],fighters:readonly CueActor[]=[],{focusId,crowd=fighters.length>6}:{focusId?:string|null;crowd?:boolean}={}){
-     time+=max(finite(dt),0,.25);
+     time+=max(finite(dt),0,.25);roster=fighters.length;
      for(let i=active.length-1;i>=0;i--)if(time>=active[i].born+active[i].life)active.splice(i,1);
      if(!events.length||events[events.length-1].id<=lastId)return active.length;
      for(const [key,end] of seen)if(time>=end)seen.delete(key);
@@ -97,21 +98,27 @@ export function createArcadeFloatingText(){
      ctx.save();
      ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.lineJoin='round';
      const inherited=finite(ctx.globalAlpha,1);
-     for(const item of active){
+     // Team fights: same-label callouts merge with a count, big fights keep a small label
+     // budget, and the player's own label and KO and parry cues always stay readable.
+     const kept=declutterArcadeCallouts(active.map((item,i)=>({actor:String(i),label:item.label,x:item.x,y:item.y+item.offsetY,
+       priority:item.priority,focus:item.focus})),{budget:arcadeCalloutBudget(roster)});
+     for(const shown of kept){
+       const item=active[+shown.actor];
+       const label=arcadeCalloutText(shown),merged=shown.count>1;
        const age=Math.max(0,time-item.born);
        const rise=reducedMotion?0:26*pop(max(age/item.life,0,1));
-       const y=item.y+item.offsetY-rise;
+       const y=shown.y-rise;
        ctx.globalAlpha=inherited*visibleAlpha(age,item.life);
        ctx.font='900 '+item.size+'px system-ui, sans-serif';
        ctx.lineWidth=4;ctx.strokeStyle=palette.ink;
        ctx.fillStyle=item.priority>=4?palette.bright:palette.gold;
-       ctx.strokeText(item.label,item.x,y,item.width);
-       ctx.fillText(item.label,item.x,y,item.width);
-       if(item.style){
+       ctx.strokeText(label,shown.x,y,item.width);
+       ctx.fillText(label,shown.x,y,item.width);
+       if(item.style&&!merged){
          ctx.font='800 '+Math.max(11,Math.round(item.size*.64))+'px system-ui, sans-serif';
          ctx.lineWidth=3;ctx.fillStyle=palette.light;
-         ctx.strokeText(item.style,item.x,y+15,item.width);
-         ctx.fillText(item.style,item.x,y+15,item.width);
+         ctx.strokeText(item.style,shown.x,y+15,item.width);
+         ctx.fillText(item.style,shown.x,y+15,item.width);
        }
      }
      ctx.restore();

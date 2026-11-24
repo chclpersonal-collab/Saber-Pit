@@ -5,7 +5,7 @@ import {arcadeReplayRules,supportsArcadeReplay} from './arcade-replay-rules.js?v
 import {createArcadeStage,drawArcadeStage,drawArcadeObstacle} from './arcade-stage.js?v=4.0.0';
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {actionFrame,stepActionFrame} from './arcade-camera.js?v=2.16.0';
-import {createArcadeFloatingText} from './arcade-floating-text.js?v=2.42.0';
+import {createArcadeFloatingText} from './arcade-floating-text.js?v=5.1.0';
 import {createReplayStepper} from './replay-stepper.js?v=3.0.0';
 import {fighterSamples,displayFighters,type ArcadeDisplayFighter} from './arcade-display.js?v=2.44.0';
 
