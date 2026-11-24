@@ -4,6 +4,12 @@ Goal: a full major release. Combat that flows from any pose like Alan Becker
 lightsaber fights and Madness Combat, a cleaner visual identity, and a new
 MOBA mode. Built on main at 4.1.4 (`ced1ad6`).
 
+> Split agreed with Clara (SABER-V5-01): Clara's team owns gameplay, UI
+> integration and the 5v5 lanes mode in its own candidate build. Clarissa
+> audits combat feel, mobile readability and save compatibility, read-only,
+> and patches only isolated files after agreeing paths. Findings:
+> `docs/v5-audit.md`. The owner lines below are the earlier proposal.
+
 Rules for every phase:
 
 - Strict TypeScript only, no checked-in JS. `npm run typecheck:all`, `npm test`,
