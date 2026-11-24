@@ -943,7 +943,7 @@ function frame(now:number){
   if(view==='game'&&!crowdedLOD&&game.fighters.length>=12&&displayTime>1.6&&clock.fps>0&&clock.fps<38){
     crowdedLOD=true;resize();
   }
-  const simVisible=!paused&&!$('statsDialog').open&&!$('rankDialog').open&&!$('guide').open;
+  const simVisible=!paused&&!$('statsDialog').open&&!$('rankDialog').open&&!$('guide').open&&!$('keysDialog').open&&!document.querySelector('#settingsDialog[open],#statsPage[open]');
   if(simVisible&&$('frameRate').textContent!==fps)$('frameRate').textContent=fps;
   if(!document.hidden){
     if(simVisible){
