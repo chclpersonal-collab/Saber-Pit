@@ -33,6 +33,8 @@
         <button id="labJump" type="button">Jump</button>
         <button id="labCompare" class="strong" type="button" aria-describedby="labCompareHelp">Compare 3 styles</button>
         <button id="labCompareWeapons" type="button" aria-describedby="labWeaponCompareHint">Compare 3 weapons</button>
+        <button id="labPause" type="button" aria-pressed="false" disabled>Pause</button>
+        <button id="labStep" type="button" title="One frame at quarter speed" disabled>Step</button>
         <button id="labStop" type="button" disabled>Stop</button>
       </div>
       <p id="labWeaponCompareHint" class="notes" hidden>Choose a saber attack to compare weapon lengths.</p>
@@ -49,6 +51,7 @@
           <label>Attack from<select id="labEntry"><option value="set">Set stance</option><option value="step">Side step</option><option value="turn">Turning step</option><option value="guard">Guard release</option></select></label>
           <label>Custom target angle (degrees)<input id="labAngle" type="number" step="any" inputmode="decimal" placeholder="Use bearing above" aria-describedby="labAngleHint"></label>
           <label>Practice speed<select id="labPace"><option value="1" selected>Normal</option><option value="0.5">Half speed</option><option value="0.25">Quarter speed</option></select></label>
+          <label class="check"><input type="checkbox" id="labLoop"> Loop drill</label>
           <p id="labAngleHint" class="notes two">0° is east. Angles increase clockwise. Leave blank for the preset bearing.</p>
         </div>
       </details>
