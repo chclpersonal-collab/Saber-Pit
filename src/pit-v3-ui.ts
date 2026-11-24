@@ -23,6 +23,9 @@ if(form&&tabs){
     });
   });
   form.addEventListener('invalid',event=>{
+    // Customize match folds the detailed fields; open it so the browser can point at the bad one.
+    const fold=(event.target as Element|null)?.closest?.('details.setup-custom');
+    if(fold instanceof HTMLDetailsElement&&!fold.open)fold.open=true;
     const index=panels.findIndex(panel=>panel.contains(event.target as Node|null));
     if(index>=0&&panels[index].hidden)show(index);
   },true);

@@ -1285,6 +1285,11 @@ function updateSetupHints(){
       :p&&setup.participation===p.participation&&setup.rule===p.rule&&setup.teamSizes.join()===p.teamSizes.join();
     b.setAttribute('aria-pressed',String(Boolean(same)));
   }
+  const summary=document.getElementById('setupSummary');
+  if(summary){
+    const pickText=(id:string)=>(document.getElementById(id) as HTMLSelectElement|null)?.selectedOptions[0]?.textContent?.trim()??'';
+    summary.textContent=[pickText('participation'),setup.teamSizes.join('v'),pickText('rule'),pickText('mapPick'),pickText('mapSize')].filter(Boolean).join(' · ');
+  }
   $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.read??'':'';
   $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':field(FORM_AIR_NAMES,setup.form)??'';
 }
@@ -1344,7 +1349,7 @@ for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
     if(!p)return;
     if(key==='master')imported=null;
     setup=normalizeSetup({...setup,...p,...(key==='master'?{heroPicks:[]}:{}),playerSlot:0});applyLobby();saveSetup(setup);setScene('menu');
-    $('setupStatus').textContent=button.textContent+' preset selected.';
+    $('setupStatus').textContent=(button.querySelector('b')?.textContent??button.textContent)+' preset selected.';
   });
 }
 $('resetSetup').addEventListener('click',()=>{setup=normalizeSetup();imported=null;applyLobby();saveSetup(setup);setScene('menu');$('setupStatus').textContent='Setup reset.';});
