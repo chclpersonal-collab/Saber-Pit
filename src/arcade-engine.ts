@@ -160,7 +160,8 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
   const decisiveSquad=squadDecisive===true&&mode==='watch'&&sizes.every(n=>n===5);
   // Organized squads: off unless asked for, never in duels, so rated play and old replays stay unchanged.
   // The key is only added when on, so state hashes of every existing mode stay byte-identical.
-  if(squadTactics===true&&mode!=='duel'&&sizes.some(n=>n>1))s.squadTactics={next:0,plans:[null,null],since:[0,0]};
+  // Never with Arena Elo: a rated setup stays byte-identical even if the flag is passed by mistake.
+  if(squadTactics===true&&arenaRatingSkill!==true&&mode!=='duel'&&sizes.some(n=>n>1))s.squadTactics={next:0,plans:[null,null],since:[0,0]};
   s.elitePacing=config.rule==='elimination'&&sizes[0]===sizes[1]&&s.fighters.every(f=>f.career.grade==='SSS+V') ?
     {active:true,stage:'measured',fullAt:decisiveSquad?.47:.91,measuredUntil:decisiveSquad?.24:.81,
       ...(decisiveSquad?{injuryCapUntil:.32}:{})} : null;
