@@ -8,9 +8,9 @@ interface PlaybackScene { key: string; legacy: boolean; result: QuestResult | nu
 import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=4.01.1';
 import * as campaign from './arcade-idle-campaign.js?v=4.0.0';
 import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=4.01.1';
-import * as rigArt from './arcade-fighters.js?v=4.0.0';
-import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=4.0.0';
-import {ARCADE_FORMS} from './arcade-engine.js?v=3.0.0';
+import * as rigArt from './arcade-fighters.js?v=5.0.0';
+import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=5.0.0';
+import {ARCADE_FORMS} from './arcade-engine.js?v=5.0.0';
 import {BELL_GUARDIAN,restoreQuestEncounter,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=3.0.0';
 import {startArcadeTournamentPlayback} from './tournament-replay.js?v=4.0.0';
 

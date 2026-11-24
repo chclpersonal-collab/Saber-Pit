@@ -33,7 +33,7 @@ export function arcadeGait(distance:number,step=0,running=0) {
   return {reach:mix(-heel,heel,ease),lift,sole:mix(.34,-.25,ease),planted:false,phase:p};
 }
 
-const DISPLAY_STEP=64;
+export const DISPLAY_STEP=64;
 export function displayStep(distance:number,side:number,run:number){
   const support=mix(.66,.48,run), p=phase(distance/DISPLAY_STEP+side*.5);
   const reach=DISPLAY_STEP*support*.5;

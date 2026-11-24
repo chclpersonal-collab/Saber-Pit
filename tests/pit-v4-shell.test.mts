@@ -11,7 +11,7 @@ test('play and watch launch shortcuts target the exact validated match form',asy
  assert.match(html,/nav class="pit-nav" aria-label="Game modes"/);
  const pkg=JSON.parse(await readFile(new URL('../../package.json',import.meta.url),'utf8'));
  const [major,minor,patch]=pkg.version.split('.');
- assert.ok(html.includes('VERSION '+[major,minor.padStart(2,'0'),patch].join('.')));
+ assert.ok(html.includes('VERSION '+[major,major==='4'?minor.padStart(2,'0'):minor,patch].join('.')));
  const participation={value:'play'};
  let submit;
  const form={querySelector:()=>null,addEventListener:(name,fn,capture)=>{

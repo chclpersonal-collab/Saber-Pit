@@ -42,16 +42,16 @@ type RecoveryPose={impactAt:number;time:number;x:number;y:number;body:Record<Che
 type Emitter=ReturnType<typeof arcadeBladeWorld>['blades'][number];
 type Interruption={time:number;x:number;y:number;blades:Emitter[];target:Emitter[];span:number};
 type InterruptionPose={kind:string;time:number;x:number;y:number;phase:string;blades:Emitter[];bridge:Interruption|null};
-type SupportFoot={anchor?:Point;toe?:Point;planted?:boolean;swing?:{forcedAt?:number;anchor:Point;toe:Point;target:Point;targetToe?:Point}|null};
+type SupportFoot={anchor?:Point;toe?:Point;planted?:boolean;cycle?:number;cycleRun?:number;resume?:boolean;swing?:{forcedAt?:number;fromSwing?:number;anchor:Point;toe:Point;target:Point;targetToe?:Point}|null};
 type PlantMemory={legs:SupportFoot[];x?:number;y?:number;time?:number;distance?:number;idleSince?:number|null;axis?:Point;
-  lastFeet?:Leg[];replant?:number};
+  lastFeet?:Leg[];lastWorld?:LegWorld[];stopFeet?:LegWorld[];stopGoal?:LegWorld[];stopRoot?:Point;stopReach?:number;stopSupport?:number;replant?:number};
 type DrawOptions={ghost?:boolean|string;reducedMotion?:boolean;rig?:Rig;selected?:boolean;outline?:boolean;
   lowDetail?:boolean;pathFactory?:()=>Path2D|null;crowded?:boolean;hideSabers?:boolean;width?:number;height?:number;time?:number;framing?:string};
 
 import {polygon,line,flatEllipse,celPath,unit,at} from './arcade-rig-canvas.js';
 import {JUMP_STYLE,aerialLowerBody,ataruAerialTrick} from './arcade-rig-aerial.js';
 import {ATTACK_BEATS,visualFamily,contactEnvelope,staffSweep} from './arcade-rig-swing.js';
-import {arcadeFoot,arcadeGait,GAIT_STRIDE,displayStep} from './arcade-rig-gait.js';
+import {arcadeFoot,arcadeGait,GAIT_STRIDE,DISPLAY_STEP,displayStep} from './arcade-rig-gait.js?v=5.0.0';
 import {clashBind} from './arcade-rig-bind.js';
 export {arcadeFoot,arcadeGait};
 import {arcadeRigRotation,arcadeBasis,arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld} from './arcade-rig-projection.js';
@@ -1415,6 +1415,40 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
   const dy=priorFrame?root.y-memory!.y!:visual?.dy??val(f.vy);
   const speed=priorFrame?moved/elapsed:visual?.speed??val(f.groundSpeed,Math.hypot(dx,dy));
   if(speed<5||Math.hypot(dx,dy)<1e-5){
+    if(f.peasantMotion===true&&memory?.lastWorld){
+      // Very slow actual travel can still carry the body away over many
+      // frames. Re-evaluate near that point, rather than stretch a locked boot.
+      if(memory.idleSince==null||!memory.stopRoot||
+        Math.hypot(root.x-memory.stopRoot.x,root.y-memory.stopRoot.y)>12){
+        memory.idleSince=time;memory.stopRoot=root;
+        memory.stopFeet=memory.lastWorld;
+        memory.stopGoal=arcadeFeetWorld(f,r);
+        // Keep the closest already grounded sole. The free foot makes a
+        // small deliberate closing step instead of both soles skating home.
+        const existing=memory.stopFeet.filter(l=>l.planted);
+        memory.stopSupport=existing.sort((a,b)=>
+          Math.hypot(a.foot.x-root.x,a.foot.y-root.y)-Math.hypot(b.foot.x-root.x,b.foot.y-root.y))[0]?.side;
+        const held=existing[0];
+        memory.stopReach=held?Math.hypot(held.foot.x-root.x,held.foot.y-root.y):0;
+      }
+      memory.time=time;memory.x=root.x;memory.y=root.y;memory.distance=distance;
+      const age=time-memory.idleSince;
+      const {local}=arcadeBasis(f,r);
+      const legs=r.legs.map(leg=>{
+        const prior=memory!.stopFeet!.find(p=>p.side===leg.side);
+        const goal=memory!.stopGoal!.find(p=>p.side===leg.side);
+        if(!prior||!goal)return leg;
+        const planted=leg.side===memory!.stopSupport;
+        const settle=planted&&val(memory!.stopReach)<=29?0:planted?smooth((age-.12)/.13):smooth(age/.14);
+        const lift=Math.sin(Math.PI*settle)*(planted?3:5);
+        const close=(from:Point,to:Point,n:number)=>local(P(mix(from.x,to.x,settle),mix(from.y,to.y,settle)-n));
+        return {...leg,foot:close(prior.foot,goal.foot,lift),toes:close(prior.toes,goal.toes,lift),
+          k:close(prior.k,goal.k,lift*.25),planted:planted?settle===0||settle===1:settle===1||settle===0&&prior.planted};
+      });
+      const settled={...r,legs:legs.sort((a,b)=>a.foot.y-b.foot.y)};
+      memory.lastWorld=arcadeFeetWorld(f,settled);
+      return settled;
+    }
     if(!memory?.lastFeet){footPlants.delete(actor);return r;}
     memory.idleSince??=time;
     memory.time=time;memory.x=root.x;memory.y=root.y;memory.distance=distance;
@@ -1435,6 +1469,15 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
   const turnDelta=Math.atan2(Math.sin(goalAngle-priorAngle),Math.cos(goalAngle-priorAngle));
   const angle=priorAngle+turnDelta*responsiveness;
   const basis=P(Math.cos(angle),Math.sin(angle));
+  if(f.peasantMotion===true&&memory.idleSince!=null&&memory.lastWorld){
+    // A restart starts each heel from its last painted location, including
+    // a partial closing step interrupted by a newly requested movement.
+    for(const sole of memory.lastWorld){
+      const prior=memory.legs[sole.side];
+      prior.anchor=sole.foot;prior.toe=sole.toes;prior.swing=null;prior.planted=sole.planted;prior.resume=true;
+    }
+    memory.replant=0;
+  }
   memory.idleSince=null;memory.axis=basis;memory.x=root.x;memory.y=root.y;memory.time=time;memory.distance=distance;
   const run=smooth((speed-100)/68), weight=smooth((speed-5)/15)*(1-r.poseEntryBlend);
   const turn=val(f.face), face=P(Math.cos(turn),Math.sin(turn));
@@ -1442,7 +1485,14 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
   const {project,local}=arcadeBasis(f,r);
   const feet=r.legs.map(leg=>{
     const side=leg.side, sign=side?1:-1;
-    const step=displayStep(distance,side,run), prior=memory.legs[side];
+    const prior=memory.legs[side];
+    let stepRun=run;
+    if(f.peasantMotion===true){
+      const cycle=Math.floor(distance!/DISPLAY_STEP+side*.5);
+      if(prior.cycle!==cycle){prior.cycle=cycle;prior.cycleRun=run;}
+      stepRun=prior.cycleRun??run;
+    }
+    const step=displayStep(distance!,side,stepRun);
     const spread=mix(7,12,lateral)+(cautious?1.5:0);
     const worldToe=(ankle:Point)=>P(ankle.x+face.x*9,ankle.y+1+face.y*6);
     const oldFoot=project(leg.foot), oldToe=project(leg.toes);
@@ -1480,22 +1530,28 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
         // Predict a fixed touchdown from actual travel. Facing changes may
         // alter the next stride, but don't drag this foot across the floor.
         const target=destination(mix(30,43,run)*(1-.34*step.swing));
-        prior.swing={anchor:prior.anchor??oldFoot,toe:prior.toe??oldToe,target,targetToe:worldToe(target)};
+        prior.swing={anchor:prior.anchor??oldFoot,toe:prior.toe??oldToe,target,targetToe:worldToe(target),
+          ...(prior.resume?{fromSwing:step.swing}:{})};
       }
-      const s=prior.swing,u=smooth(step.swing);
+      const s=prior.swing;
+      const swing=s.fromSwing===undefined?step.swing:clamp((step.swing-s.fromSwing)/Math.max(.001,1-s.fromSwing));
+      const u=smooth(swing);
       footWorld=blend(s.anchor,s.target,u);toeWorld=blend(s.toe,s.targetToe!,u);
-      lift=step.lift*(cautious?.87:1);
+      lift=step.lift*(cautious?.87:1)*(s.fromSwing===undefined?1:smooth(swing/.36));
     }
-    prior.planted=planted;
+    prior.planted=planted;prior.resume=false;
     const foot=local(P(footWorld.x,footWorld.y-lift)), toes=local(P(toeWorld!.x,toeWorld!.y-lift));
-    const ankle=planted?foot:blend(leg.foot,foot,weight),tip=planted?toes:blend(leg.toes,toes,weight);
+    const groundedSole=planted||f.peasantMotion===true;
+    const ankle=groundedSole?foot:blend(leg.foot,foot,weight),tip=groundedSole?toes:blend(leg.toes,toes,weight);
     const delta=P(ankle.x-leg.foot.x,ankle.y-leg.foot.y);
     return {...leg,foot:ankle,toes:tip,k:P(leg.k.x+delta.x*.54+sign*lateral*1.7*weight,
       leg.k.y+delta.y*.48-lateral*lift*.10/poseScale),planted};
 
   });
   memory.lastFeet=feet;
-  return {...r,legs:feet.sort((a,b)=>a.foot.y-b.foot.y)};
+  const stride={...r,legs:feet.sort((a,b)=>a.foot.y-b.foot.y)};
+  if(f.peasantMotion===true)memory.lastWorld=arcadeFeetWorld(f,stride);
+  return stride;
 }
 
 // The motion rig remains untouched. Keep already-painted ground contact
@@ -1505,6 +1561,18 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
 // emitters, simulation positions, or ground contact.
 const bodyHandoffs=new WeakMap<object,FacePose>();
 const bodyHandoffMoves=new Set(['ready','guard','slash','sweep','rush','parry','feint','freehand']);
+// Artist-facing upper-body keys: chamber, contact, overshoot, robe torque.
+// Coordinates are display pixels before fighter scale, not weapon movement.
+const BODY_SWING_KEYS={
+  cut:[[-5,4],[4,-1],[8,2],.46],
+  thrust:[[-6,0],[9,-2],[7,-1],.12],
+  sweep:[[-9,7],[6,3],[10,6],.85],
+  rise:[[-4,8],[3,-7],[6,-9],-.56],
+  screen:[[-3,-3],[-2,-6],[-5,-4],-.34],
+  return:[[5,3],[-3,-3],[-7,-1],-.62],
+  vault:[[-4,5],[6,-4],[7,-6],.57],
+} as const;
+
 function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
   const actor=f[WALK_SOURCE]?.actor??f;
   if(f.peasantMotion!==true||r.reducedMotion||f.alive===false||r.airPhase!=='grounded'||
@@ -1515,20 +1583,39 @@ function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
   const root=P(val(f.x),val(f.y)), prior=bodyHandoffs.get(actor);
   const face=val(f.face),v=Math.hypot(val(f.vx),val(f.vy));
   const drive=val(f.groundBearing,Math.atan2(val(f.vy),val(f.vx)));
-  let leadX=0,leadY=0;
+  let leadX=0,leadY=0,robeTurn=0,contactSpan=Infinity;
   if(r.action==='ready'||r.action==='guard'){
     const measured=v>1?val(f.groundPace,clamp(val(f.groundSpeed,v)/175)):0;
     leadX=Math.cos(drive)*measured*(r.action==='guard'?4:6);
     leadY=Math.sin(drive)*measured*1.75;
     if(r.action==='guard'&&f.guardRead==='ready')leadY+=1.75*Math.sin(Math.PI*clamp(val(f.actionTime)/.21));
-  }else if(r.peasantPhrase&&isFinite(f.attackSpec?.contact)){
-    const contact=f.attackSpec!.contact, ratio=val(f.actionTime)/Math.max(.01,contact);
-    const load=ratio<1?Math.sin(Math.PI*clamp(ratio))**2:0;
-    // Distinct silhouettes, tied to the same release the engine checks.
-    const broad=['sweep','rise'].includes(r.attackFamily!);
-    const release=Math.sin(Math.PI*clamp((val(f.actionTime)-contact!)/Math.max(.01,val(f.actionDuration)-contact!)))**2;
-    leadX=r.forward*(-(broad?5:3.1)*load+(broad?7:4.8)*release);
-    leadY=(broad?3.7:2.2)*load-2.6*release;
+  }else if(f.attack&&r.attackFamily&&!f.saberOff&&!f.attackSpec?.forceAbility&&!f.attackSpec?.freeHand&&isFinite(f.attackSpec?.contact)){
+    const contact=Math.max(.01,f.attackSpec!.contact!);
+    const age=val(f.actionTime);
+    const wind=clamp(age/contact);
+    const finish=clamp((age-contact)/Math.max(.05,val(f.actionDuration)-contact));
+    const family=r.attackFamily as keyof typeof BODY_SWING_KEYS|null;
+    const [back,touch,follow,torque]=family&&Object.hasOwn(BODY_SWING_KEYS,family)?BODY_SWING_KEYS[family]:BODY_SWING_KEYS.cut;
+    let horizontal, lift;
+    if(age<contact){
+      // The silhouette explicitly chambers and then changes direction
+      // before the authoritative contact; a player sees the wind-up.
+      const cock=wind<.55?smooth(wind/.55):1-smooth((wind-.55)/.45);
+      const go=smooth((wind-.55)/.45);
+      horizontal=back[0]*cock+touch[0]*go;
+      lift=back[1]*cock+touch[1]*go;
+      robeTurn=torque*(-.43*cock+.47*go);
+    }else{
+      // Follow through sooner than a symmetric pulse, settle for longer.
+      const swing=smooth(finish/.28), slack=1-smooth((finish-.28)/.72);
+      horizontal=mix(touch[0],follow[0],swing)*slack;
+      lift=mix(touch[1],follow[1],swing)*slack;
+      robeTurn=torque*mix(.47,1,swing)*slack;
+    }
+    leadX=horizontal*Math.cos(face);
+    leadY=lift+horizontal*Math.sin(face)*.28;
+    robeTurn*=r.hdx;
+    contactSpan=contact;
   }
   const target={shoulder:P(r.shoulder.x+leadX,r.shoulder.y+leadY),
     head:P(r.head.x+leadX*.54,r.head.y+leadY*.51)};
@@ -1544,13 +1631,15 @@ function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
     const age=time-carry.at;
     if(age<.135){
       const bridge=(from:Point,to:Point,span:number)=>P(mix(from.x,to.x,smooth(age/span)),mix(from.y,to.y,smooth(age/span)));
-      shoulder=bridge(carry.shoulder,target.shoulder,.104);
-      head=bridge(carry.head,target.head,.135);
+      // Never give a short attack the same 135 ms handoff as a measured
+      // recovery: the previous pose would swallow its whole chamber.
+      shoulder=bridge(carry.shoulder,target.shoulder,Math.min(.104,Math.max(.025,contactSpan*.42)));
+      head=bridge(carry.head,target.head,Math.min(.135,Math.max(.036,contactSpan*.62)));
     }else carry=null;
   }
   bodyHandoffs.set(actor,{kind,root,time,shoulder,head,carry});
-  if(!leadX&&!leadY&&!carry)return r;
-  return {...r,shoulder,head,
+  if(!leadX&&!leadY&&!robeTurn&&!carry)return r;
+  return {...r,shoulder,head,torsoTurn:r.torsoTurn+robeTurn,
     frontElbow:P(r.frontElbow.x+(shoulder.x-r.shoulder.x)*.38,r.frontElbow.y+(shoulder.y-r.shoulder.y)*.38),
     backElbow:P(r.backElbow.x+(shoulder.x-r.shoulder.x)*.31,r.backElbow.y+(shoulder.y-r.shoulder.y)*.31)};
 }
@@ -1760,13 +1849,23 @@ export function sampleArcadeBladeInterruption(f:Fighter, r:PaintRig, time:number
   const close=previous&&time>=previous.time&&time-previous.time<.080&&
     Math.hypot(x-previous.x,y-previous.y)<18&&previous.phase===base.phase&&
     previous.blades.length===base.blades.length&&previous.blades.every((b,i)=>b.id===base.blades[i].id);
-  const eligible=passiveBladePoses.has(r.action)&&!f.attack&&!r.clash;
+  const passiveJump=r.action==='jump'&&r.airPhase!=='grounded'&&!r.trick?.kind;
+  const eligible=(passiveBladePoses.has(r.action)||passiveJump)&&!f.attack&&!r.clash;
   let bridge=close&&eligible?previous.bridge:null;
-  if(close&&eligible&&kind!==previous.kind){
+  if(close&&eligible&&(!passiveJump&&kind!==previous.kind||passiveJump&&!bridge)){
     const gap=Math.max(...base.blades.map((b,i)=>Math.hypot(
       b.tip.x-previous.blades[i].tip.x-x+previous.x,b.tip.y-previous.blades[i].tip.y-y+previous.y)));
-    if(gap>9)bridge={time,x:previous.x,y:previous.y,blades:previous.blades,target:base.blades,
-      span:r.action==='parry'?.055:r.action==='guard'?.075:.098};
+    // On a passive jump a shortest-angle authored branch may flip at π
+    // inside the same action. Smooth only that sharp twist around a steady
+    // hilt. Don't slow an actual lunge, trick, strike, or bind.
+    const seam=passiveJump&&gap>35&&base.blades.some((b,i)=>{
+      const old=previous.blades[i];
+      const ax=b.tip.x-b.hand.x,ay=b.tip.y-b.hand.y, bx=old.tip.x-old.hand.x,by=old.tip.y-old.hand.y;
+      const angle=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);
+      return Math.abs(angle)>1.02&&Math.hypot(b.hand.x-old.hand.x-x+previous.x,b.hand.y-old.hand.y-y+previous.y)<15;
+    });
+    if(seam||!passiveJump&&gap>9)bridge={time,x:previous.x,y:previous.y,blades:previous.blades,target:base.blades,
+      span:passiveJump?.105:r.action==='parry'?.055:r.action==='guard'?.075:.098};
   }
   if(bridge&&time-bridge.time>=bridge.span)bridge=null;
   let paint=r;
@@ -1823,7 +1922,10 @@ export function sampleArcadeAirHandoff(f:Fighter, r:PaintRig, time:number){
     const launch=phase==='takeoff'&&prior.phase==='grounded';
     const catchDown=phase==='landing'&&prior.phase==='airborne';
     const stepOut=phase==='grounded'&&prior.phase==='landing';
-    bridge=null;
+    // The feet can still be leaving their takeoff paint bridge when the
+    // engine switches phase (notably Ataru's quick dash launch).
+    const midLift=phase==='airborne'&&prior.phase==='takeoff'&&bridge?.phase==='takeoff';
+    if(!midLift)bridge=null;
     if(launch||catchDown||stepOut){
       const origin={x:prior.x,y:prior.y}, feet=arcadeFeetWorld(origin,prior.paint);
       const basis=arcadeBasis(origin,prior.paint);
@@ -1867,20 +1969,28 @@ export function sampleArcadeAirHandoff(f:Fighter, r:PaintRig, time:number){
 }
 
 /** Shared live-art rig for both drawing styles. The engine never calls this. */
-const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[]}>();
+const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[];phase?:string;launchUntil?:number}>();
 /** Follow the painted pose, with a short world-space boot lift at pose seams.
  * This is the final visual layer; the physical rig/weapon endpoints are never
  * interpolated here. Airborne steps, teleports and reduced motion opt out. */
 function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
   const actor=f[WALK_SOURCE]?.actor??f;
+  const prev=soleTrajectories.get(actor), phase=r.airPhase;
+  // The final sole cap may still be catching up after the dash lifts off.
+  // Carry it from the actual previous frame into the short passive launch,
+  // not from the pre-cap rig, and never apply it to authored aerial attacks.
+  const launchUntil=f.recoveryFlow===true&&phase==='airborne'&&r.action==='dash'&&!f.attack&&
+    prev&&time>=prev.time&&time-prev.time<.05?
+        (prev.phase==='takeoff'?time+.082:prev.launchUntil):undefined;
+  const launch=launchUntil!==undefined&&time<launchUntil;
   if(f.peasantMotion!==true||r.reducedMotion||f.alive===false||
-    !['grounded','takeoff','landing'].includes(r.airPhase!)||!isFinite(time)){
+    (!['grounded','takeoff','landing'].includes(phase!)&&!launch)||!isFinite(time)){
     soleTrajectories.delete(actor);return r;
   }
-  const root=P(val(f.x),val(f.y)), target=arcadeFeetWorld(f,r), prev=soleTrajectories.get(actor);
+  const root=P(val(f.x),val(f.y)), target=arcadeFeetWorld(f,r);
   const dt=prev?time-prev.time:0, rootStep=prev?Math.hypot(root.x-prev.root.x,root.y-prev.root.y):0;
   if(!prev||dt<0||dt>.105||rootStep>18){
-    soleTrajectories.set(actor,{time,root,feet:target});return r;
+    soleTrajectories.set(actor,{time,root,feet:target,phase});return r;
   }
   const {local}=arcadeBasis(f,r), next:LegWorld[]=[];
   let changed=false;
@@ -1891,7 +2001,7 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
     const toeReach=Math.hypot(goal.toes.x-prior.toes.x,goal.toes.y-prior.toes.y);
     const settle=prior.planted&&goal.planted&&reach<.8&&toeReach<1.1&&rootStep<4.2;
     const seam=Math.max(reach,toeReach);
-    const limit=clamp(dt*420+rootStep*.23,.35,12);
+    const limit=clamp(dt*(launch?1130:420)+rootStep*.23,.35,12);
     if(!settle&&seam<=limit){next.push(goal);return leg;}
     if(settle&&seam<1e-6){next.push(goal);return leg;}
     changed=true;
@@ -1905,7 +2015,7 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
     next.push({side:leg.side,foot,toes,k:knee,planted:groundedPlanted});
     return {...leg,foot:local(foot),toes:local(toes),k:local(knee),planted:groundedPlanted};
   });
-  soleTrajectories.set(actor,{time,root,feet:next});
+  soleTrajectories.set(actor,{time,root,feet:next,phase,launchUntil});
   return changed?{...r,legs:legs.sort((a,b)=>a.foot.y-b.foot.y)}:r;
 }
 

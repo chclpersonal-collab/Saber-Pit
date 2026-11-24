@@ -1,11 +1,11 @@
-import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeInput,ArcadeAttackSpec} from './arcade-engine-api.js';
+import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeInput,ArcadeAttackSpec} from './arcade-engine-api.js?v=5.0.0';
 import type {arcadeFootworkPlan} from './arcade-rank-footwork.js';
 import type {progressionSummary,combatSkillProfile} from './progression.js';
 import type {normalizeHeroTactics} from './arcade-hero-tactics.js';
 import type {normalizeHeroLineup} from './arcade-heroes.js';
 import type {environmentAt} from './environment.js';
 import type {arcadeChessPawnStrike} from './arcade-chess-styles.js';
-import type {arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js';
+import type {arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=5.0.0';
 import type {arcadeEloSkill,ArenaReadSkill} from './arcade-elo-skill.js';
 import type {ARCADE_TECHNIQUES} from './arcade-repertoire.js';
 import type {ARCADE_RANK_COMBAT} from './arcade-engine-rank.js';

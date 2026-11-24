@@ -1,6 +1,6 @@
 import type {StyleLabElements} from './game-dom.js';
 import type {SaberForm} from './arcade-save-types.js';
-import type {ArcadeEvent,ArcadeFighter,ArcadeOptions} from './arcade-engine-api.js';
+import type {ArcadeEvent,ArcadeFighter,ArcadeOptions} from './arcade-engine-api.js?v=5.0.0';
 type LabStyle = 'king'|'queen'|'rook'|'bishop'|'knight'|'pawn';
 type LabDrill = 'strike'|'walk'|'jump';
 type Move = {id:string;name:string;reach:number;arc:number;mapAction?:string;kind?:string};
@@ -21,11 +21,11 @@ import {ARCADE_SABER_OPTIONS} from './arcade-loadouts.js?v=3.1.0';
 import {fighterSamples,displayFighters} from './arcade-display.js?v=2.44.0';
 import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=3.2.0';
 import {ARCADE_MOTION_KEY,readArcadeReducedMotion} from './arcade-motion-preference.js?v=2.43.0';
-import {createArcade,stepArcade,ARCADE_FORMS,arcadeMovesFor} from './arcade-engine-api.js';
+import {createArcade,stepArcade,ARCADE_FORMS,arcadeMovesFor} from './arcade-engine-api.js?v=5.0.0';
 import {ARCADE_CHESS_STYLES,arcadeChessAllowsLane,arcadeChessMove,normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {createArcadeStage,drawArcadeStage} from './arcade-stage.js?v=4.0.0';
-import {drawArcadeFighter} from './arcade-painter.js?v=4.0.0';
-import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=4.0.0';
+import {drawArcadeFighter} from './arcade-painter.js?v=5.0.0';
+import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=5.0.0';
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
 
