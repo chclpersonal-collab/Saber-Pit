@@ -1,6 +1,6 @@
 /** Element contracts for the static pages distributed with this build. */
 export interface StyleLabElements {
-  'labStrike':HTMLButtonElement; 'labSpin':HTMLButtonElement; 'labWalk':HTMLButtonElement; 'labJump':HTMLButtonElement; 'labCompare':HTMLButtonElement; 'labCompareWeapons':HTMLButtonElement; 'labStop':HTMLButtonElement;
+  'labStrike':HTMLButtonElement; 'labSpin':HTMLButtonElement; 'labWalk':HTMLButtonElement; 'labJump':HTMLButtonElement; 'labCompare':HTMLButtonElement; 'labCompareWeapons':HTMLButtonElement; 'labStop':HTMLButtonElement; 'labPause':HTMLButtonElement; 'labStep':HTMLButtonElement;
   'labCanvas':HTMLCanvasElement;
   'labResultPanel':HTMLDetailsElement;
   'labTravel':HTMLElement; 'labStatus':HTMLElement; 'labWeaponCompareHint':HTMLElement; 'labTiming':HTMLElement; 'labCompareHelp':HTMLElement; 'labHint':HTMLElement; 'labAngleHint':HTMLElement;
@@ -9,7 +9,7 @@ export interface StyleLabElements {
   'labResults':HTMLOListElement;
   'labRangeValue':HTMLOutputElement;
   'labStyle':HTMLSelectElement; 'labDirections':HTMLSelectElement; 'labMoveFamily':HTMLSelectElement; 'labMove':HTMLSelectElement; 'labForm':HTMLSelectElement; 'labWeapon':HTMLSelectElement; 'labDefense':HTMLSelectElement;
-  'labStance':HTMLSelectElement; 'labEntry':HTMLSelectElement; 'labPace':HTMLSelectElement;
+  'labStance':HTMLSelectElement; 'labEntry':HTMLSelectElement; 'labPace':HTMLSelectElement; 'labLoop':HTMLInputElement;
 }
 export interface ArenaElements {
   'autoDuelStart':HTMLButtonElement; 'autoDuelSaved':HTMLButtonElement; 'stopAutoDuel':HTMLButtonElement; 'stopAutoDuelResult':HTMLButtonElement; 'autoDuelCountdown':HTMLElement;

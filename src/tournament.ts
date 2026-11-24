@@ -70,8 +70,8 @@ interface Settlement { result?: BoutEnd | null; reason?: string; attempt?: {reas
 interface WorkerResult { winnerIndex?: Winner; time?: number; reason?: string }
 interface WorkerData { error?: string; result?: WorkerResult }
 interface ReplayDisplay { config?: {matchGoalPlanning?: boolean}; fighters: {alive: boolean; team: number; matchGoal?: string}[] }
-interface ReplayControl { destroy?: () => void; stop?: () => void; pause?: () => void; resume?: () => void; setSpeed?: (speed: string) => void }
-type StartReplay = (canvas: HTMLCanvasElement, data: ReplaySpec, handlers: {onFrame: (seconds: number, game?: ReplayDisplay) => void; onEnd: (winner?: Winner) => void}) => Promise<ReplayControl | ((() => void) & ReplayControl)>;
+interface ReplayControl { destroy?: () => void; stop?: () => void; pause?: () => void; resume?: () => void; skip?: () => boolean; setSpeed?: (speed: string) => void }
+type StartReplay = (canvas: HTMLCanvasElement, data: ReplaySpec, handlers: {onFrame: (seconds: number, game?: ReplayDisplay) => void; onEnd: (winner?: Winner) => void; onSkipError?: () => void}) => Promise<ReplayControl | ((() => void) & ReplayControl)>;
 
 type Loader<T extends TournamentSave> = (storage?: StorageReader | null) => T;
 type Save = (state: TournamentSave, storage?: Pick<StorageWriter,'setItem'>) => boolean;
@@ -121,6 +121,7 @@ interface DomMap {
   replayArena: HTMLCanvasElement;
   replaySpeed: HTMLSelectElement;
   replayPause: HTMLButtonElement;
+  replaySkip: HTMLButtonElement;
 }
 
 const $=<Id extends string>(id: Id)=>document.getElementById(id) as Id extends keyof DomMap ? DomMap[Id] : HTMLElement;
@@ -1005,8 +1006,10 @@ resetDialog.addEventListener('close',()=>{
   persist(isSquad()?'5v5 tournament reset.':'1v1 tournament reset. Saved Heroes were kept.');
   render();newButton.focus();
 });
-const replaySpeed=$('replaySpeed'),replayPause=$('replayPause');
-function resetReplayPause(){playbackPaused=false;pausePlayback=null;replayPause.disabled=true;replayPause.textContent='Pause';}
+const replaySpeed=$('replaySpeed'),replayPause=$('replayPause'),replaySkip=$('replaySkip');
+let skipPlayback: (()=>boolean) | null=null;
+function resetReplayPause(){playbackPaused=false;pausePlayback=null;replayPause.disabled=true;replayPause.textContent='Pause';skipPlayback=null;replaySkip.disabled=true;}
+replaySkip.addEventListener('click',()=>{if(skipPlayback?.()){replaySkip.disabled=true;replayPause.disabled=true;replaySpeed.disabled=true;$('replayStatus').textContent='Skipping to result…';}});
 replayPause.addEventListener('click',()=>{
   if(!pausePlayback)return;
   playbackPaused=!playbackPaused;
@@ -1025,8 +1028,8 @@ watchLast.addEventListener('click',async()=>{
   replayDialog.showModal();
   try{
     const squad=isSquad();
-    const play=squad?(await import('./squad-tournament-replay.js?v=3.2.4')).startSquadTournamentPlayback:
-      (await import('./tournament-replay.js?v=4.0.0')).startTournamentPlayback;
+    const play=squad?(await import('./squad-tournament-replay.js?v=5.0.1')).startSquadTournamentPlayback:
+      (await import('./tournament-replay.js?v=5.0.1')).startTournamentPlayback;
     if(version!==replayEpoch||!replayDialog.open)return;
     const live=()=>version===replayEpoch&&replayDialog.open;
     const result=await (play as unknown as StartReplay)(canvas,replay,{
@@ -1046,6 +1049,7 @@ watchLast.addEventListener('click',async()=>{
           if(livePlans.textContent!==plans)livePlans.textContent=plans;
         }
       },
+      onSkipError(){if(live()){replayPause.disabled=!pausePlayback;replayPause.textContent='Pause';playbackPaused=false;replaySpeed.disabled=!setPlaybackSpeed;replayStatus.textContent='Skip could not finish. Replay resumed.';}},
       onEnd(winnerIndex){
         if(!live())return;
         replaySpeed.disabled=true;setPlaybackSpeed=null;resetReplayPause();
@@ -1057,6 +1061,7 @@ watchLast.addEventListener('click',async()=>{
     if(!live()){end?.();return;}
     stopPlayback=end;setPlaybackSpeed=result?.setSpeed;replaySpeed.disabled=!setPlaybackSpeed;
     if(result?.pause&&result?.resume){pausePlayback=paused=>paused?result.pause!():result.resume!();replayPause.disabled=false;}
+    if(result?.skip){skipPlayback=()=>result.skip!();replaySkip.disabled=false;}
     if(replayStatus.textContent==='Opening replay…')replayStatus.textContent='Replay only. It does not change the bracket.';
   }catch(error){if(version===replayEpoch&&replayDialog.open){
     console.error('Could not open replay',error);replayStatus.textContent='Couldn’t open this replay.';

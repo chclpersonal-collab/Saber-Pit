@@ -1,6 +1,6 @@
 import {arcadeReplayRules,supportsArcadeReplay} from './arcade-replay-rules.js?v=3.2.4';
 import {createSquadReplay,SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=3.2.4';
-import {startArcadeTournamentPlayback} from './tournament-replay.js?v=3.0.0';
+import {startArcadeTournamentPlayback} from './tournament-replay.js?v=5.0.1';
 
 /** Playback only: no standings, season, or save state is available here. */
 export async function startSquadTournamentPlayback(canvas:HTMLCanvasElement,replay:Parameters<typeof createSquadReplay>[0],options:Parameters<typeof startArcadeTournamentPlayback>[4]={}){

@@ -1997,13 +1997,44 @@ export function sampleArcadeAirHandoff(f:Fighter, r:PaintRig, time:number){
 }
 
 /** Shared live-art rig for both drawing styles. The engine never calls this. */
-const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[];phase?:string;launchUntil?:number}>();
+type SoleJoin={at:number; offset:{side:LegWorld['side'];foot:Point;toes:Point;k:Point}[]};
+const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[];phase?:string;launchUntil?:number;jumpJoin?:SoleJoin}>();
 /** Follow the painted pose, with a short world-space boot lift at pose seams.
  * This is the final visual layer; the physical rig/weapon endpoints are never
  * interpolated here. Airborne steps, teleports and reduced motion opt out. */
 function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
   const actor=f[WALK_SOURCE]?.actor??f;
   const prev=soleTrajectories.get(actor), phase=r.airPhase;
+  // A coarse render cadence can miss the whole short plant/lift bridge.
+  // At the first passive Q-flight draw, carry its actual visual residual and
+  // release that residual over time; a hard rate cap leaves a second snap.
+  if(f.peasantMotion===true&&f.recoveryFlow===true&&!r.reducedMotion&&f.alive!==false&&
+    phase==='airborne'&&r.action==='jump'&&!f.attack&&prev){
+    const dt=time-prev.time,root=P(val(f.x),val(f.y));
+    if(dt>=0&&dt<=.05&&Math.hypot(root.x-prev.root.x,root.y-prev.root.y)<18){
+      const feet=arcadeFeetWorld(f,r);
+      const started=(prev.phase==='takeoff'||prev.phase==='grounded')&&dt>=.025;
+      const join=started?{at:time,offset:feet.map(goal=>{
+        const old=prev.feet.find(leg=>leg.side===goal.side)??goal;
+        const delta=(a:Point,b:Point)=>P(a.x-b.x,a.y-b.y);
+        return {side:goal.side,foot:delta(old.foot,goal.foot),toes:delta(old.toes,goal.toes),k:delta(old.k,goal.k)};
+      })}:prev.jumpJoin;
+      if(join&&time-join.at<.11){
+        const w=.66*(1-smooth((time-join.at)/.11)),{project,local}=arcadeBasis(f,r);
+        const painted={...r,legs:r.legs.map(leg=>{
+          const delta=join.offset.find(o=>o.side===leg.side);
+          if(!delta)return leg;
+          const carry=(point:Point,key:'foot'|'toes'|'k')=>{
+            const target=project(point);
+            return local(P(target.x+delta[key].x*w,target.y+delta[key].y*w));
+          };
+          return {...leg,foot:carry(leg.foot,'foot'),toes:carry(leg.toes,'toes'),k:carry(leg.k,'k'),planted:false};
+        }).sort((a,b)=>a.foot.y-b.foot.y)};
+        soleTrajectories.set(actor,{time,phase,root,feet:arcadeFeetWorld(f,painted),jumpJoin:join});
+        return painted;
+      }
+    }
+  }
   // The final sole cap may still be catching up after the dash lifts off.
   // Carry it from the actual previous frame into the short passive launch,
   // not from the pre-cap rig, and never apply it to authored aerial attacks.

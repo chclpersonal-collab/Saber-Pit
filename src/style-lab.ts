@@ -29,7 +29,7 @@ import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=5.0.0
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
 
-const W=960,H=540, CX=480,CY=318,TICK=1/120, TURN_TIME=.48, SETTLE_TIME=.22;
+const W=960,H=540, CX=480,CY=318,TICK=1/120, STEP_DT=1/240, TURN_TIME=.48, SETTLE_TIME=.22;
 const styles:readonly LabStyle[]=['king','queen','rook','bishop','knight','pawn'];
 const labels=['East','Southeast','South','Southwest','West','Northwest','North','Northeast'];
 export const STYLE_LAB_BEARINGS=Object.freeze(labels.map((label,i)=>Object.freeze({label,angle:i*Math.PI/4})));
@@ -203,12 +203,12 @@ function wire(){
  const stanceSet=$('labStance'),weaponSet=$('labWeapon'),status=$('labStatus'),angleSet=$('labAngle'),entrySet=$('labEntry');
  const buttons=$('labDirections'),cards=$('labResults'),fx=createArcadeFX(),swingWaves=createArcadeSwingWaves();
  const weaponCompare=$('labCompareWeapons'),weaponCompareHint=$('labWeaponCompareHint');
- const timing=$('labTiming'),family=$('labMoveFamily'),pace=$('labPace'),defense=$('labDefense');
+ const timing=$('labTiming'),family=$('labMoveFamily'),pace=$('labPace'),defense=$('labDefense'),loop=$('labLoop'),pauseButton=$('labPause'),stepButton=$('labStep');
  function showTiming(data?:Timing|null){
    timing.hidden=!data;if(!data)return;
    timing.textContent=data.windupMs+' ms windup · '+data.afterReleaseMs+' ms after release · '+data.stamina+' stamina · '+data.reach+' px reach';
  }
- let slot=0,round:LabRound,stage:ReturnType<typeof createArcadeStage>,isRunning=false,queue:number[]=[],auto:'full'|'compare'|null=null,priorAngle:number|null=null,lastFrame=0,hold=0,drill:LabDrill='strike',comparison:ComparisonPane[]=[],comparisonNotes:(LabResult|null)[]=[],compareType:'style'|'weapons'='style',compareOptions:readonly CompareOptions[]=STYLE_LAB_COMPARE,originalSlot=0,cellNotes=new Map<number,LabResult>();
+ let slot=0,round:LabRound,stage:ReturnType<typeof createArcadeStage>,isRunning=false,queue:number[]=[],auto:'full'|'compare'|null=null,priorAngle:number|null=null,lastFrame=0,hold=0,drill:LabDrill='strike',comparison:ComparisonPane[]=[],comparisonNotes:(LabResult|null)[]=[],compareType:'style'|'weapons'='style',compareOptions:readonly CompareOptions[]=STYLE_LAB_COMPARE,originalSlot=0,cellNotes=new Map<number,LabResult>(),paused=false,steps=0;
  const opt=(name:string,value:string)=>new Option(name,value);
  weaponSet.replaceChildren(...ARCADE_SABER_OPTIONS.map(o=>opt(o.label,o.id)));weaponSet.value='single';
  styleSet.replaceChildren(...styles.map(id=>opt(ARCADE_CHESS_STYLES[id].label,id)));styleSet.value='queen';
@@ -271,6 +271,9 @@ function wire(){
    for(const el of [styleSet,formSet,moveSet,rangeSet,stanceSet,weaponSet,family,defense,angleSet,entrySet,$('labStrike'),$('labSpin'),$('labWalk'),$('labJump'),$('labCompare')])el.disabled=!on;
    refreshWeaponCompare(on);
    $('labStop').disabled=on;
+   if(on)paused=false;
+   pauseButton.disabled=on;pauseButton.textContent=paused?'Resume':'Pause';pauseButton.setAttribute('aria-pressed',String(paused));
+   stepButton.disabled=on||!paused;
    directions();
  }
  function start(all:boolean,type:LabDrill='strike'){
@@ -363,8 +366,13 @@ function wire(){
    }
  }
  function frame(now:number){
-   const dt=lastFrame?Math.max(0,Math.min(.05,(now-lastFrame)/1000)):0;lastFrame=now;
-   const selected=Number(pace.value), motionDt=dt*([.25,.5].includes(selected)?selected:1);
+   let dt=lastFrame?Math.max(0,Math.min(.05,(now-lastFrame)/1000)):0;lastFrame=now;
+   const selected=Number(pace.value);
+   if(paused&&isRunning){
+     if(!steps){draw(0);requestAnimationFrame(frame);return;}
+     steps--;dt=STEP_DT;
+   }
+   const motionDt=paused?STEP_DT:dt*([.25,.5].includes(selected)?selected:1);
    if(isRunning&&auto==='compare'){
      for(const [i,pane] of comparison.entries()){
        if(pane.round.phase==='done')continue;
@@ -393,6 +401,10 @@ function wire(){
      }else if((hold+=dt)>.30){
        priorAngle=round.fighter.face;
        if(queue.length){slot=queue.shift()!;prepare(true);}
+       else if(loop.checked){
+         if(auto==='full'){queue=Array.from({length:7},(_,i)=>wrap(slot+2+i));slot=wrap(slot+1);cellNotes.clear();results();}
+         prepare(true);
+       }
        else {
          isRunning=false;
          if(auto==='full'){
@@ -406,16 +418,22 @@ function wire(){
    fx.update(motionDt,reduced);draw(motionDt);requestAnimationFrame(frame);
  }
  $('labStrike').addEventListener('click',()=>start(false));$('labSpin').addEventListener('click',()=>start(true));$('labStop').addEventListener('click',stop);$('labCompare').addEventListener('click',()=>startCompare());$('labCompareWeapons').addEventListener('click',()=>startCompare('weapons'));$('labWalk').addEventListener('click',()=>start(false,'walk'));$('labJump').addEventListener('click',()=>start(false,'jump'));
+ function togglePause(){if(!isRunning)return;paused=!paused;steps=0;enabled(false);announce(paused?'Paused. Step moves one frame at quarter speed.':'Resumed.');}
+ function step(){if(isRunning&&paused)steps++;}
+ pauseButton.addEventListener('click',togglePause);stepButton.addEventListener('click',step);
  for(const el of [styleSet,formSet,moveSet,rangeSet,stanceSet,weaponSet,family,defense,angleSet,entrySet])el.addEventListener(el===rangeSet?'input':'change',()=>{
     if(isRunning)return;
     if(el===formSet||el===weaponSet||el===family)moveList();
     comparison=[];comparisonNotes=[];cellNotes.clear();results();prepare(false);
  });
  window.addEventListener('keydown',e=>{
-   if(e.target instanceof HTMLElement&&['BUTTON','SELECT','INPUT','A'].includes(e.target.tagName))return;
+   if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+   if(e.target instanceof HTMLElement&&(e.target.isContentEditable||e.target.closest('button,select,input,textarea,a,[role="button"]')))return;
    if(e.code==='Space'){e.preventDefault();start(false);}
    if(e.code==='Enter'){e.preventDefault();start(true);}
    if(e.code==='Escape'&&isRunning)stop();
+   if(e.code==='KeyP'&&isRunning){e.preventDefault();if(!e.repeat)togglePause();}
+   if(e.code==='Period'&&isRunning&&paused){e.preventDefault();if(!e.repeat)step();}
    if(!isRunning&&['ArrowLeft','ArrowRight'].includes(e.code)){
       e.preventDefault();comparison=[];slot=wrap(slot+(e.code==='ArrowLeft'?-1:1));angleSet.value='';prepare(false);
    }

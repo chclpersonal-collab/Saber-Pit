@@ -6,7 +6,7 @@ import {arcadeBladeWorld,arcadeFeetWorld,sampleArcadeFighter,sampleArcadeRenderR
 
 const dt=1/120;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-function run(form,kit,max=550){
+function run(form,kit,max=550,renderEvery=1){
   const fight=createArcade({
     seed:11237,mode:'duel',form,teamSizes:[1,1],teamForms:[form,'soresu'],
     startingSaberWeapon:[kit,'single'],startingRanks:['SSS+V','SSS+V'],
@@ -22,6 +22,7 @@ function run(form,kit,max=550){
     const move=i<60?{x:1,walk:true}:i<106?{x:1}:i<141?{y:-1}:i<173?{x:-1}:i<196?{}:i<222?{x:-1}:i<284?{x:1}:i<380?{y:1}:{};
     stepArcade(fight,dt,{...move,aimX:850,aimY:300,guard:i>=117&&i<136,
       strike:i===82||i===210||i===269,jump:i===251||i===472,dash:i===307});
+    if(i%renderEvery!==0)continue;
     const p=sampleArcadeFighter(f,fight.time);
     const r=sampleArcadeRenderRig(f,p,fight.time);
     const raw=arcadeBladeWorld(f,p).blades;
@@ -29,7 +30,7 @@ function run(form,kit,max=550){
     assert.equal(r.hop,p.hop);
     assert.deepEqual(arcadeBladeWorld(f,sampleArcadeFighter(f,fight.time)).blades,raw);
     if(f.attack)assert.deepEqual(painted,raw);
-    frames.push({phase:r.airPhase,action:r.action,x:f.x,y:f.y,hop:p.hop,
+    frames.push({i,phase:r.airPhase,action:r.action,x:f.x,y:f.y,hop:p.hop,
       feet:arcadeFeetWorld(f,r).sort((a,b)=>a.side-b.side),raw,painted});
   }
   return frames;
@@ -61,5 +62,19 @@ test('passive Juyo jump blade reposes ease away from the antipode while preservi
       assert.ok(blur('painted',i)<34,String(i));
     }
     assert.ok(distance(frames[seam+15].painted[0].tip,frames[seam+15].raw[0].tip)<.7);
+  }
+});
+
+test('coarse 30 FPS passive Juyo and Niman takeoffs keep the boot handoff without a second snap',()=>{
+  for(const [form,seam] of [['juyo',484],['niman',488]]){
+    const frames=run(form,'staff',525,4),at=frames.findIndex(f=>f.i===seam);
+    assert.equal(frames[at-1].phase,'takeoff');
+    assert.equal(frames[at].phase,'airborne');
+    const gap=(i)=>Math.max(...frames[i].feet.map((l,j)=>distance(l.foot,frames[i-1].feet[j].foot)));
+    assert.ok(gap(at)<20,form+' opening '+gap(at));
+    for(let i=at+1;i<=at+5;i++){
+      assert.ok(gap(i)<34,form+' residual '+gap(i));
+      assert.equal(frames[i].painted.length,frames[i].raw.length);
+    }
   }
 });

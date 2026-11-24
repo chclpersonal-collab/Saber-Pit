@@ -7,7 +7,7 @@
 <meta name="description" content="Deploy a Saved Hero, explore the Underpit and collect the rewards.">
 <title>Idle RPG · Saber Pit</title>
 <link rel="stylesheet" href="./idle-rpg.css?v=4.0.0">
-<script type="module" src="./idle-rpg-sync-entry.js?v=5.0.1"></script>
+<script type="module" src="./idle-rpg-sync-entry.js?v=5.1.0"></script>
 <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
   <link rel="stylesheet" href="./ops-v3-secondary.css?v=4.0.0">
 <link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
@@ -15,7 +15,7 @@
 <main class="quest-shell">
   <header class="ops-dock">
     <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena">
-      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.0.0</small></span>
+      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.1.0</small></span>
     </a>
     <nav class="ops-nav" aria-label="Saber Pit modes">
       <a href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#swords"/></svg><span>Arena</span><small aria-hidden="true">01</small></a>
@@ -59,7 +59,7 @@
       <p id="questEmpty" class="rpg-empty" hidden>No Saved Heroes yet. <a href="./tournament.html">Recruit one in Tournament</a>.</p>
       <div class="rpg-upgrade" id="rpgUpgrade" hidden><p id="rpgUpgradeDetail"></p><button id="rpgUpgradeBuy" type="button">Upgrade</button></div>
       <p id="questStatus" class="rpg-status" aria-live="polite"></p>
-      <p id="questNotice" class="rpg-notice" role="status" hidden></p>
+      <p id="questNotice" class="rpg-notice" role="status" tabindex="-1" hidden></p>
     </section>
     <section class="rpg-panel rpg-route" aria-labelledby="rpgRouteTitle">
       <div class="rpg-panel-head"><div><p class="rpg-kicker">CAMPAIGN MAP</p><h2 id="rpgRouteTitle">Underpit route</h2></div><span class="rpg-tag" id="rpgRouteCount">0 / 3</span></div>
@@ -68,6 +68,7 @@
     <section class="rpg-panel rpg-loot" aria-labelledby="rpgLootTitle">
       <div class="rpg-panel-head"><div><p class="rpg-kicker">LOOT</p><h2 id="rpgLootTitle">Rewards</h2></div><span class="rpg-tag" id="rpgLootStatus">LOCKED</span></div>
       <div class="rpg-loot-item"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4 40 13v22l-16 9-16-9V13zM24 11l8 8-8 18-8-18zM13 17h22"/></svg><div><strong id="rpgLootName">Bellkeeper’s Seal</strong><p id="rpgLootDetail">Defeat the guardian to unlock.</p></div></div>
+      <button class="rpg-primary" id="rpgClaimAll" type="button" hidden>Claim all</button>
       <button class="rpg-primary" id="questClaim" type="button" hidden>Claim reward</button>
       <div class="rpg-upgrade" id="rpgPatrol" hidden><p id="rpgPatrolDetail"></p><button id="rpgPatrolCollect" type="button">Collect salvage</button></div>
       <section id="questResult" class="rpg-reward" hidden><strong>Secured</strong><p id="rpgRewardDetail">Recorded in your journal. No change to combat or Elo.</p></section>

@@ -35,6 +35,8 @@ button:not(:disabled):hover,.back:hover{background:#4b3a26;border-color:#b48d47}
 :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 button:disabled{opacity:.5;cursor:default}
 .range span,.directions>div:first-child{display:flex;justify-content:space-between;gap:.75rem}
+label.check{display:flex;align-items:center;gap:.5rem;min-height:44px}
+label.check input{width:1.2rem;height:1.2rem;accent-color:var(--gold)}
 .range input{width:100%;min-height:2.3rem;accent-color:var(--gold)}
 output{color:var(--gold);font-weight:750}
 .directions{margin:.6rem 0 1rem}

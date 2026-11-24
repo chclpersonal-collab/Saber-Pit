@@ -7,7 +7,7 @@
   <meta name="description" content="Run the Saber Pit tournament and recruit fighters that learn from their matches.">
   <title>Tournament · Saber Pit</title>
   <link rel="stylesheet" href="./tournament.css?v=3.2.0">
-  <script type="module" src="./tournament-sync-entry.js?v=5.0.1"></script>
+  <script type="module" src="./tournament-sync-entry.js?v=5.1.0"></script>
   <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
   <link rel="stylesheet" href="./ops-v3-secondary.css?v=3.0.0-auto1">
   <link rel="stylesheet" href="./pit-v4-tournaments.css?v=4.0.0">
@@ -16,7 +16,7 @@
 <main id="tournamentApp">
   <header class="ops-dock">
     <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena">
-      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.0.0</small></span>
+      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.1.0</small></span>
     </a>
     <nav class="ops-nav" aria-label="Saber Pit modes">
       <a href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#swords"/></svg><span>Arena</span><small aria-hidden="true">01</small></a>
@@ -173,7 +173,8 @@
     <div class="actions"><label>Replay speed
       <select id="replaySpeed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select>
     </label>
-    <button type="button" id="replayPause" disabled>Pause</button></div>
+    <button type="button" id="replayPause" disabled>Pause</button>
+    <button type="button" id="replaySkip" disabled>Skip to result</button></div>
     <p id="replayPlans" class="muted" hidden></p>
     <p id="replayStatus" class="status" role="status"></p>
   </dialog>

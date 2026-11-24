@@ -45,6 +45,8 @@ input[type=file] { display: block; width: 100%; min-height: 2.8rem; padding: .3r
 input::file-selector-button { margin-right: .64rem; min-height: 2.05rem; padding: .2rem .5rem; border: 1px solid var(--edge); color: var(--cream); background: #392a1d; }
 #backupPreview { margin-top: .9rem; }
 .backup-note { color: var(--soft); font: .72rem/1.5 var(--label); }
+.backup-reminder { display:flex; gap:.75rem; align-items:center; justify-content:space-between; color:var(--soft); font-size:.8rem; margin-top:.45rem; }
+.backup-reminder button { flex:none; min-height:2.75rem; padding:0 .45rem; background:none; border:0; color:inherit; text-decoration:underline; text-underline-offset:.2em; }
 fieldset { border: 1px solid var(--edge); margin: .75rem 0; padding: .48rem; min-width: 0; }
 legend { color: var(--gold); padding-inline: .33rem; font-size: .8rem; font-weight: 680; }
 .section-row,.check-line { display: flex; gap: .55rem; align-items: center; min-height: 2.75rem; }

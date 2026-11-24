@@ -43,7 +43,12 @@ async function go(action: SyncAction){
   if(['device','cloud'].includes(action)&&!last)return;
   for(const id of controls)$(id).disabled=true;
   $('cloudStatus').textContent='Checking saves…';
-  try{last=await browserSync.sync({action,expectedRevision:last?.cloudRevision,expectedLocalDigest:last?.localDigest});}
+  try{
+    const task=browserSync.sync({action,expectedRevision:last?.cloudRevision,expectedLocalDigest:last?.localDigest});
+    // Enable/disable updates local preferences before the cloud request finishes.
+    if(action==='enable'||action==='disable')window.dispatchEvent(new Event('saber-cloud-prefs-changed'));
+    last=await task;
+  }
   catch{last={status:'error',error:'Site storage must be enabled before linking saves.'};}
   if(last.status==='downloaded')announceSyncedSave();
   draw(last);

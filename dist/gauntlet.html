@@ -8,13 +8,13 @@
 <title>1v3 Gauntlet · Saber Pit</title>
 <link rel="stylesheet" href="./ops-v3-secondary.css?v=3.2.0">
 <link rel="stylesheet" href="./gauntlet.css?v=3.2.3">
-<script type="module" src="./gauntlet-sync-entry.js?v=5.0.1"></script>
+<script type="module" src="./gauntlet-sync-entry.js?v=5.1.0"></script>
 <link rel="stylesheet" href="./pit-v4-tournaments.css?v=4.0.0">
 <link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
 <body class="ops-shell pit-v4-tournaments ops-gauntlet">
 <main class="gauntlet-shell">
   <header class="ops-dock">
-    <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena"><span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.0.0</small></span></a>
+    <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena"><span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>SABER PIT</strong><small>VERSION 5.1.0</small></span></a>
     <nav class="ops-nav" aria-label="Saber Pit modes">
       <a href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#swords"/></svg><span>Arena</span><small aria-hidden="true">01</small></a>
       <a href="./tournament.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#trophy"/></svg><span>Tournament</span><small aria-hidden="true">02</small></a>
@@ -143,6 +143,7 @@
     <div class="g-section-top"><div><p class="ops-kicker">READ-ONLY PLAYBACK</p><h2 id="gReplayTitle">Gauntlet replay</h2></div><form method="dialog"><button id="gCloseReplay" value="close" autofocus>Close</button></form></div>
     <canvas id="gReplayCanvas" width="960" height="540" role="img" aria-label="Replay of the last Gauntlet bout"></canvas>
     <div class="g-actions"><button id="gReplayPause" type="button" disabled>Pause</button>
+      <button id="gReplaySkip" type="button" disabled>Skip to result</button>
       <label for="gReplaySpeed" class="g-inline-label">Speed <select id="gReplaySpeed" disabled><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label></div>
     <p id="gReplayStatus" class="g-status" role="status"></p>
   </dialog>

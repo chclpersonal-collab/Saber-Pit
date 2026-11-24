@@ -1,8 +1,30 @@
 import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js';
 import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=4.01.1';
+import {cloudSyncPrefs} from './arcade-cloud-sync.js?v=5.0.1';
 const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
 const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');
+const reminder=$('backupReminder'), download=$<HTMLButtonElement>('downloadBackup');
+const DAY=86_400_000, WEEK=7*DAY, REMINDER_KEY='saber-pit-manual-backup-reminder-v1';
+function deferReminder(delay: number){
+  reminder.hidden=true;
+  try{localStorage.setItem(REMINDER_KEY,String(Date.now()+delay));}catch{/* Optional UI metadata only. */}
+}
+function refreshReminder(){
+  reminder.hidden=true;
+  try{
+    if(cloudSyncPrefs(localStorage).enabled)return;
+    const now=Date.now(), due=Number(localStorage.getItem(REMINDER_KEY));
+    if(due>now&&due<=now+WEEK)return;
+    if(!exportArcadeBackup().ok)return;
+    if(!Number.isSafeInteger(due)||due<=0||due>now+WEEK){deferReminder(WEEK);return;}
+    reminder.hidden=false;
+  }catch{/* Unavailable storage is not a reason to display a warning. */}
+}
+$('backupLater').addEventListener('click',()=>{deferReminder(DAY);download.focus();});
+for(const event of ['focus','storage','saber-cloud-prefs-changed'])window.addEventListener(event,refreshReminder);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshReminder();});
+refreshReminder();
 let inspected: BackupInspection | null=null, revision=0;
 function announce(message: string,tone=''){report.textContent=message;report.dataset.tone=tone;}
 function node<K extends keyof HTMLElementTagNameMap>(tag: K,content?: string){
@@ -47,14 +69,16 @@ picker.addEventListener('change',async()=>{
     preview.hidden=false;sync();announce('Backup checked. Review the sections before replacing saves.','success');
   }catch{if(ticket===revision)announce('The selected file could not be opened.','error');}
 });
-$('downloadBackup').addEventListener('click',()=>{
+download.addEventListener('click',()=>{
   const result=exportArcadeBackup();
   if(!result.ok){announce(result.error,'error');return;}
   let url: string | undefined;
   try{
     url=URL.createObjectURL(new Blob([result.text],{type:'application/json'}));
     const a=node('a');a.href=url;a.download='saber-pit-save-'+result.bundle.createdAt!.slice(0,10)+'.json';a.hidden=true;
-    document.body.append(a);a.click();a.remove();
+    document.body.append(a);
+    try{a.click();}finally{a.remove();}
+    deferReminder(WEEK);
     announce('Backup ready. Look in your downloads.','success');
   }catch{announce('The browser could not start the download.','error');}
   finally{if(url)setTimeout(()=>URL.revokeObjectURL(url!),2000);}
@@ -65,6 +89,6 @@ replace.addEventListener('click',()=>{
   if(replace.disabled)return;
   const result=restoreArcadeBackup(inspected,undefined,{sections:current()});
   if(!result.ok){announce(result.error,'error');return;}
-  resetPreview();picker.value='';
+  resetPreview();picker.value='';refreshReminder();
   announce('Selected saves restored. Open a game mode or reload any game tabs that are already open.','success');
 });
