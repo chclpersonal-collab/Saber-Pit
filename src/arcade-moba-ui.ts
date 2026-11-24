@@ -50,7 +50,7 @@ let viewport={width:canvas.clientWidth,height:canvas.clientHeight};
 const measureViewport=()=>{viewport={width:canvas.clientWidth,height:canvas.clientHeight};};
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(measureViewport).observe(canvas);
 else window.addEventListener('resize',measureViewport);
-let game:MobaState=createMoba(), playing=false, paused=false, aim:{x:number;y:number}|null=null,
+let game:MobaState=createMoba(), playing=false, paused=false, aim:{x:number;y:number;fromTouch:boolean}|null=null,
     prior=0, lastUi=-1, upgrade=false,lastAnnounced=0, previousAlive=true, knockoutSource:string|null=null;
 const changeBattleControls=(canAct:boolean)=>{for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))btn.disabled=!canAct;};
 const stamp=(el:HTMLElement,value:string)=>{if(el.textContent!==value)el.textContent=value;};
@@ -106,7 +106,7 @@ window.addEventListener('keydown',event=>{
 window.addEventListener('keyup',event=>active.delete(keys[event.key.toLowerCase()]));
 function aimAt(event:PointerEvent){
   const target=mobaCanvasAim(view,canvas.getBoundingClientRect(),{x:event.clientX,y:event.clientY});
-  if(target)aim=target;
+  if(target)aim={...target,fromTouch:event.pointerType==='touch'};
 }
 canvas.addEventListener('pointermove',event=>{if(playing&&event.pointerType!=='touch')aimAt(event);});
 canvas.addEventListener('pointerdown',event=>{if(playing&&!paused&&game.player.alive)aimAt(event);});
@@ -114,6 +114,9 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))
   const key=btn.dataset.control!;
   btn.addEventListener('pointerdown',event=>{
     if(!playing||paused||!game.player.alive)return;
+    // A new D-pad move leaves the previous touch aim behind; a fresh board
+    // tap still aims the next attack or guard, and mouse aiming stays live.
+    if(aim?.fromTouch&&(key==='up'||key==='down'||key==='left'||key==='right'))aim=null;
     event.preventDefault();if(key==='attack'||key==='lunge')pulses.add(key);btn.setPointerCapture(event.pointerId);touches.set(event.pointerId,key);btn.dataset.held='true';
   });
   const release=(event:PointerEvent)=>{touches.delete(event.pointerId);delete btn.dataset.held;};
