@@ -1,3 +1,4 @@
+import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 /** The quest save is separate from the arena, both tournaments and Heroes. */
 import {createQuestEncounter,normalizeQuestEncounterDescriptor,resolveQuestEncounter,QUEST_ENCOUNTER_LIMIT} from './arcade-quest-encounter.js?v=3.0.0';
 
@@ -148,7 +149,7 @@ export function saveQuests(state: QuestSave,storage?: StorageWriter | null): boo
       }else if(run.attempt!==committed.attempt+1||run.startedAt<committed.duelAt+Math.ceil((committed.result?.elapsed??Infinity)*1000)||
           !['lost','draw'].includes(committed.result?.status as string))return false;
     }
-    target.setItem(QUEST_STORAGE_KEY,JSON.stringify({version:VERSION,run,...(current.campaign?{campaign:current.campaign}:{})}));
+    target.setItem(QUEST_STORAGE_KEY,JSON.stringify({version:VERSION,run,...(current.campaign?{campaign:current.campaign}:{})}));notifyCloudSaveCommitted(target);
     return true;
   }catch{return false;}
 }
@@ -166,7 +167,7 @@ export function saveIdleQuestCampaign(nextCampaign: unknown,priorCampaign?: unkn
       !same(current.campaign??null,previous?.revision!>0?previous:null))return false;
     const raw=JSON.stringify({...current,campaign:next});
     if(new TextEncoder().encode(raw).length>36_000)return false;
-    target.setItem(QUEST_STORAGE_KEY,raw);
+    target.setItem(QUEST_STORAGE_KEY,raw);notifyCloudSaveCommitted(target);
     return true;
   }catch{return false;}
 }

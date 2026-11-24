@@ -1,3 +1,4 @@
+import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import {arcadeChessStyleForId,normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {tournamentFixtureTerrain,tournamentTerrainOption} from './arcade-map-rotation.js';
 import {sanitizeMatchReport} from './arcade-match-report.js?v=2.33.0';
@@ -510,6 +511,6 @@ export function loadTournament(storage?:StorageReader|null){
 export function saveTournament(state:State,storage?:StorageWriter|null){
   try{
     const target=storageFor(storage);if(!target)return false;
-    target.setItem(TOURNAMENT_KEY,JSON.stringify(state));return true;
+    target.setItem(TOURNAMENT_KEY,JSON.stringify(state));notifyCloudSaveCommitted(target);return true;
   }catch{return false;}
 }

@@ -1,3 +1,4 @@
+import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import type {StorageReader,StorageWriter} from './arcade-save-types.js';
 type Stage = 'qualifier'|'opening'|'main';
 type Composition = ''|'all-female'|'all-male'|'mixed';
@@ -368,7 +369,7 @@ export function loadSquadTournament(storage?:StorageReader|null){
   }catch{return blank();}
 }
 export function saveSquadTournament(state:State,storage?:StorageWriter|null){
-  try{const target=storeFor(storage);if(!target)return false;target.setItem(SQUAD_TOURNAMENT_KEY,JSON.stringify(state));return true;}
+  try{const target=storeFor(storage);if(!target)return false;target.setItem(SQUAD_TOURNAMENT_KEY,JSON.stringify(state));notifyCloudSaveCommitted(target);return true;}
   catch{return false;}
 }
 export function resetSquadTournament(state?:State|null){return state?Object.assign(state,blank()):blank();}

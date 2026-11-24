@@ -17,23 +17,25 @@ export interface CloudPrefs {
   floors: ProgressFloors;
 }
 export type SyncAction = 'check' | 'startup' | 'enable' | 'disable' | 'device' | 'cloud';
-export interface SyncRequest { action?: SyncAction; expectedRevision?: string | null; expectedLocalDigest?: string | null }
-type ConflictStatus = 'conflict' | 'changed' | 'reset' | 'recovery-blocked' | 'cloud-newer';
+export interface SyncRequest { action?: SyncAction; expectedRevision?: string | null; expectedLocalDigest?: string | null; discover?:boolean; revealOnly?:boolean }
+type ConflictStatus = 'conflict' | 'changed' | 'reset' | 'recovery-blocked' | 'cloud-newer' | 'unlinked';
 interface SyncView { localDigest: string | null; cloudRevision: string | null; device: BackupSummary | null; cloud: BackupSummary | null }
 export type SyncResult =
   | { status: 'busy' | 'disabled' }
   | { status: 'error'; error: string }
   | { status: 'empty' }
   | (SyncView & {status: ConflictStatus | 'uploaded' | 'downloaded' | 'pending' | 'current' | 'empty'});
-export interface CloudSnapshot { revision: string; bundle: BackupBundle }
+export interface CloudSnapshot { revision: string; bundle: BackupBundle; autoRestore?:boolean }
 export interface CloudWriteRequest { revision: string | null; bundle: BackupBundle; confirmReplace?: boolean }
 export type CloudWriteReply = {revision: string | null; conflict?: false} | {conflict: true; body?: {error?: string} | null};
 export interface CloudTransport {
   read(options?: {timeout?: number}): Promise<CloudSnapshot | null>;
   write(options: CloudWriteRequest): Promise<CloudWriteReply>;
+  supportedSections?(): readonly BackupSection[];
+  supportsAutoRestore?():boolean;
 }
 interface CloudBackupAdapter {
-  exportArcadeBackup(storage: SaveStorage): BackupExport | BackupFailure;
+  exportArcadeBackup(storage: SaveStorage,sections?:readonly BackupSection[]): BackupExport | BackupFailure;
   inspectArcadeBackup(text: unknown): BackupInspection | BackupFailure;
   restoreArcadeBackup(inspection: BackupInspection, storage: SaveStorage): BackupRestored | BackupFailure;
 }
@@ -47,6 +49,8 @@ export interface CloudSyncOptions {
 interface CloudSectionRecord { revision: number; value: BackupStates[BackupSection] }
 interface CloudApiReply {
   version?: number;
+  capability?:unknown;
+  supportedSections?:unknown;
   section?: string;
   revision?: number;
   sections: Partial<Record<BackupSection, CloudSectionRecord>>;
@@ -75,7 +79,13 @@ export async function cloudDigest(bundle?: BackupBundle | null): Promise<string 
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data)),v=>v.toString(16).padStart(2,'0')).join('');
 }
 const sectionsOf=(b: BackupBundle | null | undefined)=>b?.sections??{};
+const exactSectionSubset=(left:BackupBundle,right:BackupBundle):boolean=>
+  (Object.keys(left.sections) as BackupSection[]).every(k=>
+    Object.hasOwn(right.sections,k)&&JSON.stringify(canonical(left.sections[k]))===JSON.stringify(canonical(right.sections[k])));
 const hasProgress=(b: BackupBundle | null | undefined)=>Object.entries(sectionsOf(b)).some(([k,state])=>
+  k==='arena'?Number((state as unknown as {round?:number}).round)>0:
+  k==='gauntlet'?Number((state as unknown as {season?:number}).season)>0||
+    Boolean((state as unknown as {fighters?:unknown[]}).fighters?.length):
   k==='quest'?Boolean((state as QuestSave).run||(state as QuestSave).campaign?.revision):((state as DuelSave | SquadSave).season>0||
     Object.keys((state as DuelSave).records??(state as SquadSave).teams??{}).length>0||Object.keys((state as DuelSave).heroes??{}).length>0||
     Object.keys((state as DuelSave | SquadSave).peaks??{}).length>0));
@@ -115,35 +125,57 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
   const setBaseline=(remote: {revision: string | null} | null,digest: string | null,bundle?: BackupBundle)=>{
     if(prefs().enabled)save({enabled:true,rev:remote?.revision??null,digest,pause:null,floors:floorsOf(bundle)});
   };
+  const localBackup=()=>backup.exportArcadeBackup(storage,transport.supportedSections?.());
   const snapshots=async(timeout?: number)=>{
-    const exported=backup.exportArcadeBackup(storage);
+    const response=await transport.read({timeout});
+    const exported=localBackup();
     const local=exported.ok?backup.inspectArcadeBackup(exported.text):exported;
     if(!local.ok&&local.error!=='There are no saved sections in this browser yet.')throw Error(local.error);
-    const response=await transport.read({timeout});
     if(response!==null&&!revision(response?.revision))throw Error('Cloud revision is unavailable.');
     const remote=response===null?null:backup.inspectArcadeBackup(JSON.stringify(response.bundle));
     if(remote&&!remote.ok)throw Error('Cloud save could not be validated. No changes were made.');
     return {local:local.ok?local:null,remote:remote??null,response};
   };
-  async function synchronize({action='check',expectedRevision,expectedLocalDigest}: SyncRequest={}): Promise<SyncResult> {
+  async function synchronize({action='check',expectedRevision,expectedLocalDigest,discover=false,revealOnly=false}: SyncRequest={}): Promise<SyncResult> {
     if(lock)return {status:'busy'};
     if(action==='disable'){
-      storage.removeItem(CLOUD_SYNC_KEY);return {status:'disabled'};
+      save({...fallback});return {status:'disabled'};
     }
     let p=prefs();
-    if(!p.enabled&&action!=='enable')return {status:'disabled'};
+    const discovering=discover&&action==='startup'&&!p.enabled&&storage.getItem(CLOUD_SYNC_KEY)==null;
+    if(!p.enabled&&action!=='enable'&&!discovering)return {status:'disabled'};
     const linking=action==='enable'&&!p.enabled;
     if(linking){save({...fallback,enabled:true});p=prefs();action='check';}
     lock=true;
     try{
-      const {local,remote,response}=await snapshots(action==='startup'?1800:undefined);
+      const {local,remote,response}=await snapshots(action==='startup'?3500:8000);
       const [localDigest,remoteDigest]=await Promise.all([hash(local?.bundle),hash(remote?.bundle)]);
-      if(!prefs().enabled)return {status:'disabled'};
       const view={localDigest,cloudRevision:response?.revision??null,device:local?.summary??null,cloud:remote?.summary??null};
       const conflict=(reason: ConflictStatus='conflict')=>({status:reason,...view});
+      if(discovering){
+        // Only an authenticated worker that explicitly advertises this app
+        // can auto-link. A clone, older worker, or disabled browser cannot.
+        if(storage.getItem(CLOUD_SYNC_KEY)!=null)return {status:'disabled'};
+        if(!remote||!response?.autoRestore)return !remote&&transport.supportsAutoRestore?.()&&hasProgress(local?.bundle)?conflict('unlinked'):{status:'disabled'};
+        if(hasProgress(local?.bundle)&&localDigest!==remoteDigest)return conflict('conflict');
+        if(revealOnly)return conflict('cloud-newer');
+        const newest=localBackup();
+        if((newest.ok?await hash(newest.bundle):null)!==localDigest||storage.getItem(CLOUD_SYNC_KEY)!=null)return conflict('changed');
+        if(localDigest!==remoteDigest){
+          const apply=backup.restoreArcadeBackup(remote,storage);
+          if(!apply.ok)throw Error(apply.error);
+        }
+        const merged=localBackup();
+        if(!merged.ok)throw Error(merged.error);
+        const mergedDigest=await hash(merged.bundle);
+        if(storage.getItem(CLOUD_SYNC_KEY)!=null)return {status:'disabled'};
+        save({enabled:true,rev:response.revision,digest:mergedDigest,pause:null,floors:floorsOf(merged.bundle)});
+        return {status:localDigest===remoteDigest?'current':'downloaded',...view};
+      }
+      if(!prefs().enabled)return {status:'disabled'};
       const upload=async(): Promise<SyncResult>=>{
         if(!local)return conflict('reset');
-        const latest=backup.exportArcadeBackup(storage);
+        const latest=localBackup();
         if(!latest.ok||await hash(latest.bundle)!==localDigest)return conflict('changed');
         if(!prefs().enabled)return {status:'disabled'};
         const next=await transport.write({revision:response?.revision??null,bundle:local.bundle,confirmReplace:action==='device'});
@@ -158,8 +190,12 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
       };
       const reset=p.pause==='reset'||rolledBack(p.floors,floorsOf(local?.bundle));
       const blankFirstLink=linking&&remote&&!hasProgress(local?.bundle);
+      // Added sections can upgrade an older three-part baseline or recover
+      // an interrupted multi-section sync without overwriting any known row.
+      const onlyNewLocal=Boolean(local&&remote&&localDigest!==remoteDigest&&exactSectionSubset(remote.bundle,local.bundle));
+      const onlyNewRemote=Boolean(local&&remote&&localDigest!==remoteDigest&&exactSectionSubset(local.bundle,remote.bundle));
       const safePull=action==='startup'&&remote&&!reset&&localDigest!==remoteDigest&&
-        (!hasProgress(local?.bundle)||(p.rev&&p.rev!==response!.revision&&localDigest===p.digest));
+        (onlyNewRemote||!hasProgress(local?.bundle)||(p.rev&&p.rev!==response!.revision&&localDigest===p.digest));
       if(action==='device'||action==='cloud'||blankFirstLink||safePull){
         if(!blankFirstLink&&!safePull&&(expectedRevision!==view.cloudRevision||expectedLocalDigest!==localDigest))return conflict('changed');
         if(action==='device'){
@@ -169,14 +205,14 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
         }
         if(!remote)return conflict('changed');
         if(local&&hasProgress(local.bundle)&&!await preserve('previous-device',JSON.stringify(local.bundle)))return conflict('recovery-blocked');
-        const latest=backup.exportArcadeBackup(storage);
+        const latest=localBackup();
         if((latest.ok?await hash(latest.bundle):null)!==localDigest)return conflict('changed');
         if(!prefs().enabled)return {status:'disabled'};
         const apply=backup.restoreArcadeBackup(remote,storage);
         if(!apply.ok)throw Error(apply.error);
         // Imports preserve local-only sections. Do not treat those preserved
         // sections as new progress until the device actually changes.
-        const merged=backup.exportArcadeBackup(storage);
+        const merged=localBackup();
         if(!merged.ok)throw Error(merged.error);
         setBaseline(response,await hash(merged.bundle),merged.bundle);
         return {status:'downloaded',...view};
@@ -188,10 +224,11 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
       if(reset){
         save({...p,pause:'reset'});return conflict('reset');
       }
-      if(action==='startup')return response?.revision!==p.rev&&remote?conflict('conflict'):{status:'pending',...view};
+      if(action==='startup')return response?.revision!==p.rev&&remote&&!onlyNewLocal?conflict('conflict'):{status:'pending',...view};
       if(!hasProgress(local?.bundle)&&!remote)return {status:'empty',...view};
       if(!remote&&!p.rev)return await upload();
-      if(response?.revision!==p.rev||!p.rev)return conflict(localDigest===p.digest||!local?'cloud-newer':'conflict');
+      if(onlyNewLocal)return await upload();
+      if(response?.revision!==p.rev||!p.rev)return conflict(onlyNewRemote||localDigest===p.digest||!local?'cloud-newer':'conflict');
       if(localDigest!==p.digest)return await upload();
       return {status:'current',...view};
     }catch(e){return {status:'error',error:(e as Error | null)?.message||'Cloud is unavailable. Device saves are unchanged.'};}
@@ -221,17 +258,23 @@ export function storeCloudRecovery(reason: string,text: string): Promise<boolean
   });
 }
 
-const cloudKinds=['duel','squad','quest'] as const;
+const legacyKinds=['duel','squad','quest'] as const;
+const allKinds=['duel','squad','quest','arena','gauntlet'] as const;
+const isCloudKind=(k:unknown):k is BackupSection=>typeof k==='string'&&(allKinds as readonly string[]).includes(k);
 const revisionOf=(sections: Partial<Record<BackupSection, CloudSectionRecord>>)=>{
-  const values=cloudKinds.map(k=>sections[k]?.revision??0);
-  return values.some(Boolean)?values.join('.'):null;
+  const values=allKinds.map(k=>sections[k]?.revision??0);
+  return values.some(Boolean)?values.slice(0,values[3]||values[4]?5:3).join('.'):null;
 };
 export function createBrowserCloudTransport({request=globalThis.fetch?.bind(globalThis)}: {request?: typeof fetch}={}): CloudTransport {
   let sections: Partial<Record<BackupSection, CloudSectionRecord>>={};
+  let available:readonly BackupSection[]=legacyKinds,verified=false;
   async function api(path: string,{method='GET',payload,timeout}: ApiOptions={}): Promise<CloudApiReply> {
+    const encoded=payload?JSON.stringify(payload):undefined;
+    const keepalive=encoded!==undefined&&new TextEncoder().encode(encoded).length<=56_000;
     const response=await request('/api/cloud-save'+path,{method,credentials:'same-origin',cache:'no-store',
+      ...(keepalive?{keepalive:true}:{}),
       ...(timeout?{signal:AbortSignal.timeout(timeout)}:{}),
-      ...(payload?{headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}:{})});
+      ...(encoded===undefined?{}:{headers:{'Content-Type':'application/json'},body:encoded})});
     if(response.status===401)throw Error('Sign in to OpenAI on this browser to link your saves.');
     const body=await response.json().catch(()=>null) as CloudApiReply | null;
     if(response.status===409)return {conflict:true,body:body as {error?: string} | null} as CloudApiReply;
@@ -240,22 +283,29 @@ export function createBrowserCloudTransport({request=globalThis.fetch?.bind(glob
   }
   return {
     async read({timeout}={}){
-      const data=await api('',{timeout});
+      const data=await api('?scope=all',{timeout});
+      const capability=data.capability==='saber-pit-cloud-save'&&Array.isArray(data.supportedSections)&&
+        data.supportedSections.every(isCloudKind)&&legacyKinds.every(k=>(data.supportedSections as readonly BackupSection[]).includes(k));
+      const supported:readonly BackupSection[]=capability?(data.supportedSections as BackupSection[]):legacyKinds;
       if(data.version!==1||!plain(data.sections)||Object.entries(data.sections).some(([k,s])=>
-        !cloudKinds.includes(k as typeof cloudKinds[number])||!plain(s)||!Number.isSafeInteger(s.revision)||s.revision<1||!plain(s.value)))
+        !isCloudKind(k)||!supported.includes(k)||!plain(s)||!Number.isSafeInteger(s.revision)||s.revision<1||!plain(s.value)))
         throw Error('Cloud save response could not be validated.');
+      available=supported;verified=capability;
       sections=data.sections;
       const revision=revisionOf(sections);
       if(revision===null)return null;
-      return {revision,bundle:{format:'saber-pit-local-backup',version:1,sections:
+      return {revision,...(capability?{autoRestore:true}:{}),bundle:{format:'saber-pit-local-backup',version:1,sections:
         Object.fromEntries(Object.entries(sections).map(([k,v])=>[k,v.value]))}};
     },
+    supportedSections:()=>available,
+    supportsAutoRestore:()=>verified,
     async write({bundle,revision,confirmReplace}){
       if(revisionOf(sections)!==revision)return {conflict:true};
       for(const [k,value] of Object.entries(bundle.sections)){
+        if(!isCloudKind(k)||!available.includes(k))continue;
         const record=sections[k as BackupSection];
         if(record&&JSON.stringify(canonical(record.value))===JSON.stringify(canonical(value)))continue;
-        const result=await api('/'+k,{method:'PUT',payload:{baseRevision:record?.revision??0,value,
+        const result=await api('/'+k,{method:'PUT',timeout:12_000,payload:{baseRevision:record?.revision??0,value,
           ...(confirmReplace?{confirmReplace:true}:{})}});
         if(result.conflict)return result as {conflict: true; body?: {error?: string} | null};
         if(result.version!==1||result.section!==k||!Number.isSafeInteger(result.revision)||

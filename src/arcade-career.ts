@@ -1,3 +1,4 @@
+import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import {createCareer, awardMerit, meritForRound, progressionSummary} from './progression.js?v=1.4.0';
 
 import {ELO_SCALE,migrateLegacyElo} from './arcade-elo.js?v=2.18.5';
@@ -33,7 +34,7 @@ export function readArcadeCareer(storage?:Pick<Storage,'getItem'>|null){
   }catch{return null;}
 }
 export function saveArcadeCareer(data:object,storage?:Pick<Storage,'setItem'>|null){
-  try{(storage??globalThis.localStorage).setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE}));return true;}
+  try{const target=storage??globalThis.localStorage;target.setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE}));notifyCloudSaveCommitted(target);return true;}
   catch{return false;}
 }
 const settled=new WeakMap<Game,Settlement>();

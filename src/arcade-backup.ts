@@ -1,19 +1,23 @@
 import {TOURNAMENT_KEY,loadTournament} from './arcade-tournament.js?v=3.0.0';
 import {SQUAD_TOURNAMENT_KEY,loadSquadTournament} from './squad-tournament.js?v=2.40.0';
 import {GAUNTLET_KEY,GAUNTLET_MAX_SAVE_CHARS,normalizeGauntlet} from './gauntlet-tournament.js';
+import {ARCADE_CAREER_KEY,readArcadeCareer} from './arcade-career.js?v=2.18.5';
+import {normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
+import {arenaNormalRating} from './arcade-normal-elo.js';
 import {QUEST_STORAGE_KEY,loadQuests} from './arcade-quests.js?v=3.3.0';
 
 import type {QuestSave} from './arcade-quests.js';
 import type {SaveStorage, StorageReader} from './arcade-save-types.js';
 
-export type BackupSection = 'duel' | 'squad' | 'gauntlet' | 'quest';
+export type BackupSection = 'arena' | 'duel' | 'squad' | 'gauntlet' | 'quest';
 interface SavedMatch { id: string; result?: unknown }
 interface SavedBracket { qualifiers?: SavedMatch[]; opening?: SavedMatch[]; rounds: SavedMatch[][] }
 interface TournamentSave { version: number; active?: SavedBracket | null; season: number; history: unknown[]; peaks?: Record<string,unknown> }
 export interface DuelSave extends TournamentSave { records: Record<string,unknown>; heroes: Record<string,unknown> }
 export interface SquadSave extends TournamentSave { teams: Record<string,unknown> }
-export interface GauntletSave { version: 1; fighters: unknown[]; season: number }
-export interface BackupStates { duel: DuelSave; squad: SquadSave; gauntlet: GauntletSave; quest: QuestSave }
+export type GauntletSave = NonNullable<ReturnType<typeof normalizeGauntlet>>;
+export type ArenaSave = NonNullable<ReturnType<typeof readArcadeCareer>>;
+export interface BackupStates { arena: ArenaSave; duel: DuelSave; squad: SquadSave; gauntlet: GauntletSave; quest: QuestSave }
 export interface BackupBundle {
   format: 'saber-pit-local-backup';
   version: 1;
@@ -22,7 +26,8 @@ export interface BackupBundle {
 }
 export interface CareerSummary { label: string; seasons: number; records: number; heroes: number; peaks: number }
 export interface QuestSummary { label: string; attempts: number; questStatus: string }
-export type BackupSummary = Partial<Record<BackupSection, CareerSummary | QuestSummary>>;
+export interface ArenaSummary {label:string;round:number;fighters:number;ratedFighters:number}
+export type BackupSummary = Partial<Record<BackupSection, CareerSummary | QuestSummary | ArenaSummary>>;
 export interface BackupFailure { ok: false; error: string; rollback?: boolean }
 export interface BackupInspection { ok: true; bundle: BackupBundle; summary: BackupSummary }
 export interface BackupExport { ok: true; bundle: BackupBundle; text: string }
@@ -48,8 +53,9 @@ interface UncheckedSection {
 interface ImportOperation { key: string; value: string; previous: string | null | undefined }
 
 export const BACKUP_FORMAT='saber-pit-local-backup';
-export const MAX_BACKUP_BYTES=2_500_000;
+export const MAX_BACKUP_BYTES=3_100_000;
 const CONFIG: Readonly<Record<BackupSection,SectionConfig>>={
+  arena:{key:ARCADE_CAREER_KEY,limit:160_000,versions:[1],label:'Arena run'},
   duel:{key:TOURNAMENT_KEY,limit:1_000_000,versions:[1],load:loadTournament,tables:['records','heroes'],label:'1v1 tournament'},
   squad:{key:SQUAD_TOURNAMENT_KEY,limit:1_000_000,versions:[1],load:loadSquadTournament,tables:['teams'],label:'5v5 tournament'},
   gauntlet:{key:GAUNTLET_KEY,limit:GAUNTLET_MAX_SAVE_CHARS,versions:[1],label:'1v3 Gauntlet'},
@@ -61,14 +67,46 @@ const has=(o: object,k: PropertyKey)=>Object.hasOwn(o,k);
 const bytes=(s: string)=>new TextEncoder().encode(s).length;
 const store=<T extends StorageReader>(storage: T | null | undefined): T | Storage | null=>storage===undefined?globalThis.localStorage:storage;
 const fail=(error: string): BackupFailure=>({ok:false,error});
+const sameKeys=(left:object,right:object)=>Object.keys(left).sort().join('|')===Object.keys(right).sort().join('|');
+const slotId=/^[01]-(?:[0-9]|1[0-9]|2[0-3])$/;
+const isRecord=(value:unknown):value is Record<string,unknown>=>object(value);
+function validArenaRecords(value:unknown) {
+  if(value===undefined||value===null)return true;
+  if(!isRecord(value)||!Array.isArray(value.teams)||value.teams.length!==2||
+    !Array.isArray(value.soldiers)||value.soldiers.length>48)return false;
+  const counters=(row:unknown)=>isRecord(row)&&['kills','deaths','assists','environmentDeaths'].every(key=>
+    row[key]===undefined||(typeof row[key]==='number'&&Number.isSafeInteger(row[key])&&row[key]>=0&&row[key]<=1e9));
+  return value.teams.every(counters)&&value.soldiers.every(row=>counters(row)&&isRecord(row)&&
+    typeof row.id==='string'&&slotId.test(row.id))&&new Set(value.soldiers.map(row=>row.id)).size===value.soldiers.length;
+}
+function normalizeArena(raw:UncheckedSection,payload:string,key:string):ArenaSave {
+  const loaded=readArcadeCareer({getItem:k=>k===key?payload:null});
+  if(!loaded||!isRecord(raw.careers)||!sameKeys(raw.careers,loaded.careers)||
+    !Object.entries(raw.careers).every(([id,row])=>isRecord(row)&&row.merit===loaded.careers[id]?.merit)||
+    (raw.setup!==undefined&&!isRecord(raw.setup))||
+    (raw.heroLineup!==undefined&&(!isRecord(raw.heroLineup)||
+      !sameKeys(raw.heroLineup,normalizeHeroLineup(loaded.heroLineup))))||!validArenaRecords(raw.records))
+    throw new Error('Arena run contains invalid career progress.');
+  if(raw.arenaRatings!==undefined&&(!isRecord(raw.arenaRatings)||
+    !sameKeys(raw.arenaRatings,loaded.arenaRatings)||!Object.entries(raw.arenaRatings).every(([slot,rating])=>
+      typeof rating==='number'&&rating===arenaNormalRating(rating)&&loaded.arenaRatings[slot]===rating)))
+    throw new Error('Arena run contains invalid Elo ratings.');
+  return loaded;
+}
 function normalized(config: SectionConfig,unchecked: unknown): BackupStates[BackupSection] {
   const raw=unchecked as UncheckedSection;
   if(!object(raw)||!config.versions.includes(raw.version!))throw new Error(config.label+' has an unsupported save format.');
   const payload=JSON.stringify(raw);
   if(payload.length>config.limit)throw new Error(config.label+' exceeds its local save limit.');
+  if(config.key===ARCADE_CAREER_KEY)return normalizeArena(raw,payload,config.key);
   if(config.key===GAUNTLET_KEY){
-    const state=normalizeGauntlet(raw) as GauntletSave | null;
-    if(!state)throw new Error('1v3 Gauntlet contains invalid progress.');
+    const state=normalizeGauntlet(raw);
+    // Do not advertise a full restore if the canonical parser had to drop an
+    // explicitly saved replay checkpoint.
+    const originalActive=raw.active as (SavedBracket&{lastFixture?:{id?:string}})|null|undefined;
+    if(!state||(originalActive?.lastFixture!=null&&(!state.active?.lastFixture||
+      (originalActive.lastFixture.id!==undefined&&originalActive.lastFixture.id!==state.active.lastFixture.id))))
+      throw new Error('1v3 Gauntlet contains invalid progress or replay data.');
     return state;
   }
   if(config.tables!.some(key=>!object(raw[key]))||(!config.tables!.length&&!has(raw,'run')))throw new Error(config.label+' is missing required save data.');
@@ -90,7 +128,11 @@ function normalized(config: SectionConfig,unchecked: unknown): BackupStates[Back
   }
   return state as unknown as DuelSave | SquadSave | QuestSave;
 }
-function entries(value: BackupStates[BackupSection],config: SectionConfig,k: BackupSection): CareerSummary | QuestSummary {
+function entries(value: BackupStates[BackupSection],config: SectionConfig,k: BackupSection): CareerSummary | QuestSummary | ArenaSummary {
+  if(k==='arena'){
+    const run=value as ArenaSave;
+    return {label:config.label,round:run.round!,fighters:Object.keys(run.careers).length,ratedFighters:Object.keys(run.arenaRatings).length};
+  }
   if(k==='quest'){
     const {run,campaign}=value as QuestSave;
     const legacy=run?.claimedAt!=null?'Seal claimed':run?.result?.status??(run?'Legacy duel deployed':'No attempt');

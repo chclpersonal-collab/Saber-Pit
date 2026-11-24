@@ -4,7 +4,7 @@ type SyncPresentation = SyncResult & {
   cloud?: BackupSummary | null; device?: BackupSummary | null;
   cloudRevision?: string | null; localDigest?: string | null; error?: string;
 };
-import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=3.3.0';
+import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=4.01.1';
 import {readCloudRecovery} from './arcade-cloud-sync.js';
 const $=<T extends HTMLElement=HTMLButtonElement>(id: string)=>document.getElementById(id) as T;
 const controls=['cloudEnable','cloudDisable','cloudCheck','cloudDevice','cloudPull'];
@@ -20,11 +20,12 @@ function draw(result: SyncPresentation | null){
   $('cloudDevice').hidden=!result?.device||status==='reset'||status==='cloud-newer';
   $('cloudPull').disabled=$('cloudDevice').disabled=false;
   const summary=(items?: BackupSummary | null)=>!items?'No saves found.':Object.values(items).map(x=>x.label+': '+
-    ((x as QuestSummary).questStatus??((x as CareerSummary).seasons+' seasons · '+(x as CareerSummary).records+' records'+((x as CareerSummary).heroes?' · '+(x as CareerSummary).heroes+' Heroes':'')))).join(' / ');
+    (('round' in x&&'fighters' in x)?x.round+' · '+x.fighters+' slots'+('ratedFighters' in x?' · '+x.ratedFighters+' rated':''):((x as QuestSummary).questStatus??((x as CareerSummary).seasons+' seasons · '+(x as CareerSummary).records+' records'+((x as CareerSummary).heroes?' · '+(x as CareerSummary).heroes+' Heroes':''))))).join(' / ');
   if(compare){$('cloudLocalSummary').textContent=summary(result!.device);$('cloudRemoteSummary').textContent=summary(result!.cloud);}
   $('cloudStatus').textContent=({
     disabled:'Sync is off. Saves stay on this device.',
     enabled:'Sync is on for this device.',
+    unlinked:'Device progress has not linked yet. Turn on sync to start.',
     current:'This device is up to date.',
     empty:'Sync is on. Play to start a save.',
     uploaded:'Device progress saved to the cloud.',

@@ -13,7 +13,7 @@ import {sampleArcadeFighter,arcadeBladeWorld,arcadeHeroLabelWorld} from './arcad
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {createArcadeStage,drawArcadeStage,createArcadeTerrain,drawArcadeObstacle,resolveArcadeMap} from './arcade-stage.js?v=4.0.0';
 import {FRAME_STEP,advanceSim,displayDelta,displayFighters,fighterSamples,newDisplayClock,resetDisplayClock} from './arcade-display.js?v=2.44.0';
-import {classicCareers,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from './arcade-career.js?v=2.18.5';
+import {classicCareers,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {ARCADE_BODY_REGIONS,arcadeInjuryReport,ARCADE_INJURY_REFERENCE} from './arcade-injuries.js?v=2.9.0';
 import {crowdedFighters,sharesSilhouette} from './arcade-layout.js?v=2.9.0';
 import {ARCADE_RANK_FOOTWORK,arcadeRankFootworkFor} from './arcade-rank-footwork.js?v=2.27.0';
@@ -26,9 +26,10 @@ import {actionFrame,stepActionFrame,screenToArena,composeArcadeFrame} from './ar
 import {battleHeroLineup,normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
 import {fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
 import {eloFloor} from './arcade-elo.js?v=2.18.5';
+import {arenaLobbyRating} from './arcade-arena-rating-ui.js';
 import {arenaNormalRanked,arenaNormalRating,arenaNormalCap} from './arcade-normal-elo.js';
 import type {ArenaNormalRatings as ArenaRatings} from './arcade-normal-elo.js';
-import {loadTournament,tournamentHeroes} from './arcade-tournament.js?v=3.0.0';
+import {loadTournament,tournamentHeroes} from './arcade-tournament.js?v=4.01.1';
 import {tournamentHeroLoadout} from './arcade-tournament-sim.js?v=3.0.0';
 import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
 import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
@@ -208,11 +209,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const lineups=engineLineups(config);
   const sideSizes=isMenu?[1,1]:config.teamSizes;
   const sideHeroes=isMenu?previewHeroes(useHeroes):useHeroes;
-  const useArenaElo=!isMenu&&arenaNormalRanked({mode,config:{rule:config.rule,teamSizes:sideSizes},
-    fighters:sideSizes.flatMap((size,team)=>Array.from({length:size},(_,slot)=>{
-      const id=`${team}-${slot}`;
-      return {id,team,heroId:sideHeroes[id]?.id};
-    }))});
+  const useArenaElo=!isMenu&&arenaLobbyRating(mode,config.rule,sideSizes,sideHeroes).rated;
   const fighterRatings=useArenaElo?sideSizes.map((size,team)=>Array.from({length:size},(_,slot)=>
     arenaNormalRating(roundRatings[team+'-'+slot]))):undefined;
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
@@ -1018,6 +1015,7 @@ function prepareWatchHero(heroId?:string){
 function refreshHeroRoster(){
   heroRoster=tournamentHeroes(loadTournament());
   heroSelects();
+  updateLobbyRating(setup.teamSizes);
 }
 const kitHints:Record<string,string>={
   single:'Direct cuts and a quick return to guard.',
@@ -1028,7 +1026,17 @@ const kitHints:Record<string,string>={
   shoto:'Shorter reach, faster swings and lower stamina cost.',
   greatsaber:'Longer reach and harder hits, with slower and costlier swings.',
 };
+function updateLobbyRating(teamSizes:readonly number[]){
+  const chosen=battleHeroLineup(setup.heroPicks,heroRoster,tournamentHeroLoadout);
+  const {rated,label}=arenaLobbyRating(setupMode(setup),setup.rule,teamSizes,chosen);
+  const output=$('arenaRatingStatus');
+  if(output.textContent!==label)output.textContent=label;
+  output.dataset.rated=String(rated);
+}
+for(const count of [$('count0'),$('count1')])count.addEventListener('input',()=>
+  updateLobbyRating([$('count0').valueAsNumber,$('count1').valueAsNumber]));
 function updateSetupHints(){
+  updateLobbyRating(setup.teamSizes);
   for(const i of [0,1] as const){
     $(`kitHint${i}`).textContent=kitHints[$(`saberKit${i}`).value]??kitHints.single;
     $(`chessStyleHint${i}`).textContent=ARCADE_CHESS_STYLES[setup.chessStyles[i]].hint;

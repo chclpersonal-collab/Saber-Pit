@@ -63,3 +63,54 @@ test('failed multi-section write rolls back earlier changes and never touches un
   assert.equal(target.getItem(quest.QUEST_STORAGE_KEY),null);
   assert.equal(target.getItem('other'),'never');
 });
+
+test('a portable file preserves Arena Elo and progressed Gauntlet independently',async()=>{
+  const {ARCADE_CAREER_KEY,saveArcadeCareer,readArcadeCareer}=await import('../dist/arcade-career.js');
+  const {GAUNTLET_KEY,startGauntlet,nextGauntletBout,recordGauntletBout,saveGauntlet,loadGauntlet}=await import('../dist/gauntlet-tournament.js');
+  const source=store(),target=store();
+  const arena={mode:'watch',round:9,seed:148132,careers:{'0-0':{merit:401},'1-0':{merit:680}},
+    arenaRatings:{'0-0':153.5,'1-0':144.5},setup:{teamSizes:[1,1],rule:'elimination'},
+    records:{teams:[{kills:2},{kills:3}],soldiers:[{id:'0-0',kills:2},{id:'1-0',kills:3}]}};
+  assert.ok(saveArcadeCareer(arena,source));
+  let gauntlet=startGauntlet(undefined,{seed:777});
+  const id=nextGauntletBout(gauntlet).id;
+  gauntlet=recordGauntletBout(gauntlet,id,{winnerIndex:0,time:9,reason:'elimination'});
+  assert.equal(gauntlet.active.bouts.length,1);
+  assert.ok(saveGauntlet(gauntlet,source));
+  const blob=exportArcadeBackup(source,{sections:['arena','gauntlet']});
+  assert.ok(blob.ok,blob.error);
+  const checked=inspectArcadeBackup(blob.text);
+  assert.ok(checked.ok,checked.error);
+  assert.deepEqual(checked.summary.arena,{label:'Arena run',round:9,fighters:2,ratedFighters:2});
+  target.setItem(ARCADE_CAREER_KEY,'previous arena');
+  assert.ok(restoreArcadeBackup(checked,target,{sections:['gauntlet']}).ok);
+  assert.equal(target.getItem(ARCADE_CAREER_KEY),'previous arena');
+  assert.deepEqual(loadGauntlet(target),loadGauntlet(source));
+  assert.equal(loadGauntlet(target).active.lastFixture.id,id);
+  assert.ok(restoreArcadeBackup(checked,target,{sections:['arena']}).ok);
+  assert.deepEqual(readArcadeCareer(target),readArcadeCareer(source));
+  assert.equal(readArcadeCareer(target).arenaRatings['0-0'],153.5);
+  assert.deepEqual(readArcadeCareer(target).records,arena.records);
+  assert.ok(target.getItem(GAUNTLET_KEY));
+  const unsafe=structuredClone(checked.bundle);
+  unsafe.sections.arena.arenaRatings['0-24']=300;
+  assert.match(inspectArcadeBackup(JSON.stringify(unsafe)).error,/invalid Elo ratings/);
+  delete unsafe.sections.arena.arenaRatings['0-24'];
+  unsafe.sections.gauntlet.active.bouts[0].id='unrecognized match';
+  assert.match(inspectArcadeBackup(JSON.stringify(unsafe)).error,/invalid progress/);
+});
+
+test('pre-Elo Arena files migrate without inventing ratings or overwriting other sections',async()=>{
+ const {ARCADE_CAREER_KEY,readArcadeCareer}=await import('../dist/arcade-career.js');
+ const target=store();
+ target.setItem(quest.QUEST_STORAGE_KEY,'leave untouched');
+ const file={format:BACKUP_FORMAT,version:1,sections:{arena:{version:1,mode:'duel',round:3,seed:5,careers:{'0-0':{merit:7}}}}};
+ const inspected=inspectArcadeBackup(JSON.stringify(file));
+ assert.ok(inspected.ok,inspected.error);
+ assert.equal(inspected.summary.arena.ratedFighters,0);
+ assert.ok(restoreArcadeBackup(inspected,target).ok);
+ assert.equal(target.getItem(quest.QUEST_STORAGE_KEY),'leave untouched');
+ assert.deepEqual(readArcadeCareer(target).arenaRatings,{});
+ assert.equal(readArcadeCareer(target).round,3);
+ assert.ok(target.getItem(ARCADE_CAREER_KEY));
+});

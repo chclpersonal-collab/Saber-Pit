@@ -5,9 +5,9 @@ type RpgHero = SavedHeroInput & {body?: FighterBody};
 type ReplayCreated = ReturnType<typeof createIdleWaveReplay> | ReturnType<typeof restoreQuestEncounter>;
 interface PlaybackOptions { created: ReplayCreated; name: string; enemy: string; key: string; result: QuestResult | null; index?: number | null; legacy?: boolean }
 interface PlaybackScene { key: string; legacy: boolean; result: QuestResult | null; index: number | null; ended: boolean }
-import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=4.0.0';
+import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=4.01.1';
 import * as campaign from './arcade-idle-campaign.js?v=4.0.0';
-import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=3.0.0';
+import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=4.01.1';
 import * as rigArt from './arcade-fighters.js?v=4.0.0';
 import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=4.0.0';
 import {ARCADE_FORMS} from './arcade-engine.js?v=3.0.0';

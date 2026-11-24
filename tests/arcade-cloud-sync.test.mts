@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createBrowserCloudTransport,createCloudSync} from '../dist/arcade-cloud-sync.js';
+import {CLOUD_SYNC_KEY,createBrowserCloudTransport,createCloudSync} from '../dist/arcade-cloud-sync.js';
 const dist=process.env.SABER_CORE_DIST??new URL('../dist/',import.meta.url).href;
 const backup=await import(new URL('arcade-backup.js',dist));
 const {loadTournament,startTournament,saveTournament,resetTournament,runTournamentStep}=await import(new URL('arcade-tournament.js',dist));
@@ -13,7 +13,7 @@ function localSave(storage,seed){
   startTournament(state,{seed,fieldSize:32});saveTournament(state,storage);
   return state;
 }
-function lab(){
+function lab({capable=false}={}){
   const sections={};
   const calls=[];
   let offline=false,conflict=false;
@@ -23,7 +23,10 @@ function lab(){
     if(offline)throw Error('Offline');
     const key=url.split('/').at(-1);
     const reply=(status,v)=>new Response(JSON.stringify(v),{status});
-    if(opt.method==='GET')return reply(200,{version:1,sections});
+    if(opt.method==='GET'){
+      assert.equal(url,'/api/cloud-save?scope=all');
+      return reply(200,{version:1,sections,...(capable?{capability:'saber-pit-cloud-save',supportedSections:['duel','squad','quest','arena','gauntlet']}:{} )});
+    }
     const {baseRevision,value}=JSON.parse(opt.body),expected=sections[key]?.revision??0;
     if(expected!==baseRevision||conflict)return reply(409,{error:'conflict'});
     const revision=expected+1;
@@ -33,7 +36,7 @@ function lab(){
   function device(){
     const storage=browser(),copies=new Map();
     const transport=createBrowserCloudTransport({request});
-    const controller=createCloudSync({storage,transport,backup,preserve:async(k,v)=>Boolean(copies.set(k,v))});
+    const controller=createCloudSync({storage,transport,backup:{...backup,exportArcadeBackup:(store,sections)=>backup.exportArcadeBackup(store,{sections})},preserve:async(k,v)=>Boolean(copies.set(k,v))});
     return {storage,copies,...controller};
   }
   return {device,calls,sections,setOffline:v=>{offline=v},setConflict:v=>{conflict=v}};
@@ -112,4 +115,65 @@ test('versioned empty saves never initialize Cloud, and startup GET receives an 
     return new Response(JSON.stringify({version:1,sections:{}}));
   };
   assert.equal(await createBrowserCloudTransport({request}).read({timeout:1800}),null);
+});
+
+test('verified new browser auto-restores clean cloud progress and an explicit disable survives reopening',async()=>{
+  const l=lab({capable:true}),pc=l.device(),phone=l.device();
+  const source=localSave(pc.storage,490);
+  assert.equal((await pc.sync({action:'enable'})).status,'uploaded');
+  assert.equal(pc.prefs().rev,'1.0.0');
+  assert.equal((await phone.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.equal(phone.prefs().enabled,true);
+  assert.deepEqual(loadTournament(phone.storage),source);
+  assert.equal(l.calls.filter(([,method])=>method==='PUT').length,1);
+  await phone.sync({action:'disable'});
+  assert.equal(JSON.parse(phone.storage.getItem(CLOUD_SYNC_KEY)).enabled,false);
+  const n=l.calls.length;
+  assert.equal((await phone.sync({action:'startup',discover:true})).status,'disabled');
+  assert.equal(l.calls.length,n);
+});
+
+test('discovery neither uploads nor overwrites unlinked legacy, divergent, or mounted clients',async()=>{
+  const wrong=lab(),old=wrong.device(),clone=wrong.device();
+  localSave(old.storage,1); await old.sync({action:'enable'});
+  assert.equal((await clone.sync({action:'startup',discover:true})).status,'disabled');
+  assert.equal(clone.prefs().enabled,false);
+  assert.equal(clone.storage.getItem(CLOUD_SYNC_KEY),null);
+  const l=lab({capable:true}),pc=l.device(),mounted=l.device(),dirty=l.device();
+  const initial=localSave(dirty.storage,547);
+  assert.equal((await dirty.sync({action:'startup',discover:true})).status,'unlinked');
+  assert.equal(l.calls.some(([,method])=>method==='PUT'),false);
+  localSave(pc.storage,12); await pc.sync({action:'enable'});
+  assert.equal((await dirty.sync({action:'startup',discover:true})).status,'conflict');
+  assert.deepEqual(loadTournament(dirty.storage),initial);
+  assert.equal((await mounted.sync({action:'startup',discover:true,revealOnly:true})).status,'cloud-newer');
+  assert.equal(mounted.prefs().enabled,false);
+  assert.equal(loadTournament(mounted.storage).season,0);
+});
+
+test('Arena Elo goes both ways across new browser startup, old workers never receive new sections',async()=>{
+  const {saveArcadeCareer,readArcadeCareer}=await import(new URL('arcade-career.js',dist));
+  const arena={mode:'duel',seed:22,round:8,careers:{'0-0':{merit:520}},arenaRatings:{'0-0':188.5}};
+  const legacy=lab(),old=legacy.device();
+  saveArcadeCareer(arena,old.storage);localSave(old.storage,72);
+  assert.equal((await old.sync({action:'enable'})).status,'uploaded');
+  assert.equal(legacy.calls.some(([url])=>url.endsWith('/arena')),false);
+  const l=lab({capable:true}),pc=l.device(),phone=l.device();
+  localSave(pc.storage,72);
+  assert.equal((await pc.sync({action:'enable'})).status,'uploaded');
+  assert.equal(pc.prefs().rev,'1.0.0');
+  assert.ok(saveArcadeCareer(arena,pc.storage));
+  // A known existing row advanced after an interrupted acknowledgement. Its
+  // bytes still agree, so only create the new missing section.
+  l.sections.duel.revision=2;
+  assert.equal((await pc.sync()).status,'uploaded');
+  assert.equal(pc.prefs().rev,'2.0.0.1.0');
+  assert.equal((await phone.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.deepEqual(readArcadeCareer(phone.storage).arenaRatings,{'0-0':188.5});
+  assert.ok(saveArcadeCareer({...arena,round:9,arenaRatings:{'0-0':196}},pc.storage));
+  assert.equal((await pc.sync()).status,'uploaded');
+  assert.equal((await phone.sync()).status,'cloud-newer');
+  assert.equal(readArcadeCareer(phone.storage).round,8); // mounted check never overwrites state
+  assert.equal((await phone.sync({action:'startup'})).status,'downloaded');
+  assert.equal(readArcadeCareer(phone.storage).round,9);
 });

@@ -46,3 +46,9 @@ body.pit-v4[data-view=menu]{
   .pit-v4[data-view=menu] .entry{grid-row:3;grid-column:1}
   .pit-v4[data-view=menu] .arena-shell{grid-row:4;grid-column:1;margin:0 0 .8rem}
 }
+
+.pit-v4 .arena-rating-status{
+  margin:.65rem 0 .15rem;padding:.5rem .65rem;border-inline-start:2px solid #a88c62;
+  background:#242327;color:#efdeb8;font-weight:750;font-size:.875rem;line-height:1.35;
+}
+.pit-v4 .arena-rating-status[data-rated=true]{border-color:#67e2cd;background:#172d2a;color:#bcf3e9}

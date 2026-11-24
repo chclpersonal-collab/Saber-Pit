@@ -1,3 +1,4 @@
+import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import {GAUNTLET_SIM_VERSION,gauntletReplayVersion} from './gauntlet-rules.js';
 import {recruitFighterName} from './arcade-fighter-names.js';
 import {appearanceSeedFor,FIGHTER_GENDERS} from './arcade-fighter-profiles.js';
@@ -270,7 +271,7 @@ export function saveGauntlet(state:State,storage?:Storage|null){
     if(!target||!valid)return false;
     const value=JSON.stringify(valid);
     if(value.length>GAUNTLET_MAX_SAVE_CHARS)return false;
-    target.setItem(GAUNTLET_KEY,value);return true;
+    target.setItem(GAUNTLET_KEY,value);notifyCloudSaveCommitted(target);return true;
   }catch{return false;}
 }
 export function resetGauntlet(storage?:Storage|null){

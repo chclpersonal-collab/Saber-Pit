@@ -37,7 +37,7 @@ export interface ArenaElements {
   'lobby':HTMLFormElement;
   'count0':HTMLInputElement; 'count1':HTMLInputElement; 'dualPhase0':HTMLInputElement; 'dualPhase1':HTMLInputElement; 'matchSeed':HTMLInputElement; 'saberOnly':HTMLInputElement;
   'recentEvents':HTMLOListElement;
-  'frameRate':HTMLOutputElement; 'setupStatus':HTMLOutputElement;
+  'arenaRatingStatus':HTMLParagraphElement; 'frameRate':HTMLOutputElement; 'setupStatus':HTMLOutputElement;
   'energy':HTMLProgressElement;
   'participation':HTMLSelectElement; 'rule':HTMLSelectElement; 'mapPick':HTMLSelectElement; 'mapSize':HTMLSelectElement; 'saberKit0':HTMLSelectElement; 'saberKit1':HTMLSelectElement; 'bodyStyle':HTMLSelectElement;
   'style':HTMLSelectElement; 'playerSlot':HTMLSelectElement; 'groupForms0':HTMLSelectElement; 'groupForms1':HTMLSelectElement; 'chessStyles0':HTMLSelectElement; 'chessStyles1':HTMLSelectElement; 'heroChoice0':HTMLSelectElement;

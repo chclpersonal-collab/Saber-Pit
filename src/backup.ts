@@ -1,5 +1,5 @@
-import type {BackupInspection, BackupSection, CareerSummary, QuestSummary} from './arcade-backup.js';
-import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=3.3.0';
+import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js';
+import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=4.01.1';
 const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
 const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');
@@ -15,7 +15,8 @@ function sync(){replace.disabled=!inspected||!confirm.checked||!current().length
 function resetPreview(){
   inspected=null;preview.hidden=true;confirm.checked=false;sections.replaceChildren();sync();
 }
-function summary(k: string,entry: CareerSummary | QuestSummary){
+function summary(k: string,entry: CareerSummary | QuestSummary | ArenaSummary){
+  if(k==='arena'){const item=entry as ArenaSummary;return 'Round '+item.round+' · '+item.fighters+' fighters · '+item.ratedFighters+' rated slots';}
   if(k==='quest'){const item=entry as QuestSummary;return item.questStatus+(item.attempts?' · Attempt '+item.attempts:'');}
   const item=entry as CareerSummary;
   if(k==='gauntlet')return item.seasons+' in-game weeks · '+item.records+' fighters';
@@ -28,7 +29,7 @@ picker.addEventListener('change',async()=>{
   resetPreview();
   const file=picker.files?.[0];
   if(!file){announce('');return;}
-  if(file.size>MAX_BACKUP_BYTES){announce('This file exceeds the 2.5 MB backup limit.','error');return;}
+  if(file.size>MAX_BACKUP_BYTES){announce('This file exceeds the 3.1 MB backup limit.','error');return;}
   announce('Checking backup…');
   try{
     const result=inspectArcadeBackup(await file.text());
