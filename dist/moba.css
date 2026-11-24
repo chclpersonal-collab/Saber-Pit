@@ -147,3 +147,44 @@ footer p{margin:0}footer span{margin:0 .25em}
 #vitals b{color:var(--white);font-variant-numeric:tabular-nums}
 .key-hints{display:block;font-size:.68rem;color:var(--mute);margin-top:.18rem}
 @media(any-pointer:coarse),(max-width:600px){.controls{display:flex}.key-hints{display:none}}
+
+/* HUD pass 2: icon controls, desktop ability bar, compact tool row. */
+.ico{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;flex:none}
+.move .ico{width:24px;height:24px;stroke-width:2.6}
+.attacks button{display:grid;place-items:center;color:var(--white)}
+.attacks [data-control=attack] .ico{width:36px;height:36px;stroke-width:2.4}
+.attacks [data-control=attack]{color:var(--amber)}
+.attacks .lbl{display:none}
+kbd{display:none;font:700 .78rem/1 ui-monospace,monospace;color:var(--amber);border:1px solid var(--edge);border-radius:4px;padding:3px 6px}
+
+/* Desktop: the three actions become an ability bar with key caps. WASD stays on the keyboard. */
+@media(hover:hover) and (pointer:fine) and (min-width:601px){
+  .controls{display:flex;justify-content:center;padding:8px 16px;background:var(--panel);border-top:1px solid var(--edge)}
+  .move{display:none}
+  .attacks{display:flex;gap:10px}
+  .attacks button,.attacks [data-control=attack]{width:auto;height:52px;border-radius:8px;grid-auto-flow:column;gap:10px;padding:0 16px 0 12px}
+  .attacks [data-control=attack] .ico{width:28px;height:28px}
+  .attacks .lbl{display:inline;font-size:.88rem;color:var(--white)}
+  .attacks kbd{display:inline-block}
+}
+
+/* Key hints fade once the first 20 seconds have taught them. */
+.key-hints{font-size:.78rem}
+.shell:has(#pause:not([hidden])) .key-hints{animation:hint-out .4s ease 20s forwards}
+@keyframes hint-out{to{opacity:0;visibility:hidden}}
+
+/* Phones: map and exit become icon buttons so the tool row fits on one line. */
+@media(max-width:600px),(orientation:landscape) and (max-height:500px){
+  .field-tools button{flex:0 0 auto}
+  #upgrade{flex:1 1 auto}
+  #map,#leave{width:44px;padding:0;font-size:0;display:grid;place-items:center}
+  #map::before,#leave::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--icon) center/contain no-repeat;mask:var(--icon) center/contain no-repeat}
+  #map{--icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z'/%3E%3Cpath d='M9 4v14M15 6v14'/%3E%3C/svg%3E")}
+  #leave{--icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h5v16h-5'/%3E%3Cpath d='M10 8l-4 4 4 4M6 12h10'/%3E%3C/svg%3E")}
+}
+@media(max-width:600px) and (orientation:portrait){
+  .field-tools{flex-wrap:nowrap}
+  .field-tools>div{display:none}
+  .shell:has(#pause:not([hidden])) .field-tools{flex-wrap:wrap}
+  .shell:has(#pause:not([hidden])) .field-tools>div{display:block;flex:1 0 100%}
+}
