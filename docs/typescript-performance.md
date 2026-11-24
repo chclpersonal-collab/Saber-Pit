@@ -3,8 +3,8 @@
 Reproduce after `npm ci && npm run build`:
 
 ```sh
-node scripts/bench-typescript-simulation.mjs dist
-node scripts/bench-typescript-simulation.mjs build/dist
+node build/scripts/bench-typescript-simulation.mjs build/baseline/dist
+node build/scripts/bench-typescript-simulation.mjs build/dist
 ```
 
 The benchmark uses two fixed seeds on Crossroads, 120 Hz combat ticks, 60 Hz sampled presentation, and up to 1,200 frames per fixture after warm-up. The `step` and `snapshot` columns separate the two engine ticks from the two intermediate renderer-input snapshots. Canvas calls are counted through a headless stub: this measures JavaScript combat, rig preparation and paint submission, not browser rasterization, GPU load, actual FPS, or a phone's performance.

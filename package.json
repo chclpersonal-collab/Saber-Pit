@@ -7,31 +7,29 @@
   "scripts": {
     "test": "npm run build && node --test build/tests/*.test.mjs",
     "check": "npm run typecheck && npm run build && node build/scripts/check.mjs",
-    "start": "node scripts/serve.mjs",
-    "audit:arcade-injuries": "node scripts/audit-arcade-injuries-v29.mjs",
-    "audit:arcade-ranks": "node scripts/audit-arcade-ranks-v27.mjs",
-    "audit:arcade-elite": "node scripts/audit-arcade-elite.mjs",
-    "audit:saber": "node scripts/audit-saber.mjs",
-    "audit:duels": "node scripts/audit-duels.mjs",
-    "audit:frontiers": "node scripts/audit-frontiers.mjs",
-    "test:browser": "node scripts/browser-v09.mjs",
-    "audit:ranks": "node scripts/audit-ranks-v09.mjs",
-    "audit:v07": "node scripts/audit-v07.mjs",
-    "audit:v08": "node scripts/audit-v08.mjs",
-    "audit:arcade-sabers": "node scripts/audit-arcade-sabers-v210.mjs",
-    "audit:arcade-pressure": "node scripts/audit-arcade-pressure.mjs",
-    "test:baseline": "node --test tests/*.test.mjs",
-    "build": "node scripts/build-typescript.mjs",
-    "typecheck": "node scripts/typecheck.mjs",
-    "typecheck:all": "node scripts/typecheck.mjs --require-all",
-    "verify:parity": "node scripts/compare-typescript-release.mjs",
-    "check:baseline": "node scripts/check.mjs",
+    "start": "node build/scripts/serve.mjs",
+    "audit:arcade-injuries": "npm run build && node build/scripts/audit-arcade-injuries-v29.mjs",
+    "audit:arcade-ranks": "npm run build && node build/scripts/audit-arcade-ranks-v27.mjs",
+    "audit:arcade-elite": "npm run build && node build/scripts/audit-arcade-elite.mjs",
+    "audit:saber": "npm run build && node build/scripts/audit-saber.mjs",
+    "audit:duels": "npm run build && node build/scripts/audit-duels.mjs",
+    "audit:frontiers": "npm run build && node build/scripts/audit-frontiers.mjs",
+    "test:browser": "npm run build && node build/scripts/browser-v09.mjs",
+    "audit:ranks": "npm run build && node build/scripts/audit-ranks-v09.mjs",
+    "audit:v07": "npm run build && node build/scripts/audit-v07.mjs",
+    "audit:v08": "npm run build && node build/scripts/audit-v08.mjs",
+    "audit:arcade-sabers": "npm run build && node build/scripts/audit-arcade-sabers-v210.mjs",
+    "audit:arcade-pressure": "npm run build && node build/scripts/audit-arcade-pressure.mjs",
+    "build": "node scripts/build-typescript.mts",
+    "typecheck": "node scripts/typecheck.mts --require-all",
+    "typecheck:all": "npm run typecheck",
+    "verify:parity": "node build/scripts/compare-typescript-release.mjs",
     "prestart": "npm run build"
   },
   "devDependencies": {
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18.0"
   }
 }

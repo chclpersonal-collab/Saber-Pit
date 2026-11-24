@@ -16,6 +16,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - name: Reject checked-in JavaScript and generated bundles
+        run: |
+          if git ls-files | grep -Ei '\.(js|mjs|cjs|jsx)(\.map)?$'; then
+            echo 'Keep authored source in TypeScript and build outputs out of Git.'
+            exit 1
+          fi
       - run: npm ci
       - run: npm run typecheck:all
       - run: npm test

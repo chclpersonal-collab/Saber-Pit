@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "sha256": "03bc081e072defaccd1223a5156afdf4ed1ed227200550717584827c2f53da5d",
+  "parts": [
+    {
+      "name": "legacy-javascript-01.gz.part",
+      "sha256": "5adb240aa6843c25c985f9a8c248c681828654b6bb6ceb8fdacee17dfdb03461"
+    },
+    {
+      "name": "legacy-javascript-02.gz.part",
+      "sha256": "ba52078faefa43e6cbf6b3b363dc226e06d9ba570ff57f6090a0449d1188ca66"
+    },
+    {
+      "name": "legacy-javascript-03.gz.part",
+      "sha256": "b9c08c17742db98d0a46db1cf58c5a0a2d19b45661c7994c4922a8c4207fa0d5"
+    },
+    {
+      "name": "legacy-javascript-04.gz.part",
+      "sha256": "da7282592f70425e068676ceb8e18237003791fcbc30c0630fd8618a9cb1ee29"
+    },
+    {
+      "name": "legacy-javascript-05.gz.part",
+      "sha256": "bd30a21b427975ab045a61f94bd8970e4b12b75f410190639d859d785b633656"
+    },
+    {
+      "name": "legacy-javascript-06.gz.part",
+      "sha256": "9d27c96b45f5ab562beebc9939a6b48c01deeea377b0ad33ec2a7f9e9e367296"
+    },
+    {
+      "name": "legacy-javascript-07.gz.part",
+      "sha256": "e59974f003520ecee60cdd10640199e1ac89d3cd6cbba0afdc09d2013f002ac5"
+    },
+    {
+      "name": "legacy-javascript-08.gz.part",
+      "sha256": "e04a6122fee71d136e93d3d1845296829cad9271c40a0c80bf3445b8eb24d301"
+    },
+    {
+      "name": "legacy-javascript-09.gz.part",
+      "sha256": "ee93b7f4c3332373d641ae1dfdd575f4320cf082e19ee2aec19098c1d10b1dbc"
+    },
+    {
+      "name": "legacy-javascript-10.gz.part",
+      "sha256": "301b422008025b70adb4c4070b07e5c306a784fb6e75301272de404052ac9854"
+    },
+    {
+      "name": "legacy-javascript-11.gz.part",
+      "sha256": "99e68d362c01dcd5e898392babbadddba67fe311d90d973138be73c6c538e7a5"
+    },
+    {
+      "name": "legacy-javascript-12.gz.part",
+      "sha256": "1e154570b9c2310cadb4d00574e655d7e92e0328dcc83dd8a189dbea446c4f9f"
+    },
+    {
+      "name": "legacy-javascript-13.gz.part",
+      "sha256": "7413936501b7528beb740a8b4e58414cc56f07c98c206177e716ffb22b4245bd"
+    },
+    {
+      "name": "legacy-javascript-14.gz.part",
+      "sha256": "8118d3ef095203f1bffd6b0969dfb67ed7e762d4caf63c46ffde88db423a9197"
+    }
+  ],
+  "animation": {
+    "name": "legacy-animation-lab.html.gz",
+    "sha256": "979cfa1996acee90e5956118b932d86a6a071f4df351cfce6e6a13f325b24579",
+    "contentSha256": "00539f808796e7a573c1284886fb06d0cdccaaa147032c2bf4550d9c06dbb4cb"
+  }
+}

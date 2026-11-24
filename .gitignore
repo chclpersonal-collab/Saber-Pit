@@ -9,3 +9,6 @@ dist/.openai/
 
 # Generated TypeScript artifacts
 build/
+
+# Private build staging, removed after each successful build
+.saber-build-*/
