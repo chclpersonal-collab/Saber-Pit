@@ -8,7 +8,7 @@ type Team=0|1;
 export type ArenaNormalRatings=Record<string,number>;
 export type ArenaNormalMatch={
   mode?:string;
-  config?:{rule?:string;teamSizes?:readonly number[];matchGoalPlanning?:boolean;novicePractice?:boolean;forcePools?:readonly (readonly string[]|null)[];saberOnly?:boolean};
+  config?:{rule?:string;teamSizes?:readonly number[];matchGoalPlanning?:boolean;novicePractice?:boolean;squadTactics?:boolean;laneDrill?:boolean;opponentReads?:boolean;forcePools?:readonly (readonly string[]|null)[];saberOnly?:boolean};
   fighters:readonly {id:string;team:number;heroId?:string|null}[];
 };
 export type ArenaNormalRatingChange={
@@ -39,7 +39,7 @@ export function arenaNormalCap(gradeIndex:unknown):number|null {
 /** Runtime call site is the Arena career, never a tournament or replay adapter. */
 export function arenaNormalRanked(game:ArenaNormalMatch|null|undefined):boolean {
   if(!game||!['duel','squad','watch'].includes(game.mode??'')||
-     game.config?.rule!=='elimination'||game.config.matchGoalPlanning||game.config.novicePractice||(!game.config.saberOnly&&game.config.forcePools?.some(pool=>pool?.length)))return false;
+     game.config?.rule!=='elimination'||game.config.matchGoalPlanning||game.config.novicePractice||game.config.squadTactics||game.config.laneDrill||game.config.opponentReads||(!game.config.saberOnly&&game.config.forcePools?.some(pool=>pool?.length)))return false;
   const sizes=game.config.teamSizes;
   const count=sizes?.[0];
   if(sizes?.length!==2||count===undefined||!Number.isInteger(count)||count<1||count>ARENA_NORMAL_ELO_MAX_TEAM||sizes[1]!==count||game.fighters.length!==count*2)return false;

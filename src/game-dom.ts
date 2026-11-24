@@ -36,7 +36,7 @@ export interface ArenaElements {
   'fighterDamageDealt':HTMLElement; 'fighterDamageTaken':HTMLElement; 'injuryReference':HTMLElement; 'attackMoves':HTMLElement; 'defenseMoves':HTMLElement; 'reportSeed':HTMLElement; 'rankTitle':HTMLElement;
   'careerStatus':HTMLElement; 'announce':HTMLElement;
   'lobby':HTMLFormElement;
-  'count0':HTMLInputElement; 'count1':HTMLInputElement; 'dualPhase0':HTMLInputElement; 'dualPhase1':HTMLInputElement; 'matchSeed':HTMLInputElement; 'saberOnly':HTMLInputElement; 'novicePractice':HTMLInputElement; 'novicePracticeHint':HTMLParagraphElement; 'arenaHudText':HTMLSelectElement; 'bodyStyleHelp':HTMLParagraphElement;
+  'count0':HTMLInputElement; 'count1':HTMLInputElement; 'dualPhase0':HTMLInputElement; 'dualPhase1':HTMLInputElement; 'matchSeed':HTMLInputElement; 'saberOnly':HTMLInputElement; 'novicePractice':HTMLInputElement; 'novicePracticeHint':HTMLParagraphElement; 'squadTactics':HTMLInputElement; 'squadTacticsHint':HTMLParagraphElement; 'laneDrill':HTMLInputElement; 'laneDrillHint':HTMLParagraphElement; 'opponentReads':HTMLInputElement; 'opponentReadsHint':HTMLParagraphElement; 'arenaHudText':HTMLSelectElement; 'fighterAppearance':HTMLDetailsElement; 'fighterAppearanceDetails':HTMLParagraphElement; 'bodyStyleHelp':HTMLParagraphElement;
   'recentEvents':HTMLOListElement;
   'arenaRatingStatus':HTMLParagraphElement; 'frameRate':HTMLOutputElement; 'setupStatus':HTMLOutputElement;
   'energy':HTMLProgressElement;

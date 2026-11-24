@@ -1,5 +1,6 @@
 /** Presentation only: world positions, targeting, cooldowns and effects events
  * are owned by the MOBA simulation. Terrain never edits walkability. */
+import {BELL_RALLY_RULES,bellRallyCue,type BellRally} from './arcade-moba-rally.js';
 import {MOBA_BATTLEFIELD} from './arcade-moba-map.js';
 const {width:W,height:H,lanes,crossings,blockers,cores,forum}=MOBA_BATTLEFIELD;
 const colors=['#75e5d5','#ff8e76'] as const;
@@ -8,9 +9,9 @@ type Side=0|1;
 type Position={x:number;y:number};
 type Fighters=Position&{team:Side;hp:number;maxHp:number;alive:boolean;face:number;action?:string;actionTime?:number;
   dashRemaining?:number;form?:string;id?:string;name?:string;vx?:number;vy?:number;energy?:number;upgradingUntil?:number;spawnProtectUntil?:number};
-type Unit=Position&{team:Side;hp:number;maxHp:number;alive?:boolean;shielded?:boolean;ranged?:boolean;id?:string;face?:number};
+type Unit=Position&{team:Side;hp:number;maxHp:number;alive?:boolean;shielded?:boolean;ranged?:boolean;rallied?:true;id?:string;face?:number};
 export interface MobaFieldData {heroes:readonly Fighters[];minions:readonly Unit[];towers:readonly Unit[];
-  cores:readonly Unit[];time:number;events?:readonly (Position&{type:string;time:number;team:Side})[]}
+  cores:readonly Unit[];time:number;tick?:number;bellRally?:BellRally;events?:readonly (Position&{type:string;time:number;team:Side})[]}
 type C=CanvasRenderingContext2D;
 type V=readonly [number,number];
 const TAU=Math.PI*2, clamp=(x:number)=>Math.max(0,Math.min(1,x));
@@ -35,9 +36,9 @@ function ellipse(c:C,x:number,y:number,rx:number,ry:number,color:string,edge?:st
 }
 function rect(c:C,x:number,y:number,w:number,h:number,color:string){c.fillStyle=color;c.fillRect(x,y,w,h);}
 const lanesArt=[
-  {base:'#675c51',joint:'#4f453e',light:'#bf9872',border:'#483c38'},
-  {base:'#878477',joint:'#676257',light:'#c6b797',border:'#514e45'},
-  {base:'#566f68',joint:'#354d4d',light:'#a5b8a0',border:'#334744'},
+  {base:'#66545a',joint:'#423e4a',light:'#c0906a',border:'#363445'},
+  {base:'#696676',joint:'#504c5e',light:'#a59bac',border:'#3a3649'},
+  {base:'#4c6369',joint:'#33464f',light:'#8e9ca5',border:'#2e3e4a'},
 ] as const;
 type Path={width:number;points:readonly Position[]};
 const coords=(pts:readonly Position[])=>pts.map(({x,y})=>[x,y] as const);
@@ -68,11 +69,19 @@ function road(c:C,p:Path,j:number) {
         if(q>.32)poly(c,[[x+3,y+2],[x+block-3,y+2.6],[x+block-3,y+14.4],[x+4,y+15]],
           q>.71?'#e7cc9c26':'#271e2519');
         if(q<.12)line(c,'#191a226c',.75,[x+4,y+7],[x+7,y+8],[x+9,y+12]);
+        if(j===1&&q>.62)line(c,'#b8a8bb31',1,[x+2,y+15],[x+block*.48,y+3],[x+block-3,y+15]);
+        if(j===2&&q>.4)for(const stud of [4,block-4])ellipse(c,x+stud,y+4,1.55,1.2,'#adb7b857');
       }
     }
     // Faded repair stones along canonical bends read as terrain, not
     // collision rails. The authoritative route starts and ends at these nodes.
-    line(c,style.light+'79',2,[3,half-3],[len-2,half-3]);
+    line(c,style.light+'69',2,[3,half-3],[len-2,half-3]);
+    if(j===2){
+      line(c,'#263941',4,[0,-half+12],[len,-half+12]);
+      line(c,'#80929b6a',1,[0,-half+11],[len,-half+11]);
+    }else if(j===0&&i%2===0){
+      for(let x=6;x<len-6;x+=15)line(c,'#d69b6f54',1.1,[x,-half+5],[x+9,-half+5]);
+    }
     c.restore();
   }
   c.restore();
@@ -80,86 +89,150 @@ function road(c:C,p:Path,j:number) {
 function crossing(c:C,p:Path,index:number){
   // Warm compressed stone for the major crossroads; narrow paths at flanks.
   const edge=flank(p,1), inner=flank(p,1.16);
-  poly(c,edge,'#43493c','#686958',1.5);
-  poly(c,inner,index===1?'#64685b':'#515849');
+  poly(c,edge,'#393b49','#4e495c',1.5);
+  poly(c,inner,index===1?'#535365':'#494b59');
   c.save();c.clip();
   for(let i=0;i<p.points.length-1;i++){
     const a=p.points[i],b=p.points[i+1],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);
     c.save();c.translate(a.x,a.y);c.rotate(Math.atan2(dy,dx));
-    for(let x=0;x<d;x+=22)line(c,'#313a356c',1,[x,-p.width*.45],[x+3,p.width*.45]);
+    for(let x=0;x<d;x+=22)line(c,'#242b3966',1,[x,-p.width*.45],[x+3,p.width*.45]);
+    for(let x=14;x<d;x+=38){
+      line(c,index===1?'#9a7a6950':'#7c829258',1.1,[x-5,-p.width*.31],[x,0],[x+5,-p.width*.31]);
+      line(c,'#b1a59a40',.8,[x-5,p.width*.31],[x,0],[x+5,p.width*.31]);
+    }
     c.restore();
   }
   c.restore();
 }
 function wall(c:C,w:typeof blockers[number],i:number){
-  const rim=coords(w.points), h=i<2?15:10;
-  // The bottom polygon is exactly the gameplay blocker, not an invisible
-  // grid rectangle; roof perspective projects upward outside the sole.
-  poly(c,rim,'#22292c','#1c2026',2);
-  const face=(dx:number,dy:number)=>rim.map(([x,y])=>[x+dx,y+dy] as const);
-  poly(c,[[w.x,w.y],[w.x,w.y-h],[w.x,w.y2-h],[w.x,w.y2]],'#716258',ink,1.5);
-  poly(c,[[w.x,w.y2-h],[w.x2,w.y2-h],[w.x2,w.y2],[w.x,w.y2]],'#70655c',ink,1.7);
-  poly(c,face(0,-h),i<2?'#ab8c6e':'#778984',ink,1.7);
-  const x=w.x,z=w.x2,y=w.y-h,b=w.y2-h,m=(x+z)/2;
-  poly(c,[[x+4,y+5],[z-4,y+5],[z-4,b-5],[x+4,b-5]],
-    i<2?'#867465':'#61716b','#d8c0a548',1.15);
-  for(let k=1;k<4;k++){
-    const xx=mix(x,z,k/4);line(c,'#3a383d',1,[xx,b],[xx,w.y2]);}
-  if(i<2){
-    // A faceted roof on a block of masonry, not a clickable tower.
-    poly(c,[[x+6,y+15],[x+21,y+5],[z-20,y+5],[z-6,y+15],
-      [z-15,b-7],[x+15,b-7]],'#61534e','#4d4646',1.3);
-    poly(c,[[x+9,y+15],[x+21,y+7],[z-21,y+7],[z-10,y+15],[m,y+20]],'#9a7a64');
-    poly(c,[[x+10,y+16],[m,y+20],[z-10,y+16],[z-15,b-8],[x+15,b-8]],'#806d63');
-    line(c,'#d2b68f',1.3,[x+9,y+15],[m,y+20],[z-9,y+15]);
-    for(let k=0;k<5;k++)line(c,'#4d4344',1,[x+19+k*12,y+26],[x+22+k*11,b-8]);
-    ellipse(c,m,b-2,6,1.8,'#392f35');
-  }else{
-    line(c,'#344c48',3.2,[x+4,b-9],[x+17,b-14],[z-16,b-13],[z-5,b-8]);
-    const stone:V[]=[[x+8,y+12],[x+19,y+8],[m-10,y+14],[m+14,y+9],[z-12,y+12]];
-    for(const [xx,yy] of stone){
-      poly(c,[[xx-4,yy],[xx,yy-4],[xx+6,yy-2],[xx+7,yy+3],[xx-2,yy+5]],'#809081','#57675d',1.1);
-      line(c,'#abc09b75',.9,[xx-2,yy-1],[xx+1,yy-3],[xx+5,yy-2]);
+  const rim=coords(w.points), h=[26,19,14,16][i];
+  // The lower silhouette is the exact collision polygon; the only pieces
+  // with height are these solids and the already-present target structures.
+  poly(c,rim,'#1c1c25',ink,2);
+  const x=w.x,z=w.x2,y=w.y-h,b=w.y2-h,m=(x+z)/2,zMid=(y+b)*.5;
+  const palette=i<2?['#8a716c','#574854','#322f42']:['#627888','#465769','#293744'];
+  poly(c,[[x,w.y],[x,y],[x,b],[x,w.y2]],palette[2],ink,1.5);
+  poly(c,[[x,b],[z,b],[z,w.y2],[x,w.y2]],palette[1],ink,2);
+  poly(c,[[x,y],[z,y],[z,b],[x,b]],palette[0],ink,1.7);
+  for(let k=0;k<4;k++){
+    const yy=b+2+k*5;if(yy>=w.y2)continue;
+    line(c,'#282937',.8,[x+3,yy],[z-4,yy]);
+    for(let j=0;j<5;j++){const xx=x+9+j*18+k%2*7;line(c,'#2e2e3e99',.7,[xx,yy],[xx,Math.min(w.y2,yy+5)]);}
+  }
+  if(i===0){
+    // West furnace: two sealed hatches behind the buttresses. Their warm
+    // coals are dimmer than a hit flash or an owned weapon.
+    for(const u of [m-21,m+21]){
+      const q:V[]=[[u-16,zMid-11],[u-8,y+6],[u+8,y+6],[u+16,zMid-11],[u+14,b-6],[u-14,b-6]];
+      poly(c,q,'#313141','#c59d78',1.5);
+      poly(c,[[u-11,zMid],[u-6,zMid-6],[u+7,zMid-6],[u+11,zMid],[u+11,b-9],[u-11,b-9]],'#9b5b4d','#472d41',1.4);
+      for(let k=-1;k<=1;k++)line(c,'#352c39',2,[u+k*6,zMid-4],[u+k*6,b-8]);
+      line(c,'#d2905e',1.2,[u-9,b-10],[u+9,b-10]);
     }
-    for(let k=0;k<9;k++){
-      const tx=x+6+hash(k+i*19)*(z-x-13),ty=b-9+hash(k+99)*3;
-      line(c,'#a0a36771',1,[tx,ty],[tx+2,ty-4]);
+    for(const u of [x+7,m,z-7])line(c,'#3b394c',4,[u,y],[u,b]);
+  }else if(i===1){
+    // Enclosed north relay: stepped slate cap with a repaired jagged end.
+    poly(c,[[x+4,y+18],[x+17,y+4],[z-21,y+5],[z-6,y+15],[z-13,b-10],[z-29,b-4],[x+14,b-6]],
+      '#514658','#352f42',1.7);
+    poly(c,[[x+16,y+16],[x+23,y+7],[z-23,y+8],[z-13,y+17],[m,y+23]],'#98776a');
+    line(c,'#b09b8e',1.4,[x+13,y+18],[m,y+21],[z-16,y+16]);
+    for(let k=0;k<6;k++)line(c,'#302f42',1.4,[x+18+k*11,y+24],[x+23+k*9,b-8]);
+    for(const [u,v] of [[x+5,b-4],[z-6,b-8]])
+      poly(c,[[u-3,v],[u+1,v-4],[u+6,v-3],[u+4,v+3]],'#b8a18d',ink,1);
+  }else if(i===2){
+    // Counterweight station. The pistons are inside the blocked square.
+    for(const q of [m-21,m+19]){
+      ellipse(c,q,zMid,18,13,'#303b49','#9eaaad',1.5);
+      ellipse(c,q,zMid-1,11,8,'#636f7a','#1f2c39',1.6);
+      ellipse(c,q,zMid-1,4.4,3.4,'#a9a599','#33424f',1.2);
+      for(let ti=0;ti<6;ti++){
+        const a=ti*TAU/6;line(c,'#8d929a',1.2,[q+Math.cos(a)*10,zMid+Math.sin(a)*7],[q+Math.cos(a)*15,zMid+Math.sin(a)*10]);
+      }
+    }
+    line(c,'#3e4b57',4,[x+8,b-7],[z-7,b-7]);
+  }else{
+    // Collapsed canal bulkhead; offset oxide stains and three bent bars.
+    poly(c,[[x+6,y+9],[x+28,y+6],[m+6,y+12],[z-11,y+5],[z-4,b-7],[m+14,b-2],[x+10,b-5]],
+      '#344c5c','#778a98',1.6);
+    for(let k=0;k<3;k++){
+      const yy=y+11+k*9;line(c,'#748595',2.5,[x+9,yy],[m-10,yy+2],[m+11,yy-3],[z-8,yy+2]);
+    }
+    poly(c,[[z-25,y+8],[z-8,y+4],[z-5,y+23],[z-18,y+27],[z-30,y+15]],'#9a7c72','#4e4d5a',1);
+  }
+}
+function flood(c:C,x:number,y:number,r:number,color:string){
+  const paint=c.createRadialGradient(x,y,0,x,y,r);
+  paint.addColorStop(0,color+'61');paint.addColorStop(.38,color+'26');paint.addColorStop(1,color+'00');
+  c.fillStyle=paint;c.fillRect(x-r,y-r,r*2,r*2);
+}
+function terrace(c:C,edge:readonly V[],south:boolean){
+  // Massive dark profiles at the physical scenery boundary. The pattern
+  // projects away from playable space; no added blocking crate or pillar.
+  const extend=(h:number)=>edge.map(([x,y])=>[x,y+(south?h:-h)] as const);
+  poly(c,[...edge,...extend(90).reverse()],'#202330','#1a1924',3);
+  poly(c,[...extend(15),...extend(90).reverse()],'#2d2b3a');
+  line(c,south?'#6c7380':'#89716d',1.45,...extend(15));
+  line(c,'#171b28',2.5,...edge);
+  for(let k=0;k<edge.length-1;k++){
+    const [x,y]=edge[k],[ix,iy]=edge[k+1], n=Math.ceil(Math.abs(x-ix)/27);
+    for(let j=0;j<n;j++){
+      const t=j/Math.max(1,n), px=mix(x,ix,t),py=mix(y,iy,t), h=(south?1:-1)*(18+hash(j+k*19)*20);
+      line(c,'#15182599',1.1,[px,py],[px+hash(k+j*12)*5,py+h]);
+      if(j%4===0)line(c,'#a28b963b',2,[px+2,py+h],[px+13,py+h-2]);
     }
   }
 }
 function landscape(c:C){
-  const sky=c.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#473e39');
-  sky.addColorStop(.50,'#3a4741');sky.addColorStop(1,'#283e3e');
+  const sky=c.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#2c2737');sky.addColorStop(.47,'#3e4050');sky.addColorStop(1,'#283e4b');
   c.fillStyle=sky;c.fillRect(0,0,W,H);
-  const shelves:readonly (readonly [readonly V[],string])[]=[
-    [[[0,0],[421,0],[496,44],[429,82],[343,102],[208,64],[74,92],[0,112]],'#514338'],
-    [[[0,0],[268,0],[276,35],[193,37],[105,25],[46,52],[0,55]],'#5e4d3c'],
-    [[[816,0],[1280,0],[1280,111],[1159,79],[1091,102],[1008,62],[883,85]],'#514338'],
-    [[[832,0],[1163,0],[1217,38],[1160,55],[1130,42],[1095,68],[962,43],[886,63]],'#5a4a3b'],
-    [[[0,540],[79,526],[171,616],[289,655],[407,635],[519,674],[736,670],[882,628],[1077,640],[1198,565],
-       [1280,535],[1280,720],[0,720]],'#2e4d4b'],
-    [[[290,676],[451,649],[582,691],[711,675],[916,643],[1041,658],[1165,622],[1280,651],
-       [1280,720],[290,720]],'#355b57'],
-  ];
-  for(const [way,color] of shelves)poly(c,way,color,'#aba17828',2);
-  for(let i=0;i<570;i++){
-    const x=hash(i)*W,y=hash(i+557)*H,q=hash(i+101);
-    ellipse(c,x,y,1+q*6,.4+q*1.2,i%3?'#d0bc9518':'#0b172033');
-  }
-  for(const [x,y,w,s] of [[67,250,62,1],[177,415,90,1],[1098,432,90,1],[1209,238,62,1],[356,285,75,1],
-      [924,294,94,1],[333,461,58,.8],[930,462,66,.8],[470,642,51,.8],[806,645,61,.8]]){
-    const p=(a:number,b:number)=>[x+a*s,y+b*s] as const;
-    poly(c,[p(-w,-17),p(-w*.47,-35),p(w*.64,-34),p(w,-12),p(w*.74,21),p(-w*.56,29)],y<330?'#5c5849':'#465d4c','#a19b7328',2);
-    for(let j=0;j<28;j++){
-      const a=(hash(j+x)-.5)*w*1.45,b=(hash(j+x+90)-.5)*39;
-      const z=1+hash(j+x+15)*3.3;
-      ellipse(c,x+a,y+b,z,z*.42, j%4?'#8b8a5a':'#a47e59');
-      if(j%7===0)line(c,'#404f44',1.2,p(a,b),p(a+3,b-8));
+  // Flat stone courts within playable gaps. Cut seams, broken filler bricks
+  // and rippled oxide all sit at ground height; they don't suggest blockers.
+  for(let j=0;j<18;j++){
+    const yy=j*43-22;
+    for(let k=-1;k<28;k++){
+      const xx=k*48+(j%2)*25, s=hash(j*91+k*23);
+      const y=yy+(s-.5)*6;
+      if(s>.24)poly(c,[[xx+1,y+4],[xx+41,y+1],[xx+46,y+31],[xx+39,y+39],[xx+5,y+38]],
+        s>.72?'#6d667316':'#171a2b19','#181b2c31',1);
+      if(s>.49)line(c,'#ada6b339',.85,[xx+2,y+10],[xx+16,y+8],[xx+31,y+10]);
+      if(s<.17)line(c,'#1c23368e',1.15,[xx+9,y+8],[xx+21,y+17],[xx+16,y+25],[xx+27,y+31]);
     }
   }
-  for(let i=0;i<54;i++){
-    const y=618+hash(i+40)*95,x=hash(i+19)*W;
-    line(c,'#9dbab17b',.8,[x,y],[x+hash(i)*31+5,y+hash(i+3)*3]);
+  terrace(c,[[0,52],[130,45],[284,49],[454,43],[548,39],[674,49],[812,39],[993,43],[1191,53],[1280,44]],false);
+  terrace(c,[[0,672],[147,681],[265,670],[431,680],[557,669],[742,682],[918,671],[1098,679],[1280,667]],true);
+  // Cold slag deposits and drained spillways break the flat gaps without
+  // drawing a hazard edge. They are matte stains, not liquid channels.
+  for(const [x,y,w,h] of [[140,249,49,39],[339,298,57,37],[906,280,62,34],[1177,250,46,32],
+      [124,462,53,26],[333,472,62,32],[952,468,68,36],[1170,453,45,44],
+      [539,664,91,32],[817,635,90,35]]){
+    poly(c,[[x-w,y-h*.58],[x-w*.58,y-h],[x+w*.55,y-h*.63],[x+w,y-h*.1],[x+w*.71,y+h*.69],[x-w*.41,y+h]],
+      y<320?'#65504e4e':'#314e5a98');
+    for(let j=0;j<18;j++){
+      const a=x+(hash(j+x)-.5)*w*1.70,b=y+(hash(j+x+71)-.5)*h*1.56;
+      line(c,y<320?'#b4866b57':'#9aaab457',.93,[a,b],[a+3+hash(j+23)*17,b+(hash(j+11)-.5)*3]);
+    }
+  }
+  // Brass cooling channels have a hairline inset, never a raised collision
+  // lip. They frame the furnace approach and connect the scene visually.
+  const seams:readonly V[][]=[
+    [[74,292],[178,287],[230,245],[353,240],[426,223],[545,221]],
+    [[1203,278],[1110,278],[1041,238],[940,232],[865,211],[760,207]],
+    [[103,493],[194,506],[288,482],[374,475],[424,500],[534,478]],
+    [[1189,491],[1127,477],[1052,502],[968,480],[913,497],[767,495]],
+  ];
+  for(const [i,way] of seams.entries()){
+    line(c,'#191c2a87',5,...way);
+    line(c,i<2?'#af806b74':'#7b99a477',1.3,...way);
+    for(const [x,y] of way.slice(1,-1))ellipse(c,x,y,3.1,2.2,i<2?'#9b7963':'#879aa3');
+  }
+  // Fixed lamp falls, all baked into one texture. Low light only; the
+  // brightest colors in battle are the units, towers and controls.
+  for(const [x,y,r,h] of [[118,71,81,0],[401,206,118,0],[858,199,118,0],[1168,69,86,0],
+      [275,495,94,1],[1012,484,100,1],[547,651,87,1],[792,650,87,1],[638,416,119,2]]){
+    flood(c,x,y,r,h===0?'#b76c52':h===1?'#517994':'#9a8075');
+    const spot=h===0?'#d3a07480':h===1?'#8ca7b489':'#b89d9571';
+    for(let j=0;j<7;j++){const a=hash(j+x)*TAU, d=7+hash(j+y)*22;ellipse(c,x+Math.cos(a)*d,y+Math.sin(a)*d,1.7,.85,spot);}
   }
 }
 function citadelGround(c:C){
@@ -177,9 +250,12 @@ function citadelGround(c:C){
 }
 function forumGround(c:C){
   const {x,y}=forum.center;
-  ellipse(c,x,y,forum.radius+11,forum.radius*.73,'#464a43','#958874',2);
-  ellipse(c,x,y,forum.radius,forum.radius*.66,'#81755f','#bdb196',2);
-  ellipse(c,x,y,53,32,'#696754','#c5ae8030',1.6);
+  ellipse(c,x,y,forum.radius+19,forum.radius*.79,'#4b4657','#817480',1.7);
+  ellipse(c,x,y,forum.radius+7,forum.radius*.72,'#5d5362','#b2a0946b',2);
+  for(let i=0;i<12;i++){
+    const a=i*TAU/12;
+    line(c,'#a3929c66',1.2,[x+Math.cos(a)*87,y+Math.sin(a)*58],[x+Math.cos(a)*99,y+Math.sin(a)*66]);
+  }
 }
 function forumSeal(c:C){
   const {x,y}=forum.center;
@@ -190,18 +266,32 @@ function forumSeal(c:C){
   poly(c,[[-15,9],[-10,5],[-8,-6],[-4,-11],[4,-11],[8,-6],[10,5],[15,9]],'#a99464','#e4d2a584',1.2);
   ellipse(c,0,12,3.4,2.4,'#d9c896');c.restore();
 }
+type WallSprite={canvas:HTMLCanvasElement;x:number;y:number};
+const roofCache=new WeakMap<HTMLCanvasElement,WallSprite[]>();
+function roof(w:typeof blockers[number],i:number):WallSprite{
+  const pad=4,lift=30,x=w.x-pad,y=w.y-lift-pad;
+  const canvas=document.createElement('canvas');
+  canvas.width=w.x2-w.x+pad*2;canvas.height=w.y2-w.y+lift+pad*2;
+  const c=canvas.getContext('2d')!;
+  c.translate(-x,-y);wall(c,w,i);return {canvas,x,y};
+}
 export function paintMobaTerrain():HTMLCanvasElement {
   const canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const c=canvas.getContext('2d')!;
   landscape(c);citadelGround(c);
   crossings.forEach((path,i)=>crossing(c,path,i));
-  forumGround(c);lanes.forEach((lane,i)=>road(c,lane,i));forumSeal(c);
-  for(const body of blockers)poly(c,coords(body.points),'#222926','#1e2228',2);
+  forumGround(c);lanes.forEach((lane,i)=>road(c,lane,i));
+  for(const body of blockers){
+    poly(c,coords(body.points).map(([x,y])=>[x+8,y+9]),'#14182664');
+    poly(c,coords(body.points),'#222926','#1e2228',2);
+  }
   const fade=c.createLinearGradient(0,0,0,H);
   fade.addColorStop(0,'#10131963');fade.addColorStop(.18,'#12162200');
   fade.addColorStop(.82,'#18182200');fade.addColorStop(1,'#1617204e');
   c.fillStyle=fade;c.fillRect(0,0,W,H);
-  c.lineWidth=3;c.strokeStyle='#b099765f';c.strokeRect(4,4,W-8,H-8);
+  c.lineWidth=3;c.strokeStyle='#8d7d825f';c.strokeRect(4,4,W-8,H-8);
+  // Do not allocate or redraw this detail in the match animation loop.
+  roofCache.set(canvas,blockers.map(roof));
   return canvas;
 }
 function bar(c:C,p:Pick<Unit,'x'|'y'|'hp'|'maxHp'|'team'>,dy:number,w:number,selected=false){
@@ -246,14 +336,66 @@ function structure(c:C,p:Unit,core:boolean,opacity=1){
   }
   c.restore();if(live)bar(c,p,core?-58:-50,core?61:43);
 }
-type StepMemo={x:number;y:number;time:number;s:number};
+type Boot={point:Position;planted:boolean;from:Position;to:Position};
+type StepMemo={x:number;y:number;time:number;distance:number;phase:number;boots:[Boot,Boot];pace:number};
 const strideMemos=new WeakMap<Fighters,StepMemo>();
-function gait(p:Fighters,time:number,moving:boolean,effects:boolean){
-  if(!effects){strideMemos.delete(p);return 0;}
-  const prior=strideMemos.get(p), distance=prior?Math.hypot(p.x-prior.x,p.y-prior.y):0;
-  const s=prior&&time>=prior.time&&time-prior.time<.20&&distance<30?(prior.s+distance)%42:0;
-  strideMemos.set(p,{x:p.x,y:p.y,time,s});
-  return moving&&prior?s/42:0;
+const settlePoint=(a:Position,b:Position,w:number):Position=>({x:mix(a.x,b.x,w),y:mix(a.y,b.y,w)});
+function gait(p:Fighters,time:number,moving:boolean,effects:boolean,guard:boolean,dash:boolean){
+  const ready=(side:number,span=1):Position=>({x:p.x+side*(guard?6:4.2)*span,y:p.y+3+side*1.8});
+  const prior=effects?strideMemos.get(p):null;
+  const dx=prior?p.x-prior.x:0,dy=prior?p.y-prior.y:0,travel=Math.hypot(dx,dy);
+  const valid=Boolean(prior&&time>=prior.time&&time-prior.time<.20&&travel<27);
+  const distance=(valid?prior!.distance:0)+(moving?travel:0), phase=(distance/37)%1;
+  const elapsed=valid?time-prior!.time:0;
+  const pace=valid&&moving?(travel>.02?Math.min(1,travel/Math.max(.002,elapsed)/155):
+    prior!.pace*Math.max(0,1-elapsed*18)):0;
+  const ux=travel>.02?dx/travel:Math.cos(p.face),uy=travel>.02?dy/travel:Math.sin(p.face);
+  const foot=(index:number):Boot=>{
+    const sign=index===0?-1:1, base=ready(sign,dash?1.45:1);
+    const old=valid?prior!.boots[index]:null;
+    if(!effects||!old)return {point:base,planted:true,from:base,to:base};
+    if(!moving){
+      // A real stopped actor holds the support boot. Let the other heel
+      // close only when simulation time advances, and never on pause redraw.
+      if(old.planted||time===prior!.time)return old;
+      const w=Math.min(1,(time-prior!.time)*16);
+      const a=settlePoint(old.point,base,w);
+      return {...old,point:a,planted:Math.hypot(a.x-base.x,a.y-base.y)<.6};
+    }
+    const k=(phase+index*.5)%1, hold=k<.54;
+    if(hold){
+      const next=old.planted?old.point:old.to;
+      return {point:next,planted:true,from:next,to:next};
+    }
+    const t=(k-.54)/.46, landing=9+pace*7;
+    const from=old.planted?old.point:old.from, to=old.planted?
+      {x:base.x+ux*landing,y:base.y+uy*landing*.78}:old.to;
+    const point=settlePoint(from,to,smooth(t));
+    point.y-=Math.sin(t*Math.PI)*(dash?8:4.4+pace*2);
+    return {point,planted:false,from,to};
+  };
+  const boots:[Boot,Boot]=[foot(0),foot(1)];
+  if(effects)strideMemos.set(p,{x:p.x,y:p.y,time,distance,phase,boots,pace});else strideMemos.delete(p);
+  return {phase,boots,pace};
+}
+function drawBoot(c:C,hip:V,knee:V,heel:V,front:boolean){
+  // The knee, shin and shaped sole are independent inked volumes, keeping
+  // the grounded contact visible against the stone background.
+  line(c,ink,7.2,hip,knee,heel);
+  line(c,front?'#9e8066':'#655754',4.1,knee,heel);
+  line(c,front?'#b99a77':'#897667',1.4,[knee[0]-1,knee[1]+1],[heel[0]-1,heel[1]-1]);
+  const [x,y]=heel;
+  poly(c,[[x-2.8,y-2.4],[x+1.1,y-2.4],[x+5.5,y-.3],[x+5.1,y+1.8],[x-3,y+1.8]],
+    front?'#ac9176':'#776351',ink,1.3);
+}
+function sweepWake(c:C,x:number,y:number,angle:number,length:number,width:number,tint:string){
+  if(width<=.07)return;
+  const at=(a:number,r:number)=>[x+Math.cos(a)*r,y+Math.sin(a)*r] as const;
+  const points:V[]=[];
+  for(let i=0;i<=6;i++)points.push(at(angle-width*(1-i/6),length*(.96+.04*i/6)));
+  for(let i=6;i>=0;i--)points.push(at(angle-width*(1-i/6),length*(.95-(Math.sin(Math.PI*i/6))*.20)));
+  poly(c,points,tint+'64');
+  line(c,'#fff1d585',1.25,at(angle-width,length*.96),at(angle-width*.57,length*.987),at(angle,length));
 }
 const silhouettes:Readonly<Record<string,readonly [number,number,number,number]>>={
   shii_cho:[10,12,1,1.50], makashi:[8,12,-1,.78], soresu:[12,10,0,1.16], ataru:[8.9,13,-1,1.05],
@@ -264,11 +406,13 @@ function hero(c:C,p:Fighters,own:boolean,time:number,moving:boolean,effects:bool
   const tint=colors[p.team], side=Math.cos(p.face)>=0?1:-1, ax=Math.cos(p.face), ay=Math.sin(p.face);
   const sign=Number.isFinite(p.face)?p.face:0;
   const [shoulder,hem,hood,arc]=silhouettes[p.form??'']??silhouettes.shii_cho;
-  const phase=gait(p,time,moving,effects), rawTime=p.actionTime??0;
+  const rawTime=p.actionTime??0;
   const cut=p.action==='slash'||p.action==='attack', rush=p.action==='rush'||p.action==='lunge', guard=p.action==='guard';
   const dash=rush&&(p.dashRemaining??0)>0, t=effects?rawTime:0, settle=cut?1-smooth(t/.24):rush?1-smooth(t/.33):0;
-  const dip=guard?2:cut?2.8*settle:rush?2*settle:moving&&effects?Math.cos(phase*TAU*2)*.8:0;
-  const lead=guard?-1.8:cut?3*settle:rush?6.5*settle:moving?2.4:0;
+  const stride=gait(p,time,moving,effects,guard,dash), phase=stride.phase;
+  const recoil=cut?Math.sin(Math.PI*clamp(t/.20))*settle:0;
+  const dip=guard?3.6:cut?2.5*settle+recoil*2:rush?2.2*settle:moving&&effects?Math.cos(phase*TAU*2)*1.5*stride.pace:0;
+  const lead=guard?-2.7:cut?4.6*settle+recoil*2:rush?8.8*settle:moving?2.9*stride.pace:0;
   const seed=idSeed(p.id)%3;
   c.save();c.translate(p.x,p.y);
   ellipse(c,1,6,16,5.5,'#1a1a257a');
@@ -281,16 +425,10 @@ function hero(c:C,p:Fighters,own:boolean,time:number,moving:boolean,effects:bool
     line(c,tint+'a2',2,[ox-ax*16,oy-ay*16],[ox-ax*34,oy-ay*34]);}
   if((p.spawnProtectUntil??0)>time)ellipse(c,0,-9,18,16,'#00000000',tint+'8a',1.3);
   c.save();c.lineCap='round';c.lineJoin='round';c.scale(side,1);
-  // Tangent based stride clock: boots only cycle when screenshots/RAF
-  // observe actual movement; contact portion moves heel-to-toe and lifts
-  // the free boot. Actors never share a wall clock marching phase.
-  for(const j of [-1,1]){
-    const k=(phase+(j===1?.5:0))%1;
-    const lift=moving&&k>.56?Math.sin(Math.PI*(k-.56)/.44)*5:0;
-    const reach=moving?(k<.56?6-12*k/.56:mix(-6,6,smooth((k-.56)/.44))):0;
-    const heel=j*4+reach+ax*lead*side*.4, y=4-lift+j*.8;
-    line(c,ink,6,[j*4,-8+dip],[heel,y]);
-    line(c,j===1?'#bba286':'#786b60',2.6,[heel,y-1],[heel+4,y-1]);
+  for(const [index,boot] of stride.boots.entries()){
+    const sign=index===0?-1:1, hx=sign*4+lead*.37,hy=-9+dip;
+    const fx=(boot.point.x-p.x)*side, fy=boot.point.y-p.y;
+    drawBoot(c,[hx,hy],[mix(hx,fx,.55)+(guard?3.6:1.9),mix(hy,fy,.53)],[fx,fy],index===1);
   }
   const rib=lead, neck=dip-20, cloth=rib*.34+(dash?-7:0)+(cut?4*settle:0);
   const light=p.team===0?'#8eafa2':'#b78d76', dark=p.team===0?'#476866':'#774f4f';
@@ -339,12 +477,18 @@ function hero(c:C,p:Fighters,own:boolean,time:number,moving:boolean,effects:bool
   const turn=cut?mix(release,finish,smooth(t/.09))*(1-smooth((t-.12)/.12))+rest*smooth((t-.12)/.12):
     rush?mix(0,finish,smooth(t/.20)):rest;
   const bladeAngle=sign+turn;
-  const handX=side*lead*.60+ax*(guard?9:cut?11+settle*7:rush?12+settle*7:12);
-  const handY=-15+dip+ay*(guard?7:9), length=rush?30:guard?25:27+shoulder*.3;
+  const handX=side*lead*.55+ax*(guard?6:cut?12+settle*7:rush?14+settle*8:11);
+  const handY=(guard?-19:-15)+dip+ay*(guard?5:9)-recoil*2, length=rush?30:guard?25:27+shoulder*.3;
   const tx=handX+Math.cos(bladeAngle)*length,ty=handY+Math.sin(bladeAngle)*length;
-  line(c,ink,5.5,[side*(lead+5),-18+dip],[handX,handY]);
-  line(c,'#81705b',2,[side*(lead+5),-18+dip],[handX,handY]);
-  line(c,ink,6,[handX,handY],[tx,ty]);
+  const socket:V=[side*(lead+5.8),-20+dip], elbow:V=[mix(socket[0],handX,.50)-side*(guard?3.9:1),mix(socket[1],handY,.63)+(guard?5:6.6)];
+  const grip:V=[handX,handY];
+  line(c,ink,6.2,socket,elbow,grip);
+  line(c,dark,3.8,socket,elbow);
+  line(c,'#baa187',3.4,elbow,grip);
+  if(effects&&cut&&t>.015&&t<.11)
+    sweepWake(c,handX,handY,bladeAngle,length,arc*.4*Math.sin(Math.PI*t/.123),tint);
+  const hiltEnd:V=[handX-Math.cos(bladeAngle)*5,handY-Math.sin(bladeAngle)*5];
+  line(c,ink,6.4,hiltEnd,[tx,ty]);
   line(c,tint,3.9,[handX,handY],[tx,ty]);
   line(c,'#fff0c8',1.65,[handX,handY],[tx,ty]);
   ellipse(c,handX,handY,3.7,3.1,paper,ink,1.3);
@@ -357,6 +501,7 @@ function minion(c:C,p:Unit,effects:boolean){
   c.save();c.translate(p.x,p.y);c.scale(dir,1);
   c.lineJoin='round';c.lineCap='round';
   ellipse(c,1,4,10.6,4.1,'#10141bab');
+  if(p.rallied)ellipse(c,1,3,13,5,'#0000',gold,2);
   line(c,ink,3.3,[-2,-2],[-4+step,4]);
   line(c,ink,3.3,[3,-2],[4-step,4]);
   if(p.ranged){
@@ -399,6 +544,20 @@ export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData
   moving=new Set<Fighters>(),view:{x:number;y:number;zoom:number;width?:number;height?:number}={x:0,y:0,zoom:1},extraEffects=true){
   const viewWidth=view.width??W,viewHeight=view.height??H;
   c.clearRect(0,0,viewWidth,viewHeight);c.save();c.scale(view.zoom,view.zoom);c.translate(-view.x,-view.y);c.drawImage(terrain,0,0);
+  const rally=state.bellRally, bell=bellRallyCue(rally,state.tick??0);
+  if(rally)forumSeal(c);
+  if(bell&&(bell.phase==='open'||bell.phase==='soon')){
+    const {x,y}=forum.center, r=BELL_RALLY_RULES.radius;
+    c.save(); c.beginPath(); c.arc(x,y,r,0,TAU);c.fillStyle='#e8b62715';c.fill();
+    c.strokeStyle='#161719';c.lineWidth=6;c.stroke();
+    c.strokeStyle=bell.phase==='open'?gold:'#cdb887';c.lineWidth=2;c.setLineDash([5,5]);c.stroke();
+    c.setLineDash([]);
+    if(rally?.holder!==null&&rally?.holder!==undefined&&bell.phase==='open'){
+      c.beginPath();c.arc(x,y,r,-Math.PI/2,-Math.PI/2+TAU*rally.heldTicks/BELL_RALLY_RULES.holdTicks);
+      c.strokeStyle=colors[rally.holder];c.lineWidth=5;c.stroke();
+    }
+    c.restore();
+  }
   const units=[
     ...state.towers.map((p)=>({p,kind:'tower' as const})),...state.cores.map((p)=>({p,kind:'core' as const})),
     ...state.minions.map((p)=>({p,kind:'minion' as const})),...state.heroes.map((p)=>({p,kind:'hero' as const})),
@@ -407,7 +566,10 @@ export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData
   for(const q of units) {
     if(q.kind==='hero')hero(c,q.p,q.p===own,state.time,moving.has(q.p),extraEffects);
     else if(q.kind==='minion')minion(c,q.p,extraEffects);
-    else if(q.kind==='wall')wall(c,q.body,q.i);
+    else if(q.kind==='wall'){
+      const painted=roofCache.get(terrain)?.[q.i];
+      if(painted)c.drawImage(painted.canvas,painted.x,painted.y);else wall(c,q.body,q.i);
+    }
     else structure(c,q.p,q.kind==='core',alliedStructureOpacity(q.p,q.kind==='core',own));
   }
   if(extraEffects)for(const e of state.events??[]){
@@ -440,6 +602,7 @@ export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData
     if(p.hp<=0)continue;
     const u=p===own?5:3;rect(c,p.x/W*170,p.y/H*66,u,u,p===own?'#ffdc91':colors[p.team]);
   }
+  if(bell){const [x,y]=mapPath(forum.center);ellipse(c,x,y,6,5,'#211900',gold,1.5);}
   if(view.zoom>1){c.strokeStyle='#f5db9a';c.strokeRect(view.x/W*174,view.y/H*69,(viewWidth/W)*174/view.zoom,(viewHeight/H)*69/view.zoom);}
   c.restore();
 }

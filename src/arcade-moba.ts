@@ -1,3 +1,4 @@
+import {BELL_RALLY_RULES,bellRallyBonus,consumeBellRally,createBellRally,stepBellRally,type BellRally} from './arcade-moba-rally.js';
 import {MOBA_BATTLEFIELD,mobaClearPath,mobaWalk,mobaLaneWaypoint,mobaNavPoint} from './arcade-moba-map.js';
 /** Standalone, fixed-step, local Arena MOBA. No Arena career or tournament writes. */
 export const MOBA_WIDTH=MOBA_BATTLEFIELD.width, MOBA_HEIGHT=MOBA_BATTLEFIELD.height;
@@ -8,7 +9,7 @@ export type MobaTeam=0|1;
 export type MobaLane=0|1|2;
 export type MobaPoint={x:number;y:number};
 export const MOBA_FORMS={
-  shii_cho:{name:'Shii-Cho',role:'Vanguard',description:'Wide slashes; balanced stamina and dash.',hp:150,speed:175,slash:26,arc:1.45,reach:55,guard:.37,lungeSpeed:475,lungeTime:.17,lungeCost:26,lungeDamage:36},
+  shii_cho:{name:'Shii-Cho',role:'Vanguard',description:'Slash cleaves clustered enemy minions.',hp:150,speed:175,slash:26,arc:1.45,reach:55,guard:.37,lungeSpeed:475,lungeTime:.17,lungeCost:26,lungeDamage:36},
   makashi:{name:'Makashi',role:'Duelist',description:'Long, narrow strikes; less health.',hp:133,speed:181,slash:31,arc:.76,reach:67,guard:.42,lungeSpeed:510,lungeTime:.18,lungeCost:27,lungeDamage:39},
   soresu:{name:'Soresu',role:'Guardian',description:'Best armor and guard; short dash and lighter cuts.',hp:185,speed:155,slash:20,arc:1.19,reach:47,guard:.23,lungeSpeed:400,lungeTime:.14,lungeCost:30,lungeDamage:29},
   ataru:{name:'Ataru',role:'Mobile striker',description:'Fastest, longest dash; fragile and stamina-hungry.',hp:128,speed:199,slash:23,arc:1.10,reach:49,guard:.46,lungeSpeed:570,lungeTime:.20,lungeCost:32,lungeDamage:42},
@@ -26,14 +27,14 @@ export type MobaHero=MobaUnit&{
   actionTime:number;guardHeld?:boolean;energy:number;level:number;xp:number;credits:number;upgrade:number;kills:number;deaths:number;
   respawnAt:number; cooldown:number; lungeCooldown:number; spawnProtectUntil:number;upgradingUntil:number;
 };
-export type MobaMinion=MobaUnit&{kind:'minion';face:number;cooldown:number;ranged:boolean};
+export type MobaMinion=MobaUnit&{kind:'minion';face:number;cooldown:number;ranged:boolean;rallied?:true};
 export type MobaStructure=MobaUnit&{kind:'tower'|'core';cooldown:number;shielded:boolean};
 export type MobaEvent={id:number;time:number;type:'attack'|'lunge'|'hit'|'ko'|'respawn'|'wave'|'tower'|'core'|'level'|'upgrade';team:MobaTeam;actorId?:string;targetId?:string;x:number;y:number;value?:number};
 export type MobaState={
   seed:number;tick:number;time:number;phase:'playing'|'won'|'lost'|'draw';winner:MobaTeam|null;endReason:'core'|'timeout'|null;
   heroes:MobaHero[]; minions:MobaMinion[]; towers:MobaStructure[]; cores:MobaStructure[];
   player:MobaHero;events:MobaEvent[];nextWaveAt:number;wave:number;remainder:number;eventId:number;
-  pendingAttack:boolean;pendingLunge:boolean;pendingUpgrade:boolean;
+  pendingAttack:boolean;pendingLunge:boolean;pendingUpgrade:boolean;bellRally?:BellRally;
 };
 const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const gap=(a:MobaPoint,b:MobaPoint)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -61,7 +62,7 @@ function structure(team:MobaTeam,lane:MobaLane,kind:MobaStructure['kind']):MobaS
     ...(core?MOBA_BATTLEFIELD.cores[team]:MOBA_BATTLEFIELD.lanes[lane].towerNodes[team]),
     hp:maxHp,maxHp,alive:true,radius:core?30:22,shielded:core,cooldown:0};
 }
-export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho'):MobaState {
+export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho',{bellRally=false}:{bellRally?:boolean}={}):MobaState {
   const lane=lanes.includes(playerLane)?playerLane:1;
   const towers=sides.flatMap(team=>lanes.map(l=>structure(team,l,'tower')));
   const cores=sides.map(team=>structure(team,1,'core'));
@@ -78,15 +79,20 @@ export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shi
   player.control=true;
   if(MOBA_FORM_IDS.includes(playerForm)){player.form=playerForm;player.maxHp=MOBA_FORMS[playerForm].hp;player.hp=player.maxHp;}
   return {seed:seed>>>0,tick:0,time:0,phase:'playing',winner:null,endReason:null,heroes,minions:[],towers,cores,player,
-    events:[],nextWaveAt:.5,wave:0,remainder:0,eventId:0,pendingAttack:false,pendingLunge:false,pendingUpgrade:false};
+    events:[],nextWaveAt:.5,wave:0,remainder:0,eventId:0,pendingAttack:false,pendingLunge:false,pendingUpgrade:false,
+    ...(bellRally?{bellRally:createBellRally()}:{}),};
 }
 function wave(s:MobaState){
   ++s.wave;
+  const rallied=consumeBellRally(s.bellRally);
   for(const team of sides)for(const lane of lanes)for(let i=0;i<4;i++){
-    const ranged=i===3,maxHp=(ranged?34:52)+Math.min(28,Math.floor((s.wave-1)/3)*3);
+    const ranged=i===3,baseHp=(ranged?34:52)+Math.min(28,Math.floor((s.wave-1)/3)*3);
+    const hasRally=team===rallied&&lane===1&&i===0;
+    const maxHp=hasRally?baseHp+bellRallyBonus(baseHp):baseHp;
     s.minions.push({id:'wave-'+s.wave+'-'+team+'-'+lane+'-'+i,kind:'minion',team,lane,
       x:spawnX(team)+direction(team)*(35-i*14),y:MOBA_LANES[lane]+[0,-13,13,0][i],
-      hp:maxHp,maxHp,alive:true,radius:ranged?7:8,face:team===0?0:Math.PI,cooldown:i*.11,ranged});
+      hp:maxHp,maxHp,alive:true,radius:ranged?7:8,face:team===0?0:Math.PI,cooldown:i*.11,ranged,
+      ...(hasRally?{rallied:true as const}:{}),});
   }
   s.nextWaveAt+=MOBA_WAVE_INTERVAL;
   emit(s,'wave',s.cores[0],undefined,s.wave);
@@ -167,10 +173,10 @@ function build(h:MobaHero,s:MobaState){
   emit(s,'upgrade',h,undefined,h.upgrade);
 }
 export const mobaUpgradeCost=(h:Pick<MobaHero,'upgrade'>)=>h.upgrade>=3?null:35+h.upgrade*28;
-function hitWithHero(s:MobaState,h:MobaHero,target:MobaUnit,base:number){
+function hitWithHero(s:MobaState,h:MobaHero,target:MobaUnit,base:number,scale=1){
   const structure=target.kind==='tower'||target.kind==='core';
   const screened=structure&&s.minions.some(m=>m.alive&&m.team===h.team&&gap(m,target)<135);
-  damage(s,h,target,(base+(h.level-1)*3+h.upgrade*5)*(structure?(screened?.93:.55):1));
+  damage(s,h,target,(base+(h.level-1)*3+h.upgrade*5)*scale*(structure?(screened?.93:.55):1));
 }
 function strike(s:MobaState,h:MobaHero,targets:readonly MobaUnit[],lunge:boolean,aimX?:number,aimY?:number){
   const form=MOBA_FORMS[h.form], cost=lunge?form.lungeCost:8;
@@ -184,10 +190,19 @@ function strike(s:MobaState,h:MobaHero,targets:readonly MobaUnit[],lunge:boolean
     return;
   }
   const aim=hasAim?{x:aimX!,y:aimY!}:{x:h.x+Math.cos(h.face)*form.reach,y:h.y+Math.sin(h.face)*form.reach};
-  const candidate=nearest(aim,targets,e=>e.team!==h.team&&vulnerable(s,e)&&mobaClearPath(h,e)&&gap(h,e)<=form.reach+e.radius&&
-    Math.abs(positiveAngle(Math.atan2(e.y-h.y,e.x-h.x)-h.face))<form.arc);
+  const inSlash=(e:MobaUnit)=>e.team!==h.team&&vulnerable(s,e)&&mobaClearPath(h,e)&&gap(h,e)<=form.reach+e.radius&&
+    Math.abs(positiveAngle(Math.atan2(e.y-h.y,e.x-h.x)-h.face))<form.arc;
+  const candidate=nearest(aim,targets,inSlash);
   emit(s,'attack',h,candidate);
-  if(candidate)hitWithHero(s,h,candidate,form.slash);
+  if(!candidate)return;
+  hitWithHero(s,h,candidate,form.slash);
+  // The player's Shii-Cho can thin a wave, but a duel or structure hit never cleaves.
+  if(h.control&&h.form==='shii_cho'&&candidate.kind==='minion'){
+    const swept=targets.filter(e=>e.kind==='minion'&&e!==candidate&&gap(candidate,e)<=42&&inSlash(e))
+      .sort((a,b)=>gap(candidate,a)-gap(candidate,b))
+      .slice(0,2);
+    for(const e of swept)hitWithHero(s,h,e,form.slash,.5);
+  }
 }
 function dashStep(s:MobaState,h:MobaHero,targets:readonly MobaUnit[]){
   const form=MOBA_FORMS[h.form], distance=Math.min(DT,h.dashRemaining)*form.lungeSpeed;
@@ -310,6 +325,12 @@ function tick(s:MobaState,input:MobaInput){
   s.tick++;s.time=s.tick*DT;
   if(s.time+1e-8>=s.nextWaveAt)wave(s);
   const units=[...s.heroes,...s.minions,...s.towers,...s.cores];
+  const bell=s.bellRally;
+  if(bell&&(bell.phase==='open'||s.tick>=bell.nextTick)){
+    const presence:[boolean,boolean]=[false,false], center=MOBA_BATTLEFIELD.forum.center;
+    for(const h of s.heroes)if(h.alive&&gap(h,center)<=BELL_RALLY_RULES.radius)presence[h.team]=true;
+    stepBellRally(bell,s.tick,presence);
+  }
   // Rotate first actor and alternate same-tick systems' leading team for deterministic ties.
   for(const h of rotate(s.heroes,s.tick%s.heroes.length)){heroStep(s,h,units,input);if(s.phase!=='playing')return;}
   for(const team of s.tick%2===0?sides:[1,0] as const){

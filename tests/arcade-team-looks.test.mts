@@ -1,3 +1,4 @@
+import {arenaFighterAppearance} from "../dist/arcade-team-looks.js";
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createArcade,stepArcade} from '../dist/arcade-engine.js';
@@ -28,4 +29,22 @@ test('team gender and appearance are independent seeded selections; real Heroes 
   assert.deepEqual(profile(a).find(row=>row[0]==='1-0'),['1-0','femboy','nonbinary',appearanceSeedFor('signed'),'Named Hero']);
   const firstSeats=new Set(Array.from({length:12},(_,seed)=>createArcade({...options,seed:seed+1}).fighters[0].gender));
   assert.equal(firstSeats.size,3);
+});
+
+test('two-seat Mixed inspections show the resolved distinct fighters, and Hero looks take precedence',()=>{
+  const options={mode:'watch',seed:51,teamSizes:[2,2],teamGenders:['mixed','mixed'],teamAppearances:['mixed','mixed']};
+  const first=createArcade(options), same=createArcade(options);
+  const card=(game:typeof first)=>game.fighters.map(arenaFighterAppearance);
+  assert.deepEqual(card(first),card(same));
+  for(const team of [0,1]){
+    const [a,b]=first.fighters.filter(f=>f.team===team).map(arenaFighterAppearance);
+    assert.notEqual(a.gender,b.gender);
+    assert.notEqual(a.appearance,b.appearance);
+    assert.equal(a.source,'Match roster');
+    assert.equal(b.source,'Match roster');
+    assert.notEqual(a.gender,'Mixed');assert.notEqual(a.appearance,'Mixed');
+  }
+  const saved=createArcade({...options,heroLineup:{'0-1':{id:'signed',name:'Named Hero',body:'rabbit',gender:'nonbinary',form:'ataru'}}});
+  assert.deepEqual(arenaFighterAppearance(saved.fighters.find(x=>x.id==='0-1')!),
+    {gender:'Nonbinary',appearance:'Rabbit duelist',source:'Saved Hero'});
 });

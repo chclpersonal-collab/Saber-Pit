@@ -218,9 +218,13 @@ kbd{display:none;font:700 .78rem/1 ui-monospace,monospace;color:var(--amber);bor
 #respawnClock{font-variant-numeric:tabular-nums;font-size:clamp(1rem,2.8vw,1.4rem);font-weight:700}
 #respawnPaused{margin-top:.5rem;color:#ffe2ac}
 
-#firstTowerPing{position:absolute;z-index:1;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:1px;min-width:60px;margin:0;padding:.17rem .3rem .3rem;background:#111920eb;border:1px solid #8f7042;color:#ffe2ac;white-space:nowrap;pointer-events:none}
+#firstTowerPing{position:absolute;z-index:1;display:flex;align-items:center;gap:.32em;margin:0;padding:.28rem .44rem;background:#211916f0;border:1px solid #986450;color:#fcbd99;white-space:nowrap;pointer-events:none}
+#firstTowerPing[data-edge=right]{transform:translate(-100%,-50%);border-right:3px solid #ef9373;flex-direction:row-reverse}
+#firstTowerPing[data-edge=left]{transform:translate(0,-50%);border-left:3px solid #ef9373}
+#firstTowerPing[data-edge=bottom]{transform:translate(-50%,-100%);border-bottom:3px solid #ef9373}
+#firstTowerPing[data-edge=top]{transform:translate(-50%,0);border-top:3px solid #ef9373}
 #firstTowerArrow{display:inline-block;font-size:1rem;line-height:1;transform:rotate(var(--edge-angle,0rad))}
-#firstTowerLabel{font-size:.66rem;font-weight:700}
+#firstTowerLabel{font-size:.69rem;font-weight:700}
 #tacticalHint[data-warning=true]{border-color:#c47b67;color:#ffd4bd;background:#2c1816f5}
 /* Short landscape uses fixed corner controls, not the desktop backing bar. */
 @media(orientation:landscape) and (max-height:500px){
@@ -231,3 +235,14 @@ kbd{display:none;font:700 .78rem/1 ui-monospace,monospace;color:var(--amber);bor
   .attacks [data-control=attack]{width:64px;height:64px}
   .attacks .lbl,.attacks kbd{display:none}
 }
+
+/* Optional Bell Rally: no space consumed in standard matches. */
+.bell-toggle{display:flex;align-items:center;gap:.55rem;min-height:40px;color:var(--white);text-align:left;cursor:pointer}
+.bell-toggle input{margin:.12rem .2rem 0 0;inline-size:1rem;block-size:1rem;accent-color:var(--amber)}
+.bell-toggle input:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.overlay .bell-toggle small{display:inline;margin-inline-start:.25rem;font-size:.72rem}
+.overlay .bell-help{margin:0 0 .55rem;text-align:left;font-size:.77rem}
+.time:has(#bellStatus:not([hidden])){flex-wrap:wrap;gap:.12rem .5rem;padding-block:.18rem}
+.time #bellStatus{flex:0 0 100%;text-align:center;font-size:.72rem;color:#ffe7a2;white-space:normal;letter-spacing:.02em}
+.time #bellStatus[data-phase=claimed]{color:var(--blue)}
+.time #bellStatus[data-phase=claimed][data-team="1"]{color:var(--red)}

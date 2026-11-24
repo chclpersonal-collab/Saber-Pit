@@ -6,7 +6,7 @@ test('the real controller announces a natural core finish once and retry does no
   const html=await readFile(new URL('../dist/moba.html',import.meta.url),'utf8');
   let frame,focus;
   const announcements=[];
-  const ctx=new Proxy({}, {get:(o,k)=>o[k]??(k==='createLinearGradient'?()=>({addColorStop(){}}):()=>{})});
+  const ctx=new Proxy({}, {get:(o,k)=>o[k]??(['createLinearGradient','createRadialGradient'].includes(k)?()=>({addColorStop(){}}):()=>{})});
   class Element{
     constructor(id,dataset={}){this.id=id;this.dataset=dataset;this.hidden=false;this.disabled=false;this.content='';this.handlers={};this.attributes={};this.style={setProperty(){}};}
     get textContent(){return this.content;}

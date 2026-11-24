@@ -177,3 +177,63 @@ test('Arena Elo goes both ways across new browser startup, old workers never rec
   assert.equal((await phone.sync({action:'startup'})).status,'downloaded');
   assert.equal(readArcadeCareer(phone.storage).round,9);
 });
+
+
+test('mounted checks distinguish a safe refresh from review and do not restore themselves',async()=>{
+  const l=lab({capable:true}),pc=l.device(),phone=l.device(),dirty=l.device(),fresh=l.device();
+  const pcState=localSave(pc.storage,402);
+  assert.equal((await pc.sync({action:'enable'})).status,'uploaded');
+  for(const device of [phone,dirty])assert.equal((await device.sync({action:'startup',discover:true})).status,'downloaded');
+  const observe=()=>({winnerIndex:0,time:6,reason:'elimination',kills:[1,0],deaths:[0,1]});
+  const observed=loadTournament(dirty.storage);
+  runTournamentStep(observed,()=>({...observe(),winnerIndex:1,kills:[0,1],deaths:[1,0]}));
+  saveTournament(observed,dirty.storage);
+  runTournamentStep(pcState,observe);saveTournament(pcState,pc.storage);
+  assert.equal((await pc.sync()).status,'uploaded');
+  const before=loadTournament(phone.storage);
+  const result=await phone.sync();
+  assert.equal(result.status,'cloud-newer');assert.equal(result.canRefresh,true);
+  assert.deepEqual(loadTournament(phone.storage),before);
+  const divergent=await dirty.sync();
+  assert.equal(divergent.status,'conflict');assert.equal(divergent.canRefresh,undefined);
+  assert.deepEqual(loadTournament(dirty.storage),observed);
+  const reveal=await fresh.sync({action:'startup',discover:true,revealOnly:true});
+  assert.equal(reveal.canRefresh,true);
+  assert.equal(fresh.storage.getItem(CLOUD_SYNC_KEY),null);
+  assert.equal((await phone.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.equal((await fresh.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.deepEqual(loadTournament(phone.storage),loadTournament(pc.storage));
+  assert.deepEqual(loadTournament(fresh.storage),loadTournament(pc.storage));
+  assert.ok(phone.copies.get('previous-device'));
+  assert.equal(l.calls.filter(([,method])=>method==='PUT').length,2);
+});
+
+test('one same-owner cloud carries all five actual save sections across independent profiles',async()=>{
+  const l=lab({capable:true}),source=l.device(),target=l.device();
+  const {saveTournamentHero,nextTournamentBout}=await import(new URL('arcade-tournament.js',dist));
+  const s=await import(new URL('squad-tournament.js',dist));
+  const q=await import(new URL('arcade-quests.js',dist));
+  const a=await import(new URL('arcade-career.js',dist));
+  const g=await import(new URL('gauntlet-tournament.js',dist));
+  const won=()=>({winnerIndex:0,kills:[1,0],deaths:[0,1],time:10,reason:'elimination'});
+  const solo=localSave(source.storage,48);const id=nextTournamentBout(solo).fighterIds[0];runTournamentStep(solo,won);
+  const hero=saveTournamentHero(solo,id);saveTournament(solo,source.storage);
+  const squad=s.startSquadTournament(s.loadSquadTournament(source.storage),{seed:19});s.runSquadStep(squad,won);s.saveSquadTournament(squad,source.storage);
+  const quests=q.loadQuests(source.storage);q.deployQuest(quests,hero.id,[hero],123456);q.saveQuests(quests,source.storage);
+  assert.ok(a.saveArcadeCareer({mode:'watch',round:9,seed:48,careers:{'0-0':{merit:401},'1-0':{merit:680}},arenaRatings:{'0-0':153.5,'1-0':144.5}},source.storage));
+  let gauntlet=g.startGauntlet(undefined,{seed:777});gauntlet=g.recordGauntletBout(gauntlet,g.nextGauntletBout(gauntlet).id,won());assert.ok(g.saveGauntlet(gauntlet,source.storage));
+  const sections=['duel','squad','quest','arena','gauntlet'];
+  const read=store=>backup.exportArcadeBackup(store,{sections}).bundle.sections;
+  assert.equal((await source.sync({action:'startup',discover:true})).status,'unlinked');
+  assert.equal((await source.sync({action:'enable'})).status,'uploaded');
+  assert.deepEqual(Object.keys(read(source.storage)).sort(),sections.toSorted());
+  assert.equal((await target.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.deepEqual(read(target.storage),read(source.storage));
+  assert.equal(l.calls.filter(([,method])=>method==='PUT').length,5);
+  runTournamentStep(solo,won);saveTournament(solo,source.storage);
+  assert.equal((await source.sync()).status,'uploaded');
+  assert.equal((await target.sync()).canRefresh,true);
+  assert.equal((await target.sync({action:'startup',discover:true})).status,'downloaded');
+  assert.deepEqual(read(target.storage),read(source.storage));
+  assert.deepEqual(l.calls.filter(([,method])=>method==='PUT').map(([path])=>path.split('/').at(-1)),[...sections,'duel']);
+});

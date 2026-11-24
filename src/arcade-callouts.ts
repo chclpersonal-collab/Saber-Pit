@@ -80,6 +80,7 @@ export function combatCallout(event:CalloutEvent,f?:Fighter|null,focus=false):Cu
    const movement={sidestep:'Sidestep',backstep:'Backstep',vault_step:'Vault Step'};
    return cue(get(movement,event.technique)??'Dash',1,'move');
  }
+ if(kind==='opponent_read')return cue('Guard read',3,'move','FEINT');
  if(kind==='feint')return cue('Feint',1,'move');
  if(kind==='block')return focus?cue('Block',2):null;
  // Positive engine contact identifies a committed windup; offhand release

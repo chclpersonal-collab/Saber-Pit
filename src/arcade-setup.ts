@@ -7,7 +7,7 @@ type UnknownGear = Parameters<typeof normalizeArcadeGear>[0];
 type RawSetup = UnknownGear & {
  form?:unknown;fixedForm?:unknown;teamSizes?:readonly unknown[];environment?:unknown;
  deployments?:readonly unknown[];participation?:unknown;heroPicks?:readonly (Partial<HeroPick>|null)[];rule?:unknown;
- novicePractice?:unknown;duration?:unknown;mapId?:unknown;mapSize?:unknown;body?:unknown;playerSlot?:unknown;pace?:unknown;seed?:unknown;saberOnly?:unknown;
+ squadTactics?:unknown;laneDrill?:unknown;opponentReads?:unknown;novicePractice?:unknown;duration?:unknown;mapId?:unknown;mapSize?:unknown;body?:unknown;playerSlot?:unknown;pace?:unknown;seed?:unknown;saberOnly?:unknown;
  forcePools?:readonly unknown[];startingRanks?:readonly unknown[];chessStyles?:readonly unknown[];doctrines?:readonly unknown[];
  targeting?:readonly unknown[];formations?:readonly unknown[];groupForms?:readonly unknown[];
  teamGenders?:readonly unknown[];teamAppearances?:readonly unknown[];
@@ -16,7 +16,7 @@ type RawSetup = UnknownGear & {
 import {normalizeHeroPick} from './arcade-heroes.js?v=2.42.0';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
 import {normalizeArcadeForcePool} from './arcade-force-pool.js';
-import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
+import {normalizeArcadeGear,arcadeFighterGear} from './arcade-loadouts.js?v=3.1.0';
 import {normalizeArcadeChessStyle,arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 const FORMS:readonly SaberForm[]=['shii_cho','makashi','soresu','ataru','djem_so','niman','juyo'];
 const RANKS=SOLDIER_GRADES.map(x=>x.label);
@@ -66,6 +66,9 @@ export function normalizeSetup(input:unknown={}){
     participation:pick<Participation,'play'>(raw.participation,['play','watch','command'],'play'),
     teamSizes, heroPicks: teamSizes.map((count,i)=>normalizeHeroPick(raw.heroPicks?.[i],count)), rule:pick(raw.rule,['elimination','control','relic'],'elimination'),
     novicePractice:raw.novicePractice===true,
+    squadTactics:raw.squadTactics===true,
+    laneDrill:raw.laneDrill===true,
+    opponentReads:raw.opponentReads===true,
     duration:pick(+(raw.duration as number),[45,75,90,150],90),
     mapId:pick(raw.mapId,Object.keys(ARCADE_MAPS),'rotation'),
     mapSize:pick(raw.mapSize,Object.keys(SIZE),'medium'),
@@ -89,6 +92,23 @@ export function canArenaNovicePractice(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):
   return cfg.participation==='play'&&cfg.rule==='elimination'&&cfg.teamSizes.length===2&&
     cfg.teamSizes.every(n=>n===1)&&cfg.startingRanks.every(rank=>rank==='F'||rank==='E')&&
     Object.keys(heroes).length===0;
+}
+export function canArenaAdaptiveSparring(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):boolean{
+  return cfg.participation==='play'&&cfg.rule==='elimination'&&cfg.teamSizes.length===2&&cfg.teamSizes.every(n=>n===1)&&Object.keys(heroes).length===0;
+}
+export function canArenaSquadTraining(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):boolean{
+  return (cfg.participation==='play'||cfg.participation==='watch')&&cfg.rule==='elimination'&&
+    cfg.teamSizes.length===2&&cfg.teamSizes.every(n=>n>=2)&&Object.keys(heroes).length===0;
+}
+export function canArenaLaneDrill(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):boolean{
+  const mapOkay=cfg.mapId==='high_bastion'||cfg.mapSize==='medium'&&['underpit','crossroads'].includes(cfg.mapId);
+  return mapOkay&&cfg.participation==='watch'&&cfg.rule==='elimination'&&cfg.teamSizes.length===2&&
+    cfg.teamSizes.every(n=>n===16)&&!cfg.squadTactics&&!Object.keys(heroes).length&&
+    cfg.startingRanks.every(r=>RANKS.indexOf(r)<=RANKS.indexOf('A'))&&
+    !engineForcePools(cfg).some(pool=>pool.length)&&[0,1].every(i=>{
+      const gear=arcadeFighterGear(cfg,i);
+      return gear.weapon!=='greatsaber'&&gear.forceFamily!=='force_pulse'&&gear.forceQuality==='standard';
+    });
 }
 export function engineForcePools(cfg:ArcadeSetup): [string[],string[]] {
   return cfg.saberOnly ? [[],[]] : [

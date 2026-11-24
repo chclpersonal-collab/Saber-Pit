@@ -9,7 +9,7 @@ function recorder(){
   const c=new Proxy({},{
     set(_ctx,key,value){events.push([key,value]);return true;},
     get(_ctx,key){
-      if(key==='createLinearGradient')return ()=>({addColorStop:()=>{}});
+      if(key==='createLinearGradient'||key==='createRadialGradient')return ()=>({addColorStop:()=>{}});
       return (...args)=>events.push([key,...args.map(x=>typeof x==='object'?null:x)]);
     },
   });

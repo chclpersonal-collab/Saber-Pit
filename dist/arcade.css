@@ -367,3 +367,12 @@ body[data-view=game] #arena{touch-action:pan-y}
 @media(max-width:740px){body[data-watch=true] .floor-ui:has(.hero-watch:not([hidden]))>.loadout{display:none}.hero-watch{grid-template-columns:repeat(2,minmax(0,1fr));flex-basis:100%}.hero-watch-actions{grid-column:1/-1}}
 
 .saber-kit-hint{margin:.35rem 0;color:var(--soft);font-size:.83rem;line-height:1.35;min-height:2.25em}
+
+
+/* Portrait Close View uses the otherwise empty vertical room and the same input transform. */
+@media (max-width:740px) and (orientation:portrait){
+  body[data-view=game][data-portrait-action=true] .arena-shell{
+    aspect-ratio:auto;height:clamp(235px,43svh,430px);
+  }
+  body[data-view=game] #cameraView{min-height:44px}
+}

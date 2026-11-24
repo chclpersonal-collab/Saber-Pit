@@ -15,8 +15,8 @@ const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const optionSet=<T extends string>(value:string|undefined,choices:readonly T[],fallback:T): T=>choices.includes(value as T)?value as T:fallback;
 const doctrineAliases: Readonly<Record<string,string|undefined>>={assault:'aggressive',guard:'defensive'};
 
-type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill';
-type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive';
+type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill'|'opponentReads';
+type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive'|'squadTactics';
 type GearOptions='startingSaberQuality'|'startingDualSabers'|'startingSaberWeapon'|'startingSaberGrip'|'startingDualPhase'|'startingForceFamily'|'startingForceQuality';
 type InputRecord=Partial<ArcadeRecord>;
 type CareerValue=number|{merit:number};
@@ -26,6 +26,7 @@ type RankInputs=readonly RankSetting[]|{blue?:RankSetting;red?:RankSetting;0?:Ra
 interface InputTerrain {id?:string;bounds?:Partial<ArcadeBounds>;solids?:readonly ArcadeCover[];zones?:readonly ArcadeCover[]}
 export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Partial<Record<GearOptions,unknown>> {
   motionFlow?: ArcadeMotionFlowInput;
+  laneDrill?: boolean;
   teamGenders?:readonly unknown[];
   teamAppearances?:readonly unknown[];
   forcePools?: readonly (readonly string[]|null)[];
@@ -61,6 +62,8 @@ export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Par
 }
 export interface ArcadeConfig extends ReturnType<typeof normalizeArcadeGear>, Partial<Record<Flag,true>> {
   motionFlow?: ArcadeMotionFlow;
+  squadTactics?:true;
+  laneDrill?:true;
   novicePractice?:true; // Arena controller only: unrated playback speed, no engine changes.
   teamGenders?:ReturnType<typeof normalizeTeamLooks<typeof ARENA_TEAM_GENDERS[number]>>;
   teamAppearances?:ReturnType<typeof normalizeTeamLooks<typeof ARENA_TEAM_APPEARANCES[number]>>;
@@ -94,6 +97,7 @@ export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [nu
   const looks=normalizeTeamLooks(options.teamAppearances,ARENA_TEAM_APPEARANCES);
   if(genders)config.teamGenders=genders;
   if(looks)config.teamAppearances=looks;
+  if(options.opponentReads&&mode==='duel'&&sizes[0]===1&&sizes[1]===1&&config.rule==='elimination'&&!options.arenaRatingSkill&&!options.soloTournamentClock)config.opponentReads=true;
   const styleOptions=[0,1].map(i=>normalizeArcadeChessStyle(chessStyles?.[i]));
   if(styleOptions.some(x=>x!=='none'))config.chessStyles=styleOptions;
   const concreteStyles=[0,1].map(i=>Array.from({length:sizes[i]},(_,slot)=>{

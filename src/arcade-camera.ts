@@ -45,3 +45,20 @@ export function composeArcadeFrame(viewWidth:number,viewHeight:number,worldWidth
   return {scale,scaleY,x:viewWidth*.5-focus.x*scale+(shake?.x||0)*base,
     y:viewHeight*.5-focus.y*scaleY+(shake?.y||0)*base};
 }
+
+/** Portrait camera: retain the fighter, include a nearby opponent, and allow a full-map toggle. */
+export function portraitActionFrame(width:number,height:number,viewWidth:number,viewHeight:number,
+  anchor:CameraPoint&{airHeight?:number},nearby?:CameraPoint&{airHeight?:number}):ActionFocus {
+  if(!(viewWidth>0&&viewHeight>0))return {x:width/2,y:height/2,zoom:1};
+  const rival=nearby&&Math.hypot(anchor.x-nearby.x,anchor.y-nearby.y)<260?nearby:anchor;
+  const anchorTop=anchor.y-Math.max(0,anchor.airHeight??0);
+  const rivalTop=rival.y-Math.max(0,rival.airHeight??0);
+  const base=Math.min(viewWidth/width,viewHeight/height);
+  const zoom=Math.max(viewWidth/(width*base),viewHeight/(height*base),2.05);
+  const halfWidth=Math.min(width/2,viewWidth/(2*base*zoom));
+  const halfHeight=Math.min(height/2,viewHeight/(2*base*zoom));
+  return {
+    x:clamp(anchor.x+(rival.x-anchor.x)*.32,halfWidth,width-halfWidth),
+    y:clamp((Math.max(anchor.y,rival.y)+Math.min(anchorTop,rivalTop))/2-32,halfHeight,height-halfHeight),zoom
+  };
+}

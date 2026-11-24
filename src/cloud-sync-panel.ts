@@ -4,7 +4,7 @@ type SyncPresentation = SyncResult & {
   cloud?: BackupSummary | null; device?: BackupSummary | null;
   cloudRevision?: string | null; localDigest?: string | null; error?: string;
 };
-import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=4.01.1';
+import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=5.0.1';
 import {readCloudRecovery} from './arcade-cloud-sync.js';
 const $=<T extends HTMLElement=HTMLButtonElement>(id: string)=>document.getElementById(id) as T;
 const controls=['cloudEnable','cloudDisable','cloudCheck','cloudDevice','cloudPull'];

@@ -19,7 +19,7 @@ export interface CloudPrefs {
 export type SyncAction = 'check' | 'startup' | 'enable' | 'disable' | 'device' | 'cloud';
 export interface SyncRequest { action?: SyncAction; expectedRevision?: string | null; expectedLocalDigest?: string | null; discover?:boolean; revealOnly?:boolean }
 type ConflictStatus = 'conflict' | 'changed' | 'reset' | 'recovery-blocked' | 'cloud-newer' | 'unlinked';
-interface SyncView { localDigest: string | null; cloudRevision: string | null; device: BackupSummary | null; cloud: BackupSummary | null }
+interface SyncView { canRefresh?: true; localDigest: string | null; cloudRevision: string | null; device: BackupSummary | null; cloud: BackupSummary | null }
 export type SyncResult =
   | { status: 'busy' | 'disabled' }
   | { status: 'error'; error: string }
@@ -151,14 +151,14 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
       const {local,remote,response}=await snapshots(action==='startup'?3500:8000);
       const [localDigest,remoteDigest]=await Promise.all([hash(local?.bundle),hash(remote?.bundle)]);
       const view={localDigest,cloudRevision:response?.revision??null,device:local?.summary??null,cloud:remote?.summary??null};
-      const conflict=(reason: ConflictStatus='conflict')=>({status:reason,...view});
+      const conflict=(reason: ConflictStatus='conflict',canRefresh=false): SyncResult=>({status:reason,...view,...(canRefresh?{canRefresh:true as const}:{})});
       if(discovering){
         // Only an authenticated worker that explicitly advertises this app
         // can auto-link. A clone, older worker, or disabled browser cannot.
         if(storage.getItem(CLOUD_SYNC_KEY)!=null)return {status:'disabled'};
         if(!remote||!response?.autoRestore)return !remote&&transport.supportsAutoRestore?.()&&hasProgress(local?.bundle)?conflict('unlinked'):{status:'disabled'};
         if(hasProgress(local?.bundle)&&localDigest!==remoteDigest)return conflict('conflict');
-        if(revealOnly)return conflict('cloud-newer');
+        if(revealOnly)return conflict('cloud-newer',true);
         const newest=localBackup();
         if((newest.ok?await hash(newest.bundle):null)!==localDigest||storage.getItem(CLOUD_SYNC_KEY)!=null)return conflict('changed');
         if(localDigest!==remoteDigest){
@@ -194,8 +194,9 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
       // an interrupted multi-section sync without overwriting any known row.
       const onlyNewLocal=Boolean(local&&remote&&localDigest!==remoteDigest&&exactSectionSubset(remote.bundle,local.bundle));
       const onlyNewRemote=Boolean(local&&remote&&localDigest!==remoteDigest&&exactSectionSubset(local.bundle,remote.bundle));
-      const safePull=action==='startup'&&remote&&!reset&&localDigest!==remoteDigest&&
-        (onlyNewRemote||!hasProgress(local?.bundle)||(p.rev&&p.rev!==response!.revision&&localDigest===p.digest));
+      const canRefresh=Boolean(remote&&!reset&&localDigest!==remoteDigest&&
+        (onlyNewRemote||!hasProgress(local?.bundle)||(p.rev&&p.rev!==response!.revision&&localDigest===p.digest)));
+      const safePull=action==='startup'&&canRefresh;
       if(action==='device'||action==='cloud'||blankFirstLink||safePull){
         if(!blankFirstLink&&!safePull&&(expectedRevision!==view.cloudRevision||expectedLocalDigest!==localDigest))return conflict('changed');
         if(action==='device'){
@@ -228,7 +229,7 @@ export function createCloudSync({storage, transport, backup, preserve, hash=clou
       if(!hasProgress(local?.bundle)&&!remote)return {status:'empty',...view};
       if(!remote&&!p.rev)return await upload();
       if(onlyNewLocal)return await upload();
-      if(response?.revision!==p.rev||!p.rev)return conflict(onlyNewRemote||localDigest===p.digest||!local?'cloud-newer':'conflict');
+      if(response?.revision!==p.rev||!p.rev)return canRefresh?conflict('cloud-newer',true):conflict('conflict');
       if(localDigest!==p.digest)return await upload();
       return {status:'current',...view};
     }catch(e){return {status:'error',error:(e as Error | null)?.message||'Cloud is unavailable. Device saves are unchanged.'};}

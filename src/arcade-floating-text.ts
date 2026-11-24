@@ -1,10 +1,11 @@
 import {combatCallout} from './arcade-callouts.js?v=3.1.0';
+import {declutterArcadeCallouts,arcadeCalloutBudget,arcadeCalloutFamily,arcadeCalloutText} from './arcade-callout-declutter.js?v=5.1.0';
 
 interface Cue{label:string;style:string;priority:number;tone:string;life:number;key:string}
 interface Point{x:number;y:number}
 interface CueActor extends Point{id:string;airHeight?:number;control?:boolean;chessStyle?:string;chessPawn?:{promoted?:boolean}}
 interface CueEvent{id:number;fighterId?:string;kind:string;x?:number;y?:number}
-interface Caption extends Cue,Point{actor:string;offsetY:number;width:number;height:number;size:number;focus:boolean;born:number}
+interface Caption extends Cue,Point{actor:string;offsetY:number;width:number;height:number;size:number;focus:boolean;born:number;count?:number}
 const maxLabels=6;
 const max=(n:number,lo:number,hi:number)=>Math.min(hi,Math.max(lo,n));
 const finite=(n:unknown,fallback=0)=>Number.isFinite(n)?n as number:fallback;
@@ -27,9 +28,9 @@ function chooseOffset(x:number,y:number,w:number,h:number,spots:readonly Caption
  }
  return null;
 }
+const fadeTail=(life:number)=>Math.min(.32,life*.45);
 function visibleAlpha(age:number,life:number){
- const tail=Math.min(.32,life*.45);
- return max((life-age)/tail,0,1);
+ return max((life-age)/fadeTail(life),0,1);
 }
 function labelAt(f:CueActor|undefined,e:CueEvent){
  if(f&&Number.isFinite(f.x)&&Number.isFinite(f.y)){
@@ -41,14 +42,16 @@ function labelAt(f:CueActor|undefined,e:CueEvent){
 /** Read-only combat event view. Call update with wall-clock seconds and draw
  * in the existing world transform after the fighters. No DOM or sim writes. */
 export function createArcadeFloatingText(){
- let lastId=0,time=0;
+ let lastId=0,time=0,roster=0;
+ const critical=new Map<string,Caption>();
  const active:Caption[]=[], seen=new Map<string,number>(), cooldown=new Map<string,number>(), promoted=new Set<string>();
  return {
-   reset(){lastId=time=0;active.length=0;seen.clear();cooldown.clear();promoted.clear();},
+   reset(){lastId=time=roster=0;active.length=0;critical.clear();seen.clear();cooldown.clear();promoted.clear();},
    update(dt:number,events:readonly CueEvent[]=[],fighters:readonly CueActor[]=[],{focusId,crowd=fighters.length>6}:{focusId?:string|null;crowd?:boolean}={}){
-     time+=max(finite(dt),0,.25);
+     time+=max(finite(dt),0,.25);roster=fighters.length;
      for(let i=active.length-1;i>=0;i--)if(time>=active[i].born+active[i].life)active.splice(i,1);
-     if(!events.length||events[events.length-1].id<=lastId)return active.length;
+     for(const [key,item] of critical)if(time>=item.born+item.life)critical.delete(key);
+     if(!events.length||events[events.length-1].id<=lastId)return active.length+critical.size;
      for(const [key,end] of seen)if(time>=end)seen.delete(key);
      for(const [key,end] of cooldown)if(time>=end)cooldown.delete(key);
      const byId=new Map(fighters.map(f=>[f.id,f]));
@@ -66,18 +69,40 @@ export function createArcadeFloatingText(){
          cue={label:'PAWN PROMOTED',style:'QUEEN RANGE',priority:4,tone:'promotion',life:1.05,key:'promotion:'+actor};
        }
        if(!cue||crowd&&!focus&&cue.priority<4)continue;
+       const family=arcadeCalloutFamily(cue.label);
+       if(family==='KO'||family==='PARRY'){
+         // Reserve one pool per critical family before the generic placement
+         // limit. Focus stays anchored separately; a six-label window must
+         // not truncate six KOs plus six parries to only their first family.
+         const key=(focus?actor:crowd?'crowd':f?actor:'untracked')+':'+family;
+         const previous=active.findIndex(p=>p.actor===actor&&p.priority<=cue.priority);
+         if(previous>=0)active.splice(previous,1);
+         const bucket=critical.get(key);
+         // Keep an anchored burst while it is fully visible. A later event opens
+         // a fresh window rather than inheriting the fading bucket's age/count.
+         // An ordinary merge does not renew either the anchor or the lifetime.
+         const prior=bucket&&time<bucket.born+bucket.life-fadeTail(bucket.life)?bucket:undefined;
+         const count=(prior?.count??0)+1;
+         const short={...cue,label:count>1?family:shorten(cue.label,36),style:count>1?'':shorten(cue.style,24)};
+         const box=candidateBox(short,crowd);
+         critical.set(key,{...short,x:prior?.x??at.x,y:prior?.y??at.y,...box,offsetY:0,actor,focus,count,size:sizeOf(cue,crowd),
+           born:prior?.born??time,life:prior?.life??Math.max(.70,finite(cue.life,.75)+.16)});
+         continue;
+       }
        candidates.push({actor,cue,focus,at,event});
      }
      candidates.sort((a,b)=>b.cue.priority-a.cue.priority||Number(b.focus)-Number(a.focus)||b.event.id-a.event.id);
      const placed=new Set();
      for(const {actor,cue,focus,at} of candidates){
-       if(placed.has(actor)||seen.has(cue.key))continue;
+       if(placed.has(actor)||seen.has(cue.key)||critical.has(actor+':KO')||critical.has(actor+':PARRY'))continue;
        const previous=active.findIndex(p=>p.actor===actor);
        if(previous>=0&&active[previous].priority>=cue.priority)continue;
        if((cooldown.get(actor)??0)>time&&cue.priority<3)continue;
        const full=active.length>=maxLabels;
-       const weakest=full?active.reduce((i,p,j)=>p.priority<active[i].priority?j:i,0):-1;
-       if(full&&previous<0&&active[weakest].priority>=cue.priority)continue;
+       const weakest=full?active.reduce((i,p,j)=>Number(p.focus)<Number(active[i].focus)||
+         p.focus===active[i].focus&&p.priority<active[i].priority?j:i,0):-1;
+       if(full&&previous<0&&(active[weakest].focus&&!focus||
+         active[weakest].focus===focus&&active[weakest].priority>=cue.priority))continue;
        const remove=previous>=0?previous:weakest;
        const short={...cue,label:shorten(cue.label,36),style:shorten(cue.style,24)};
        const {width,height}=candidateBox(short,crowd);
@@ -90,28 +115,36 @@ export function createArcadeFloatingText(){
        seen.set(cue.key,time+(cue.priority<=2?1.18:.91));
        if(cue.priority<3)cooldown.set(actor,time+(crowd?.52:.41));
      }
-     return active.length;
+     return active.length+critical.size;
    },
    draw(ctx:CanvasRenderingContext2D,{reducedMotion=false}={}){
-     if(!active.length)return;
+     const pool=[...critical.values(),...active];
+     if(!pool.length)return;
      ctx.save();
      ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.lineJoin='round';
      const inherited=finite(ctx.globalAlpha,1);
-     for(const item of active){
+     // Team fights: same-label callouts merge with a count, big fights keep a small label
+     // budget, and the player's own label and KO and parry cues always stay readable.
+     const kept=declutterArcadeCallouts(pool.map((item,i)=>({actor:String(i),label:item.label,x:item.x,y:item.y+item.offsetY,
+       priority:item.priority,focus:item.focus,weight:item.count})),{budget:arcadeCalloutBudget(roster)});
+     for(const shown of kept){
+       const item=pool[+shown.actor];
+       const label=arcadeCalloutText(shown),merged=shown.count>1;
        const age=Math.max(0,time-item.born);
        const rise=reducedMotion?0:26*pop(max(age/item.life,0,1));
-       const y=item.y+item.offsetY-rise;
+       const y=shown.y-rise;
        ctx.globalAlpha=inherited*visibleAlpha(age,item.life);
        ctx.font='900 '+item.size+'px system-ui, sans-serif';
        ctx.lineWidth=4;ctx.strokeStyle=palette.ink;
        ctx.fillStyle=item.priority>=4?palette.bright:palette.gold;
-       ctx.strokeText(item.label,item.x,y,item.width);
-       ctx.fillText(item.label,item.x,y,item.width);
-       if(item.style){
+       const labelWidth=merged?Math.min(213,Math.max(item.width,label.length*item.size*.54)):item.width;
+       ctx.strokeText(label,shown.x,y,labelWidth);
+       ctx.fillText(label,shown.x,y,labelWidth);
+       if(item.style&&!merged){
          ctx.font='800 '+Math.max(11,Math.round(item.size*.64))+'px system-ui, sans-serif';
          ctx.lineWidth=3;ctx.fillStyle=palette.light;
-         ctx.strokeText(item.style,item.x,y+15,item.width);
-         ctx.fillText(item.style,item.x,y+15,item.width);
+         ctx.strokeText(item.style,shown.x,y+15,item.width);
+         ctx.fillText(item.style,shown.x,y+15,item.width);
        }
      }
      ctx.restore();

@@ -5,7 +5,7 @@ import {ARCADE_CAREER_KEY,readArcadeCareer,persistArenaRound,saveArcadeCareer,se
 import {createArcade,stepArcade} from '../dist/arcade-engine-api.js';
 import {CLOUD_SAVE_COMMITTED} from '../dist/cloud-save-commit.js';
 
-test('completed novice and custom Force runs cannot write or dirty the stored rated career',t=>{
+test('completed novice, custom Force and squad drill runs cannot write or dirty the stored rated career',t=>{
   const data=new Map<string,string>();
   let writes=0, dirty=0;
   const storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{writes++;data.set(k,v);}};
@@ -16,8 +16,8 @@ test('completed novice and custom Force runs cannot write or dirty the stored ra
   assert.ok(saveArcadeCareer(saved,storage));
   const before=storage.getItem(ARCADE_CAREER_KEY);
   const backup=exportArcadeBackup(storage,{sections:['arena']}).bundle.sections.arena;
-  for(const mode of ['novice','force','standard']){
-    const game=createArcade({mode:'duel',seed:34,limit:45,teamSizes:[1,1],startingRanks:['F','E'],
+  for(const mode of ['novice','force','squad','standard']){
+    const game=createArcade({mode:mode==='squad'?'squad':'duel',seed:34,limit:45,teamSizes:mode==='squad'?[2,2]:[1,1],squadTactics:mode==='squad',startingRanks:['F','E'],
       ...(mode==='force'?{forcePools:[[],['force_push','force_anchor']]}:{})});
     if(mode==='novice')game.config.novicePractice=true;
     for(let i=0;i<6000&&game.phase==='playing';i++)stepArcade(game,1/120);

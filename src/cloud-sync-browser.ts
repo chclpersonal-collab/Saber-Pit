@@ -3,7 +3,7 @@ import {createCloudSyncScheduler} from './cloud-sync-scheduler.js';
 import type {SyncResult} from './arcade-cloud-sync.js';
 import type {StorageReader} from './arcade-save-types.js';
 import * as files from './arcade-backup.js?v=4.01.1';
-import {createCloudSync,createBrowserCloudTransport,storeCloudRecovery} from './arcade-cloud-sync.js?v=4.01.1';
+import {createCloudSync,createBrowserCloudTransport,storeCloudRecovery} from './arcade-cloud-sync.js?v=5.0.1';
 const unavailable={getItem:()=>null,setItem:()=>{throw Error('Site storage is disabled.');},removeItem:()=>{}};
 const storage=(()=>{try{return globalThis.localStorage??unavailable;}catch{return unavailable;}})();
 const backup={...files,exportArcadeBackup:(storage?: StorageReader,sections?:readonly files.BackupSection[])=>
@@ -27,13 +27,18 @@ function promptIfNeeded(result: SyncResult | null | undefined){
     label.dataset.cloudOriginal??=label.textContent??'';label.textContent=message;
     a.title='Progress needs review before syncing';
   }
+  const canRefresh='canRefresh' in result&&result.canRefresh;
   if(!document.getElementById('cloudSyncNotice')){
     const a=document.createElement('a');
     a.href='./backup.html';a.id='cloudSyncNotice';
     a.style.cssText='position:fixed;z-index:1000;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));padding:9px 13px;color:#f6e5c9;background:#211c18;border:1px solid #a68b63;border-radius:6px;font-size:.875rem;';
     document.body.append(a);
   }
-  document.getElementById('cloudSyncNotice')!.textContent=message;
+  const notice=document.getElementById('cloudSyncNotice') as HTMLAnchorElement;
+  notice.href=canRefresh?window.location.href:'./backup.html';
+  notice.onclick=canRefresh?event=>{event.preventDefault();window.location.reload();}:null;
+  notice.textContent=canRefresh?'Reload to use newer save':message;
+  notice.title=canRefresh?'Finish any active match first. Reloading opens the latest save if it is safe to download.':'Review save sync choices';
 }
 export async function syncBeforeGame(){
   if(navigator.onLine===false){discoveryRetries=2;return;}

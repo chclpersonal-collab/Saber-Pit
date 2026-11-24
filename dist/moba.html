@@ -18,7 +18,7 @@
   <section class="battle" aria-label="Battlefield">
     <div class="score">
       <div class="team blue"><b>VANGUARD</b><span id="blueStatus">Core intact</span></div>
-      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Vanguard knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Ravager knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span></div>
+      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Vanguard knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Ravager knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span><span id="bellStatus" hidden></span></div>
       <div class="team red"><b>RAVAGERS</b><span id="redStatus">Core intact</span></div>
     </div>
     <div class="viewport">
@@ -26,6 +26,7 @@
       <div class="overlay" id="brief">
         <p class="eyebrow">FIELD BRIEFING</p><h2>Choose your front</h2><p>Pick a lane and follow your minions. Break one enemy tower, then turn toward the exposed Core at the center of their base.</p>
         <div class="form-pick"><label for="saberForm">Saber form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint"></p></div>
+        <label class="bell-toggle"><input id="bellRally" type="checkbox" aria-describedby="bellHelp"><span>Bell Rally <small>Optional objective</small></span></label><p class="bell-help" id="bellHelp">Hold the center ring uncontested to reinforce one minion in the next mid wave.</p>
         <div class="deploy" aria-label="Choose front and deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
         <small>Blue: you + 4 AI allies · Red: 5 AI rivals · no Arena Elo changes</small>
       </div>

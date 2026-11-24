@@ -1,3 +1,4 @@
+import {createArcadeOpponentModel,observeArcadeOpponent,chooseArcadeTactic} from './arcade-opponent-model.js';
 import {arenaTeamLook,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
 import {arcadeForcePoolEntry,chooseArcadeForcePool} from './arcade-force-pool.js';
 import type {ArcadeForcePoolId} from './arcade-force-pool.js';
@@ -35,12 +36,14 @@ import {normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
 import {findArcadeBladeContact} from './arcade-clashes.js?v=5.0.0';
 import {sampleArcadeFighter,arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=5.0.0';
 import {ARCADE_TECHNIQUES,arcadeMovesFor} from './arcade-repertoire.js?v=3.1.0';
-import {createArcadeInjuries,applyArcadeInjury,arcadeInjuryModifiers,compareArcadeDanger} from './arcade-injuries.js?v=2.9.0';
+import {createArcadeInjuries,applyArcadeInjury,arcadeInjuryModifiers,compareArcadeDanger,arcadeInjuryBurden} from './arcade-injuries.js?v=2.9.0';
 export {arcadeMovesFor};
 import {createArcadeTerrain} from './arcade-stage.js';
 import {advanceArcadeObjective,arcadeObjectiveMove,carrierSpeedScale,createArcadeObjective,isArcadeCarrier} from './arcade-objectives.js';
 import {arcadeFighterGear,arcadeGearMove} from './arcade-loadouts.js?v=3.1.0';
 import {environmentAt} from './environment.js?v=1.4.0';
+import {planArcadeSquad,arcadeSquadSpacing,ARCADE_SQUAD_MIN_GAP} from './arcade-squad-tactics.js?v=5.1.0';
+import type {ArcadeSquadUnit,ArcadeSquadFormation} from './arcade-squad-tactics.js?v=5.1.0';
 import {combatSkillProfile, progressionSummary, SOLDIER_GRADES} from "./progression.js?v=1.4.0";
 const finite=(value:unknown): value is number=>Number.isFinite(value);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -109,7 +112,32 @@ function makeFighter(s: SimGame,team: 0|1,slot: number,count: number,control: bo
   // The first authoritative tick fills rankDominance before any fighter acts.
   return initial as SimFighter;
 }
-export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,motionFlow,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,forcePools,teamGenders,teamAppearances,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,arenaRatingSkill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}: ArcadeOptions={}){
+/** Watch-only staggered deployment drill; no movement/AI modifiers. */
+function stageLaneDrill(s:SimGame){
+  const b=s.bounds, span=b.maxX-b.minX, height=b.maxY-b.minY;
+  const actors=[...s.fighters].sort((a,b)=>a.slot-b.slot||a.team-b.team);
+  const reserved:(Point&{team:0|1})[]=[];
+  const front=[.28,.28,.50,.72,.72], rows=[.08,.18,.50,.82,.92];
+  // Local skirmishes begin at five real, side-separated staging points.
+  for(const f of actors){
+    const row=f.slot%5,rank=Math.floor(f.slot/5),dir=f.team===0?-1:1;
+    const anchor=b.minX+span*front[row];
+    const y=b.minY+height*rows[row];
+    const x=anchor+dir*(111+rank*40);
+    let chosen:Point|undefined,best=Infinity;
+    for(const dy of [0,18,-18,36,-36,54,-54,72,-72])for(const dx of [0,35,71,108,144,178,213,245,277].map(n=>n*dir)){
+      const pt={x:clamp(x+dx,b.minX+22,b.maxX-22),y:clamp(y+dy,b.minY+22,b.maxY-22)};
+      if(!openAt(s,pt.x,pt.y,f.radius)||reserved.some(r=>Math.hypot(r.x-pt.x,r.y-pt.y)<(r.team===f.team?37:205)))continue;
+      const distance=Math.hypot(pt.x-x,pt.y-y);
+      if(distance<best){best=distance;chosen=pt;}
+    }
+    if(!chosen)return false; // preserve the unmodified fair deployment if a map cannot fit this drill
+    reserved.push({...chosen,team:f.team});
+  }
+  actors.forEach((f,i)=>{const {x,y}=reserved[i]; f.x=x;f.y=y;f.spawn={x,y};});
+  return true;
+}
+export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,motionFlow,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,forcePools,teamGenders,teamAppearances,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,arenaRatingSkill=false,opponentReads=false,laneDrill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,squadTactics=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}: ArcadeOptions={}){
   mode=['duel','squad','watch','command'].includes(mode)?mode:'duel';
   width=clamp(finite(width)?width:1120,480,2400);height=clamp(finite(height)?height:640,360,1440);
   const stringSeed=typeof seed==='string'?Array.from(seed).reduce((n,c)=>Math.imul(n^c.codePointAt(0)!,16777619),-2128831035):Number(seed);
@@ -118,13 +146,19 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
   const fallback=mode==='duel'?1:3;
   const sizes: [number,number]=[teamSize(teamSizes?.[0],fallback),teamSize(teamSizes?.[1],fallback)];
   const map=terrainFor(typeof terrain==='string'&&terrain!=='open'?createArcadeTerrain(terrain,width,height,round):terrain,width,height);
-  const config=buildArcadeConfig({motionFlow,startingSaberQuality, startingDualSabers, startingSaberWeapon, startingSaberGrip, startingDualPhase, startingForceFamily, startingForceQuality, forcePools, teamGenders, teamAppearances, limit, soloTournamentClock, rule, circuitCuts, matchGoalPlanning, weaponFlow, expandedCombat, customHeroTactics, advancedArena, playerSlot, teamForms, saberOnly, doctrines, targeting, formations, weather, environment, deployments, chessStyles, fighterChessStyles, perfectParryStamina, continuousCombat, anticipatingCombat, arenaCuts, activeFootwork, styleTravel, repertoireSupport, styleChoreo, peasantMotion, exchangeVariety, stanceFlow, impactPhysics, recoveryFlow, balancePass, closeChoice, guardCounterplay, minorMoves, forceVariants, liveEntry, eloReads, ratingSkill, fluidFootwork, arenaRatingSkill},mode,sizes);
+  const config=buildArcadeConfig({motionFlow,startingSaberQuality, startingDualSabers, startingSaberWeapon, startingSaberGrip, startingDualPhase, startingForceFamily, startingForceQuality, forcePools, teamGenders, teamAppearances, limit, soloTournamentClock, rule, circuitCuts, matchGoalPlanning, weaponFlow, expandedCombat, customHeroTactics, advancedArena, playerSlot, teamForms, saberOnly, doctrines, targeting, formations, weather, environment, deployments, chessStyles, fighterChessStyles, perfectParryStamina, continuousCombat, anticipatingCombat, arenaCuts, activeFootwork, styleTravel, repertoireSupport, styleChoreo, peasantMotion, exchangeVariety, stanceFlow, impactPhysics, recoveryFlow, balancePass, closeChoice, guardCounterplay, minorMoves, forceVariants, liveEntry, eloReads, ratingSkill, fluidFootwork, arenaRatingSkill, opponentReads:opponentReads&&!Object.keys(normalizeHeroLineup(heroLineup)).length},mode,sizes);
   const s: SimGame={mode:mode as SimGame['mode'],width,height,formRules,config,heroLineup:normalizeHeroLineup(heroLineup),terrain:map,playerForm:(hasForm?form:legacyForm[archetype as keyof typeof legacyForm]??'shii_cho') as SimGame['playerForm'],playerBody:['woman','rabbit'].includes(body)?body as SimGame['playerBody']:'femboy',time:0,round:Number.isInteger(round)&&round>0?round:1,phase:'playing',fighters:[],events:[], /* simulation arrays are populated below */eventId:0,
     bounds:map.bounds,objective:createArcadeObjective(config.rule,width,height,map.bounds),order:'push',weather:null,weatherSeed:stringSeed>>>0,
     rng:(stringSeed>>>0)||1, playerArchetype:Object.hasOwn(archetypes,archetype)?archetype as SimGame['playerArchetype']:'vanguard',edges:{},limit:config.limit,tick:0,
     stats:Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,[0,0]])) as SimGame['stats'],records:{teams:[record(records?.teams?.[0]),record(records?.teams?.[1])],soldiers:[]},
     pressure:mode==='watch'||!Number.isInteger(round)?0:clamp((round-1)/9,0,1)};
   for(const team of [0,1] as const)for(let i=0;i<sizes[team];i++)s.fighters.push(makeFighter(s,team,i,sizes[team],team===0&&i===config.playerSlot&&mode!=='watch'&&mode!=='command',careers,startingRanks));
+  if(laneDrill===true&&mode==='watch'&&sizes.every(n=>n===16)&&config.rule==='elimination'&&
+    !arenaRatingSkill&&!squadTactics&&!matchGoalPlanning&&!soloTournamentClock&&!config.forcePools?.some(pool=>pool.length)&&
+    s.fighters.every(f=>!f.heroId&&f.career.gradeIndex<=5&&
+      f.gear.forceFamily!=='force_pulse'&&f.gear.forceQuality==='standard'&&f.gear.weapon!=='greatsaber')){
+    if(stageLaneDrill(s))config.laneDrill=true;
+  }
   s.weather=environmentAt(config.weather,s.weatherSeed,0);
   for (const f of s.fighters) {
     if(config.chessStyles||config.fighterChessStyles){
@@ -159,6 +193,9 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
   s.eliteCrossfire=mode!=='command'&&config.rule==='elimination'&&Math.min(...sizes)===1&&
     Math.max(...sizes)>=3&&s.fighters.every(f=>f.career.gradeIndex===14);
   const decisiveSquad=squadDecisive===true&&mode==='watch'&&sizes.every(n=>n===5);
+  // Organized squads: off unless asked for, never in duels, so rated play and old replays stay unchanged.
+  // The key is only added when on, so state hashes of every existing mode stay byte-identical.
+  if(squadTactics===true&&['squad','watch'].includes(mode)&&sizes.every(n=>n>=2)&&config.rule==='elimination'&&!arenaRatingSkill&&!config.matchGoalPlanning&&!soloTournamentClock&&!squadDecisive&&!Object.keys(heroLineup??{}).length){config.squadTactics=true;s.squadTactics={next:0,plans:[null,null],since:[0,0]};}
   s.elitePacing=config.rule==='elimination'&&sizes[0]===sizes[1]&&s.fighters.every(f=>f.career.grade==='SSS+V') ?
     {active:true,stage:'measured',fullAt:decisiveSquad?.47:.91,measuredUntil:decisiveSquad?.24:.81,
       ...(decisiveSquad?{injuryCapUntil:.32}:{})} : null;
@@ -1408,6 +1445,30 @@ function tacticalJump(s: SimGame,f: SimFighter,enemy: SimFighter,{d,aim,orbit,in
   }
   return null;
 }
+type OpponentReadMemory={rival:string;guarding:boolean;entries:number[];reviewedAt:number;lastToldAt:number};
+const duelRead=new WeakMap<SimFighter,OpponentReadMemory>();
+function readGuardEdge(s:SimGame,f:SimFighter,rival:SimFighter,visible:boolean){
+  let read=duelRead.get(f);
+  if(!read||read.rival!==rival.id){
+    read={rival:rival.id,guarding:false,entries:[],reviewedAt:-Infinity,lastToldAt:-Infinity};
+    duelRead.set(f,read);
+  }
+  const guarding=rival.action==='guard';
+  read.entries=read.entries.filter(t=>s.time-t<=8);
+  if(guarding&&!read.guarding&&visible&&rival.parryTime>0)read.entries.push(s.time);
+  read.guarding=guarding;
+  return read;
+}
+function selectGuardBait(s:SimGame,f:SimFighter,rival:SimFighter,read:OpponentReadMemory|undefined,d:number,reach:number){
+  if(!read||read.entries.length<3||rival.action!=='guard'||rival.parryTime>0||read.entries.at(-1)!<=read.reviewedAt||
+    s.time-read.lastToldAt<6||f.feintReadyAt!>s.time||f.career.gradeIndex<3)return false;
+  let model=createArcadeOpponentModel();
+  for(const t of read.entries)model=observeArcadeOpponent(model,{kind:'guard',t});
+  // No RNG draw or timing bonus: only a repeated, witnessed habit can unlock
+  // this specific ordinary Feint. Other tactics retain current Arena AI.
+  return chooseArcadeTactic(model,{gradeIndex:f.career.gradeIndex,selfEnergy:f.energy,
+    foeEnergy:rival.energy,distance:d,reach,foeWhiffing:false,rng:()=>1}).tactic==='bait';
+}
 function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCommand {
   if(s.config.repertoireSupport&&!f.combatHabit)f.combatHabit=combatHabit(f);
   const objectiveMove=arcadeObjectiveMove(s,f);
@@ -1440,6 +1501,7 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
   const allyScreen=!follow&&d<300?allyInLane(s,f,enemy.x,enemy.y):null;
   const lane=allyScreen&&!atk(f)?alternateLane(s,f,enemy,allyScreen):null;
   const path=chooseRoute(s,f,follow?destination:lane??enemy), obstructed=Boolean(blockedBetween(s,f.x,f.y,enemy.x,enemy.y));
+  const guardRead=s.config.opponentReads&&enemy.control&&!f.heroId&&!enemy.heroId?readGuardEdge(s,f,enemy,!obstructed&&!allyScreen&&d<=145):undefined;
   const detour=path!==enemy&&!follow;
   const travelAim=path===enemy?aim:Math.atan2(path.y-f.y,path.x-f.x);
   const settledForRead=!f.attack&&f.actionDuration===0&&f.airPhase==='grounded';
@@ -1459,6 +1521,11 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
   const crowd=rankAdvantage>=5&&f.rankCombat.index>=8?s.fighters.reduce((n,x)=>n+Number(x.alive&&x.team!==f.team&&
     rankGap(f,x)>=5&&Math.hypot(x.x-f.x,x.y-f.y)<180),0):0;
   const local=elite&&!isArcadeCarrier(s,f)?eliteLocalPressure(s,f):null;
+  if(guardRead&&ready&&f.actionDuration===0&&f.airPhase==='grounded'&&neutralAction(f.action)&&!f.saberOff&&
+    !follow&&!obstructed&&!allyScreen&&!detour&&aligned&&d>=62&&d<=115&&f.energy>=22&&f.guardLock<=0&&
+    !urgent&&!local?.imminent.length&&s.time>=(f.eliteReady??0)&&selectGuardBait(s,f,enemy,guardRead,d,def.pressure)){
+    return {feint:true,aim,opponentRead:true};
+  }
   const crossingElite=s.eliteCrossfire&&elite;
   const isolated=crossingElite&&s.config.teamSizes[f.team]===1&&(local?.threats.length??0)>=2;
   const attackerGroup=crossingElite&&s.config.teamSizes[f.team]>=3&&s.liveByTeam![f.team]>=2;
@@ -2246,6 +2313,10 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
     const fake=f.control?combat:combat+(f.slot%2===0?.34:-.34);
     if(beginFeint(s,f,fake,f.control?null:'slash',f.control?null:combat)){
       f.vx*=.4;f.vy*=.4;
+      const read=commands.opponentRead&&duelRead.get(f);
+      if(read){read.reviewedAt=s.time;read.lastToldAt=s.time;
+        event(s,'opponent_read',f,undefined,undefined,{tactic:'bait',targetId:read.rival,observationCount:read.entries.length});}
+
     }
   }
   if(s.config.advancedArena&&!f.control&&commands.advanced){
@@ -2605,6 +2676,48 @@ function resolveArcadeBladeClashes(s: SimGame) {
   }
 }
 
+/** Health for squad planning: 100 unhurt, falling with vital wounds and, half as much, leg wounds. */
+const squadHealth=(f: SimFighter)=>{const b=arcadeInjuryBurden(f.injuries);return Math.round(100*Math.max(0,1-Math.max(b[4] as number,(b[6] as number)*.5)));};
+const squadUnit=(f: SimFighter): ArcadeSquadUnit=>({id:f.id,x:f.x,y:f.y,hp:squadHealth(f),energy:f.energy,gradeIndex:f.career.gradeIndex,alive:f.alive});
+function planSquads(s: SimGame){
+  const squad=s.squadTactics;
+  if(!squad||s.time<squad.next)return;
+  squad.next=s.time+.25;
+  for(const team of [0,1] as const){
+    const allies=s.fighters.filter(f=>f.team===team), foes=s.fighters.filter(f=>f.team!==team);
+    if(allies.length<2){squad.plans[team]=null;continue;}
+    const previous=squad.plans[team]?.phase??null;
+    const plan=planArcadeSquad({allies:allies.map(squadUnit),foes:foes.map(squadUnit),
+      formation:(s.config.formations[team]??'line') as ArcadeSquadFormation,
+      doctrine:(s.config.doctrines[team]??'balanced') as 'balanced'|'aggressive'|'defensive',previous,phaseAge:s.time-squad.since[team]});
+    if(plan.phase!==previous)squad.since[team]=s.time;
+    squad.plans[team]=plan;
+  }
+}
+/** The squad's pick for this bot (gang cap, focus, peel), or the usual nearest foe. */
+function squadTarget(s: SimGame,f: SimFighter){
+  const order=!f.control&&f.alive?s.squadTactics?.plans[f.team]?.orders[f.id]:undefined;
+  const pick=order?.targetId?s.fighters.find(o=>o.id===order.targetId&&o.alive&&o.team!==f.team):null;
+  if(pick&&Math.hypot(pick.x-f.x,pick.y-f.y)<=s.weather!.sightRange){f.targetId=pick.id;f.targetUntil=s.time+.3;return pick;}
+  return nearest(s,f);
+}
+/** Steer a bot's walk: spread from allies, form up or fall back as ordered. Attacks are never touched. */
+function squadSteer(s: SimGame,f: SimFighter,enemy: SimFighter | null,commands: SimCommand,spacing:ReturnType<typeof arcadeSquadSpacing>){
+  const plan=s.squadTactics?.plans[f.team];
+  if(!plan||f.control||!f.alive||commands.strike||commands.heavy||commands.force||commands.dash)return commands;
+  const order=plan.orders[f.id];
+  let x=commands.x??0,y=commands.y??0;
+  const far=!enemy||Math.hypot(enemy.x-f.x,enemy.y-f.y)>150;
+  if(order&&order.x!=null&&order.y!=null&&(order.kind==='retreat'||far&&['slot','regroup','hold'].includes(order.kind))){
+    const dx=order.x-f.x,dy=order.y-f.y,d=Math.hypot(dx,dy);
+    if(d>12){x=dx/d;y=dy/d;}else if(order.kind!=='retreat'){x=0;y=0;}
+  }
+  const push=spacing[f.id];
+  if(push){x+=push.x/ARCADE_SQUAD_MIN_GAP*1.2;y+=push.y/ARCADE_SQUAD_MIN_GAP*1.2;}
+  const len=Math.hypot(x,y);
+  return len>1?{...commands,x:x/len,y:y/len}:{...commands,x,y};
+}
+
 function tick(s: SimGame,dt: number,input: ArcadeInput){
   s.time+=dt;
   if(s.elitePacing){const lift=pacingLift(s);s.elitePacing.stage=lift===0?'measured':lift===1?'decisive':'opening';}
@@ -2613,9 +2726,11 @@ function tick(s: SimGame,dt: number,input: ArcadeInput){
   for(const f of s.fighters)if(f.alive){top[f.team]=Math.max(top[f.team],f.career.gradeIndex);s.liveByTeam![f.team]++;}
   for(const f of s.fighters)f.rankDominance=top[1-f.team]<0?0:f.career.gradeIndex-top[1-f.team];
   const order=(++s.tick%2?s.fighters:[...s.fighters].reverse());
+  if(s.squadTactics)planSquads(s);
+  const spacing=s.squadTactics?([0,1] as const).map(team=>arcadeSquadSpacing(s.fighters.filter(o=>o.team===team))):null;
   for(const f of order){
-    const enemy=nearest(s,f);
-    const commands=f.control?input:f.alive?ai(s,f,enemy,dt):{};
+    const enemy=s.squadTactics?squadTarget(s,f):nearest(s,f);
+    const commands=f.control?input:f.alive?(spacing?squadSteer(s,f,enemy,ai(s,f,enemy,dt),spacing[f.team]):ai(s,f,enemy,dt)):{};
     if(f.chessStyle==='pawn'&&f.chessPawn?.streak&&!f.chessPawn.promoted&&f.chessPawnPending==null&&enemy){
       const dx=f.x-enemy.x,dy=f.y-enemy.y,distance=Math.hypot(dx,dy);
       const outward=distance>0?(f.vx*dx+f.vy*dy)/distance:0;

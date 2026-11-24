@@ -34,16 +34,32 @@ export function readArcadeCareer(storage?:Pick<Storage,'getItem'>|null){
         [slot,h&&typeof h==='object'?{...h,elo:migrateLegacyElo((h as {elo?:unknown}).elo)}:h]))}:{})};
   }catch{return null;}
 }
+export function arenaCareerBytes(data:object):string{
+  return JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE});
+}
 export function saveArcadeCareer(data:object,storage?:Pick<Storage,'setItem'>|null){
-  try{const target=storage??globalThis.localStorage;target.setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE}));notifyCloudSaveCommitted(target);return true;}
+  try{const target=storage??globalThis.localStorage;target.setItem(ARCADE_CAREER_KEY,arenaCareerBytes(data));notifyCloudSaveCommitted(target);return true;}
   catch{return false;}
 }
 /** Opt-in training/custom Force runs are temporary and never dirty a saved career. */
 export function isArenaSessionOnly(config:ArenaNormalMatch['config']):boolean{
-  return Boolean(config?.novicePractice||(!config?.saberOnly&&config?.forcePools?.some(pool=>pool?.length)));
+  return Boolean(config?.novicePractice||config?.squadTactics||config?.laneDrill||config?.opponentReads||(!config?.saberOnly&&config?.forcePools?.some(pool=>pool?.length)));
 }
 export function persistArenaRound(data:object, config:ArenaNormalMatch['config'], storage?:Pick<Storage,'setItem'>|null){
   return !isArenaSessionOnly(config)&&saveArcadeCareer(data,storage);
+}
+/** Auto-saving a completed unranked round must not replace an established rated run. */
+export function commitArenaRound(data:object,config:ArenaNormalMatch['config'],rated:boolean,storage?:Pick<Storage,'setItem'|'getItem'>,expected?:{bytes:string|null}):'saved'|'session-only'|'unavailable'|'conflict'{
+  if(isArenaSessionOnly(config))return 'session-only';
+  try{
+    const target=storage??globalThis.localStorage;
+    if(expected||!rated){
+      const raw=target.getItem(ARCADE_CAREER_KEY);
+      if(expected&&raw!==expected.bytes)return 'conflict';
+      if(!rated&&raw!==null&&Object.keys(readArcadeCareer({getItem:()=>raw})?.arenaRatings??{}).length)return 'session-only';
+    }
+    return saveArcadeCareer(data,target)?'saved':'unavailable';
+  }catch{return 'unavailable';}
 }
 const settled=new WeakMap<Game,Settlement>();
 export function settleArcadeCareer(game:Game|null|undefined,priorArenaRatings:unknown={}):Settlement|null {
