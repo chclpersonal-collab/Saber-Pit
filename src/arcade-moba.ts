@@ -23,7 +23,7 @@ export type MobaInput={moveX?:number;moveY?:number;attack?:boolean;lunge?:boolea
 export type MobaUnit=MobaPoint&{id:string;team:MobaTeam;lane:MobaLane;hp:number;maxHp:number;alive:boolean;radius:number;kind:'hero'|'minion'|'tower'|'core'};
 export type MobaHero=MobaUnit&{
   kind:'hero'; name:string;control:boolean;form:MobaForm;dashRemaining:number;face:number;vx:number;vy:number;action:'idle'|'run'|'guard'|'slash'|'rush'|'ko';
-  actionTime:number;energy:number;level:number;xp:number;credits:number;upgrade:number;kills:number;deaths:number;
+  actionTime:number;guardHeld?:boolean;energy:number;level:number;xp:number;credits:number;upgrade:number;kills:number;deaths:number;
   respawnAt:number; cooldown:number; lungeCooldown:number; spawnProtectUntil:number;upgradingUntil:number;
 };
 export type MobaMinion=MobaUnit&{kind:'minion';face:number;cooldown:number;ranged:boolean};
@@ -225,6 +225,8 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
     h.cooldown=0;h.lungeCooldown=0;h.spawnProtectUntil=s.time+1.25;setAction(h,'idle');emit(s,'respawn',h);
   }
   h.actionTime+=DT;
+  const guardPressed=h.control&&input.guard&&!h.guardHeld;
+  if(h.control){if(input.guard)h.guardHeld=true;else if(h.guardHeld)delete h.guardHeld;}
   if(h.dashRemaining>1e-6){
     dashStep(s,h,units);
     // A button held from the previous frame must not fire a second action.
@@ -234,10 +236,13 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
   h.dashRemaining=0;
   const form=MOBA_FORMS[h.form];
   if(h.control){
-    const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?Math.atan2(input.aimY!-h.y,input.aimX!-h.x):undefined;
     const guarding=input.guard&&h.energy>1;
+    const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?Math.atan2(input.aimY!-h.y,input.aimX!-h.x):undefined;
+    const nearby=guarding&&guardPressed&&aim===undefined?nearest(h,s.heroes,e=>
+      e.team!==h.team&&e.alive&&gap(h,e)<=78&&mobaClearPath(h,e)):undefined;
+    const guardFacing=nearby?Math.atan2(nearby.y-h.y,nearby.x-h.x):h.face;
     // Guarding without pointer aim keeps the last held bearing while stepping.
-    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?form.speed*.5:form.speed,aim??(guarding?h.face:undefined));
+    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?form.speed*.5:form.speed,aim??(guarding?guardFacing:undefined));
     if(guarding)setAction(h,'guard');
     else if(h.action!=='slash'&&h.action!=='rush')setAction(h,moving?'run':'idle');
     if(s.pendingUpgrade)build(h,s);
