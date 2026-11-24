@@ -11,8 +11,9 @@
   <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
   <link rel="stylesheet" href="./ops-v3-secondary.css?v=3.0.0-auto1">
   <link rel="stylesheet" href="./pit-v4-tournaments.css?v=4.0.0">
-<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
-<body class="ops-shell pit-v4-tournaments ops-tournament">
+<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0">
+  <link rel="stylesheet" href="./pit-v5-pages.css?v=5.1.0"></head>
+<body class="ops-shell pit-v4-tournaments ops-tournament v5-page v5-tournament">
 <main id="tournamentApp">
   <header class="ops-dock">
     <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena">
@@ -27,9 +28,10 @@
     </nav>
     <p class="ops-dock-foot" aria-hidden="true"><i></i> THE CIRCUIT</p>
   </header>
+  <div class="v5-head">
   <section class="intro ops-hero" aria-labelledby="tournamentTitle">
     <div class="ops-hero-copy"><p class="kicker ops-kicker">TOURNAMENT / IRON CIRCUIT</p><h1 id="tournamentTitle"><span class="heading-duel">1v1 Tournament</span><span class="heading-squad">5v5 Tournament</span></h1>
-    <p id="formatDescription">One-on-one bouts train the field. Save fighters as Heroes for custom matches.</p></div>
+    <p id="formatDescription" class="v5-sr">One-on-one bouts train the field. Save fighters as Heroes for custom matches.</p></div>
     <svg class="circuit-schematic ops-hero-art" viewBox="0 0 296 176" aria-hidden="true">
       <circle cx="149" cy="86" r="71"/><circle cx="149" cy="86" r="59" stroke-dasharray="1 7"/>
       <path d="M5 18h26m-26 0v22m286 116h-26m26 0v-22M149 5v16m0 129v18M67 86h-19m183 0h18M59 48h34l12 14h24m-70 62h34l12-14h24m108-62h-34l-12 14h-24m70 62h-34l-12-14h-24"/>
@@ -44,24 +46,27 @@
     <a class="format-link" href="./gauntlet.html"><span class="ops-format-mark" aria-hidden="true">03</span> 1v3 Gauntlet</a>
     <button id="showPeaks" class="quiet peak-link" type="button">Peak Elo Top 10 ↓</button>
   </nav>
+  </div>
   <div class="desk">
     <div class="left-column">
       <section class="panel schedule" aria-labelledby="seasonTitle">
         <div class="section-top"><div><p class="kicker">BOUT DESK</p><h2 id="seasonTitle">The bracket</h2></div><span class="badge" id="seasonBadge">No season</span></div>
-        <p class="muted detail" id="seasonWeek">One season is one in-game week.</p>
+        <p class="muted detail v5-sr" id="seasonWeek">One season is one in-game week.</p>
         <div id="activeSeed" class="seed-strip" hidden><span class="muted">Bracket seed <strong id="activeSeedValue"></strong></span><button type="button" id="copyActiveSeed">Copy seed</button></div>
         <div class="next" id="nextBout" data-tone="empty">
           <p class="kicker" id="nextLabel">FIRST BOUT</p><h3 id="matchup">The ring is empty</h3><p id="matchMeta">Start a season to draw the bracket.</p>
         </div>
         <div class="progress" id="progressBar" hidden><label for="boutProgress" id="progressLabel">Bracket progress</label><progress id="boutProgress" max="1" value="0"></progress></div>
         <div class="actions" aria-label="Tournament controls">
-          <button class="primary" id="nextButton" type="button" disabled>Next bout</button>
-          <button id="runButton" type="button" disabled>Run bracket</button>
-          <button id="autoSeasons" type="button" aria-pressed="false" aria-describedby="autoResumeHint">Auto Seasons</button>
+          <button class="primary v5-ico" id="nextButton" data-ico="play" type="button" disabled>Next bout</button>
+          <button class="v5-ico" id="newButton" data-ico="plus" type="button">New season</button>
+          <button class="v5-ico v5-tool" id="runButton" data-ico="ff" data-tip="Run bracket" type="button" disabled>Run bracket</button>
+          <button class="v5-ico v5-tool" id="autoSeasons" data-ico="loop" data-tip="Auto Seasons" type="button" aria-pressed="false" aria-describedby="autoResumeHint">Auto Seasons</button>
+          <button class="v5-ico v5-tool" id="watchLast" data-ico="eye" data-tip="Watch last bout" type="button" hidden>Watch last bout</button>
           <button id="cancelButton" type="button" hidden>Stop</button>
-          <button id="watchLast" type="button" hidden>Watch last bout</button>
-          <button id="newButton" type="button">New season</button>
-          <button id="resetButton" class="reset-action" type="button" disabled>Reset tournament</button>
+          <details class="v5-more"><summary class="v5-ico v5-tool" data-ico="dots" data-tip="More" aria-label="More tournament controls">More</summary>
+            <div class="v5-more-menu"><button id="resetButton" class="reset-action" type="button" disabled>Reset tournament</button></div>
+          </details>
         </div>
         <p class="muted auto-resume-hint" id="autoResumeHint" hidden></p>
         <details class="bout-plans" id="lastMatchPlan" hidden>
@@ -91,7 +96,7 @@
     </div>
     <div class="right-column">
       <section class="panel board" aria-labelledby="leadersTitle"><div class="section-top"><div><p class="kicker">CAREER RECORD</p><h2 id="leadersTitle">Top 10</h2></div><span class="meta" id="leaderTag">ELO</span></div>
-        <p class="muted detail" id="leaderDetail">Career Elo across seasons. Separate from the current bracket.</p>
+        <p class="muted detail v5-sr" id="leaderDetail">Career Elo across seasons. Separate from the current bracket.</p>
         <p class="muted detail" id="leaderForms" hidden></p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="leadersTitle"><table class="career-table">
           <thead><tr><th scope="col">#</th><th scope="col" id="leaderSubject">Fighter</th><th scope="col" id="leaderRating">Elo</th><th scope="col">KO</th><th scope="col">D</th><th scope="col">K/D</th><th scope="col"><abbr title="Wins, draws, losses">W–D–L</abbr></th><th scope="col">Loss %</th><th scope="col">Win + Draw %</th></tr></thead><tbody id="leaderRows"><tr><td colspan="9" class="empty">No bouts recorded.</td></tr></tbody>
@@ -126,24 +131,25 @@
           <ul id="learnedList" class="learned" aria-label="Learned profile"></ul>
         </div>
       </section>
-      <section class="panel board peak-board" aria-labelledby="peaksTitle">
-        <div class="section-top"><div><p class="kicker">ALL-TIME RECORD</p><h2 id="peaksTitle" tabindex="-1">Peak Elo Top 10</h2></div></div>
-        <p class="muted detail" id="peakDetail">Highest recorded Elo for each fighter. It stays on this board even if their Elo falls.</p>
+      <details class="panel board peak-board v5-fold" id="peakFold">
+        <summary><h2 id="peaksTitle" tabindex="-1">Peak Elo Top 10</h2></summary>
+        <p class="muted detail v5-sr" id="peakDetail">Highest recorded Elo for each fighter. It stays on this board even if their Elo falls.</p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="peaksTitle"><table>
           <thead><tr><th scope="col">#</th><th scope="col" id="peakSubject">Fighter</th><th scope="col">Peak Elo</th><th scope="col">Season / Week</th></tr></thead><tbody id="peakRows"><tr><td colspan="4" class="empty">No peak ratings recorded yet.</td></tr></tbody>
         </table></div>
         <p class="muted peak-history" id="peakHistory" hidden>Older saves kept current Elo, so earlier peaks and exact seasons may be missing.</p>
-      </section>
-      <details class="panel tour-guide" id="seasonArchive"><summary>Recent champions</summary>
+      </details>
+      <details class="panel tour-guide v5-fold" id="seasonArchive"><summary>Recent champions</summary>
         <ul id="seasonArchiveRows" class="season-archive-rows"><li>No completed seasons yet.</li></ul>
       </details>
-      <section class="panel heroes" id="heroesPanel" aria-labelledby="heroesTitle"><div class="section-top"><div><p class="kicker">RECRUITED</p><h2 id="heroesTitle" tabindex="-1">Saved Heroes</h2></div><a href="./index.html" class="text-link">Open lobby</a></div>
+      <details class="panel heroes v5-fold" id="heroesPanel"><summary><h2 id="heroesTitle" tabindex="-1">Saved Heroes</h2></summary>
         <ul id="heroRows" class="hero-rows"><li class="empty">Save a fighter from either tournament format.</li></ul>
-      </section>
-      <details class="panel tour-guide" id="soloGuide"><summary>Champion &amp; Hero rules</summary>
+        <a href="./index.html" class="text-link">Open lobby</a>
+      </details>
+      <details class="panel tour-guide v5-fold" id="soloGuide"><summary>Rules</summary>
         <ul><li>Last season’s quarterfinalists and career #1–8 return directly. Career #9–10 start in the qualifier unless already direct.</li><li>Fighters can play for a win or a draw. Clock expiry is a draw. After three drawn bouts, one seed advances without a win, or the final closes without a title.</li><li>Save an SSS+ V Hero from the bracket or leaderboard, then select them in the match lobby. Tournament records and Heroes are kept in this browser.</li><li>Next bout simulates and records one matchup. Run bracket simulates every remaining bout. Stop keeps all completed results.</li></ul>
       </details>
-      <details class="panel tour-guide" id="squadGuide" hidden><summary>Squad tournament rules</summary>
+      <details class="panel tour-guide v5-fold" id="squadGuide" hidden><summary>Rules</summary>
         <ul><li>Each side fields five SSS+ V fighters. Last season’s quarterfinalists and career #1–8 return directly. Career #9–10 get a qualifier slot if they need one.</li><li>Fighters can play for a win or a draw. Clock expiry is a draw. After three drawn bouts, one seed advances without a win, or the final closes without a title.</li><li id="squadRatingRule"></li><li>New squads fill out the mix of All Female, All Male, and Mixed teams. Returning rosters stay together.</li><li>Team records and the 1v1 tournament are saved separately in this browser.</li></ul>
       </details>
     </div>

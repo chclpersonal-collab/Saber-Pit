@@ -1,0 +1,194 @@
+/* Saber Pit v5 pages: one screen, few words, the next action first.
+   Scoped to body.v5-page so pages opt in one at a time. Helper text stays for screen readers. */
+
+.v5-page .v5-sr,
+.v5-page .section-top .kicker,
+.v5-page .g-section-top .ops-kicker,
+.v5-page .ops-hero-copy .ops-kicker {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Title and format switch share one slim row. */
+.v5-page .v5-head {
+  display: flex; align-items: center; gap: .8rem 1.2rem; flex-wrap: wrap;
+  margin: 0 0 .8rem;
+}
+body.v5-page .v5-head .ops-hero {
+  display: block; min-height: 0; margin: 0; padding: 0;
+  background: none; border: 0; box-shadow: none;
+}
+body.v5-page .v5-head .ops-hero h1 {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem); letter-spacing: -.03em; margin: 0; line-height: 1.1;
+}
+.v5-page .v5-head .ops-hero-art { display: none; }
+body.v5-page .v5-head .format-picker {
+  display: flex; margin: 0 0 0 auto; padding: .22rem; gap: .2rem;
+}
+body.v5-page .v5-head .format-picker :is(button, a) { min-height: 38px; padding: .25rem .8rem; }
+.v5-page .v5-head .ops-format-mark,
+.v5-page .v5-head #showPeaks { display: none; }
+
+/* Panels: tighter, quieter. */
+body.v5-page .panel { padding: clamp(.8rem, 1.4vw, 1.1rem); }
+body.v5-page .panel h2 { font-size: 1.05rem; letter-spacing: -.01em; margin: 0; }
+.v5-page .section-top { margin-bottom: .55rem; }
+
+/* Icons, drawn with masks so button text set by script stays the accessible name. */
+.v5-page .v5-ico { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; }
+.v5-page .v5-ico::before {
+  content: ""; flex: none; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+}
+.v5-page [data-ico=play] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.5v15l12-7.5z'/%3E%3C/svg%3E"); }
+.v5-page [data-ico=plus] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10.5 4h3v6.5H20v3h-6.5V20h-3v-6.5H4v-3h6.5z'/%3E%3C/svg%3E"); }
+.v5-page [data-ico=ff] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5v14l9-7zm9 0v14l9-7z'/%3E%3C/svg%3E"); }
+.v5-page [data-ico=loop] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5'/%3E%3C/svg%3E"); }
+.v5-page [data-ico=eye] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 5C6.5 5 2.6 9.3 1.5 12c1.1 2.7 5 7 10.5 7s9.4-4.3 10.5-7C21.4 9.3 17.5 5 12 5zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-2.2a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z'/%3E%3C/svg%3E"); }
+.v5-page [data-ico=dots] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='2.2'/%3E%3Ccircle cx='12' cy='12' r='2.2'/%3E%3Ccircle cx='19' cy='12' r='2.2'/%3E%3C/svg%3E"); }
+
+/* Icon-only tools: square, with a hover and focus tip. The text is still the name. */
+.v5-page .v5-tool {
+  position: relative; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0 !important;
+  font-size: 0 !important; list-style: none; cursor: pointer;
+}
+.v5-page summary.v5-tool::-webkit-details-marker { display: none; }
+.v5-page .v5-tool[data-tip]:is(:hover, :focus-visible)::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; translate: -50% 0;
+  padding: .25rem .5rem; border-radius: .35rem; white-space: nowrap; pointer-events: none; z-index: 5;
+  background: #0b1114; border: 1px solid var(--pit-line-strong, #547278); color: var(--pit-text, #eef5f4);
+  font: 600 .78rem/1.2 inherit;
+}
+.v5-page #autoSeasons[aria-pressed=true] { color: var(--pit-accent, #67e2cd); border-color: var(--pit-accent, #67e2cd); }
+
+/* Action row: one big next step, small tools beside it. */
+body.v5-page :is(.schedule .actions, .g-operations .g-actions) { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+body.v5-page :is(.schedule .actions, .g-operations .g-actions) > .primary { flex: 1 1 7rem; min-height: 48px; font-size: 1rem; }
+/* No bout to play: New season becomes the big button, the disabled play tools step aside. */
+body.v5-page .schedule .actions:has(#newButton:not(:disabled)) :is(#nextButton, #runButton):disabled { display: none; }
+body.v5-page .schedule .actions:has(#nextButton:disabled):has(#newButton:not(:disabled)) #newButton {
+  flex: 1 1 7rem; min-height: 48px; font-size: 1rem;
+  background: var(--pit-accent, #67e2cd); color: var(--pit-accent-ink, #092225); border-color: var(--pit-accent, #67e2cd);
+}
+/* A bracket in play: New season is locked, so it leaves the row. */
+body.v5-page .schedule .actions #newButton:disabled { display: none; }
+.v5-page .v5-more { position: relative; }
+.v5-page .v5-more > summary { display: inline-flex; border: 1px solid var(--pit-line, #32434a); border-radius: .5rem; color: var(--pit-muted, #aebdc1); }
+.v5-page .v5-more[open] > summary { color: var(--pit-text, #eef5f4); border-color: var(--pit-line-strong, #547278); }
+.v5-page .v5-more-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 6; display: grid; gap: .3rem; min-width: 12rem;
+  padding: .4rem; background: var(--pit-panel, #171e23); border: 1px solid var(--pit-line-strong, #547278); border-radius: .6rem;
+  box-shadow: 0 12px 28px #0008;
+}
+.v5-page .v5-more-menu button { width: 100%; }
+
+/* Next bout card: the matchup is the headline. */
+body.v5-page .next { padding: .8rem 1rem; margin-block: .2rem .7rem; }
+body.v5-page .next h3 { font-size: clamp(1.15rem, 2vw, 1.45rem); margin: .1rem 0; }
+body.v5-page .next p:not(.kicker) { margin: 0; }
+
+/* Leaderboard: rank, name, rating, K/D, record. The rest is in each fighter's file. */
+.v5-tournament .career-table :is(th, td):is(:nth-child(4), :nth-child(5), :nth-child(8), :nth-child(9)) { display: none; }
+
+/* Secondary boards fold to one line each. */
+body.v5-page .v5-fold { padding: 0; }
+body.v5-page .v5-fold > summary {
+  color: var(--pit-text, #eef5f4);
+  display: flex; align-items: center; gap: .6rem; min-height: 48px; padding: .3rem 1rem; cursor: pointer;
+  font-weight: 700; list-style: none;
+}
+body.v5-page .v5-fold > summary::-webkit-details-marker { display: none; }
+body.v5-page .v5-fold > summary::after {
+  content: ""; margin-left: auto; width: .55rem; height: .55rem; rotate: 45deg; translate: 0 -.15rem;
+  border: solid currentColor; border-width: 0 2px 2px 0; opacity: .7; transition: rotate .15s;
+}
+body.v5-page .v5-fold[open] > summary::after { rotate: 225deg; translate: 0 .1rem; }
+body.v5-page .v5-fold > summary h2 { font-size: 1rem; }
+body.v5-page .v5-fold > :not(summary) { margin-inline: 1rem; }
+body.v5-page .v5-fold[open] { padding-bottom: .9rem; }
+.v5-page .v5-fold .text-link { display: inline-block; margin-top: .5rem; }
+
+/* Desktop: the whole desk fits the window; long lists scroll inside their column. */
+@media (min-width: 1000px) and (min-height: 620px) {
+  body.v5-page :is(#tournamentApp, .gauntlet-shell) {
+    height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; padding-bottom: 1rem;
+  }
+  body.v5-page .ops-dock { flex: none; }
+  body.v5-page :is(.desk, .gauntlet-grid) { flex: 1; min-height: 0; align-items: stretch; }
+  body.v5-page :is(.left-column, .right-column, .g-main, .g-aside) {
+    min-height: 0; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; padding-right: .2rem;
+    align-content: start;
+  }
+}
+
+/* Phones: format switch takes the full width under the title. */
+@media (max-width: 640px) {
+  body.v5-page .v5-head .format-picker { margin: 0; width: 100%; }
+  body.v5-page .v5-head .format-picker :is(button, a) { flex: 1; padding-inline: .4rem; font-size: .88rem; }
+}
+
+/* Season setup open: its own Draw button is the action, so New season steps aside. Hints stay for screen readers. */
+body.v5-page .schedule:has(#newSetup:not([hidden])) #newButton { display: none; }
+.v5-tournament :is(#seedHelp, #newNote, #terrainHelp, #squadClockHelp) {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+body.v5-tournament .new-setup .actions { margin-top: .7rem; }
+/* Seed: one quiet line. */
+body.v5-tournament .seed-strip { display: flex; align-items: center; gap: .5rem; margin: 0 0 .4rem; font-size: .84rem; }
+body.v5-tournament .seed-strip button { min-height: 36px; padding: 0 .6rem; font-size: .8rem; }
+
+/* Gauntlet. */
+.v5-gauntlet .v5-head .g-career-link { display: none; }
+.v5-page [data-ico=filter] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8.5V20l-4-2v-4.5z'/%3E%3C/svg%3E"); }
+body.v5-gauntlet .g-operations:has(#gSetup:not([hidden])) :is(#gPlay, #gRun):disabled { display: none; }
+body.v5-gauntlet .g-setup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; align-items: end; }
+body.v5-gauntlet .g-setup #gDraw { grid-column: 1 / -1; min-height: 48px; font-size: 1rem; }
+body.v5-gauntlet .v5-more-menu.g-archive { display: grid; margin: 0; justify-content: stretch; }
+body.v5-gauntlet .v5-more-menu.g-archive a { padding: 0 .6rem; }
+body.v5-gauntlet .g-next { margin-block: .2rem .7rem; }
+.v5-page .v5-filter { margin-bottom: .5rem; }
+.v5-page .v5-filter > summary {
+  display: inline-flex; min-height: 36px; padding: 0 .7rem; border: 1px solid var(--pit-line, #32434a); border-radius: .5rem;
+  cursor: pointer; list-style: none; color: var(--pit-muted, #aebdc1); font-size: .85rem; font-weight: 700;
+}
+.v5-page .v5-filter > summary::-webkit-details-marker { display: none; }
+.v5-page .v5-filter[open] > summary { margin-bottom: .5rem; color: var(--pit-text, #eef5f4); }
+@media (max-width: 640px) { body.v5-gauntlet .g-setup { grid-template-columns: 1fr 1fr; } body.v5-gauntlet .g-setup label:first-of-type { grid-column: 1 / -1; } }
+.v5-gauntlet .g-next .ops-kicker { color: var(--pit-accent, #67e2cd); font: 700 .74rem/1.2 ui-monospace, monospace; letter-spacing: .14em; margin: 0; }
+body.v5-page .panel:has(.v5-more[open]) { position: relative; z-index: 10; }
+
+/* Idle RPG: stage left, party, loot and route stacked right, all in one window. */
+body.v5-idle .rpg-header { padding: .5rem 0 .6rem; align-items: center; }
+body.v5-idle .rpg-header h1 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); letter-spacing: -.03em; }
+body.v5-idle .rpg-panel h2 { font-size: 1.05rem; }
+body.v5-idle .rpg-empty a {
+  display: inline-flex; align-items: center; min-height: 40px; margin-top: .4rem; padding: 0 .8rem; border-radius: .45rem;
+  background: var(--pit-accent, #67e2cd); color: var(--pit-accent-ink, #092225); font-weight: 700; text-decoration: none;
+}
+@media (min-width: 841px) {
+  body.v5-idle .rpg-layout {
+    grid-template-rows: max-content max-content 1fr;
+    grid-template-areas: 'fight hero' 'fight loot' 'fight route' 'journal journal' 'legacy legacy';
+  }
+}
+@media (min-width: 841px) and (min-height: 620px) {
+  /* Cap the stage so the fight controls stay on screen; art covers, the duel letterboxes. */
+  body.v5-idle .rpg-viewport { aspect-ratio: auto; height: min(calc((100vw - 2.5rem) * .63 * 9 / 16), calc(100dvh - 19rem)); }
+  body.v5-idle .quest-shell { padding-bottom: 1rem; }
+}
+
+/* Style Lab: bigger stage, one strike button, compares and extras quieter. */
+body.v5-lab main { max-width: 100rem; }
+body.v5-lab .intro { margin-bottom: .7rem; align-items: center; }
+body.v5-lab .intro .eyebrow { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+body.v5-lab .intro h1 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); letter-spacing: -.03em; }
+body.v5-lab .intro .back { padding: .35rem .7rem; font-size: .88rem; }
+@media (min-width: 55.01rem) { body.v5-lab .lab { grid-template-columns: minmax(0, 2.3fr) minmax(18rem, 1fr); } }
+body.v5-lab .controls .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
+body.v5-lab #labStrike { grid-column: 1 / -1; min-height: 52px; font-size: 1.05rem; }
+body.v5-lab :is(#labCompare, #labCompareWeapons) { grid-column: span 1; font-size: .86rem; }
+body.v5-lab #labCompare.strong { clip-path: none; }
+body.v5-lab #labCompare.strong:not(:hover) { color: var(--text); background: var(--field); border-color: var(--edge); }
+body.v5-lab #labStop:disabled { display: none; }
+body.v5-lab #labStop:not(:disabled) { grid-column: 1 / -1; }
+body.v5-lab .controls .notes:not([hidden]) { font-size: .84rem; }
