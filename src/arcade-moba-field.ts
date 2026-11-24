@@ -3,7 +3,7 @@
 import {MOBA_BATTLEFIELD} from './arcade-moba-map.js';
 const {width:W,height:H,lanes,crossings,blockers,cores,forum}=MOBA_BATTLEFIELD;
 const colors=['#75e5d5','#ff8e76'] as const;
-const ink='#171b23', paper='#f3ddba';
+const ink='#171b23', paper='#f3ddba', gold='#fbe2a2', goldDeep='#9a623d';
 type Side=0|1;
 type Position={x:number;y:number};
 type Fighters=Position&{team:Side;hp:number;maxHp:number;alive:boolean;face:number;action?:string;actionTime?:number;
@@ -211,9 +211,9 @@ function bar(c:C,p:Pick<Unit,'x'|'y'|'hp'|'maxHp'|'team'>,dy:number,w:number,sel
 function diamond(c:C,x:number,y:number,r:number,color:string,edge?:string){
   poly(c,[[x,y-r],[x+r*.82,y],[x,y+r],[x-r*.82,y]],color,edge,1);
 }
-function structure(c:C,p:Unit,core:boolean){
+function structure(c:C,p:Unit,core:boolean,opacity=1){
   const tint=colors[p.team], live=p.hp>0;
-  c.save();c.translate(p.x,p.y);
+  c.save();if(opacity<1)c.globalAlpha=opacity;c.translate(p.x,p.y);
   const s=core?32:22;
   ellipse(c,3,9,s+10,s*.44,'#151b2073');
   poly(c,[[-s,-5],[-s*.67,-13],[s*.69,-13],[s,-1],[s*.66,11],[-s*.67,11]],'#6a655f',ink,2);
@@ -273,8 +273,8 @@ function hero(c:C,p:Fighters,own:boolean,time:number,moving:boolean,effects:bool
   c.save();c.translate(p.x,p.y);
   ellipse(c,1,6,16,5.5,'#1a1a257a');
   if(own) {
-    ellipse(c,0,6,16,8,'#382d2233','#ffe1a0',2);
-    diamond(c,0,-49,4.5,'#fbd796',ink);
+    ellipse(c,0,6,17,8.3,'#382d2255',ink,4.25);
+    ellipse(c,0,6,17,8.3,'#00000000',gold,2.1);
   }
   if(dash&&effects)for(const j of [-1,1]){
     const ox=-ay*j*7,oy=ax*j*7;
@@ -298,6 +298,15 @@ function hero(c:C,p:Fighters,own:boolean,time:number,moving:boolean,effects:bool
     [rib+5,-9+dip],[cloth+hem,1+dip],[cloth,-1+dip],[cloth-hem,-.4+dip],[rib-5,-11+dip]],dark,ink,2.7);
   poly(c,[[rib-shoulder,neck],[rib-shoulder*.58,neck-3],[rib+shoulder*.68,neck-2],
     [rib+shoulder*.95,neck+4],[rib+1.7,-10+dip],[rib-5,-12+dip]],light,ink,1.1);
+  if(own){
+    // A pointed commander pauldron plus pale-gold lining reads as
+    // silhouette rather than replacing the allied teal team colors.
+    poly(c,[[rib-shoulder-2,neck-2],[rib-shoulder*.5,neck-7],[rib+2,neck-1],
+      [rib-1,neck+4],[rib-shoulder-3,neck+7]],'#3a5357',ink,1.9);
+    line(c,gold,2,[rib-shoulder-2,neck+4],[rib-shoulder*.58,neck-4],[rib,neck-1]);
+    poly(c,[[rib-5,neck+4],[rib+1,neck+5],[cloth+8,-2+dip],[cloth+2,1+dip]],
+      '#c19b61',ink,1.25);
+  }
   const form=p.form??'shii_cho';
   if(form==='soresu'||form==='djem_so'){
     poly(c,[[rib-shoulder-1,neck],[rib-4,neck-4],[rib+2,neck],[rib-3,neck+5],[rib-shoulder,neck+5]],'#90908b',ink,1.5);
@@ -346,19 +355,45 @@ function minion(c:C,p:Unit,effects:boolean){
   const tint=colors[p.team], dir=Math.cos(p.face??(p.team===0?0:Math.PI))>=0?1:-1;
   const step=effects?Math.sin((p.x+p.y)*.115+idSeed(p.id)%100)*1.9:0;
   c.save();c.translate(p.x,p.y);c.scale(dir,1);
-  ellipse(c,1,3.5,8.5,3,'#10141bab');
-  line(c,ink,2.4,[-2,-2],[-3+step,3]);line(c,ink,2.4,[2,-2],[3-step,3]);
+  c.lineJoin='round';c.lineCap='round';
+  ellipse(c,1,4,10.6,4.1,'#10141bab');
+  line(c,ink,3.3,[-2,-2],[-4+step,4]);
+  line(c,ink,3.3,[3,-2],[4-step,4]);
   if(p.ranged){
-    poly(c,[[-6,2],[-4,-7],[2,-7],[5,0]],'#657577',ink,1.2);
-    ellipse(c,0,-8,3.5,3.2,paper,ink,1);
-    line(c,tint,2,[4,-5],[9,-8]);line(c,ink,1.6,[6,-10],[8,-7],[8,-3]);
+    poly(c,[[-8,2],[-5,-11],[2,-12],[7,-1],[4,2]],'#657577',ink,1.6);
+    poly(c,[[-7,-11],[-3,-17],[2,-16],[5,-12],[3,-9],[-4,-9]],paper,ink,1.55);
+    // Ranged cohorts use the distinct dark bow with a bright string.
+    line(c,ink,2,[7,-15],[10,-10],[10,-3],[7,0]);
+    line(c,tint,1.6,[7,-15],[7,0]);line(c,'#a4937f',1.6,[2,-8],[8,-8]);
+    line(c,tint,2,[-6,-10],[-8,-4]);
   }else{
-    poly(c,[[-5,-1],[-4,-7],[4,-7],[5,0]],'#938470',ink,1.2);
-    ellipse(c,0,-8,3.5,3.2,paper,ink,1);
-    poly(c,[[1,-5],[6,-7],[9,-3],[5,1],[1,-1]],tint,ink,1.1);
+    poly(c,[[-6,0],[-5,-10],[4,-11],[6,-1]],'#9a8c77',ink,1.45);
+    poly(c,[[-6,-12],[-4,-16],[3,-17],[6,-14],[5,-10],[-5,-10]],paper,ink,1.55);
+    // A shield with readable shape and an inset stripe on both team colors.
+    poly(c,[[3,-11],[10,-9],[10,-4],[6,2],[1,-4],[1,-9]],tint,ink,1.5);
+    line(c,'#2d3c42',1.7,[6,-8],[6,-2]);
+    line(c,'#f6d7aa9e',1.1,[3,-8],[3,-4],[5,-1]);
   }
   c.restore();
-  if(p.hp<p.maxHp)bar(c,p,-15,13);
+  if(p.hp<p.maxHp)bar(c,p,-21,15);
+}
+function playerMarker(c:C,p:Fighters,zoom:number){
+  const scale=Math.max(.86,Math.min(1.28,2.5/zoom));
+  c.save();c.translate(p.x,p.y-53);c.scale(scale,scale);
+  // Thin outer ink and bold gold survive at thumb size. Paint this once
+  // above depths so same-color allies and own architecture can't hide it.
+  poly(c,[[-6,-5],[6,-5],[6,-1],[0,5],[-6,-1]],gold,ink,1.7);
+  line(c,goldDeep,1.3,[-3,-2],[0,1],[3,-2]);
+  c.restore();
+}
+function alliedStructureOpacity(place:Unit,core:boolean,own?:Fighters){
+  // Only a foreground allied structure that overlaps the hero silhouette
+  // fades. Feather the edge so moving past the outline does not blink it.
+  // All actors keep the same normal depth order.
+  if(!own?.alive||place.team!==own.team||place.hp<=0||own.y>place.y)return 1;
+  const edge=(core?54:38)-Math.abs(own.x-place.x), back=place.y-own.y;
+  const strength=smooth(edge/6)*smooth(((core?59:51)-back)/7)*smooth(back/5);
+  return 1-strength*.67;
 }
 export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData,own?:Fighters,
   moving=new Set<Fighters>(),view:{x:number;y:number;zoom:number;width?:number;height?:number}={x:0,y:0,zoom:1},extraEffects=true){
@@ -373,7 +408,7 @@ export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData
     if(q.kind==='hero')hero(c,q.p,q.p===own,state.time,moving.has(q.p),extraEffects);
     else if(q.kind==='minion')minion(c,q.p,extraEffects);
     else if(q.kind==='wall')wall(c,q.body,q.i);
-    else structure(c,q.p,q.kind==='core');
+    else structure(c,q.p,q.kind==='core',alliedStructureOpacity(q.p,q.kind==='core',own));
   }
   if(extraEffects)for(const e of state.events??[]){
     const dt=state.time-e.time,strong=e.type==='tower'||e.type==='core',life=strong?.52:.15;
@@ -389,6 +424,7 @@ export function paintMobaField(c:C,terrain:HTMLCanvasElement,state:MobaFieldData
     }
     c.restore();
   }
+  if(own?.alive)playerMarker(c,own,view.zoom);
   c.restore();
   c.save();c.translate(viewWidth-184,viewHeight-79);
   rect(c,0,0,174,69,'#131820e9');

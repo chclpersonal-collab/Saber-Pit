@@ -323,3 +323,18 @@ export function stepMoba(s:MobaState,dt:number,input:MobaInput={}){
   }
   return s;
 }
+
+export type MobaPressure={structureId:string|null; structureKind:'tower'|'core'|null;
+  underFire:boolean; waveAhead:boolean; waveBehind:boolean; enemyHeroNear:boolean};
+export function mobaPressure(s:MobaState,h=s.player):MobaPressure {
+  const empty={structureId:null,structureKind:null,underFire:false,waveAhead:false,waveBehind:false,enemyHeroNear:false};
+  if(!h.alive||s.phase!=='playing')return empty;
+  const inReach=(t:MobaStructure,u:MobaUnit)=>gap(t,u)<(t.kind==='tower'?135:113)&&mobaClearPath(t,u)&&vulnerable(s,u);
+  const structure=nearest(h,[...s.towers,...s.cores],t=>t.alive&&t.team!==h.team&&inReach(t,h));
+  const allied=s.minions.filter(m=>m.alive&&m.team===h.team&&Math.abs(m.y-h.y)<85);
+  const face=direction(h.team), lead=allied.reduce((best,m)=>Math.max(best,(m.x-h.x)*face),-Infinity);
+  return {structureId:structure?.id??null,structureKind:structure?.kind??null,
+    underFire:Boolean(structure&&!s.minions.some(m=>m.alive&&m.team===h.team&&inReach(structure,m))),
+    waveAhead:lead>=20,waveBehind:lead<20&&face*(h.x-640)>-295,
+    enemyHeroNear:s.heroes.some(e=>e.team!==h.team&&e.alive&&gap(h,e)<115&&mobaClearPath(h,e))};
+}

@@ -147,3 +147,87 @@ footer p{margin:0}footer span{margin:0 .25em}
 #vitals b{color:var(--white);font-variant-numeric:tabular-nums}
 .key-hints{display:block;font-size:.68rem;color:var(--mute);margin-top:.18rem}
 @media(any-pointer:coarse),(max-width:600px){.controls{display:flex}.key-hints{display:none}}
+
+/* HUD pass 2: icon controls, desktop ability bar, compact tool row. */
+.ico{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;flex:none}
+.move .ico{width:24px;height:24px;stroke-width:2.6}
+.attacks button{display:grid;place-items:center;color:var(--white)}
+.attacks [data-control=attack] .ico{width:36px;height:36px;stroke-width:2.4}
+.attacks [data-control=attack]{color:var(--amber)}
+.attacks .lbl{display:none}
+kbd{display:none;font:700 .78rem/1 ui-monospace,monospace;color:var(--amber);border:1px solid var(--edge);border-radius:4px;padding:3px 6px}
+
+/* Desktop: the three actions become an ability bar with key caps. WASD stays on the keyboard. */
+@media(hover:hover) and (pointer:fine) and (min-width:601px){
+  .controls{display:flex;justify-content:center;padding:8px 16px;background:var(--panel);border-top:1px solid var(--edge)}
+  .move{display:none}
+  .attacks{display:flex;gap:10px}
+  .attacks button,.attacks [data-control=attack]{width:auto;height:52px;border-radius:8px;grid-auto-flow:column;gap:10px;padding:0 16px 0 12px}
+  .attacks [data-control=attack] .ico{width:28px;height:28px}
+  .attacks .lbl{display:inline;font-size:.88rem;color:var(--white)}
+  .attacks kbd{display:inline-block}
+}
+
+/* Key hints fade once the first 20 seconds have taught them. */
+.key-hints{font-size:.78rem}
+.shell:has(#pause:not([hidden])) .key-hints{animation:hint-out .4s ease 20s forwards}
+@keyframes hint-out{to{opacity:0;visibility:hidden}}
+
+/* Phones: map and exit become icon buttons so the tool row fits on one line. */
+@media(max-width:600px),(orientation:landscape) and (max-height:500px){
+  .field-tools button{flex:0 0 auto}
+  #upgrade{flex:1 1 auto}
+  #map,#leave{width:44px;padding:0;font-size:0;display:grid;place-items:center}
+  #map::before,#leave::before{content:"";width:22px;height:22px;background:currentColor;-webkit-mask:var(--icon) center/contain no-repeat;mask:var(--icon) center/contain no-repeat}
+  #map{--icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z'/%3E%3Cpath d='M9 4v14M15 6v14'/%3E%3C/svg%3E")}
+  #leave{--icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h5v16h-5'/%3E%3Cpath d='M10 8l-4 4 4 4M6 12h10'/%3E%3C/svg%3E")}
+}
+@media(max-width:600px) and (orientation:portrait){
+  .field-tools{flex-wrap:nowrap}
+  .field-tools>div{display:none}
+  .shell:has(#pause:not([hidden])) .field-tools{flex-wrap:wrap}
+  .shell:has(#pause:not([hidden])) .field-tools>div{display:block;flex:1 0 100%}
+}
+
+/* Score hooks: tower pips, core state, team knockouts. Text stays for screen readers. */
+.tally{display:flex;align-items:baseline;gap:.7rem}
+.kills{font:700 1.2rem/1 ui-monospace,monospace;min-width:1.4ch;text-align:center}
+.kills:empty{display:none}
+#blueStatus[data-towers],#redStatus[data-towers]{font-size:0;display:inline-flex;align-items:center;gap:8px;--on:currentColor;--off:#ffffff24}
+#blueStatus[data-towers]{color:var(--blue)}#redStatus[data-towers]{color:var(--red)}
+#blueStatus[data-towers]::before,#redStatus[data-towers]::before{content:"";width:9px;height:9px;margin-right:28px;transform:rotate(45deg);background:var(--p1);box-shadow:14px -14px 0 var(--p2),28px -28px 0 var(--p3)}
+[data-towers="3"]{--p1:var(--on);--p2:var(--on);--p3:var(--on)}
+[data-towers="2"]{--p1:var(--on);--p2:var(--on);--p3:var(--off)}
+[data-towers="1"]{--p1:var(--on);--p2:var(--off);--p3:var(--off)}
+[data-towers="0"]{--p1:var(--off);--p2:var(--off);--p3:var(--off)}
+#redStatus[data-towers]{flex-direction:row-reverse}
+#redStatus[data-towers]::before{margin:0 0 0 28px;box-shadow:-14px 14px 0 var(--p2),-28px 28px 0 var(--p3)}
+#blueStatus[data-core]::after,#redStatus[data-core]::after{content:attr(data-core) "%";font:700 .86rem/1 ui-monospace,monospace;color:var(--white)}
+#blueStatus[data-core=shield]::after,#redStatus[data-core=shield]::after{content:"";width:16px;height:16px;background:var(--mute);-webkit-mask:var(--shield) center/contain no-repeat;mask:var(--shield) center/contain no-repeat}
+.score{--shield:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z'/%3E%3C/svg%3E")}
+.score .kills{box-shadow:none;padding:0}
+.time .tally{color:var(--white);font-size:inherit;letter-spacing:0;font-weight:700}
+#blueStatus[data-towers]::before{margin-right:36px}
+#redStatus[data-towers]::before{margin-left:36px}
+
+/* Additive combat guidance, independent of the score/controls HUD. */
+#tacticalHint{position:absolute;z-index:1;top:clamp(8px,2vw,18px);left:50%;transform:translateX(-50%);max-width:calc(100% - 26px);width:max-content;margin:0;padding:.35rem .65rem;border:1px solid #8f7042;background:#111920f2;color:#ffe2ac;font-size:clamp(.75rem,1.8vw,.92rem);font-weight:700;text-align:center;pointer-events:none}
+#respawnOverlay{position:absolute;inset:0;z-index:2;display:grid;align-content:center;justify-items:center;background:#120d14aa;color:var(--white,#f3e9d7);pointer-events:none;text-align:center;padding:12px}
+#respawnOverlay strong{color:#ffb8a4;text-transform:uppercase;letter-spacing:.12em;font-size:clamp(1.45rem,4vw,2.1rem)}
+#respawnOverlay p{margin:.15rem 0}
+#respawnClock{font-variant-numeric:tabular-nums;font-size:clamp(1rem,2.8vw,1.4rem);font-weight:700}
+#respawnPaused{margin-top:.5rem;color:#ffe2ac}
+
+#firstTowerPing{position:absolute;z-index:1;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:1px;min-width:60px;margin:0;padding:.17rem .3rem .3rem;background:#111920eb;border:1px solid #8f7042;color:#ffe2ac;white-space:nowrap;pointer-events:none}
+#firstTowerArrow{display:inline-block;font-size:1rem;line-height:1;transform:rotate(var(--edge-angle,0rad))}
+#firstTowerLabel{font-size:.66rem;font-weight:700}
+#tacticalHint[data-warning=true]{border-color:#c47b67;color:#ffd4bd;background:#2c1816f5}
+/* Short landscape uses fixed corner controls, not the desktop backing bar. */
+@media(orientation:landscape) and (max-height:500px){
+  .controls{background:transparent;border-top:0;justify-content:space-between}
+  .move{display:grid}
+  .attacks{display:grid}
+  .attacks button,.attacks [data-control=attack]{grid-auto-flow:row;gap:0;padding:0;width:52px;height:52px}
+  .attacks [data-control=attack]{width:64px;height:64px}
+  .attacks .lbl,.attacks kbd{display:none}
+}

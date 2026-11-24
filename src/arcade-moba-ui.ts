@@ -1,6 +1,7 @@
 import {createMoba,stepMoba,mobaUpgradeCost,MOBA_FORMS,MOBA_FORM_IDS,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js';
 import type {MobaInput,MobaLane,MobaForm,MobaHero,MobaState} from './arcade-moba.js';
 import {frameMobaCamera,mobaCanvasAim,type MobaView} from './arcade-moba-camera.js';
+import {mobaDeathSource,mobaObjectiveCue,mobaFirstTowerDirection} from './arcade-moba-guidance.js';
 import {paintMobaTerrain,paintMobaField} from './arcade-moba-field.js';
 
 function byId<T extends HTMLElement=HTMLElement>(id:string):T{
@@ -10,9 +11,25 @@ function byId<T extends HTMLElement=HTMLElement>(id:string):T{
 }
 const canvas=byId<HTMLCanvasElement>('field'), context=canvas.getContext('2d',{alpha:false})!;
 const nodes={brief:byId('brief'),finished:byId('finished'),clock:byId('clock'),wave:byId('wave'),
-  map:byId<HTMLButtonElement>('map'),blue:byId('blueStatus'),red:byId('redStatus'),vitals:byId('vitals'),hp:byId('heroHP'),energy:byId('heroEnergy'),level:byId('heroLevel'),record:byId('heroRecord'),form:byId('heroForm'),pause:byId<HTMLButtonElement>('pause'),
+  map:byId<HTMLButtonElement>('map'),blue:byId('blueStatus'),red:byId('redStatus'),blueKills:byId('blueKills'),redKills:byId('redKills'),vitals:byId('vitals'),hp:byId('heroHP'),energy:byId('heroEnergy'),level:byId('heroLevel'),record:byId('heroRecord'),form:byId('heroForm'),pause:byId<HTMLButtonElement>('pause'),
   leave:byId<HTMLButtonElement>('leave'),upgrade:byId<HTMLButtonElement>('upgrade'),result:byId('result'),
   detail:byId('resultInfo'),announce:byId('announce')};
+// Isolated additive panel: no layout/file dependency on the match HUD.
+const mountText=(tag:'aside'|'p'|'strong'|'small',id:string,parent:HTMLElement)=>{
+  const el=document.createElement(tag);el.id=id;parent.append(el);return el;
+};
+const field=canvas.parentElement!;
+const tactical=mountText('p','tacticalHint',field);tactical.hidden=true;
+const direction=mountText('p','firstTowerPing',field);direction.hidden=true;
+direction.setAttribute('aria-hidden','true');
+mountText('strong','firstTowerArrow',direction).textContent='↑';
+mountText('small','firstTowerLabel',direction).textContent='First tower';
+const respawn=mountText('aside','respawnOverlay',field);respawn.hidden=true;
+respawn.setAttribute('aria-label','Respawn');
+mountText('strong','respawnTitle',respawn).textContent='Knocked out';
+const respawnSource=mountText('p','respawnSource',respawn);
+const respawnClock=mountText('p','respawnClock',respawn);
+const respawnPaused=mountText('small','respawnPaused',respawn);respawnPaused.textContent='Match paused';
 const width=MOBA_WIDTH,height=MOBA_HEIGHT;
 canvas.width=width;canvas.height=height;
 const backdrop=paintMobaTerrain();
@@ -34,7 +51,8 @@ const measureViewport=()=>{viewport={width:canvas.clientWidth,height:canvas.clie
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(measureViewport).observe(canvas);
 else window.addEventListener('resize',measureViewport);
 let game:MobaState=createMoba(), playing=false, paused=false, aim:{x:number;y:number}|null=null,
-    prior=0, lastUi=-1, upgrade=false,lastAnnounced=0;
+    prior=0, lastUi=-1, upgrade=false,lastAnnounced=0, previousAlive=true, knockoutSource:string|null=null;
+const changeBattleControls=(canAct:boolean)=>{for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))btn.disabled=!canAct;};
 const stamp=(el:HTMLElement,value:string)=>{if(el.textContent!==value)el.textContent=value;};
 function renderCameraControl(){
   stamp(nodes.map,follow?'Show overview':'Follow hero');
@@ -45,26 +63,27 @@ const setScreen=(screen:'brief'|'field'|'finished')=>{
   playing=screen==='field'; nodes.brief.hidden=screen!=='brief';nodes.finished.hidden=screen!=='finished';
   nodes.pause.hidden=!playing;nodes.leave.hidden=!playing;nodes.upgrade.hidden=!playing;nodes.map.hidden=!playing;
   document.querySelector('.controls')?.setAttribute('aria-hidden',String(!playing));
-  for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))btn.disabled=!playing;
+  changeBattleControls(playing&&!paused&&game.player.alive);
+  respawn.hidden=!playing||game.player.alive;tactical.hidden=!playing||!game.player.alive;
 };
 function clearControls(){
   active.clear();pulses.clear();touches.clear();upgrade=false;
   for(const btn of document.querySelectorAll<HTMLElement>('[data-control]'))delete btn.dataset.held;
 }
 function begin(lane:MobaLane){
-  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm()); aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;
+  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm()); aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;previousAlive=true;knockoutSource=null;
   follow=true;clearControls();setScreen('field');measureViewport();renderCameraControl();stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
   canvas.focus({preventScroll:true});renderHud();
 }
 function leave(){
-  clearControls();paused=false;aim=null;lastAnnounced=0;game=createMoba();setScreen('brief');stamp(nodes.announce,'');renderHud();
+  clearControls();paused=false;aim=null;lastAnnounced=0;previousAlive=true;knockoutSource=null;game=createMoba();setScreen('brief');stamp(nodes.announce,'');renderHud();
   document.querySelector<HTMLButtonElement>('[data-lane="1"]')?.focus({preventScroll:true});
 }
 function pause(value:boolean){
   if(!playing)return;
-  paused=value;clearControls();prior=0;stamp(nodes.pause,paused?'Resume':'Pause');
+  paused=value;clearControls();changeBattleControls(playing&&!paused&&game.player.alive);prior=0;stamp(nodes.pause,paused?'Resume':'Pause');
   stamp(nodes.announce,paused?'Match paused.':'Match resumed.');
-  if(!paused)canvas.focus({preventScroll:true});
+  renderHud();if(!paused)canvas.focus({preventScroll:true});
 }
 for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-lane]')){
   btn.addEventListener('click',()=>begin(Number(btn.dataset.lane) as MobaLane));
@@ -81,7 +100,7 @@ window.addEventListener('keydown',event=>{
   if(event.key.toLowerCase()==='escape'&&!event.repeat){event.preventDefault();pause(!paused);return;}
   if(event.key.toLowerCase()==='m'&&!event.repeat){event.preventDefault();toggleCamera();return;}
   const key=keys[event.key.toLowerCase()];
-  if(!key||paused)return;
+  if(!key||paused||!game.player.alive)return;
   event.preventDefault();if(key==='upgrade'){if(!event.repeat)upgrade=true;}else {active.add(key);if(key==='attack'||key==='lunge')pulses.add(key);}
 });
 window.addEventListener('keyup',event=>active.delete(keys[event.key.toLowerCase()]));
@@ -90,17 +109,17 @@ function aimAt(event:PointerEvent){
   if(target)aim=target;
 }
 canvas.addEventListener('pointermove',event=>{if(playing&&event.pointerType!=='touch')aimAt(event);});
-canvas.addEventListener('pointerdown',event=>{if(playing&&!paused)aimAt(event);});
+canvas.addEventListener('pointerdown',event=>{if(playing&&!paused&&game.player.alive)aimAt(event);});
 for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]')){
   const key=btn.dataset.control!;
   btn.addEventListener('pointerdown',event=>{
-    if(!playing||paused)return;
+    if(!playing||paused||!game.player.alive)return;
     event.preventDefault();if(key==='attack'||key==='lunge')pulses.add(key);btn.setPointerCapture(event.pointerId);touches.set(event.pointerId,key);btn.dataset.held='true';
   });
   const release=(event:PointerEvent)=>{touches.delete(event.pointerId);delete btn.dataset.held;};
   for(const event of ['pointerup','pointercancel','lostpointercapture'] as const)btn.addEventListener(event,release);
   btn.addEventListener('keydown',event=>{
-    if((event.key==='Enter'||event.key===' ')&&playing&&!paused){event.preventDefault();active.add(key);if(key==='attack'||key==='lunge')pulses.add(key);}
+    if((event.key==='Enter'||event.key===' ')&&playing&&!paused&&game.player.alive){event.preventDefault();active.add(key);if(key==='attack'||key==='lunge')pulses.add(key);}
   });
   btn.addEventListener('keyup',event=>{if(event.key==='Enter'||event.key===' ')active.delete(key);});
   btn.addEventListener('blur',()=>active.delete(key));
@@ -109,11 +128,30 @@ function renderHud(){
   const clock=Math.max(0,Math.ceil(MOBA_MATCH_LIMIT-game.time));
   stamp(nodes.clock,playing||!nodes.finished.hidden?Math.floor(clock/60)+':'+String(clock%60).padStart(2,'0'):'10:00');
   stamp(nodes.wave,!playing&&nodes.finished.hidden?'AWAITING DEPLOYMENT':!game.wave?'WAVE INBOUND':'WAVE '+game.wave+' · '+Math.max(0,Math.ceil(game.nextWaveAt-game.time))+'S');
-  for(const [team,el] of [[0,nodes.blue],[1,nodes.red]] as const){
-    const p=game.cores[team], towers=game.towers.filter(t=>t.team===team&&t.alive).length;
-    stamp(el,(p.shielded?'Shielded':Math.ceil(p.hp/p.maxHp*100)+'% Core')+' · '+towers+'/3 towers');
+  for(const [team,el,kos] of [[0,nodes.blue,nodes.blueKills],[1,nodes.red,nodes.redKills]] as const){
+    const core=game.cores[team], towers=game.towers.filter(t=>t.team===team&&t.alive).length;
+    const percent=Math.max(0,Math.min(100,Math.ceil(core.hp/core.maxHp*100)));
+    el.setAttribute('data-towers',String(towers));
+    el.setAttribute('data-core',core.shielded?'shield':String(percent));
+    stamp(el,(core.shielded?'Shielded':percent+'% Core')+' · '+towers+'/3 towers');
+    // Opposing hero deaths count actual knockouts, including minion/tower kills.
+    const total=game.heroes.reduce((n,h)=>n+(h.team!==team?h.deaths:0),0);
+    stamp(kos,String(total));
+    kos.setAttribute('aria-label',(team===0?'Vanguard':'Ravager')+' knockouts: '+total);
   }
-  const p=game.player;
+  const p=game.player, down=playing&&!p.alive;
+  respawn.hidden=!down;tactical.hidden=!playing||down;
+  if(down){
+    respawnSource.hidden=!knockoutSource;
+    stamp(respawnSource,knockoutSource?'Knocked out by '+knockoutSource:'');
+    stamp(respawnClock,'Respawn in '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s');
+    respawnPaused.hidden=!paused;
+  }
+  if(!tactical.hidden){
+    const cue=mobaObjectiveCue(game);
+    tactical.setAttribute('data-warning',String(cue.warning));
+    stamp(tactical,cue.label);
+  }
   stamp(nodes.form,playing?(!p.alive?'Respawn '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s':MOBA_FORMS[p.form].name):'Ready to deploy');
   stamp(nodes.hp,playing?String(Math.ceil(p.hp)):'—');
   stamp(nodes.energy,playing?String(Math.floor(p.energy)):'—');
@@ -125,7 +163,7 @@ function renderHud(){
   nodes.upgrade.title='Buy a kit upgrade at the allied Core';
   // The terminal frame owns its live-region result; HUD updates only announce
   // in-match tower changes and this player's respawn.
-  if(!playing||game.phase!=='playing')return;
+  if(!playing||game.phase!=='playing'||!p.alive)return;
   const objective=game.events.findLast(e=>e.id>lastAnnounced&&(e.type==='tower'||e.type==='respawn'&&e.actorId===p.id));
   if(objective){
     lastAnnounced=objective.id;
@@ -133,6 +171,18 @@ function renderHud(){
   }
 }
 const moving=new Set<MobaHero>();
+function paintFirstTowerPing(){
+  const pos=playing&&follow?mobaFirstTowerDirection(game,view):null;
+  direction.hidden=!pos;
+  if(!pos)return;
+  const fit=Math.min(viewport.width/view.width,viewport.height/view.height);
+  if(fit<=0){direction.hidden=true;return;}
+  const x=(viewport.width-view.width*fit)*.5+pos.x*view.width*fit;
+  const y=(viewport.height-view.height*fit)*.5+pos.y*view.height*fit;
+  direction.style.left=Math.max(42,Math.min(viewport.width-42,x))+'px';
+  direction.style.top=Math.max(46,Math.min(viewport.height-34,y))+'px';
+  direction.style.setProperty('--edge-angle',pos.angle+'rad');
+}
 function frame(now:number){
   const dt=prior?Math.min(.075,Math.max(0,(now-prior)/1000)):0;prior=now;
   if(playing&&!paused&&!document.hidden){
@@ -145,6 +195,15 @@ function frame(now:number){
       stamp(nodes.detail,(game.endReason==='timeout'?'Time limit. ':'')+'You finished level '+game.player.level+' with '+game.player.kills+' knockouts.');
       stamp(nodes.announce,nodes.result.textContent??'Match complete.');
       byId('restart').focus({preventScroll:true});renderHud();
+    }else if(previousAlive!==game.player.alive){
+      previousAlive=game.player.alive;
+      clearControls();changeBattleControls(previousAlive);
+      if(!previousAlive){
+        aim=null;
+        knockoutSource=mobaDeathSource(game);
+        stamp(nodes.announce,knockoutSource?'Knocked out by '+knockoutSource+'.':'Knocked out.');
+      }
+      renderHud();lastUi=now;
     }else if(now-lastUi>100){renderHud();lastUi=now;}
   }
   if(!document.hidden){
@@ -153,6 +212,7 @@ function frame(now:number){
     view=frameMobaCamera(game.player,playing&&follow,viewport);
     if(canvas.width!==view.width)canvas.width=view.width;
     if(canvas.height!==view.height)canvas.height=view.height;
+    paintFirstTowerPing();
     paintMobaField(context,backdrop,game,playing?game.player:undefined,moving,view,!reduced.matches);
   }
   requestAnimationFrame(frame);

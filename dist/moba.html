@@ -18,7 +18,7 @@
   <section class="battle" aria-label="Battlefield">
     <div class="score">
       <div class="team blue"><b>VANGUARD</b><span id="blueStatus">Core intact</span></div>
-      <div class="time"><b id="clock">00:00</b><span id="wave">AWAITING DEPLOYMENT</span></div>
+      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Vanguard knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Ravager knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span></div>
       <div class="team red"><b>RAVAGERS</b><span id="redStatus">Core intact</span></div>
     </div>
     <div class="viewport">
@@ -34,16 +34,20 @@
         <button type="button" id="restart">Choose another front</button>
       </div>
     </div>
-    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready to deploy</b><span>HP <b id="heroHP">—</b></span><span>Stamina <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints">WASD move · J slash · K lunge · Space guard · M map · Esc pause</small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
+    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready to deploy</b><span>HP <b id="heroHP">—</b></span><span>Stamina <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints">WASD move · M map · Esc pause</small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
   </section>
   <section class="controls" aria-label="Battle controls">
     <div class="move" aria-label="Movement">
-      <button type="button" data-control="up" aria-label="Move up">↑</button>
-      <button type="button" data-control="left" aria-label="Move left">←</button>
-      <button type="button" data-control="down" aria-label="Move down">↓</button>
-      <button type="button" data-control="right" aria-label="Move right">→</button>
+      <button type="button" data-control="up" aria-label="Move up"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 14l4-4 4 4" transform="rotate(0 12 12)"/></svg></button>
+      <button type="button" data-control="left" aria-label="Move left"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 14l4-4 4 4" transform="rotate(-90 12 12)"/></svg></button>
+      <button type="button" data-control="down" aria-label="Move down"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 14l4-4 4 4" transform="rotate(180 12 12)"/></svg></button>
+      <button type="button" data-control="right" aria-label="Move right"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 14l4-4 4 4" transform="rotate(90 12 12)"/></svg></button>
     </div>
-    <div class="attacks"><button type="button" data-control="attack">Slash <kbd>J</kbd></button><button type="button" data-control="lunge">Lunge <kbd>K</kbd></button><button type="button" data-control="guard">Guard <kbd>Space</kbd></button></div>
+    <div class="attacks">
+      <button type="button" data-control="attack" aria-label="Slash (J)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 19C9 9 14 5 20 4"/><path d="M3.5 15.5c2 1.2 3.8 2.6 5 4.5"/><path d="M14 9.5l1.6 1.6"/></svg><span class="lbl">Slash</span><kbd>J</kbd></button>
+      <button type="button" data-control="lunge" aria-label="Lunge (K)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12h14"/><path d="M13 7l5 5-5 5"/><path d="M3 8.5v7"/></svg><span class="lbl">Lunge</span><kbd>K</kbd></button>
+      <button type="button" data-control="guard" aria-label="Guard (Space)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z"/><path d="M12 7.5v9"/></svg><span class="lbl">Guard</span><kbd>Space</kbd></button>
+    </div>
   </section>
   <footer><p><b>Move</b> WASD or arrows <span>·</span> <b>Aim</b> cursor or tap arena <span>·</span> <b>Map</b> M <span>·</span> <b>Upgrade</b> U near your Core <span>·</span> <b>Push</b> behind allied minions</p><p>Local match · no online matchmaking</p></footer>
   <p id="announce" class="sr" aria-live="polite"></p>
