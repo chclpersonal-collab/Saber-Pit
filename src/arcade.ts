@@ -45,6 +45,8 @@ import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
 import {renderRoundResult} from './arcade-results-view.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
+/** Home's Continue run: same action as Match setup's, shown only with a saved run. */
+const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
 type TouchAim={id:string}|(Point&{id?:never;until:number});
@@ -292,7 +294,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   prepareHeroWatch(isMenu||mode!=='watch',nextRound===1);
   for(const b of document.querySelectorAll<HTMLElement>('[data-order]'))b.setAttribute('aria-pressed',String(b.dataset.order===(game.order??'push')));
   $('forceAction').hidden=config.saberOnly;
-  $('continueRun').hidden=!savedCareer;
+  $('continueRun').hidden=!savedCareer;if(homeContinue)homeContinue.hidden=!savedCareer;
   $('autoDuelSaved').hidden=!savedCareer||!canAutoSaved(savedCareer);
   $('again').hidden=false;
   focus={x:W/2,y:H/2,zoom:1};
@@ -950,7 +952,7 @@ for(const id of ARCADE_FORM_IDS){
 $('style').value='makashi';
 
 function refreshSavedRunUI(){
-  $('continueRun').hidden=!savedCareer;
+  $('continueRun').hidden=!savedCareer;if(homeContinue)homeContinue.hidden=!savedCareer;
   $('autoDuelSaved').hidden=!savedCareer||!canAutoSaved(savedCareer);
   $('resumeCareer').disabled=!savedCareer;
   $('careerStatus').textContent=imported?'Classic ranks selected for new runs. The original save is unchanged.':savedCareer?'Saved run: '+titleCase(savedCareer.mode)+', round '+savedCareer.round+'.':'Completed rounds save on this device. Existing Classic saves stay separate.';
@@ -990,7 +992,7 @@ function resumeRun(automatic=false){
   const next=savedCareer;seed=next.seed;seedCounter=0;
   setScene('game',automatic?'watch':next.mode,next.round,{careers:next.careers,records:next.records,setup:savedSetup(next),heroLineup:next.heroLineup,arenaRatings:next.arenaRatings});
 }
-$('resumeCareer').addEventListener('click',()=>resumeRun());$('continueRun').addEventListener('click',()=>resumeRun());
+homeContinue?.addEventListener('click',()=>resumeRun());$('resumeCareer').addEventListener('click',()=>resumeRun());$('continueRun').addEventListener('click',()=>resumeRun());
 $('autoDuelSaved').addEventListener('click',()=>resumeRun(true));
 window.addEventListener('storage',e=>{
   if(e.storageArea!==localStorage||(e.key!==null&&e.key!==ARCADE_CAREER_KEY))return;

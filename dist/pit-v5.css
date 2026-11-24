@@ -75,3 +75,23 @@
 .fighter-appearance-detail summary{cursor:pointer;padding:.4rem 0}
 .fighter-appearance-detail p{font-size:.85rem;line-height:1.4;white-space:normal;overflow-wrap:anywhere;margin:.35rem 0 .55rem}
 @media(max-width:740px){.fighter-appearance-detail summary{min-height:44px;display:list-item;align-content:center}}
+
+/* A tall touch browser may expose a desktop-width layout viewport.
+   Scope to the menu: keep a full-width preview and usable setup controls. */
+@media (min-width:741px) and (max-width:1100px) and (max-aspect-ratio:7/10) and (pointer:coarse) {
+  body.pit-v5[data-view=menu] #app{
+    width:calc(100% - 36px);display:flex;flex-direction:column;gap:14px
+  }
+  body.pit-v5[data-view=menu] :is(.mast,.arena-launch,.entry,.arena-shell){width:100%;min-width:0}
+  body.pit-v5[data-view=menu] .mast{order:0;margin-bottom:0;flex-wrap:wrap}
+  body.pit-v5[data-view=menu] .arena-launch{order:1;padding:clamp(22px,4vw,38px)}
+  body.pit-v5[data-view=menu] .arena-shell{order:2;position:relative;top:auto;margin:0}
+  body.pit-v5[data-view=menu] .entry{order:3}
+  body.pit-v5[data-view=menu] .lobby{margin-bottom:0;padding:clamp(20px,3vw,32px)}
+  body.pit-v5[data-view=menu] .lobby-title{flex-wrap:wrap}
+  body.pit-v5[data-view=menu] :is(.lobby button,.lobby select,.lobby input:not([type=checkbox]),.arena-launch button,.launch-links a){
+    min-height:clamp(60px,10vw,100px);font-size:clamp(19px,3.1vw,32px)
+  }
+  body.pit-v5[data-view=menu] .lobby :is(label,summary){font-size:clamp(18px,2.7vw,28px)}
+  body.pit-v5[data-view=menu] .map-caption strong{font-size:clamp(20px,3vw,30px)}
+}
