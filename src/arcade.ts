@@ -457,7 +457,7 @@ $('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused)$('key
 mountStatsPage([...document.querySelectorAll<HTMLElement>('[data-open-stats]')]);
 // Settings: one dialog for the device settings that already exist. Same storage, same handlers.
 const settingsDialog=document.getElementById('settingsDialog') as HTMLDialogElement|null;
-let settingsReturn:HTMLElement|null=null, keysFromSettings=false;
+let settingsReturn:HTMLElement|null=null, keysFromSettings=false, settingsPaused:ArcadeGame|null=null;
 function syncSettings(){
   if(!settingsDialog)return;
   const pick=(attr:string,value:string)=>settingsDialog.querySelectorAll<HTMLButtonElement>(`[${attr}]`).forEach(b=>b.setAttribute('aria-pressed',String(b.getAttribute(attr)===value)));
@@ -465,7 +465,9 @@ function syncSettings(){
 }
 function openSettings(from:HTMLElement|null){
   if(!settingsDialog||settingsDialog.open)return;
-  if(view==='game'&&!paused)pause(true,{focus:false});
+  // Settings resumes only the live round it paused itself; a manual pause stays manual.
+  settingsPaused=null;
+  if(view==='game'&&!paused&&game?.phase==='playing'){pause(true,{focus:false});if(paused)settingsPaused=game;}
   settingsReturn=from;clearInput(false);syncSettings();settingsDialog.showModal();
 }
 if(settingsDialog){
@@ -492,7 +494,12 @@ if(settingsDialog){
     else if(b.id==='settingsKeys'){keysFromSettings=true;settingsDialog.close();keysPanel.open();return;}
     syncSettings();
   });
-  settingsDialog.addEventListener('close',()=>{clearInput(false);if(!keysFromSettings)settingsReturn?.focus({preventScroll:true});});
+  settingsDialog.addEventListener('close',()=>{
+    clearInput(false);if(keysFromSettings)return;
+    const own=settingsPaused;settingsPaused=null;
+    if(own&&own===game&&view==='game'&&paused&&game.phase==='playing'){pause(false);return;}
+    settingsReturn?.focus({preventScroll:true});
+  });
   $('keysDialog').addEventListener('close',()=>{if(!keysFromSettings)return;keysFromSettings=false;syncSettings();settingsDialog.showModal();(document.getElementById('settingsKeys') as HTMLButtonElement|null)?.focus();});
   document.getElementById('settingsOpen')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
   document.getElementById('pauseSettings')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
