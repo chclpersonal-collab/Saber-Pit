@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {DEFAULT_KEY_BINDINGS,KEY_BINDINGS_KEY,canBind,createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings,rebindKey,saveKeyBindings} from '../dist/arcade-keys.js';
 const store=(seed:Record<string,string>={})=>{const map=new Map(Object.entries(seed));return {getItem:(k:string)=>map.get(k)??null,setItem:(k:string,v:string)=>void map.set(k,v),removeItem:(k:string)=>void map.delete(k),map};};
 // The fixed map the Arena shipped with (arcade.ts before rebinding).
-const ORIGINAL={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+const ORIGINAL={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right',b:'stats'};
+// 5.1.2 adds the hold-to-peek Scoreboard on B; everything the Arena shipped with is unchanged.
 
 test('defaults give exactly the original key map',()=>{
   assert.deepEqual(keyMapFrom(loadKeyBindings(store())),ORIGINAL);
@@ -105,4 +106,27 @@ test('panel cancels a capture on Escape or Tab; Space can be bound and saves on 
     assert.equal(loadKeyBindings(s).guard,'j');
     panel.dispatchEvent(new Event('close'));assert.equal(status.textContent,'');
   }finally{restore('document',originalDocument);restore('localStorage',originalStorage);}
+});
+
+test('Scoreboard defaults to B and does not enter the move set',()=>{
+  assert.equal(DEFAULT_KEY_BINDINGS.stats,'b');
+  assert.equal(keyMapFrom(loadKeyBindings(store())).b,'stats');
+});
+test('a player who already uses B keeps it; Scoreboard moves to a free key and stays reachable',()=>{
+  for(const action of ['jump','strike','walk'] as const){
+    const s=store({[KEY_BINDINGS_KEY]:JSON.stringify(action==='strike'?{strike:'b'}:{[action]:'b'})});
+    const loaded=loadKeyBindings(s);
+    assert.equal(loaded[action],'b',action);
+    assert.notEqual(loaded.stats,'b',action);
+    assert.equal(loaded.stats,'n',action);
+    assert.equal(new Set(Object.values(loaded)).size,Object.keys(loaded).length,action);
+    assert.ok(saveKeyBindings(loaded,s));
+    assert.deepEqual(loadKeyBindings(s),loaded,action);
+  }
+  const busy=loadKeyBindings(store({[KEY_BINDINGS_KEY]:JSON.stringify({jump:'b',strike:'n',heavy:'m'})}));
+  assert.equal(busy.jump,'b');assert.equal(busy.strike,'n');assert.equal(busy.heavy,'m');assert.equal(busy.stats,'g');
+});
+test('Scoreboard can be rebound like any key',()=>{
+  const next=rebindKey({...DEFAULT_KEY_BINDINGS},'stats','l')!;
+  assert.equal(keyMapFrom(next).l,'stats');assert.equal(keyMapFrom(next).b,undefined);
 });

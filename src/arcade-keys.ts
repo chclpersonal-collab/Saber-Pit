@@ -6,14 +6,21 @@ export const KEY_ACTIONS=[
   ['up','Move up'],['down','Move down'],['left','Move left'],['right','Move right'],
   ['strike','Slash'],['heavy','Signature'],['guard','Guard'],['dash','Dash'],['jump','Jump'],
   ['feint','Feint'],['force','Force'],['technique','Technique'],['phase','Extend blade'],['walk','Walk'],
+  ['stats','Scoreboard (hold)'],
 ] as const;
 export type KeyAction = typeof KEY_ACTIONS[number][0];
 export type KeyBindings = Record<KeyAction,string>;
 
 export const DEFAULT_KEY_BINDINGS: Readonly<KeyBindings>=Object.freeze({
   up:'w',down:'s',left:'a',right:'d',strike:'j',heavy:'k',guard:' ',dash:'shift',jump:'q',
-  feint:'x',force:'f',technique:'r',phase:'v',walk:'c',
+  feint:'x',force:'f',technique:'r',phase:'v',walk:'c',stats:'b',
 });
+/**
+ * Actions added after players could save keys. If a saved binding already uses the new
+ * action's default, the player's binding wins and the new action takes the first free key.
+ */
+const ADDED_ACTIONS: ReadonlySet<KeyAction>=new Set<KeyAction>(['stats']);
+const SPARE_KEYS=[...'nmghtyuioezl','abcdefghijklmnopqrstuvwxyz','0123456789'];
 /** Arrows always move, unless the player gives that arrow to another action. */
 const ARROWS: Readonly<Record<string,KeyAction>>={arrowup:'up',arrowdown:'down',arrowleft:'left',arrowright:'right'};
 /** Pause and menu keys stay fixed so nobody can lock themselves out. */
@@ -45,6 +52,13 @@ export function loadKeyBindings(storage: StorageReader | null=local()): KeyBindi
     const k=normalizeKey(key);
     if(used.has(k))return {...DEFAULT_KEY_BINDINGS};
     used.add(k);out[action as KeyAction]=k;
+  }
+  for(const action of ADDED_ACTIONS){
+    if(Object.hasOwn(saved,action)&&out[action]!==DEFAULT_KEY_BINDINGS[action])continue;
+    const others=(Object.keys(out) as KeyAction[]).filter(id=>id!==action).map(id=>out[id]);
+    if(!others.includes(out[action]))continue;
+    const spare=SPARE_KEYS.find(k=>!others.includes(k)&&canBind(k));
+    if(spare)out[action]=spare;
   }
   return Object.values(out).length===new Set(Object.values(out)).size?out:{...DEFAULT_KEY_BINDINGS};
 }

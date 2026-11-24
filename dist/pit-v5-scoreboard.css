@@ -1,0 +1,53 @@
+/* Mid-match scoreboard. Hold the Scoreboard key or tap Stats. Team colours come from --sb-blue / --sb-pink so a palette pass can retune them in one place. */
+.scoreboard{
+  --sb-blue:#86eafe;--sb-pink:#ff978c;--sb-gold:var(--amber,#ebc387);
+  position:absolute;z-index:4;inset:auto;left:50%;top:50%;transform:translate(-50%,-48%);margin:0;border:0;
+  width:min(760px,calc(100% - 24px));max-height:calc(100% - 24px);display:flex;flex-direction:column;gap:8px;
+  padding:12px 14px;border-radius:14px;background:#0f1418eb;box-shadow:inset 0 0 0 1px #ffffff1f,0 10px 30px #000a;
+  color:var(--text,#f3eadb);font:600 14px/1.2 system-ui,sans-serif;
+}
+.scoreboard[hidden],.scoreboard:not([open]){display:none}
+.scoreboard[data-opened=toggle]{position:fixed;max-height:calc(100dvh - 24px);}
+.scoreboard::backdrop{background:#080d1280;}
+body[data-scoreboard] .arena-shell{z-index:40}
+.scoreboard[data-opened=hold]{pointer-events:none}
+.scoreboard[data-opened=hold] .sb-actions{display:none}
+.sb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sb-head p{margin:0}
+.sb-score{font:800 1.6rem/1 var(--display,system-ui);white-space:nowrap;font-variant-numeric:tabular-nums}
+.sb-score .blue{color:var(--sb-blue)}.sb-score .pink{color:var(--sb-pink)}
+.sb-meta{color:var(--soft,#c9bead);font-size:.86rem;white-space:nowrap}
+.sb-badge{font:900 .66rem/1 system-ui,sans-serif;letter-spacing:.14em;padding:5px 8px;border-radius:7px;box-shadow:inset 0 0 0 2px var(--muted,#a69b89);color:var(--soft,#c9bead)}
+.sb-badge[data-rated=true]{background:var(--sb-gold);color:#2a1600;box-shadow:none}
+.sb-actions{display:flex;gap:6px;margin-left:auto}
+.sb-actions button{min-height:44px;padding:6px 12px;border-radius:9px;border:1px solid #ffffff33;background:#ffffff14;color:inherit;font:inherit}
+.sb-actions button:hover{background:#ffffff26}
+.sb-actions button:focus-visible{outline:2px solid var(--sb-gold);outline-offset:2px}
+.sb-scroll{overflow:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.sb-table{width:100%;border-collapse:separate;border-spacing:0 3px;font-variant-numeric:tabular-nums}
+.sb-table thead th{position:sticky;top:0;z-index:1;background:#0f1418;font:900 .66rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#a69b89);text-align:right;padding:5px 9px}
+.sb-table thead th:first-child{text-align:left}
+.sb-table abbr{text-decoration:none}
+.sb-table td,.sb-table tbody th{padding:6px 9px;background:#ffffff0d;text-align:right;font-weight:600}
+.sb-table tbody th{text-align:left;display:flex;align-items:center;gap:7px;min-width:0;border-radius:9px 0 0 9px}
+.sb-table td:last-child{border-radius:0 9px 9px 0}
+.sb-table .sb-team th{display:table-cell;background:none;border-radius:0;padding:9px 2px 2px;font:800 1rem/1 var(--display,system-ui)}
+.sb-table .sb-team small{margin-left:8px;font:600 .74rem/1 system-ui,sans-serif;color:var(--muted,#a69b89)}
+.sb-team.blue th{color:var(--sb-blue)}.sb-team.pink th{color:var(--sb-pink)}
+.sb-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.sb-dot.blue{background:var(--sb-blue)}.sb-dot.pink{background:var(--sb-pink)}
+.sb-rank{flex:none;min-width:2.1em;text-align:center;font:800 .7rem/1 system-ui,sans-serif;padding:3px 4px;border-radius:6px;background:#ffffff1f}
+.sb-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-table tr.me>*{background:#ebc38733;box-shadow:inset 0 2px 0 var(--sb-gold),inset 0 -2px 0 var(--sb-gold)}
+.sb-table tr.ko>*{opacity:.55}
+.sb-note{margin:0;font-size:.76rem;color:var(--muted,#a69b89)}
+#statsButton kbd{font:800 .66rem/1 system-ui,sans-serif;background:#f3eadb;color:#1a1815;border-radius:4px;padding:2px 4px;margin-left:4px}
+@media (any-hover:none){html:not([data-arena-keyboard=true]) #statsButton kbd{display:none}}
+/* Phones: the arena is a short strip, so the board covers the screen instead. */
+@media (max-width:760px),(max-height:500px){
+  .scoreboard{background:#0f1418fa;position:fixed;left:8px;right:8px;top:max(8px,env(safe-area-inset-top,0px));bottom:auto;transform:none;width:auto;max-height:calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));padding:10px;font-size:13px}
+  .sb-score{font-size:1.3rem}
+  .sb-table td,.sb-table tbody th{padding:6px 6px}
+}
+@media (prefers-reduced-motion:no-preference){.scoreboard:not([hidden]){animation:sb-in .12s ease-out}}
+@keyframes sb-in{from{opacity:0}to{opacity:1}}
