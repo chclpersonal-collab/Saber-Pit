@@ -1,0 +1,61 @@
+/* Settings: one dialog, tabs on the left (top on phones), the v5 panel look. Existing controls and storage only. */
+.settings-open{min-width:44px;min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.settings-open svg{width:18px;height:18px;flex:none}
+.pit-v5 .mast-right .settings-open{border:0;border-radius:var(--v5-r-sm);background:var(--v5-panel-hi);color:#fff;font-family:var(--v5-ui);font-weight:800;box-shadow:0 3px 0 var(--v5-ink)}
+.pit-v5 .mast-right .settings-open:hover{background:var(--v5-line)}
+.pit-v5 .settings-dialog{
+  width:min(860px,calc(100vw - 32px));max-height:min(620px,calc(100dvh - 32px));padding:0;overflow:hidden;
+  border:3px solid var(--v5-line);border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel),var(--v5-deep));
+  color:#fff;font-family:var(--v5-ui);box-shadow:var(--v5-shadow)}
+.pit-v5 .settings-dialog::backdrop{background:rgb(12 6 36 / .72)}
+.pit-v5 .settings-dialog[open]{display:flex;flex-direction:column}
+.set-head{display:flex;align-items:center;gap:12px;padding:16px 20px 12px}
+.set-head form{margin:0}
+.set-head h2{margin:0;font:400 1.9rem/1 var(--v5-display);letter-spacing:.01em}
+.set-back{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--v5-r);background:var(--v5-panel-hi);color:#fff;
+  font:900 2.2rem/1 var(--v5-ui);padding-bottom:4px;box-shadow:0 var(--v5-lip) 0 var(--v5-ink);cursor:pointer}
+.set-body{display:grid;grid-template-columns:200px 1fr;min-height:0;flex:1;border-top:2px solid var(--v5-line)}
+.set-tabs{display:flex;flex-direction:column;gap:8px;padding:16px;background:rgb(12 6 36 / .35)}
+.set-tabs [role=tab]{min-height:48px;padding:0 16px;text-align:left;border:0;border-radius:var(--v5-r);background:transparent;color:var(--v5-soft);
+  font:400 1.15rem/1 var(--v5-display);cursor:pointer}
+.set-tabs [role=tab]:hover{background:var(--v5-panel-hi);color:#fff}
+.set-tabs [role=tab][aria-selected=true]{background:var(--v5-gold);color:var(--v5-ink);box-shadow:0 var(--v5-lip) 0 var(--v5-gold-lip)}
+.set-panels{overflow:auto;padding:8px 20px 20px;min-height:0}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:10px 0;border-bottom:1px solid rgb(90 71 184 / .45)}
+.set-row:last-child{border-bottom:0}
+.set-text{display:grid;gap:3px;min-width:0}
+.set-text b{font-weight:800;font-size:1rem}
+.set-text span{color:var(--v5-muted);font-size:.84rem}
+.set-seg{display:inline-flex;gap:4px;padding:4px;border-radius:var(--v5-r);background:var(--v5-ink);flex:none}
+.set-seg button{min-width:56px;min-height:44px;padding:0 12px;border:0;border-radius:var(--v5-r-sm);background:transparent;color:var(--v5-soft);font:800 .9rem/1 var(--v5-ui);cursor:pointer}
+.set-seg button:hover{color:#fff}
+.set-seg button[aria-pressed=true]{background:var(--v5-gold);color:var(--v5-ink);box-shadow:0 3px 0 var(--v5-gold-lip)}
+.set-action{min-height:44px;padding:0 18px;border:0;border-radius:var(--v5-r);background:var(--v5-panel-hi);color:#fff;font:800 .95rem/1 var(--v5-ui);
+  box-shadow:0 var(--v5-lip) 0 var(--v5-ink);cursor:pointer;flex:none}
+/* Sound and Reduced motion keep their own text for screen readers; the switch is drawn over it. */
+.pit-v5 .settings-dialog .set-switch{position:relative;flex:none;width:58px;height:44px;padding:0;border:0;border-radius:999px;background:var(--v5-ink);
+  color:transparent;font-size:0;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 2px var(--v5-line)}
+.pit-v5 .settings-dialog .set-switch::after{content:"";position:absolute;top:11px;left:5px;width:22px;height:22px;border-radius:50%;background:var(--v5-line);transition:transform .15s,background .15s}
+.pit-v5 .settings-dialog .set-switch[aria-pressed=true]{background:var(--v5-mint);box-shadow:none}
+.pit-v5 .settings-dialog .set-switch[aria-pressed=true]::after{transform:translateX(26px);background:#fff}
+.settings-dialog :is(button,select):focus-visible{outline:3px solid #fff;outline-offset:2px}
+@media (max-width:760px),(max-height:500px){
+  .pit-v5 .settings-dialog{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border:0;border-radius:0;margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box}
+  .set-body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .set-tabs{flex-direction:row;padding:10px 16px;overflow-x:auto}
+  .set-tabs [role=tab]{flex:1;min-height:44px;text-align:center;padding:0 10px;font-size:1rem}
+  .set-panels{padding:4px 16px 24px}
+  .set-text span{font-size:.8rem}
+  .set-seg button{min-width:48px;padding:0 8px}
+}
+@media (max-height:500px) and (min-width:700px){
+  .set-body{grid-template-columns:170px 1fr;grid-template-rows:none}
+  .set-tabs{flex-direction:column;overflow:visible}
+  .set-tabs [role=tab]{flex:none;text-align:left}
+  .set-head{padding:8px 16px}
+}
+@media (max-width:760px){.settings-open .settings-label{display:none}.settings-open{padding-inline:10px}}
+@media (prefers-reduced-motion:reduce){.settings-dialog .set-switch::after{transition:none}}
+body[data-reduced=true] .settings-dialog .set-switch::after{transition:none}
+
+@media(max-width:390px){.set-row{flex-wrap:wrap;gap:8px}.set-tabs [role=tab]{min-width:0}}

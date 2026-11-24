@@ -13,6 +13,7 @@ import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeMode,ArcadeOptions,Arcad
 import {drawArcadeFighter} from './arcade-painter.js?v=5.0.0';
 import {sampleArcadeFighter,arcadeBladeWorld,arcadeHeroLabelWorld} from './arcade-fighters.js?v=5.0.0';
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
+import {paintArcadeStageMatte} from './arcade-stage-matte.js';
 import {createArcadeStage,drawArcadeStage,createArcadeTerrain,drawArcadeObstacle,resolveArcadeMap} from './arcade-stage.js?v=4.0.0';
 import {FRAME_STEP,advanceSim,displayDelta,displayFighters,fighterSamples,newDisplayClock,resetDisplayClock} from './arcade-display.js?v=2.44.0';
 import {ARCADE_CAREER_KEY,classicCareers,readArcadeCareer,arenaCareerBytes,commitArenaRound,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
@@ -26,7 +27,7 @@ import {ARCADE_CHESS_STYLES} from './arcade-chess-styles.js?v=2.44.0';
 import {arcadeForcePoolEntry} from './arcade-force-pool.js';
 import {createArenaForcePicker} from './arcade-force-picker.js';
 import {ARCADE_GEAR_QUALITIES,ARCADE_FORCE_FAMILIES,ARCADE_SABER_OPTIONS,arcadeFighterGear,arcadeSaberOption} from './arcade-loadouts.js?v=3.1.0';
-import {actionFrame,stepActionFrame,screenToArena,composeArcadeFrame,portraitActionFrame,canFocusCauseways,selectArenaFocus} from './arcade-camera.js?v=2.16.0';
+import {actionFrame,stepActionFrame,screenToArena,composeArcadeFrame,portraitActionFrame,portraitDuelActionFrame,canFocusCauseways,selectArenaFocus} from './arcade-camera.js?v=2.16.0';
 import {battleHeroLineup,normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
 import {fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
 import {eloFloor} from './arcade-elo.js?v=2.18.5';
@@ -44,6 +45,9 @@ import {buildArenaScoreboard} from './arcade-scoreboard.js';
 import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
 import {renderRoundResult} from './arcade-results-view.js';
+import {activeArenaPreset,arenaSetupSummary} from './arcade-setup-summary.js';
+import {createSettingsSession} from './arcade-settings-session.js';
+import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
@@ -143,6 +147,19 @@ function resize(){
 new ResizeObserver(resize).observe(canvas);resize();
 function canPortraitFollow(){return portraitUI.matches&&view==='game';}
 function canDesktopCausewayFocus(){return view==='game'&&!canPortraitFollow()&&canFocusCauseways(matchSetup.mapId,game?.fighters.length??0);}
+// Fight view: Camera and Full screen live in Pause; the top cluster keeps Camera only where it fits.
+const pauseView=document.createElement('div');pauseView.className='dialog-actions pause-view';
+const pauseCamera=document.createElement('button');pauseCamera.type='button';pauseCamera.id='pauseCamera';
+pauseCamera.addEventListener('click',()=>{$('cameraView').click();pauseCamera.focus({preventScroll:true});});
+pauseView.append(pauseCamera,$('gameFullscreen'));
+$('pauseOverlay').querySelector('.dialog')?.append(pauseView);
+function syncPauseCamera(){
+  const button=$('cameraView');
+  pauseCamera.textContent=button.textContent;pauseCamera.hidden=button.hidden;pauseCamera.disabled=button.disabled;pauseCamera.title=button.title;
+  const pressed=button.getAttribute('aria-pressed');
+  if(pressed===null)pauseCamera.removeAttribute('aria-pressed');else pauseCamera.setAttribute('aria-pressed',pressed);
+  pauseCamera.setAttribute('aria-label',button.getAttribute('aria-label')??'Camera');
+}
 function syncCamera(){
   const button=$('cameraView'), portrait=canPortraitFollow(), causeways=canDesktopCausewayFocus();
   button.disabled=view!=='game'||(portrait||causeways?reduced:!game||game.config.rule!=='elimination'||game.fighters.length>6);
@@ -152,6 +169,7 @@ function syncCamera(){
   button.setAttribute('aria-label',portrait||causeways?button.textContent:'Action camera');
   if(portrait)button.removeAttribute('aria-pressed');else button.setAttribute('aria-pressed',String(action));
   button.title=reduced?'Reduced motion uses the wide frame':button.disabled?'The full arena stays visible in this match':portrait?'Switch camera view':causeways?'Follow your fighter or the fighter selected in Stats.':'Follow nearby fighters, or switch to a fixed wide view';
+  syncPauseCamera();
 }
 portraitUI.addEventListener('change',()=>{syncCamera();resize();if(game)draw(0);});
 function setReduced(value:boolean){
@@ -353,6 +371,7 @@ const footworkByTechnique=Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>['footw
 const heroTechnique={id:ARCADE_TRAKATA_ID,name:"Tràkata"};
 const techniqueHint={counter:'Best after a parry or block.',crowd:'Broad attack for multiple opponents.',force:'Uses Force.',acrobatics:'Uses aerial movement.',defense:'Uses defensive footwork.'};
 function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
+  document.getElementById('techFold')?.removeAttribute('open');
   const select=$('chosenTechnique'), previous=select.value;
   const list:TechniqueRow[]=f&&view==='game'?arcadeMovesFor(f.form,f.career.gradeIndex,{tactical:true,rankCuts:true,circuitCuts:f.circuitCuts===true,arenaCuts:game.config.arenaCuts===true,exchangeVariety:game.config.exchangeVariety===true,minorMoves:game.config.minorMoves===true}).filter(m=>!saberOnly||m.mapAction!=='force'):[];
   const steps=f&&view==='game'?arcadeRankFootworkFor(f.career.gradeIndex).map(m=>({name:m.label,id:'footwork:'+m.id})):[];
@@ -373,6 +392,8 @@ function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
   setTechniqueHint();
 }
 function setTechniqueHint(){
+  const pick=$('chosenTechnique').selectedOptions[0],foldName=document.getElementById('techFoldName');
+  if(foldName)foldName.textContent=pick?.text??'Technique';
   if($('chosenTechnique').value===ARCADE_TRAKATA_ID){
     $('quickTechnique').title=heroTechnique.name;
     $('techniqueHelp').textContent='Douse the saber, then reignite into a strike. No guard while dark.';
@@ -390,7 +411,7 @@ function setTechniqueHint(){
   $('quickTechnique').title=m?.name??'Selected technique';
   $('techniqueHelp').textContent=field(MINOR_MOVE_HINTS,selected)??field(CIRCUIT_CUT_HINTS,selected)??(m?.air?'Aerial technique.':field(tacticalHint,m?.tactical)??field(techniqueHint,m?.role)??'');
 }
-$('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();canvas.focus({preventScroll:true});});
+$('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();document.getElementById('techFold')?.removeAttribute('open');canvas.focus({preventScroll:true});});
 
 function syncAutoDuel(){
   const enabled=view==='game'&&autoDuel.active;
@@ -452,7 +473,65 @@ function syncKeyLabels(bindings=arenaBindings){
 const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=bindings;clearInput(false);syncKeyLabels(bindings);if(view==='game'&&mode!=='watch'&&mode!=='command'&&!mobileUI.matches)$('helpText').textContent=arenaKeyboardHint();});
 syncKeyLabels(keysPanel.bindings());
 $('keysOpen').addEventListener('click',()=>{if(paused){clearInput(false);keysPanel.open();}});
-$('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused)$('keysOpen').focus({preventScroll:true});});
+$('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused&&!settingsDialog?.open)$('keysOpen').focus({preventScroll:true});});
+// Settings: one dialog for the device settings that already exist. Same storage, same handlers.
+const settingsDialog=document.getElementById('settingsDialog') as HTMLDialogElement|null;
+let settingsReturn:HTMLElement|null=null, keysFromSettings=false;
+const settingsSession=createSettingsSession<typeof game>();
+function syncSettings(){
+  if(!settingsDialog)return;
+  const pick=(attr:string,value:string)=>settingsDialog.querySelectorAll<HTMLButtonElement>(`[${attr}]`).forEach(b=>b.setAttribute('aria-pressed',String(b.getAttribute(attr)===value)));
+  pick('data-touch-layout',touchPrefs.layout);pick('data-touch-side',touchPrefs.side);pick('data-hud-text',hudText.value);
+}
+function openSettings(from:HTMLElement|null){
+  if(!settingsDialog||settingsDialog.open)return;
+  if(settingsSession.begin(view==='game'&&game?.phase==='playing'?game:null,paused))pause(true,{focus:false});
+  settingsReturn=from;clearInput(false);syncSettings();settingsDialog.showModal();
+}
+if(settingsDialog){
+  const tabs=[...settingsDialog.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+  const select=(tab:HTMLButtonElement,focus=false)=>{
+    for(const t of tabs){const on=t===tab;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')!)!.hidden=!on;}
+    if(focus)tab.focus();
+  };
+  tabs.forEach((tab,i)=>{
+    tab.addEventListener('click',()=>select(tab));
+    tab.addEventListener('keydown',e=>{
+      const step=['ArrowDown','ArrowRight'].includes(e.key)?1:['ArrowUp','ArrowLeft'].includes(e.key)?-1:0;
+      const to=e.key==='Home'?0:e.key==='End'?tabs.length-1:step?(i+step+tabs.length)%tabs.length:-1;
+      if(to<0)return;e.preventDefault();select(tabs[to]!,true);
+    });
+  });
+  settingsDialog.addEventListener('click',e=>{
+    if(e.target===settingsDialog){settingsDialog.close();return;}
+    const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;
+    const layout=b.dataset.touchLayout,side=b.dataset.touchSide,size=b.dataset.hudText;
+    if(layout==='stick'||layout==='arrows')onTouchPref('layout',layout);
+    else if(side==='left'||side==='right')onTouchPref('side',side);
+    else if(size==='100'||size==='125'||size==='150'){hudText.value=size;hudText.dispatchEvent(new Event('change'));}
+    else if(b.id==='settingsKeys'&&!keysFromSettings){
+      keysFromSettings=true;keysPanel.open();
+      if(!$('keysDialog').open)keysFromSettings=false;
+      return;
+    }
+    syncSettings();
+  });
+  settingsDialog.addEventListener('close',()=>{
+    clearInput(false);
+    const resume=settingsSession.close(view==='game'&&game?.phase==='playing'?game:null,paused,document.hidden);
+    const origin=settingsReturn;settingsReturn=null;
+    if(resume)pause(false);else origin?.focus({preventScroll:true});
+  });
+  $('keysDialog').addEventListener('close',()=>{
+    if(!keysFromSettings)return;
+    keysFromSettings=false;
+    if(settingsDialog.open){syncSettings();document.getElementById('settingsKeys')?.focus({preventScroll:true});}
+  });
+  document.getElementById('settingsOpen')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
+  document.getElementById('pauseSettings')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
+  document.getElementById('resultSettings')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
+}
+const savedStatsDialog=mountStatsPage([...document.querySelectorAll<HTMLElement>('[data-open-stats]')]);
 window.addEventListener('keydown',e=>{
   if(e.isTrusted&&!e.isComposing&&e.key&&e.key!=='Unidentified'&&e.key!=='Process')document.documentElement.dataset.arenaKeyboard='true';
   if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey||view!=='game'||document.querySelector('dialog[open]:not(#scoreboard), #scoreboard[data-opened=toggle]')||isEditableTarget(e.target)||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
@@ -470,7 +549,7 @@ window.addEventListener('blur',()=>clearInput(false));
 window.addEventListener('orientationchange',()=>clearInput(false));
 document.addEventListener('visibilitychange',()=>{
   resetDisplayClock(clock);sim.remainder=0;sim.previous=null;clearInput(false);$('frameRate').textContent='FPS';
-  if(document.hidden)scoreboard.close();
+  if(document.hidden){scoreboard.close();settingsSession.background();}
   if(document.hidden&&view==='game'&&mode!=='watch'&&game?.phase==='playing'&&!paused)pause(true,{focus:false});
 });
 function onTouchPref<K extends keyof typeof touchPrefs>(key:K,next:(typeof touchPrefs)[K]){
@@ -821,7 +900,8 @@ function draw(dt:number){
     const {anchor,rival}=selectArenaFocus(W,H,alive,{hero:watched[0],preferred:canFocusCauseways(matchSetup.mapId,game.fighters.length)?preferredArenaFocusId:undefined,previous:portraitFocusId});
     if(anchor){
       portraitFocusId=anchor.id;
-      closeShot=portraitActionFrame(W,H,cw,ch,anchor,rival,portrait?2.05:1.64);
+      closeShot=portrait&&game.config.rule==='elimination'&&game.fighters.length===2
+        ?portraitDuelActionFrame(W,H,cw,ch,anchor,rival):portraitActionFrame(W,H,cw,ch,anchor,rival,portrait?2.05:1.64);
     }
   }
   const shot=closeShot??actionFrame({width:W,height:H,fighters:watched.length?watched:alive,enabled:enabled&&!causeways});
@@ -838,7 +918,8 @@ function draw(dt:number){
   portraitWasActive=portrait;causewayFocusWasActive=causewayShotActive;
   transform=composeArcadeFrame(cw,ch,W,H,focus,{profile,shake:shake as Point|undefined});
   const {scale,scaleY}=transform;
-  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#181613';ctx.fillRect(0,0,cw,ch);
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=canPortraitFollow()&&!portrait?'#15171b':'#181613';ctx.fillRect(0,0,cw,ch);
+  if(canPortraitFollow())paintArcadeStageMatte(ctx,stage.id,cw,ch,transform.y,H*scaleY!);
   ctx.setTransform(scale,0,0,scaleY!,transform.x,transform.y);
   drawArcadeStage(ctx,stage,W,H,displayTime,reduced);
   renderObjective();
@@ -901,7 +982,7 @@ function frame(now:number){
   if(view==='game'&&!crowdedLOD&&game.fighters.length>=12&&displayTime>1.6&&clock.fps>0&&clock.fps<38){
     crowdedLOD=true;resize();
   }
-  const simVisible=!paused&&!$('statsDialog').open&&!$('rankDialog').open&&!$('guide').open;
+  const simVisible=!paused&&!settingsDialog?.open&&!savedStatsDialog?.open&&!$('keysDialog').open&&!$('statsDialog').open&&!$('rankDialog').open&&!$('guide').open;
   if(simVisible&&$('frameRate').textContent!==fps)$('frameRate').textContent=fps;
   if(!document.hidden){
     if(simVisible){
@@ -1280,11 +1361,11 @@ function updateSetupHints(){
   $('pace').disabled=play;$('pace').title=play?'Available for Spectator and Commander':'';
   for(const el of document.querySelectorAll<HTMLElement>('[data-force-setting]'))el.hidden=setup.saberOnly;
   for(const b of document.querySelectorAll<HTMLElement>('[data-preset]')){
-    const kind=b.dataset.preset,p=field(presets,kind);
-    const same=kind==='master'?setup.teamSizes.join()==='1,15'&&setup.startingRanks.join()==='SSS+V,F'&&setup.participation==='watch'&&setup.rule==='elimination'
-      :p&&setup.participation===p.participation&&setup.rule===p.rule&&setup.teamSizes.join()===p.teamSizes.join();
-    b.setAttribute('aria-pressed',String(Boolean(same)));
+    b.setAttribute('aria-pressed',String(activeArenaPreset(setup,b.dataset.preset??'')));
   }
+  const summary=document.getElementById('setupSummary');
+  const text=arenaSetupSummary(setup);
+  if(summary&&summary.textContent!==text)summary.textContent=text;
   $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.read??'':'';
   $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':field(FORM_AIR_NAMES,setup.form)??'';
 }
@@ -1344,7 +1425,7 @@ for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
     if(!p)return;
     if(key==='master')imported=null;
     setup=normalizeSetup({...setup,...p,...(key==='master'?{heroPicks:[]}:{}),playerSlot:0});applyLobby();saveSetup(setup);setScene('menu');
-    $('setupStatus').textContent=button.textContent+' preset selected.';
+    $('setupStatus').textContent=(button.querySelector('b')?.textContent??button.textContent)+' preset selected.';
   });
 }
 $('resetSetup').addEventListener('click',()=>{setup=normalizeSetup();imported=null;applyLobby();saveSetup(setup);setScene('menu');$('setupStatus').textContent='Setup reset.';});

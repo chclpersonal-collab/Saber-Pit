@@ -1,6 +1,6 @@
 {
   "name": "saber-pit",
-  "version": "5.2.2",
+  "version": "5.3.0",
   "private": true,
   "type": "module",
   "description": "A tactical saber battlefield with rank-trained combat, acrobatic forms, Force repertoires and persistent careers",

@@ -22,9 +22,19 @@ if(form&&tabs){
       event.preventDefault();show(next,true);
     });
   });
+  let firstInvalid=false;
   form.addEventListener('invalid',event=>{
-    const index=panels.findIndex(panel=>panel.contains(event.target as Node|null));
+    if(firstInvalid)return; // one submit can synchronously report failures across several tabs
+    firstInvalid=true;queueMicrotask(()=>{firstInvalid=false;});
+    const target=event.target instanceof HTMLElement?event.target:null;
+    const details:HTMLDetailsElement[]=[];
+    for(let ancestor:HTMLElement|null=target?.parentElement??null;ancestor&&ancestor!==form;ancestor=ancestor.parentElement){
+      if(ancestor instanceof HTMLDetailsElement)details.push(ancestor);
+    }
+    details.reverse().forEach(detail=>{detail.open=true;});
+    const index=panels.findIndex(panel=>panel.contains(target));
     if(index>=0&&panels[index].hidden)show(index);
+    // Leave native validation and focus intact after revealing the first invalid field.
   },true);
   tabs.hidden=false;show(0);
 }

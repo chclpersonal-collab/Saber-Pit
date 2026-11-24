@@ -1,6 +1,6 @@
 # Loomen
 
-Loomen 5.2.2 is a 2D browser-based saber arena. Play or spectate custom fights, push three lanes in Three Fronts, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
+Loomen 5.3.0 is a 2D browser-based saber arena. Play or spectate custom fights, push three lanes in Three Fronts, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
 
 ## Run locally
 
@@ -22,6 +22,10 @@ The local server serves the generated website from `build/dist/`. Arena, tournam
 ## Arena Elo
 
 Equal-team Arena elimination rounds from 1v1 through 15v15 earn Elo. Fighters start at 100, and their training rank sets a ceiling just below the next rank's threshold (for example, F caps at 199.5 until promotion to E). Higher rated Arena AI reads and adapts to fights more effectively; its rating does not add health or damage. Results and ratings stay with the Arena run on this device. Training, objective and Hero matches do not change this rating, and tournament ratings remain separate.
+
+## Arena update in 5.3.0
+
+Match Setup uses quick presets, a current lineup summary, and one Customize panel. Save Sync warnings have their own row. Open Settings from the header, Pause, or Results; a manually paused match stays paused. Saved Stats shows existing Arena Elo and rank by fighter, with no invented match history. Portrait Close view keeps both fighters in frame at the start of a 1v1 Elimination match.
 
 ## Source and validation
 

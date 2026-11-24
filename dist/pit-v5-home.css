@@ -43,3 +43,14 @@
 @media (prefers-reduced-motion:reduce){.pit-v5 .home-hub .launch-actions button:active{transform:none}}
 
 .pit-v5 .home-hub .hub-continue[hidden]{display:none}
+
+
+/* Save warnings occupy their own setup row; never float over mode/preset controls. */
+body:not([data-view=menu]) .arena-sync-status{display:none}
+.arena-sync-status a{
+  display:flex;width:fit-content;max-width:100%;min-height:44px;align-items:center;
+  margin:.4rem 0 .65rem;padding:.45rem .8rem;border:1px solid #ba965e;
+  background:#35261b;color:#fff0cd;border-radius:9px;font-weight:850;
+  white-space:normal;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:.18em;
+}
+.arena-sync-status a:focus-visible{outline:2px solid #fff0cd;outline-offset:2px}

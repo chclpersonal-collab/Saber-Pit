@@ -77,3 +77,23 @@ export function selectArenaFocus<T extends ActiveFocusFighter>(width:number,heig
     (!best||(f.x-anchor.x)**2+(f.y-anchor.y)**2<(best.x-anchor.x)**2+(best.y-anchor.y)**2)?f:best,undefined):undefined;
   return {anchor,rival};
 }
+
+/** Portrait 1v1: frame the living pair even at the widest spawn, then
+ * close in continuously. Solo focus is retained only when no rival remains. */
+export function portraitDuelActionFrame(width:number,height:number,viewWidth:number,viewHeight:number,
+  anchor:CameraPoint&{airHeight?:number},nearby?:CameraPoint&{airHeight?:number}):ActionFocus {
+  if(!nearby||!(viewWidth>0&&viewHeight>0))return portraitActionFrame(width,height,viewWidth,viewHeight,anchor);
+  const dx=nearby.x-anchor.x, dy=nearby.y-anchor.y, gap=Math.hypot(dx,dy);
+  if(!Number.isFinite(gap))return portraitActionFrame(width,height,viewWidth,viewHeight,anchor);
+  const n=clamp((338-gap)/136,0,1), pair=n*n*(3-2*n);
+  const base=Math.min(viewWidth/width,viewHeight/height);
+  const anchorTop=anchor.y-Math.max(0,anchor.airHeight??0), rivalTop=nearby.y-Math.max(0,nearby.airHeight??0);
+  const feet=Math.max(anchor.y,nearby.y), head=Math.min(anchorTop,rivalTop)-96;
+  const room=Math.min(viewWidth/(base*(Math.abs(dx)+218)),viewHeight/(base*(feet-head+119)));
+  // Deliberately allow a wide opening instead of losing the rival offscreen.
+  // At exchange distance the prior close-up limit and above-head bias remain.
+  const zoom=Math.max(1,Math.min(room,2.05+.59*pair));
+  const xRoom=Math.min(width/2,viewWidth/(2*base*zoom)),yRoom=Math.min(height/2,viewHeight/(2*base*zoom));
+  return {zoom,x:clamp((anchor.x+nearby.x)*.5,xRoom,width-xRoom),
+    y:clamp((feet+head)*.5-32,yRoom,height-yRoom)};
+}

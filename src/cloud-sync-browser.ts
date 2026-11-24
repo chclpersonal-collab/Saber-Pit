@@ -11,28 +11,41 @@ const backup={...files,exportArcadeBackup:(storage?: StorageReader,sections?:rea
 export const browserSync=createCloudSync({storage,transport:createBrowserCloudTransport(),
   backup,preserve:storeCloudRecovery});
 let started=false,discoveryRetries=0;
-function promptIfNeeded(result: SyncResult | null | undefined){
+export function promptIfNeeded(result: SyncResult | null | undefined){
   if(!result)return;
   if(['current','uploaded','downloaded'].includes(result.status)) {
     document.getElementById('cloudSyncNotice')?.remove();
     for(const label of document.querySelectorAll<HTMLElement>('[data-cloud-original]')){
       label.textContent=label.dataset.cloudOriginal??'Saves';delete label.dataset.cloudOriginal;
+      const link=label.closest('a');
+      if(link&&link.dataset.cloudTitle!==undefined){
+        if(link.dataset.cloudTitle)link.title=link.dataset.cloudTitle;else link.removeAttribute('title');
+        delete link.dataset.cloudTitle;
+      }
     }
     return;
   }
-  if(!['changed','conflict','cloud-newer','reset','recovery-blocked','unlinked'].includes(result.status))return;
-  const message=result.status==='unlinked'?'Link cloud saves':result.status==='cloud-newer'?'Cloud save available':'Review save sync';
-  for(const a of document.querySelectorAll<HTMLAnchorElement>('a[href="./backup.html"]')){
+  if(!['changed','conflict','cloud-newer','reset','recovery-blocked','unlinked','pending'].includes(result.status))return;
+  const message=result.status==='unlinked'?'Link cloud saves':result.status==='cloud-newer'?'Cloud save available':result.status==='pending'?'Save sync pending':'Review save sync';
+  const host=document.querySelector<HTMLElement>('[data-cloud-notice-host]');
+  if(!host)for(const a of document.querySelectorAll<HTMLAnchorElement>('a[href="./backup.html"]')){
+    if(a.id==='cloudSyncNotice')continue;
     const label=a.querySelector('span')??a;
     label.dataset.cloudOriginal??=label.textContent??'';label.textContent=message;
+    a.dataset.cloudTitle??=a.title;
     a.title='Progress needs review before syncing';
   }
   const canRefresh='canRefresh' in result&&result.canRefresh;
   if(!document.getElementById('cloudSyncNotice')){
     const a=document.createElement('a');
     a.href='./backup.html';a.id='cloudSyncNotice';
-    a.style.cssText='position:fixed;z-index:1000;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));padding:9px 13px;color:#f6e5c9;background:#211c18;border:1px solid #a68b63;border-radius:6px;font-size:.875rem;';
-    document.body.append(a);
+    if(host)host.append(a);
+    else{
+      // Other screens retain an actionable, in-flow notice without relying
+      // on their page-specific navigation or fight layouts.
+      a.style.cssText='display:block;width:fit-content;max-width:calc(100% - 24px);margin:8px auto;padding:9px 13px;color:#f6e5c9;background:#211c18;border:1px solid #a68b63;border-radius:6px;font-size:.875rem;';
+      document.body.append(a);
+    }
   }
   const notice=document.getElementById('cloudSyncNotice') as HTMLAnchorElement;
   notice.href=canRefresh?window.location.href:'./backup.html';
