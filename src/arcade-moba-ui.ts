@@ -57,7 +57,7 @@ function begin(lane:MobaLane){
   canvas.focus({preventScroll:true});renderHud();
 }
 function leave(){
-  clearControls();paused=false;aim=null;game=createMoba();setScreen('brief');renderHud();
+  clearControls();paused=false;aim=null;lastAnnounced=0;game=createMoba();setScreen('brief');stamp(nodes.announce,'');renderHud();
   document.querySelector<HTMLButtonElement>('[data-lane="1"]')?.focus({preventScroll:true});
 }
 function pause(value:boolean){
@@ -123,7 +123,10 @@ function renderHud(){
   stamp(nodes.upgrade,cost===null?'Kit maxed':'Upgrade '+p.credits+'/'+cost);
   nodes.upgrade.disabled=!playing||paused||!canBuy;
   nodes.upgrade.title='Buy a kit upgrade at the allied Core';
-  const objective=game.events.findLast(e=>e.id>lastAnnounced&&(e.type==='tower'||e.type==='core'||e.type==='respawn'&&e.actorId===p.id));
+  // The terminal frame owns its live-region result; HUD updates only announce
+  // in-match tower changes and this player's respawn.
+  if(!playing||game.phase!=='playing')return;
+  const objective=game.events.findLast(e=>e.id>lastAnnounced&&(e.type==='tower'||e.type==='respawn'&&e.actorId===p.id));
   if(objective){
     lastAnnounced=objective.id;
     stamp(nodes.announce,objective.type==='tower'?(objective.team===0?'Enemy tower destroyed.':'Allied tower lost.'):'Respawn complete.');
