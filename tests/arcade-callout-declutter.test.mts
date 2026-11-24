@@ -12,9 +12,11 @@ test('the same label close together merges into one with a count',()=>{
   assert.equal(arcadeCalloutText(shown[1]),'BLADE CLASH');
 });
 
-test('overlapping different labels keep the higher priority',()=>{
+test('overlapping different labels: the higher priority keeps the spot, a parry moves up',()=>{
   const shown=declutterArcadeCallouts([c('a','PARRY',200,120,2),c('b','KO - TORSO',210,125,4)]);
-  assert.deepEqual(shown.map(s=>s.label),['KO - TORSO']);
+  assert.deepEqual(shown.map(s=>s.label),['KO - TORSO','PARRY']);
+  assert.equal(shown[0].y,125);
+  assert.ok(shown[1].y<=125-26);
 });
 
 test('the player\'s own label always shows',()=>{
@@ -73,4 +75,34 @@ test('families group KO regions and parry kinds',()=>{
   assert.equal(arcadeCalloutFamily('KO · TORSO'),'KO');
   assert.equal(arcadeCalloutFamily('PERFECT PARRY · +4 STAMINA'),'PARRY');
   assert.equal(arcadeCalloutFamily('BLADE CLASH'),'BLADE CLASH');
+});
+
+test('edge: a KO under the player\'s own label moves up a line instead of vanishing',()=>{
+  const shown=declutterArcadeCallouts([c('me','RIPOSTE',300,200,3,true),c('k','KO · HEAD',310,204,5)]);
+  const ko=shown.find(s=>s.actors.includes('k'));
+  assert.ok(ko,'KO dropped');
+  const mine=shown.find(s=>s.actor==='me')!;
+  assert.ok(Math.abs(ko.y-mine.y)>=26,'KO still overlaps the player label');
+});
+
+test('edge: plain cues still give way on overlap under budget',()=>{
+  const shown=declutterArcadeCallouts([c('a','GUARD BREAK',300,200,4),c('b','BLADE CLASH',310,204,2)]);
+  assert.deepEqual(shown.map(s=>s.actor),['a']);
+});
+
+test('edge: KO and parry at once both show when the player\'s labels fill the budget',()=>{
+  const mine=[c('me','RIPOSTE',100,100,3,true),c('me','FEINT',400,100,3,true),c('me','DODGE',700,100,3,true)];
+  const shown=declutterArcadeCallouts([...mine,c('k','KO · TORSO',1000,100,5),c('p','PERFECT PARRY',1300,100,4),c('x','BLADE CLASH',1600,100,2)],{budget:3});
+  const texts=shown.filter(s=>!s.focus).map(s=>s.label);
+  assert.ok(texts.some(t=>t.startsWith('KO')),'KO dropped');
+  assert.ok(texts.some(t=>t.includes('PARRY')),'parry dropped');
+  assert.ok(!texts.includes('BLADE CLASH'),'plain cue should give way');
+});
+
+test('edge: an over-budget KO line sitting on the player\'s label is nudged clear',()=>{
+  const burst=Array.from({length:5},(_,i)=>c('k'+i,'KO · TORSO',i*200,100,5));
+  const shown=declutterArcadeCallouts([c('me','RIPOSTE',0,100,3,true),...burst,c('g','GUARD BREAK',900,400,4),c('b','BLADE CLASH',1200,400,2)],{budget:3});
+  const me=shown.find(s=>s.actor==='me')!;
+  for(const s of shown)if(s!==me)assert.ok(!(Math.abs(s.x-me.x)<96&&Math.abs(s.y-me.y)<26),s.label+' overlaps the player label');
+  assert.equal(shown.filter(s=>!s.focus).reduce((t,s)=>t+(s.label==='KO'||s.label.startsWith('KO')?s.count:0),0),5);
 });

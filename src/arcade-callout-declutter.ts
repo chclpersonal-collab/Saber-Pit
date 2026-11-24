@@ -52,10 +52,17 @@ function shownFrom(g:Group,label=g.lead.label):ArcadeCalloutShown{
  * fighter's label and never dropped by the budget or by overlap. When more
  * groups want the screen than the budget allows, the rest fold into one
  * label per cue family ("KO ×4", "PARRY ×2"), KO and parry first, so a burst
- * of knockouts or parries still reads instead of vanishing.
+ * of knockouts or parries still reads instead of vanishing. KO and parry
+ * are never dropped: on overlap they move up a line, and over budget their
+ * family lines are kept even when the player's own labels fill the budget.
  */
 export function declutterArcadeCallouts(candidates:readonly ArcadeCalloutCandidate[],options:ArcadeCalloutOptions={}):ArcadeCalloutShown[]{
   const mergeRadius=options.mergeRadius??90, w=options.boxWidth??96, h=options.boxHeight??26, budget=Math.max(1,options.budget??6);
+  const overlaps=(a:ArcadeCalloutShown,b:ArcadeCalloutShown)=>Math.abs(a.x-b.x)<w&&Math.abs(a.y-b.y)<h;
+  const nudged=(next:ArcadeCalloutShown,taken:readonly ArcadeCalloutShown[])=>{
+    for(let step=0;step<4&&taken.some(s=>overlaps(s,next));step++)next=Object.freeze({...next,y:next.y-h});
+    return next;
+  };
   const sorted=candidates.filter(c=>Number.isFinite(c.x)&&Number.isFinite(c.y)&&c.label).slice().sort(order);
   const focusGroups:Group[]=[], groups:Group[]=[];
   for(const c of sorted){
@@ -71,8 +78,11 @@ export function declutterArcadeCallouts(candidates:readonly ArcadeCalloutCandida
   const room=Math.max(0,budget-shown.length);
   if(groups.length<=room){
     for(const g of groups){
-      const next=shownFrom(g);
-      if(shown.some(s=>Math.abs(s.x-next.x)<w&&Math.abs(s.y-next.y)<h))continue;
+      let next=shownFrom(g);
+      const key=familyRank(arcadeCalloutFamily(g.lead.label))<KEY_FAMILIES.length;
+      // Plain cues give way on overlap; a KO or parry is nudged up instead of dropped.
+      if(!key&&shown.some(s=>overlaps(s,next)))continue;
+      next=nudged(next,shown);
       shown.push(next);
     }
     return shown;
@@ -86,12 +96,15 @@ export function declutterArcadeCallouts(candidates:readonly ArcadeCalloutCandida
   }
   const ranked=[...families.entries()].sort(([a,ga],[b,gb])=>familyRank(a)-familyRank(b)||gb.lead.priority-ga.lead.priority||
     gb.members.length-ga.members.length||(a<b?-1:a>b?1:0));
-  for(const [fam,g] of ranked.slice(0,Math.max(1,room))){
+  // KO and parry always get their line, even when focus labels fill the budget;
+  // other families share whatever room is left.
+  const keys=ranked.filter(([fam])=>familyRank(fam)<KEY_FAMILIES.length);
+  const rest=ranked.filter(([fam])=>familyRank(fam)>=KEY_FAMILIES.length).slice(0,Math.max(0,room-keys.length));
+  const picked=keys.length||rest.length?[...keys,...rest]:ranked.slice(0,1);
+  for(const [fam,g] of picked){
     // Sit on the lead's spot, nudged up past any label already there instead of dropping.
     let next=shownFrom({...g,members:g.members},g.members.length>1?fam:g.lead.label);
-    next=Object.freeze({...next,x:Math.round(g.lead.x),y:Math.round(g.lead.y)});
-    for(let step=0;step<4&&shown.some(s=>Math.abs(s.x-next.x)<w&&Math.abs(s.y-next.y)<h);step++)
-      next=Object.freeze({...next,y:next.y-h});
+    next=nudged(Object.freeze({...next,x:Math.round(g.lead.x),y:Math.round(g.lead.y)}),shown);
     shown.push(next);
   }
   return shown;
