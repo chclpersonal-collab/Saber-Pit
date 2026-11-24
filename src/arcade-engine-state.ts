@@ -49,7 +49,7 @@ export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'
  gear:ArcadeFighter['gear'];weaponFlow:boolean;
  guardBearing:number|null;guardHeld:boolean;guardLane:'left'|'right'|'center';guardLock:number;
  guardRead?:'ready'|'held'|null;parryTime:number;invuln:number;
- think:number;decision:'guard'|null;buffer:{type:string;until:number}|null;
+ think:number;decision:'guard'|null;buffer:{type:string;until:number;clashStrike?:true}|null;
  combo:number;counterUntil:number;counterMove:boolean;targetId:string|null;targetUntil:number;
  contributors:{id:string;time:number;damage:number}[];
  rankDominance:number;feintRedirect?:number|null;spawn?:Point;

@@ -2155,6 +2155,8 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
   const vecX=clamp(finite(commands.x)?commands.x:0,-1,1),vecY=clamp(finite(commands.y)?commands.y:0,-1,1);
   const mag=Math.hypot(vecX,vecY), moveX=vecX/Math.max(1,mag),moveY=vecY/Math.max(1,mag);
   const manualAim=finite(commands.aimX)&&finite(commands.aimY)&&Math.hypot(commands.aimX!-f.x,commands.aimY!-f.y)>.1;
+  const clashStrike=f.buffer?.clashStrike===true&&f.action!=='clash';
+  if(clashStrike)f.buffer=null; // a one-shot attempt, even if stamina is insufficient
   const force=commands.force&&!s.config.saberOnly;
   const selected=f.control&&commands.technique?ARCADE_TECHNIQUES[commands.technique!]:null;
   const explicit=selected?.form===f.form&&selected.minRank<=f.career.gradeIndex&&(!selected.circuitCut||s.config.circuitCuts)&&(!selected.arenaCut||s.config.arenaCuts)&&(!selected.exchangeCut||s.config.exchangeVariety)&&(!selected.minorMove||s.config.minorMoves)?selected.id:null;
@@ -2286,6 +2288,11 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
       const followup=ARCADE_TECHNIQUES[f.buffer!.type!]?f.buffer!.type:f.buffer!.type==='force'?'force':f.buffer!.type==='heavy'?def.heavy:'slash';
       attack(s,f,followup,aim);
     }
+  } else if(f.action==='clash'&&f.control&&s.config.motionFlow?.clashStrikeBuffer){
+    // Hold one explicit Slash edge through the real blade lock, not through
+    // another interruption. Other commands keep their regular priorities.
+    if(request==='strike'&&!commands.guard&&f.airPhase==='grounded'&&!f.airArc)
+      f.buffer={type:'strike',until:s.time+Math.max(0,f.actionDuration-f.actionTime)+.10,clashStrike:true};
   } else if(attacking){
     if(request) f.buffer={type:request,until:s.time+(f.formRules?.59:.39)};
     const canCancel=f.actionTime>Math.max(attacking.contact+(f.formRules?.115:.065),(attacking.offhand?.contact??0)+.038)&&f.airPhase!=='airborne'&&(!attacking.airStrike||f.airPhase==='grounded');
@@ -2330,10 +2337,12 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
     const nearbyLower=f.control&&f.rankDominance>=8?s.fighters.filter(e=>e.team!==f.team&&e.alive&&Math.hypot(e.x-f.x,e.y-f.y)<166).length:0;
     if(f.actionDuration===0&&(commands.heavy||f.buffer?.type==='heavy'))attack(s,f,commands.technique??
       (nearbyLower>=2?rankTechnique(s,f,enemy!,'heavy',nearbyLower):null)??def.heavy,aim);
-    if(f.actionDuration===0&&(commands.strike||f.buffer?.type==='strike')){
+    if(f.actionDuration===0&&(commands.strike||f.buffer?.type==='strike'||
+      clashStrike&&!commands.guard&&f.airPhase==='grounded'&&!f.airArc)){
       const parryFollow=f.parryCounterUntil!>s.time&&enemy?.id===f.counterTarget&&
         Math.hypot(enemy!.x-f.x,enemy!.y-f.y)<130&&(f.control||f.career.gradeIndex>=6&&s.config.teamSizes[0]===s.config.teamSizes[1]);
-      attack(s,f,commands.technique??(parryFollow?'riposte':'slash'),aim);
+      attack(s,f,commands.technique??(parryFollow?'riposte':'slash'),
+        clashStrike&&!commands.strike&&!manualAim&&enemy?Math.atan2(enemy.y-f.y,enemy.x-f.x):aim);
     }
     if(f.actionDuration===0){
       if(commands.guard&&f.guardLock===0&&f.energy>.1){
