@@ -131,7 +131,11 @@ Burst, Pulse by slot. For the player, the Force button cycles Push → Pulse →
 Burst, and `forceHint` shows the next one. Older builds read `mixed` as
 Push, so saves stay safe.
 
-### B3 · Auto battle only works for some setups
+### B3 · Auto battle is locked outside Elo-rated setups (low priority, not a v5 fix)
+
+The player confirmed Auto battle starts for Duel and for 15v15. This note is
+only the code-level lock for the other setups.
+
 
 `autoDuelStart` is disabled unless the lobby is Elo-rated (`arcade.ts:1090`,
 `arenaLobbyRating`). So Auto battle is off for:
