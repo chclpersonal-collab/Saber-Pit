@@ -1,3 +1,4 @@
+import {ARENA_MOTION_FLOW,PREVIEW_MOTION_FLOW} from './arcade-motion-flow.js';
 import {MINOR_MOVE_HINTS} from './arcade-minor-moves.js?v=3.1.0';
 import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=3.2.0';
 import {ARCADE_MOTION_KEY,readArcadeReducedMotion,saveArcadeReducedMotion} from './arcade-motion-preference.js?v=2.43.0';
@@ -217,7 +218,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
-    round,terrain,limit:config.duration,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,styleChoreo:true,peasantMotion:true,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,stanceFlow:!isMenu,liveEntry:!isMenu,impactPhysics:!isMenu,recoveryFlow:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
+    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   roundRated=!isMenu&&arenaNormalRanked(game);
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});

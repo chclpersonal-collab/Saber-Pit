@@ -3,6 +3,8 @@ import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
 import {normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {ENVIRONMENTS} from './environment.js?v=1.4.0';
 import type {ArcadeBounds,ArcadeCover} from './arcade-engine-geometry.js';
+import {normalizeArcadeMotionFlow} from './arcade-motion-flow.js';
+import type {ArcadeMotionFlow,ArcadeMotionFlowInput} from './arcade-motion-flow.js';
 import type {ArcadeRecord} from './arcade-engine-stats.js';
 
 export type ArcadeRule='elimination'|'control'|'relic';
@@ -20,6 +22,7 @@ type RankSetting=string|readonly string[];
 type RankInputs=readonly RankSetting[]|{blue?:RankSetting;red?:RankSetting;0?:RankSetting;1?:RankSetting};
 interface InputTerrain {id?:string;bounds?:Partial<ArcadeBounds>;solids?:readonly ArcadeCover[];zones?:readonly ArcadeCover[]}
 export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Partial<Record<GearOptions,unknown>> {
+  motionFlow?: ArcadeMotionFlowInput;
   mode?: string;
   seed?: number|string;
   width?: number;
@@ -51,6 +54,7 @@ export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Par
   fighterChessStyles?: readonly (readonly (string|null)[]|null)[];
 }
 export interface ArcadeConfig extends ReturnType<typeof normalizeArcadeGear>, Partial<Record<Flag,true>> {
+  motionFlow?: ArcadeMotionFlow;
   teamSizes:[number,number];limit:number;rule:ArcadeRule;weather:string;
   playerSlot:number;saberOnly:boolean;teamForms:(string|readonly string[]|null)[];
   doctrines:string[];targeting:string[];formations:string[];deployments:string[];
@@ -88,20 +92,21 @@ export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [nu
   if(activeFootwork===true)config.activeFootwork=true;
   if(styleTravel===true)config.styleTravel=true;
   if(repertoireSupport===true)config.repertoireSupport=true;
-  if(styleChoreo===true)config.styleChoreo=true;
-  if(peasantMotion===true)config.peasantMotion=true;
+  if(!options.motionFlow&&styleChoreo===true)config.styleChoreo=true;
+  if(!options.motionFlow&&peasantMotion===true)config.peasantMotion=true;
   if(exchangeVariety===true)config.exchangeVariety=true;
-  if(stanceFlow===true)config.stanceFlow=true;
+  if(!options.motionFlow&&stanceFlow===true)config.stanceFlow=true;
   if(impactPhysics===true)config.impactPhysics=true;
-  if(recoveryFlow===true&&impactPhysics===true)config.recoveryFlow=true;
+  if(!options.motionFlow&&recoveryFlow===true&&impactPhysics===true)config.recoveryFlow=true;
   if(balancePass===true)config.balancePass=true;
   if(closeChoice===true)config.closeChoice=true;
   if(guardCounterplay===true)config.guardCounterplay=true;
   if(minorMoves===true)config.minorMoves=true;
   if(forceVariants===true&&expandedCombat===true)config.forceVariants=true;
-  if(liveEntry===true)config.liveEntry=true;
+  if(!options.motionFlow&&liveEntry===true)config.liveEntry=true;
   if(arenaRatingSkill===true)config.arenaRatingSkill=true;
   if(eloReads===true&&ratingSkill===true)config.eloReads=true;
   if(fluidFootwork===true)config.fluidFootwork=true;
+  if(options.motionFlow)config.motionFlow=normalizeArcadeMotionFlow(options.motionFlow,impactPhysics===true);
   return config;
 }

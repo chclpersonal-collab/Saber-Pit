@@ -40,6 +40,8 @@ type StringOption='aiJumpPurpose'|'airStrike'|'attackFamily'|'attackVariant'|'ch
 type AttackChoice={id:string;family:string};
 export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'|'chessPawn'|'airRequest'|'heroEloFloorGrade'|'heroPlan'|'spawn'|'injuries'>,
  Partial<Record<NumericOption,number>>, Partial<Record<BooleanOption,boolean>>, Partial<Record<StringOption,string|null>> {
+ motionLinkedHit?:boolean;
+ motionAirCarry?:boolean;
  attackSpec:SimMove|null;
  archetype:ArcadeArchetype;formRules:boolean;
  career:ReturnType<typeof progressionSummary>;skill:ReturnType<typeof combatSkillProfile>;rankCombat:(typeof ARCADE_RANK_COMBAT)[number];
