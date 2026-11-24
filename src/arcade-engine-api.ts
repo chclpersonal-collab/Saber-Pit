@@ -4,7 +4,7 @@
  * One boundary adapter prevents its incomplete inference from leaking
  * empty array types or unchecked values through every consumer.
  */
-import {createArcade as create,stepArcade as step} from './arcade-engine.js?v=5.0.0';
+import {createArcade as create,stepArcade as step} from './arcade-engine.js?v=5.1.0';
 import type {ArcadePoint,ArcadeBounds,ArcadeCover} from './arcade-engine-geometry.js';
 import type {ArcadeInput,ArcadeOrder} from './arcade-engine-step.js';
 import type {ArcadeRecord,ArcadeRoundStats,ArcadeTeamStats} from './arcade-engine-stats.js';
@@ -17,7 +17,7 @@ import type {progressionSummary} from './progression.js';
 
 import type {ArcadeOptions,ArcadeConfig} from './arcade-engine-config.js?v=5.0.0';
 export type {ArcadeInput,ArcadeOptions};
-export {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_STAT_KEYS,arcadeMovesFor} from './arcade-engine.js?v=5.0.0';
+export {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_STAT_KEYS,arcadeMovesFor} from './arcade-engine.js?v=5.1.0';
 export type ArcadeMode='duel'|'squad'|'watch'|'command';
 export type ArcadeRule='elimination'|'control'|'relic';
 export type ArcadePhase='playing'|'won'|'lost'|'draw';

@@ -6,7 +6,7 @@ import {peakLeaderboard,readEloPeaks,recordRatedEloPeak,seedKnownEloPeak} from '
 import {sanitizeTournamentLoadout,validTournamentMove} from './arcade-tournament-adaptation.js?v=2.42.0';
 import {fighterDisplayName,fighterNameKeysGiven as first,fighterNameKeysFamily as last,fighterNameParts,chooseRecruitFamily,fighterFamilyName} from './arcade-fighter-names.js?v=2.35.0';
 /** Seeded 24- or 32-player ladder with a 16-slot main draw. Storage and combat are injected. */
-import {ARCADE_FORM_IDS} from './arcade-engine.js?v=5.0.0';
+import {ARCADE_FORM_IDS} from './arcade-engine.js?v=5.1.0';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
 import {ARCADE_MAPS} from './arcade-stage.js';
 import {fighterGender,validFighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
