@@ -38,6 +38,8 @@ import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
 import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=2.25.3';
 import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
+import {createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings} from './arcade-keys.js';
+import {mountKeysPanel} from './arcade-keys-panel.js';
 interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
 type TouchAim={id:string}|(Point&{id?:never;until:number});
@@ -104,7 +106,8 @@ hudText.addEventListener('change',()=>{
   try{localStorage.setItem(HUD_TEXT_KEY,setting);}catch{}
 });
 
-const keyMap:Record<string,string>={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
+const heldArenaKeys=createHeldArenaKeys(keys);
 const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
 const callouts=createArcadeFloatingText();
 const announce=(text:string)=>{$('announce').textContent=text;};
@@ -197,7 +200,7 @@ function cancelStick(){
   paintStick();
 }
 function clearInput(clearAim=true){
-  touchDown=null;keys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();
+  touchDown=null;heldArenaKeys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();
   if(clearAim){touchAim=null;syncTouchAim();}
   document.querySelectorAll<HTMLElement>('[data-held=true]').forEach(b=>b.dataset.held='false');
 }
@@ -312,7 +315,7 @@ const FORM_AIR_NAMES={
 };
 function syncHelp(){
   $('helpText').textContent=mode==='watch'?'Open Stats to inspect any fighter.':mode==='command'?'Choose an order for Blue. The team fights automatically.':
-    mobileUI.matches?'Jump, then tap Slash in the air. Move while jumping for directional footwork.':'Q to jump · J in the air to strike · Space to parry';
+    mobileUI.matches?'Jump, then tap Slash in the air. Move while jumping for directional footwork.':arenaKeyboardHint();
 }
 mobileUI.addEventListener('change',syncHelp);
 
@@ -418,14 +421,24 @@ function pause(value:boolean,{focus=true}={}){
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
+function arenaKeyboardHint(){return keyLabel(arenaBindings.jump)+' to jump · '+keyLabel(arenaBindings.strike)+' in the air to strike · '+keyLabel(arenaBindings.guard)+' to parry';}
+function syncKeyLabels(bindings=arenaBindings){
+  for(const [action,key] of Object.entries(bindings))document.querySelectorAll<HTMLElement>(`[data-action="${action}"] kbd`).forEach(k=>{k.textContent=keyLabel(key);});
+}
+const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=bindings;clearInput(false);syncKeyLabels(bindings);if(view==='game'&&mode!=='watch'&&mode!=='command'&&!mobileUI.matches)$('helpText').textContent=arenaKeyboardHint();});
+syncKeyLabels(keysPanel.bindings());
+$('keysOpen').addEventListener('click',()=>{if(paused){clearInput(false);keysPanel.open();}});
+$('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused)$('keysOpen').focus({preventScroll:true});});
 window.addEventListener('keydown',e=>{
-  if(view!=='game'||$('statsDialog').open||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
+  if(e.isTrusted&&!e.isComposing&&e.key&&e.key!=='Unidentified'&&e.key!=='Process')document.documentElement.dataset.arenaKeyboard='true';
+  if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey||view!=='game'||document.querySelector('dialog[open]')||isEditableTarget(e.target)||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
   const key=e.key.toLowerCase();
   if(key==='escape'||key==='p'){if(!e.repeat){e.preventDefault();pause(!paused);}return;}
-  const action=keyMap[key];if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
-  e.preventDefault();if(e.repeat)return;keys.add(action);if(['strike','heavy','dash','guard','force','technique','phase','feint','jump'].includes(action))pulse.add(action);
+  const action=Object.hasOwn(keyMap,key)?keyMap[key]:null;if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
+  e.preventDefault();if(e.repeat)return;heldArenaKeys.press(e,action);if(['strike','heavy','dash','guard','force','technique','phase','feint','jump'].includes(action))pulse.add(action);
 });
-window.addEventListener('keyup',e=>{const a=keyMap[e.key.toLowerCase()];if(a)keys.delete(a);});
+window.addEventListener('keyup',e=>heldArenaKeys.release(e));
+document.addEventListener('focusin',e=>{if(isEditableTarget(e.target)||document.querySelector('dialog[open]'))clearInput(false);});
 window.addEventListener('blur',()=>clearInput(false));
 window.addEventListener('orientationchange',()=>clearInput(false));
 document.addEventListener('visibilitychange',()=>{

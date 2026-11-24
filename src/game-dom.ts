@@ -20,7 +20,7 @@ export interface ArenaElements {
   'gameFullscreen':HTMLButtonElement; 'useTechnique':HTMLButtonElement; 'copySeed':HTMLButtonElement; 'useClassic':HTMLButtonElement; 'resumeCareer':HTMLButtonElement;
   'arena':HTMLCanvasElement;
   'chessStyleOptions':HTMLDetailsElement; 'teamOptions':HTMLDetailsElement; 'heroOptions':HTMLDetailsElement; 'roundOptions':HTMLDetailsElement;
-  'guide':HTMLDialogElement; 'statsDialog':HTMLDialogElement; 'rankDialog':HTMLDialogElement;
+  'guide':HTMLDialogElement; 'statsDialog':HTMLDialogElement; 'keysDialog':HTMLDialogElement; 'keysOpen':HTMLButtonElement; 'rankDialog':HTMLDialogElement;
   'app':HTMLElement; 'arenaLaunchTitle':HTMLElement; 'entry':HTMLElement; 'lobbyHeading':HTMLElement; 'setup-panel-match':HTMLElement; 'watchHeroHelp':HTMLElement; 'setup-panel-roster':HTMLElement;
   'kitHint0':HTMLElement; 'kitHint1':HTMLElement; 'fighterSettings':HTMLElement; 'lobbyFormsHeading':HTMLElement; 'yourFormRow':HTMLElement; 'styleLabel':HTMLElement; 'playerSlotLabel':HTMLElement;
   'formDetail':HTMLElement; 'airFormDetail':HTMLElement; 'teamFormRow':HTMLElement; 'blueDefaultLabel':HTMLElement; 'roster0':HTMLElement; 'roster1':HTMLElement; 'chessStyleHint0':HTMLElement;

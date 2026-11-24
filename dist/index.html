@@ -1,10 +1,10 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101112"><meta name="description" content="Saber Pit. Hand-inked saber duels and squad battles.">
-<title>Saber Pit</title><link rel="stylesheet" href="./arcade.css?v=5.1.0"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.1.0"></head>
+<title>Saber Pit</title><link rel="stylesheet" href="./arcade.css?v=5.1.1"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.1.0"></head>
 <body class="pit-v3 pit-v4 pit-v5">
 <main id="app">
-  <header class="mast"><a href="./index.html" class="identity" aria-label="Saber Pit home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">SABER PIT<span>VERSION 5.1.0</span></div></a>
+  <header class="mast"><a href="./index.html" class="identity" aria-label="Saber Pit home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">SABER PIT<span>VERSION 5.1.1</span></div></a>
   <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
   <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" hidden>Stats</button><button type="button" id="sound" aria-pressed="false">Sound off</button><button type="button" id="motion" aria-pressed="false">Reduced motion</button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
   <section class="arena-launch" aria-labelledby="arenaLaunchTitle">
@@ -109,7 +109,7 @@
     <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
-      <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" data-home>Setup</button></div></div>
+      <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" data-home>Setup</button></div></div>
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
       <div class="dialog"><p class="eyebrow" id="resultRound"></p><h2 id="resultTitle"></h2><p id="resultText"></p><p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><p id="autoDuelCountdown" class="promotion" hidden></p><div class="dialog-actions">
@@ -151,6 +151,11 @@
   <div id="techniqueBar" class="technique-bar" hidden><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div>
   <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
   <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><h2 id="guideTitle">The seven saber forms</h2><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Saber Pit.</p></dialog>
+  <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
+    <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
+    <ol id="keysList" class="keys-list"></ol>
+    <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
+  </dialog>
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
     <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
     <section class="injury-report moves-used" aria-labelledby="injuryHeading">
@@ -178,4 +183,4 @@
   </dialog>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
-<script type="module" src="./arcade-sync-entry.js?v=5.1.0"></script><script type="module" src="./pit-v3-ui.js?v=4.01.4"></script></body></html>
+<script type="module" src="./arcade-sync-entry.js?v=5.1.1"></script><script type="module" src="./pit-v3-ui.js?v=4.01.4"></script></body></html>
