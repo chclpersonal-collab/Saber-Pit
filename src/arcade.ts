@@ -39,6 +39,8 @@ import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=2.25.3';
 import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
 import {createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings} from './arcade-keys.js';
+import {buildArenaScoreboard} from './arcade-scoreboard.js';
+import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
 interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
@@ -108,6 +110,19 @@ hudText.addEventListener('change',()=>{
 
 let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
 const heldArenaKeys=createHeldArenaKeys(keys);
+const scoreboard=mountArenaScoreboard({
+  root:document.getElementById('scoreboard'),toggle:document.getElementById('statsButton') as HTMLButtonElement|null,
+  details:document.getElementById('scoreboardDetails') as HTMLButtonElement|null,close:document.getElementById('scoreboardClose') as HTMLButtonElement|null,
+  model:()=>view==='game'&&game?buildArenaScoreboard({
+    fighters:game.fighters.map(f=>({id:f.id,team:f.team,slot:f.slot,control:f.control,alive:f.alive,
+      name:f.displayName??formName(f.form),rank:gradeDisplayLabel(f.career?.grade??'F'),
+      kills:f.stats?.kills,deaths:f.stats?.deaths,damage:f.stats?.damage,slotRating:roundRatings[f.id],heroElo:f.heroElo})),
+    rule:game.config.rule,mapSize:matchSetup.mapId==='high_bastion'?'':String(matchSetup.mapSize??''),round,secondsLeft:game.limit-game.time,rated:roundRated,
+    objective:game.objective?.target?[game.objective.score[0]??0,game.objective.score[1]??0]:null,
+  }):null,
+  onDetails:()=>openStats(),
+  canOpen:()=>view==='game'&&!paused&&!document.querySelector('dialog[open]'),
+});
 const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
 const callouts=createArcadeFloatingText();
 const announce=(text:string)=>{$('announce').textContent=text;};
@@ -200,7 +215,7 @@ function cancelStick(){
   paintStick();
 }
 function clearInput(clearAim=true){
-  touchDown=null;heldArenaKeys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();
+  touchDown=null;heldArenaKeys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();scoreboard.hold(false);
   if(clearAim){touchAim=null;syncTouchAim();}
   document.querySelectorAll<HTMLElement>('[data-held=true]').forEach(b=>b.dataset.held='false');
 }
@@ -286,7 +301,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('entry').hidden=view!=='menu';$('hud').hidden=view!=='game';$('floorUI').hidden=view!=='game';$('pause').hidden=view!=='game';$('statsButton').hidden=view!=='game';
   for(const id of ['touchLayout','touchSide','resetAim'] as const)$(id).hidden=isMenu||mode==='watch'||mode==='command';
   syncFullscreen();
-  $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';syncAutoDuel();
+  $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';syncAutoDuel();scoreboard.close();
   for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
@@ -416,14 +431,14 @@ for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
 }
 function pause(value:boolean,{focus=true}={}){
   if(view!=='game'||game.phase!=='playing')return;
-  paused=value;clearInput();sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
+  paused=value;clearInput();scoreboard.close();sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
   $('pause').textContent=paused?'Resume':'Pause';
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
 function arenaKeyboardHint(){return keyLabel(arenaBindings.jump)+' to jump · '+keyLabel(arenaBindings.strike)+' in the air to strike · '+keyLabel(arenaBindings.guard)+' to parry';}
 function syncKeyLabels(bindings=arenaBindings){
-  for(const [action,key] of Object.entries(bindings))document.querySelectorAll<HTMLElement>(`[data-action="${action}"] kbd`).forEach(k=>{k.textContent=keyLabel(key);});
+  for(const [action,key] of Object.entries(bindings))document.querySelectorAll<HTMLElement>(`[data-action="${action}"] kbd,[data-key-action="${action}"] kbd`).forEach(k=>{k.textContent=keyLabel(key);});
 }
 const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=bindings;clearInput(false);syncKeyLabels(bindings);if(view==='game'&&mode!=='watch'&&mode!=='command'&&!mobileUI.matches)$('helpText').textContent=arenaKeyboardHint();});
 syncKeyLabels(keysPanel.bindings());
@@ -434,10 +449,13 @@ window.addEventListener('keydown',e=>{
   if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey||view!=='game'||document.querySelector('dialog[open]')||isEditableTarget(e.target)||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
   const key=e.key.toLowerCase();
   if(key==='escape'||key==='p'){if(!e.repeat){e.preventDefault();pause(!paused);}return;}
-  const action=Object.hasOwn(keyMap,key)?keyMap[key]:null;if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
+  const action=Object.hasOwn(keyMap,key)?keyMap[key]:null;
+  // Scoreboard is a peek, not a move: it works for spectators and commanders too, and never enters the input set.
+  if(action==='stats'){if(!paused&&game.phase==='playing'){e.preventDefault();if(!e.repeat)scoreboard.hold(true);}return;}
+  if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
   e.preventDefault();if(e.repeat)return;heldArenaKeys.press(e,action);if(['strike','heavy','dash','guard','force','technique','phase','feint','jump'].includes(action))pulse.add(action);
 });
-window.addEventListener('keyup',e=>heldArenaKeys.release(e));
+window.addEventListener('keyup',e=>{heldArenaKeys.release(e);if(e.key&&keyMap[e.key.toLowerCase()]==='stats')scoreboard.hold(false);});
 document.addEventListener('focusin',e=>{if(isEditableTarget(e.target)||document.querySelector('dialog[open]'))clearInput(false);});
 window.addEventListener('blur',()=>clearInput(false));
 window.addEventListener('orientationchange',()=>clearInput(false));
@@ -572,7 +590,7 @@ function showEnd(){
     progress+(saveNotice?' · '+saveNotice:'')+' · '+(settled.rated?arenaRatingDetail(selected.id,selected.after.gradeIndex):'Unrated');
   $('again').textContent='Next round';
   updateHUD();
-  $('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
+  scoreboard.close();$('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
   $(conflict?'resultStats':'again').focus({preventScroll:true});
   autoDuel.completeRound(persisted&&career.round<=100000);syncAutoDuel();
   announce(autoDuel.active?text+'. Next round in 3 seconds.':text);
@@ -693,6 +711,7 @@ function updateHUD(){
   const remaining=Math.max(0,Math.ceil(game.limit-game.time));
   $('clock').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
   $('round').textContent='Round '+round;
+  scoreboard.refresh();
 }
 function events(dt:number){
   fx.observe(game.events);fx.update(dt,reduced||crowdedLOD);
@@ -1063,7 +1082,6 @@ $('copySeed').addEventListener('click',async()=>{
   catch{$('copySeed').textContent='Copy unavailable';}
 });
 $('resultStats').addEventListener('click',openStats);
-$('statsButton').addEventListener('click',openStats);
 $('statsDialog').addEventListener('close',()=>{if(!paused&&game.phase==='playing')canvas.focus({preventScroll:true});});
 
 
