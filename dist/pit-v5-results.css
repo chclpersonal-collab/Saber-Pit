@@ -1,0 +1,47 @@
+/* End-of-round result card: your line, then Elo. Elo change shows only once it is saved. */
+#result .result-card{--r-gold:var(--amber,#ebc387);--r-up:#8be3a8;--r-down:#ff9a8a;width:min(94%,520px);text-align:left}
+#result .r-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+#result .r-top .eyebrow{margin:0;font-variant-numeric:tabular-nums}
+#result .r-badge{font:900 .64rem/1 system-ui,sans-serif;letter-spacing:.14em;padding:4px 7px;border-radius:6px;box-shadow:inset 0 0 0 2px var(--muted,#a69b89);color:var(--soft,#c9bead)}
+#result .r-badge[data-rated=true]{background:var(--r-gold);color:#2a1600;box-shadow:none}
+#result .r-who,#result .r-elo-who{margin:0 0 4px;font:900 .64rem/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#a69b89)!important}
+#result .r-elo-who{margin-bottom:6px}
+#result .r-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 0}
+#result .r-tiles div{display:flex;flex-direction:column-reverse;align-items:center;padding:8px 4px;border-radius:10px;background:#ffffff0f;box-shadow:inset 0 0 0 1px #ffffff1a;text-align:center;min-width:0}
+#result .r-tiles dd{margin:0;font:800 1.55rem/1 var(--display,system-ui);font-variant-numeric:tabular-nums;color:var(--text,#f3eadb)}
+#result .r-tiles dt{margin-top:4px;font:800 .62rem/1 system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted,#a69b89)}
+#result .r-hits{margin:6px 0 10px;text-align:center;font:700 .8rem/1 system-ui,sans-serif;color:var(--muted,#a69b89)!important;font-variant-numeric:tabular-nums}
+#result .r-elo{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:#ffffff0f;box-shadow:inset 0 0 0 1px #ffffff1a}
+#result .r-elo p{margin:0}
+#result .r-elo-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+#result .r-rank{align-self:center;min-width:2em;text-align:center;padding:4px 6px;border-radius:7px;background:var(--r-gold);color:#2a1600;font:900 .8rem/1 system-ui,sans-serif}
+#result .r-rating{font:800 1.6rem/1 var(--display,system-ui);font-variant-numeric:tabular-nums;color:var(--text,#f3eadb)}
+#result .r-unit{font-size:.75rem;color:var(--muted,#a69b89)}
+#result .r-delta{font:800 1rem/1 system-ui,sans-serif;color:var(--r-down)}
+#result .r-delta[data-up=true]{color:var(--r-up)}
+#result .r-delta[data-flat=true]{color:var(--muted,#a69b89)}
+#result .r-saved{margin-left:auto;font:800 .74rem/1 system-ui,sans-serif;color:var(--r-up)}
+#result .r-bar{position:relative;height:8px;margin:9px 0 5px;border-radius:5px;background:#ffffff1f;overflow:hidden}
+#result .r-bar::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--pct,0%);background:var(--r-gold)}
+#result .r-bar::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--pct,0%) - var(--gain,0%));width:var(--gain,0%);background:var(--r-up)}
+#result .r-next{font-size:.76rem;color:var(--muted,#a69b89)!important;font-variant-numeric:tabular-nums}
+#result .r-elo-note{font-size:.84rem;color:var(--soft,#c9bead)!important}
+@media (max-width:760px),(max-height:500px){
+  #result .r-tiles dd{font-size:1.2rem}
+  #result .r-tiles div{padding:6px 2px}
+  #result .r-elo{padding:8px 10px;margin-bottom:6px}
+  #result .r-rating{font-size:1.3rem}
+}
+
+/* The live arena can be shorter than its result card in either orientation. */
+@media (max-width:760px),(max-height:500px){
+  body[data-view=game] .arena-shell:has(>#result:not([hidden])){z-index:5}
+  body[data-view=game] .arena-shell > #result{
+    position:fixed;inset:0;box-sizing:border-box;
+    padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  }
+  #result .result-card{width:min(100%,520px);box-sizing:border-box;max-height:100%;overflow:auto;overscroll-behavior:contain}
+  #result .dialog-actions{position:sticky;bottom:0;flex-wrap:wrap;background:var(--v5-deep,#111827);padding:5px 0}
+  #result .dialog-actions button{min-height:44px}
+  #result .r-tiles dd{max-width:100%;overflow-wrap:anywhere}
+}
