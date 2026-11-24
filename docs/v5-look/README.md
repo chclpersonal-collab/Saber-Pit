@@ -4,6 +4,8 @@ Status: draft from CLARISSA-01, to agree with CLARA-01 before anything is built.
 
 Player's verdict on 5.1.0: it looks like a hacker terminal or a submarine console, not a game from today. Decluttering did not fix that. v5 needs a new art direction.
 
+Front-end screens: `screens.html?view=home|modes|loadout|settings|board|results|pause|stats` (shots in `shots/`). What today's top games do and where stats go: `frontend-reference.md`.
+
 Mockup: `mock.html?view=menu|duel|squad|looks`, served from the repo root after a build (it imports the fighter painter from `build/dist`). Shots in `shots/` (1340x820 and 390x844). Static, for direction only.
 
 ## Inspiration, our own look

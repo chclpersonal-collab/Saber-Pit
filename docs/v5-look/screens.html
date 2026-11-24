@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Saber Pit v5 screens</title>
+<link rel="stylesheet" href="mock.css">
+<style>
+/* ---------- shared screen bits ---------- */
+.scr{position:absolute;inset:0;display:grid;grid-template-rows:auto 1fr;gap:18px;padding:22px 32px}
+.top{display:flex;align-items:center;gap:14px}
+.back{width:48px;height:48px;border-radius:14px;border:0;background:linear-gradient(#4a3a9a,#33267a);box-shadow:0 5px 0 #1d1350;display:grid;place-items:center}
+.back svg{width:26px;height:26px}
+.title{font:400 2.4rem/1 var(--display);text-shadow:0 4px 0 #0c0624}
+.glass{background:#1d1347e6;border:2px solid #5a47b8aa;border-radius:22px;box-shadow:0 12px 0 #0c0624,0 18px 40px #000a}
+.rk{display:inline-grid;place-items:center;min-width:34px;height:34px;padding:0 6px;font:400 1.05rem/1 var(--display);color:#2a1600;background:linear-gradient(#ffe36e,var(--gold));clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.rk.sm{min-width:24px;height:24px;font-size:.78rem}
+.up{color:var(--mint)}.down{color:var(--red)}
+.muted{color:#a59cd6}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:0;border-radius:12px;padding:9px 14px;font:900 .92rem/1 var(--ui);color:#cfc8f5;background:#140b2e;box-shadow:inset 0 0 0 2px #5a47b866}
+.chip.on{color:#2a1600;background:linear-gradient(#ffe36e,var(--gold));box-shadow:0 4px 0 var(--gold-dk)}
+.chip small{display:block;font:800 .68rem/1 var(--ui);margin-top:4px;opacity:.75}
+.lab{font:900 .72rem/1 var(--ui);letter-spacing:.16em;color:#a59cd6;margin:0 0 8px}
+.hint{font:800 .8rem/1 var(--ui);color:#a59cd6;display:flex;align-items:center;gap:6px}
+.hint kbd{font:900 .72rem/1 var(--ui);background:#fff;color:#22164f;border-radius:6px;padding:3px 7px;box-shadow:0 2px 0 #0006}
+
+/* ---------- player card with stats ---------- */
+.pcard{color:inherit;text-decoration:none;margin-left:auto;display:flex;align-items:center;gap:12px;background:#1d1347cc;border:2px solid var(--line);border-radius:20px;padding:6px 8px 6px 6px;backdrop-filter:blur(6px)}
+.pcard .who b{display:block;font:400 1.2rem/1 var(--display)}
+.pcard .who span{font-size:.78rem;color:#a59cd6}
+.pstats{display:flex;gap:4px;margin-left:6px}
+.pstats div{background:#140b2e;border-radius:12px;padding:6px 10px;text-align:center;min-width:62px}
+.pstats b{display:block;font:400 1.15rem/1 var(--display)}
+.pstats span{font:900 .62rem/1 var(--ui);letter-spacing:.12em;color:#a59cd6}
+
+/* ---------- home ---------- */
+@media (min-width:601px){.home .hub{grid-template-columns:1.25fr 1fr 1fr}}
+.playbig{font-size:1.7rem;padding:.6em 1.2em}
+.playbig small{display:block;font:900 .7rem/1 var(--ui);letter-spacing:.12em;color:#5a3a00;margin-top:3px}
+.home .card.big .btns{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
+.home .card.big .btn{margin-top:0}
+
+/* ---------- mode select ---------- */
+.modes{display:grid;grid-template-columns:400px 1fr;gap:22px;min-height:0}
+.mlist{display:grid;gap:10px;align-content:start}
+.mrow{display:grid;grid-template-columns:92px 1fr auto;align-items:center;gap:14px;padding:8px 14px 8px 8px;border-radius:18px;background:#1d1347e6;box-shadow:inset 0 0 0 2px #5a47b855,0 6px 0 #0c0624}
+.mrow canvas{width:92px;height:58px;border-radius:12px}
+.mrow b{font:400 1.35rem/1 var(--display)}
+.mrow span{display:block;font-size:.78rem;color:#a59cd6;margin-top:3px}
+.mrow em{font:400 .95rem/1 var(--display);font-style:normal;color:var(--gold)}
+.mrow.on{background:linear-gradient(90deg,#3d2d86,#2b1f63);box-shadow:inset 0 0 0 3px var(--gold),0 6px 0 #0c0624,0 0 24px #ffd23f44}
+.mprev{position:relative;border-radius:24px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:22px;isolation:isolate;border:3px solid #ffffff22;box-shadow:0 12px 0 #0c0624,0 18px 40px #000a}
+.mprev>canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
+.mprev::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(transparent 45%,#140b2ef2 78%)}
+.mprev h2{margin:0;font:400 3.2rem/1 var(--display);text-shadow:0 4px 0 #0008}
+.mopts .chips{flex-wrap:nowrap}.mopts{display:grid;grid-template-columns:repeat(2,auto);gap:16px 22px;justify-content:start;margin:14px 0 18px}
+.mgo{display:flex;align-items:center;gap:12px}
+.mgo .btn.gold{font-size:1.7rem;padding:.55em 1.4em}
+.mgo .rec{margin-left:auto;text-align:right;font-size:.82rem;color:#cfc8f5}
+.mgo .rec b{font:400 1.3rem/1 var(--display);color:#fff}
+
+/* ---------- loadout ---------- */
+.lo{display:grid;grid-template-columns:1fr 520px;gap:22px;min-height:0}
+.lo .stagebox{position:relative}
+.lo .nameplate{position:absolute;left:0;bottom:8px;display:flex;align-items:center;gap:12px}
+.lo .nameplate b{font:400 2.6rem/1 var(--display);text-shadow:0 4px 0 #0c0624}
+.lpanel{padding:18px;display:flex;flex-direction:column;gap:16px;min-height:0}
+.tabs{display:flex;gap:6px;background:#140b2e;border-radius:16px;padding:5px}
+.tabs button{flex:1;border:0;border-radius:12px;padding:10px 6px;font:400 1.05rem/1 var(--display);color:#a59cd6;background:none}
+.tabs button.on{color:#fff;background:linear-gradient(#4a3a9a,#33267a);box-shadow:0 3px 0 #0c0624}
+.looks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.look{position:relative;border-radius:16px;background:#140b2e;box-shadow:inset 0 0 0 2px #5a47b866;padding:6px 6px 10px;text-align:center}
+.look canvas{width:100%;height:150px}
+.look b{font:400 1.1rem/1 var(--display)}
+.look span{display:block;font-size:.72rem;color:#a59cd6;margin-top:3px}
+.look.on{box-shadow:inset 0 0 0 3px var(--gold),0 0 20px #ffd23f44}
+.swatches{display:flex;gap:8px}
+.swatches i{width:30px;height:30px;border-radius:50%;box-shadow:0 0 0 3px #140b2e,0 0 0 5px #5a47b866}
+.swatches i.on{box-shadow:0 0 0 3px #140b2e,0 0 0 5px var(--gold)}
+.lpanel .btn{align-self:stretch;margin-top:auto}
+
+/* ---------- settings ---------- */
+.set{display:grid;grid-template-columns:220px 1fr;gap:0;overflow:hidden;align-self:start;max-width:1040px;width:100%;justify-self:center}
+.rail{background:#140b2ecc;padding:14px;display:grid;gap:6px;align-content:start}
+.rail a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;color:#a59cd6;font:400 1.1rem/1 var(--display);text-decoration:none}
+.rail a svg{width:22px;height:22px;flex:none}
+.rail a.on{color:#2a1600;background:linear-gradient(#ffe36e,var(--gold));box-shadow:0 4px 0 var(--gold-dk)}
+.setbody{padding:18px 22px}
+.sethead{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.search{flex:1;display:flex;align-items:center;gap:8px;background:#140b2e;border-radius:14px;padding:10px 14px;color:#a59cd6;font-size:.92rem;box-shadow:inset 0 0 0 2px #5a47b866}
+.search svg{width:18px;height:18px}
+.seg{display:flex;background:#140b2e;border-radius:12px;padding:4px;gap:4px}
+.seg button{border:0;border-radius:9px;padding:7px 12px;font:900 .82rem/1 var(--ui);color:#a59cd6;background:none}
+.seg button.on{color:#2a1600;background:var(--gold);box-shadow:0 3px 0 var(--gold-dk)}
+.srow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:12px 4px;border-top:2px solid #ffffff10}
+.srow b{font:900 1rem/1.1 var(--ui)}
+.srow span{display:block;font-size:.76rem;color:#a59cd6;margin-top:3px;font-weight:700}
+.srow .new{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mint);margin-left:6px;vertical-align:2px;box-shadow:0 0 8px var(--mint)}
+.tog{width:56px;height:30px;border-radius:999px;background:#140b2e;box-shadow:inset 0 0 0 2px #5a47b866;position:relative}
+.tog::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:#5a47b8}
+.tog.on{background:var(--mint);box-shadow:none}.tog.on::after{left:30px;background:#fff}
+.slide{width:200px;height:10px;border-radius:6px;background:linear-gradient(90deg,var(--gold) var(--v),#140b2e var(--v));position:relative}
+.slide::after{content:"";position:absolute;top:50%;left:var(--v);width:22px;height:22px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 3px 0 #0006}
+.cbprev{display:flex;gap:4px;margin-left:8px}.cbprev i{width:14px;height:14px;border-radius:4px}
+.setfoot{display:flex;align-items:center;gap:12px;margin-top:12px}
+.saved{margin-left:auto;color:var(--mint);font:900 .85rem/1 var(--ui)}
+
+/* ---------- scoreboard ---------- */
+.board{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%);width:min(880px,92vw);padding:16px 20px}
+.bhead{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.bhead .sc{font:400 2rem/1 var(--display)}
+.bhead .sc .b{color:var(--blue)}.bhead .sc .r{color:var(--red)}
+table.sb{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:.92rem}
+.sb th{font:900 .66rem/1 var(--ui);letter-spacing:.14em;color:#a59cd6;text-align:right;padding:4px 10px}
+.sb th:first-child,.sb td:first-child{text-align:left}
+.sb td{padding:7px 10px;text-align:right;background:#140b2ecc;font-variant-numeric:tabular-nums}
+.sb td:first-child{border-radius:10px 0 0 10px;display:flex;align-items:center;gap:8px}
+.sb td:last-child{border-radius:0 10px 10px 0}
+.sb .team td{background:none;padding:8px 2px 2px;font:400 1.05rem/1 var(--display)}
+.sb .team.b td{color:var(--blue)}.sb .team.r td{color:var(--red)}
+.sb tr.me td{background:#3d2d86;box-shadow:inset 0 2px 0 var(--gold),inset 0 -2px 0 var(--gold)}
+.sb tr.me td:first-child{box-shadow:inset 2px 2px 0 var(--gold),inset 0 -2px 0 var(--gold)}
+.sb tr.me td:last-child{box-shadow:inset -2px 2px 0 var(--gold),inset 0 -2px 0 var(--gold)}
+.sb tr.ko td{opacity:.5}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.dot.b{background:var(--blue)}.dot.r{background:var(--red)}
+
+/* ---------- results ---------- */
+.res{display:grid;grid-template-columns:1fr 600px;gap:24px;align-items:center}
+.win{font:400 5.4rem/.9 var(--display);background:linear-gradient(#fff 30%,#ffe08a 60%,#ff9a3c);-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 5px 0 #3a1a00) drop-shadow(0 0 20px #ff8a3d88);transform:rotate(-3deg);margin:0 0 6px}
+.rsub{font-size:1rem;color:#cfc8f5;margin-bottom:16px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tile{position:relative;padding:14px 12px;border-radius:18px;background:#1d1347e6;box-shadow:inset 0 0 0 2px #5a47b855,0 6px 0 #0c0624;text-align:center}
+.tile b{display:block;font:400 2.2rem/1 var(--display)}
+.tile span{font:900 .66rem/1 var(--ui);letter-spacing:.14em;color:#a59cd6}
+.tile.best{box-shadow:inset 0 0 0 3px var(--gold),0 6px 0 #0c0624,0 0 20px #ffd23f55}
+.tile.best::after{content:"BEST";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font:400 .78rem/1 var(--display);background:var(--gold);color:#2a1600;padding:4px 8px;border-radius:8px;box-shadow:0 3px 0 var(--gold-dk)}
+.elo{margin-top:14px;padding:16px 18px}
+.elorow{display:flex;align-items:center;gap:12px}
+.elorow .num{font:400 2rem/1 var(--display)}
+.elorow .delta{font:400 1.6rem/1 var(--display);color:var(--mint)}
+.ebar{position:relative;height:16px;border-radius:9px;background:#140b2e;margin:12px 0 6px;overflow:hidden}
+.ebar i{position:absolute;inset:0 auto 0 0;width:var(--a);background:linear-gradient(90deg,#c98f00,var(--gold));border-radius:9px}
+.ebar i+i{left:var(--a);width:var(--g);background:var(--mint);border-radius:0 9px 9px 0}
+.elofoot{display:flex;justify-content:space-between;font-size:.78rem;color:#a59cd6}
+.rbtns{display:flex;gap:12px;margin-top:20px;align-items:center}
+.rbtns .btn.gold{font-size:1.7rem;padding:.55em 1.5em}
+
+/* ---------- pause ---------- */
+.dim{position:absolute;inset:0;background:#0c0624b0;backdrop-filter:blur(3px)}
+.pause{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:380px;padding:24px;display:grid;gap:12px;text-align:center}
+.pause h2{margin:0 0 6px;font:400 2.6rem/1 var(--display)}
+.pause .btn{width:100%}
+.pause .btn.warn{color:#fff;background:linear-gradient(#ff7a90,var(--red));box-shadow:0 6px 0 var(--red-dk),0 10px 22px #0008;text-shadow:0 2px 0 #7a0a22}
+.pstrip{display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:.82rem;color:#a59cd6}
+.pstrip b{color:#fff}
+
+/* ---------- stats page ---------- */
+.stats{display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:auto 1fr;gap:18px;min-height:0}
+.shero{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:14px 18px}
+.shero .avatar{width:72px;height:72px}
+.shero .nm b{display:block;font:400 2rem/1 var(--display)}
+.shero .nm span{font-size:.85rem;color:#a59cd6}
+.big4{display:flex;gap:8px;margin-left:auto}
+.big4 div{background:#140b2e;border-radius:16px;padding:10px 16px;text-align:center;min-width:104px}
+.big4 b{display:block;font:400 2rem/1 var(--display)}
+.big4 span{font:900 .64rem/1 var(--ui);letter-spacing:.14em;color:#a59cd6}
+.big4 small{display:block;font:800 .72rem/1 var(--ui);margin-top:4px}
+.panel{padding:16px 18px;min-height:0;display:flex;flex-direction:column}
+.panel h3{margin:0 0 10px;font:400 1.3rem/1 var(--display);display:flex;align-items:center;gap:10px}
+.panel h3 .seg{margin-left:auto}
+.chart{flex:1;min-height:160px}
+.chart svg{width:100%;height:100%;display:block}
+.hist{display:grid;gap:6px}
+.hrow{display:grid;grid-template-columns:30px 1fr 64px 64px;align-items:center;gap:10px;background:#140b2ecc;border-radius:12px;padding:7px 10px;font-size:.9rem}
+.hrow .wl{font:400 1rem/1 var(--display);width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+.hrow .wl.w{background:var(--mint);color:#06301f}.hrow .wl.l{background:#ff4d6d33;color:var(--red);box-shadow:inset 0 0 0 2px var(--red)}
+.hrow .md span{display:block;font-size:.72rem;color:#a59cd6}
+.hrow .kd,.hrow .ed{text-align:right;font:400 1.05rem/1 var(--display)}
+.bars{display:grid;gap:8px;margin-top:12px}
+.brow{display:grid;grid-template-columns:76px 1fr 54px 54px;align-items:center;gap:10px;font-size:.86rem}
+.brow .track{height:12px;border-radius:6px;background:#140b2e}
+.brow .track i{display:block;height:100%;width:var(--v);border-radius:6px;background:var(--gold)}
+.brow b{text-align:right;font:400 1rem/1 var(--display)}
+.sgrid{display:grid;grid-template-rows:1fr auto;gap:18px;min-height:0}
+
+/* ---------- phone ---------- */
+@media (max-width:600px){
+  .scr{padding:12px 12px 14px;gap:12px}
+  .title{font-size:1.7rem}.back{width:40px;height:40px}
+  .pcard .who,.pcard .pstats div:nth-child(n+3){display:none}.pstats div{min-width:52px;padding:5px 7px}.pstats b{font-size:1rem}
+  .home .hub{margin-bottom:76px}
+  .playbig{font-size:1.4rem}
+  .modes{grid-template-columns:1fr;grid-template-rows:180px auto;gap:12px;overflow:hidden}
+  .mprev{order:-1;padding:14px}.mprev h2{font-size:2rem}.mprev .mopts,.mprev .mgo{display:none}
+  .mlist{gap:7px}.mrow{grid-template-columns:64px 1fr auto;padding:6px 10px 6px 6px;gap:10px}.mrow canvas{width:64px;height:42px}.mrow b{font-size:1.1rem}.mrow span{font-size:.7rem}
+  .mrow.on{grid-template-columns:64px 1fr auto}
+  .phoneopts{display:grid!important;gap:10px;padding:12px;margin-top:2px}
+  .phonego{display:flex!important;position:absolute;left:12px;right:12px;bottom:14px;gap:10px}
+  .phonego .btn{flex:1}
+  .lo{grid-template-columns:1fr;grid-template-rows:250px 1fr}.lpanel .tabbed{display:none}
+  .lo .nameplate b{font-size:1.8rem}
+  .lpanel{padding:12px;gap:12px}.look canvas{height:96px}
+  .tabs button{font-size:.92rem;padding:8px 4px}
+  .set{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .rail{display:flex;overflow:hidden;padding:8px;gap:4px}.rail a{padding:8px;font-size:0;gap:0}.rail a svg{width:24px;height:24px}.rail a.on{font-size:.95rem;gap:6px;padding:8px 12px}
+  .setbody{padding:12px 14px}.sethead{flex-wrap:wrap}.search{flex-basis:100%}
+  .srow{gap:10px;padding:10px 2px}.srow b{font-size:.92rem}.slide{width:110px}.cbprev{display:none}
+  .seg button{padding:6px 8px;font-size:.74rem}
+  .board{width:94vw;top:52%;padding:12px}
+  .sb .hide{display:none}.sb{font-size:.82rem}.sb td{padding:6px 7px}.bhead .sc{font-size:1.5rem}
+  .res{grid-template-columns:1fr;grid-template-rows:250px auto;gap:8px}
+  .win{font-size:3.4rem}.rsub{margin-bottom:10px;font-size:.88rem}
+  .tiles{grid-template-columns:repeat(2,1fr)}.tile{padding:10px}.tile b{font-size:1.7rem}
+  .elo{padding:12px 14px}
+  .rbtns{flex-wrap:wrap}.rbtns .btn{flex:1}.rbtns .btn.gold{flex-basis:100%;font-size:1.5rem}.rbtns .hint{display:none}
+  .pause{width:88vw;padding:18px}
+  .top{flex-wrap:wrap}#stats .top .seg{flex-basis:100%;order:3;justify-content:space-between}.stats>*,.sgrid>*{min-width:0}.stats{grid-template-columns:1fr;grid-template-rows:auto 190px auto;gap:12px;overflow:hidden}
+  .shero{grid-column:1;flex-wrap:wrap;gap:10px;padding:12px}.shero .avatar{width:52px;height:52px}.shero .nm b{font-size:1.5rem}
+  .big4{margin:0;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.big4 div{min-width:0;padding:8px 4px}.big4 b{font-size:1.25rem}.big4 span{font-size:.56rem}
+  .panel{padding:12px}.panel h3{font-size:1.1rem}.panel h3 .seg{display:none}
+  .sgrid{gap:12px}.sgrid .byl{display:none}
+  .hrow{grid-template-columns:28px 1fr 48px 48px;padding:6px 8px;font-size:.82rem}
+}
+.phoneopts,.phonego{display:none}
+</style>
+<body>
+<div class="stage">
+<canvas class="bg" id="bg"></canvas>
+
+<!-- HOME -->
+<section class="menu home" id="home" hidden>
+  <div class="topbar">
+    <div class="logo">SABER PIT<small>v5</small></div>
+    <a class="pcard" href="#stats" title="Your stats">
+      <span class="avatar"></span>
+      <div class="who"><b>Makashi</b><span>Woman · Djem So</span></div>
+      <div class="pstats"><div><span class="rk sm">E</span></div><div><b>1258</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div><div><b>58%</b><span>WIN</span></div></div>
+    </a>
+  </div>
+  <div class="hub">
+    <article class="card big"><canvas data-art="duel"></canvas><span class="tag">RANKED</span><h2>Arena</h2><p>Duel or squads. Last blade standing.</p>
+      <div class="btns"><button class="btn playbig">▶ Play<small>DUEL · ELIMINATION</small></button><button class="btn ghost">Modes</button></div></article>
+    <article class="card"><canvas data-art="fronts"></canvas><span class="tag new">NEW</span><h2>Three Fronts</h2><p>3 lanes. Towers. Push the core.</p><button class="btn blue">Play</button></article>
+    <article class="card"><canvas data-art="tour"></canvas><h2>Tournament</h2><p>Bracket of 8</p><button class="btn ghost">Open</button></article>
+    <article class="card"><canvas data-art="gaunt"></canvas><h2>Gauntlet</h2><p>Climb the floors</p><button class="btn ghost">Climb</button></article>
+    <article class="card"><canvas data-art="heroes"></canvas><h2>Heroes</h2><p>Your saved fighters</p><button class="btn ghost">Manage</button></article>
+  </div>
+  <nav class="nav">
+    <a class="on" href="#"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>Home</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M3 20h18v2H3zM5 10h3v8H5zm5-6h3v14h-3zm5 9h3v5h-3z"/></svg>Stats</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>Heroes</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M4 4h16v16H4zM8 8v8h8V8z"/></svg>Saves</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="#c9c0ff"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 4-2.2-.6.6-2.2-2-1.2-1.6 1.6L14 7.2 12 6l-2 1.2-1.8.4L6.6 6l-2 1.2.6 2.2L3 10v4l2.2.6-.6 2.2 2 1.2 1.6-1.6 1.8.4L12 18l2-1.2 1.8-.4 1.6 1.6 2-1.2-.6-2.2L21 14z"/></svg>Settings</a>
+  </nav>
+</section>
+
+<!-- MODE SELECT -->
+<section class="scr" id="modes" hidden>
+  <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Play</div>
+    <a class="pcard"><span class="avatar"></span><div class="pstats"><div><span class="rk sm">E</span></div><div><b>1258</b><span>ELO</span></div><div><b>1.42</b><span>K/D</span></div></div></a></div>
+  <div class="modes">
+    <div class="mlist">
+      <div class="mrow"><canvas data-art="duel"></canvas><div><b>Duel</b><span>1v1 · ranked</span></div><em>1258</em></div>
+      <div class="mrow on"><canvas data-art="squad"></canvas><div><b>Squads</b><span>Up to 15v15</span></div><em>1231</em></div>
+      <div class="phoneopts glass">
+        <div><p class="lab">RULES</p><div class="chips"><button class="chip">Elimination</button><button class="chip on">Control</button><button class="chip">Relic</button></div></div>
+        <div><p class="lab">MAP</p><div class="chips"><button class="chip">Small</button><button class="chip on">Medium</button><button class="chip">Large</button></div></div>
+      </div>
+      <div class="mrow"><canvas data-art="fronts"></canvas><div><b>Three Fronts</b><span>3 lanes · push the core</span></div><em>—</em></div>
+      <div class="mrow"><canvas data-art="gaunt"></canvas><div><b>Gauntlet</b><span>Solo climb</span></div><em>F12</em></div>
+      <div class="mrow"><canvas data-art="tour"></canvas><div><b>Tournament</b><span>Bracket of 8</span></div><em></em></div>
+    </div>
+    <div class="mprev"><canvas id="mprevArt"></canvas>
+      <h2>Squads</h2>
+      <div class="mopts">
+        <div><p class="lab">RULES</p><div class="chips"><button class="chip">Elimination</button><button class="chip on">Control</button><button class="chip">Relic</button></div></div>
+        <div><p class="lab">MAP</p><div class="chips"><button class="chip">Small</button><button class="chip on">Medium</button><button class="chip">Large</button></div></div>
+        <div><p class="lab">PLAY AS</p><div class="chips"><button class="chip on">Fighter</button><button class="chip">Commander</button><button class="chip">Watch</button></div></div>
+        <div><p class="lab">ROUND</p><div class="chips"><button class="chip">45</button><button class="chip on">90</button><button class="chip">150</button></div></div>
+      </div>
+      <div class="mgo"><button class="btn gold">▶ Play</button><button class="btn ghost">Loadout</button><div class="rec"><b>41W · 29L</b><br>K/D 1.31 in Squads</div></div>
+    </div>
+  </div>
+  <div class="phonego"><button class="btn ghost">Loadout</button><button class="btn">▶ Play</button></div>
+</section>
+
+<!-- LOADOUT -->
+<section class="scr" id="loadout" hidden>
+  <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Loadout</div></div>
+  <div class="lo">
+    <div class="stagebox"><div class="nameplate"><span class="rk">E</span><b>Makashi</b></div></div>
+    <div class="lpanel glass">
+      <div class="tabs"><button class="on">Look</button><button>Form</button><button>Saber</button><button>Force</button></div>
+      <div class="looks">
+        <div class="look on"><canvas data-look="woman"></canvas><b>Woman</b><span>61% win</span></div>
+        <div class="look"><canvas data-look="femboy"></canvas><b>Femboy</b><span>54% win</span></div>
+        <div class="look"><canvas data-look="rabbit"></canvas><b>Rabbit</b><span>49% win</span></div>
+      </div>
+      <div><p class="lab">FORM</p><div class="chips">
+        <button class="chip">Shii-Cho<small>52%</small></button><button class="chip">Makashi<small>57%</small></button><button class="chip">Soresu<small>48%</small></button><button class="chip">Ataru<small>55%</small></button><button class="chip on">Djem So<small>63%</small></button><button class="chip">Niman<small>50%</small></button><button class="chip">Juyo<small>—</small></button>
+      </div></div>
+      <div class="tabbed"><p class="lab">SABER</p><div class="chips"><button class="chip on">Single</button><button class="chip">Dual</button><button class="chip">Double-bladed</button><button class="chip">Shoto</button><button class="chip">Greatsaber</button></div></div>
+      <div class="tabbed"><p class="lab">FORCE</p><div class="chips"><button class="chip on">Push</button><button class="chip">Burst</button><button class="chip">Pulse</button></div></div>
+      <button class="btn">Ready</button>
+    </div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="scr" id="settings" hidden>
+  <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Settings</div></div>
+  <div class="set glass">
+    <nav class="rail">
+      <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 20 18 6l2-4-4 2L2 18z"/></svg>Gameplay</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10a5 5 0 0 1 0 10l-2-2H9l-2 2A5 5 0 0 1 7 7zm1 3v2H6v2h2v2h2v-2h2v-2h-2v-2z"/></svg>Controls</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v12H3zm6 14h6v2H9z"/></svg>Video</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9h4l5-4v14l-5-4H4zm12-1a5 5 0 0 1 0 8l-1-1.5a3 3 0 0 0 0-5z"/></svg>Audio</a>
+      <a class="on" href="#"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="4.5" r="2.5"/><path d="M4 8h16v2.5h-5.5V22H12v-6h0v6H9.5V10.5H4z"/></svg>Access</a>
+    </nav>
+    <div class="setbody">
+      <div class="sethead">
+        <div class="search"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" stroke="#a59cd6" stroke-width="2.5" fill="none"/><path d="m15 15 5 5" stroke="#a59cd6" stroke-width="2.5" stroke-linecap="round"/></svg>Search settings</div>
+        <div class="seg"><button class="on">Default</button><button>Comfort</button><button>Pro</button></div>
+      </div>
+      <div class="srow"><div><b>Text size</b><span>Menus, names and callouts</span></div><div class="seg"><button>100</button><button class="on">125</button><button>150</button></div></div>
+      <div class="srow"><div><b>Color vision<i class="new"></i></b><span>Team colors and injury states</span></div><div style="display:flex;align-items:center"><div class="seg"><button class="on">Off</button><button>Protan</button><button>Deutan</button><button>Tritan</button></div><div class="cbprev"><i style="background:var(--blue)"></i><i style="background:var(--red)"></i><i style="background:#ffb347"></i></div></div></div>
+      <div class="srow"><div><b>Reduced motion</b><span>Fewer smears, no shake</span></div><div class="tog"></div></div>
+      <div class="srow"><div><b>Screen shake<i class="new"></i></b><span>Heavy hits and knockouts</span></div><div class="slide" style="--v:60%"></div></div>
+      <div class="srow"><div><b>Flashes<i class="new"></i></b><span>White hit flash</span></div><div class="tog on"></div></div>
+      <div class="srow"><div><b>Guard<i class="new"></i></b><span>Hold or tap to toggle</span></div><div class="seg"><button class="on">Hold</button><button>Toggle</button></div></div>
+      <div class="srow"><div><b>Callout captions<i class="new"></i></b><span>Text for sound cues</span></div><div class="tog on"></div></div>
+      <div class="setfoot"><button class="btn ghost" style="font-size:1rem;padding:.55em 1em">Reset tab</button><span class="saved">✓ Saved</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCOREBOARD (hold Tab) -->
+<section class="hud" id="squadhud" hidden>
+  <div class="teams">
+    <div class="side b"><span class="score">7</span><div class="roster"><i></i><i></i><i></i><i class="ko"></i><i></i><i></i><i class="ko"></i><i></i><i></i><i></i></div></div>
+    <div class="obj"><i class="b"><span>A</span></i><i class="n"><span>B</span></i><i class="r"><span>C</span></i></div>
+    <div class="side r"><span class="score">4</span><div class="roster"><i></i><i class="ko"></i><i></i><i class="ko"></i><i></i><i class="ko"></i><i></i><i></i><i class="ko"></i><i></i></div></div>
+  </div>
+</section>
+<section id="board" hidden>
+  <div class="dim"></div>
+  <div class="board glass">
+    <div class="bhead"><div class="sc"><span class="b">7</span> – <span class="r">4</span></div><span class="muted">Control · Medium · 1:42</span><span class="hint" style="margin-left:auto"><kbd>Tab</kbd> hold</span></div>
+    <table class="sb">
+      <tr><th>FIGHTER</th><th>K</th><th>D</th><th class="hide">A</th><th>DMG</th><th class="hide">CAP</th><th>ELO</th></tr>
+      <tr class="team b"><td colspan="7">Blue</td></tr>
+      <tr class="me"><td><span class="dot b"></span><span class="rk sm">E</span>Makashi</td><td>4</td><td>1</td><td class="hide">2</td><td>612</td><td class="hide">3</td><td>1258</td></tr>
+      <tr><td><span class="dot b"></span><span class="rk sm">D</span>Soresu</td><td>3</td><td>2</td><td class="hide">4</td><td>540</td><td class="hide">1</td><td>1302</td></tr>
+      <tr><td><span class="dot b"></span><span class="rk sm">E</span>Ataru</td><td>2</td><td>2</td><td class="hide">1</td><td>388</td><td class="hide">2</td><td>1190</td></tr>
+      <tr class="ko"><td><span class="dot b"></span><span class="rk sm">F</span>Niman</td><td>0</td><td>3</td><td class="hide">1</td><td>144</td><td class="hide">0</td><td>1032</td></tr>
+      <tr class="team r"><td colspan="7">Pink</td></tr>
+      <tr><td><span class="dot r"></span><span class="rk sm">D</span>Vaapad</td><td>3</td><td>3</td><td class="hide">0</td><td>570</td><td class="hide">1</td><td>1311</td></tr>
+      <tr><td><span class="dot r"></span><span class="rk sm">E</span>Djem So</td><td>2</td><td>2</td><td class="hide">2</td><td>402</td><td class="hide">2</td><td>1188</td></tr>
+      <tr class="ko"><td><span class="dot r"></span><span class="rk sm">F</span>Shii-Cho</td><td>0</td><td>4</td><td class="hide">1</td><td>120</td><td class="hide">0</td><td>1004</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="scr" id="results" hidden>
+  <div></div>
+  <div class="res">
+    <div></div>
+    <div>
+      <h1 class="win">VICTORY</h1>
+      <div class="rsub">Duel · 2–1 rounds · 2:41</div>
+      <div class="tiles">
+        <div class="tile"><b>3/1</b><span>K/D</span></div>
+        <div class="tile"><b>412</b><span>DAMAGE</span></div>
+        <div class="tile"><b>64%</b><span>ACCURACY</span></div>
+        <div class="tile best"><b>7</b><span>PARRIES</span></div>
+      </div>
+      <div class="elo glass">
+        <div class="elorow"><span class="rk">E</span><span class="num">1258</span><span class="delta">+18</span><span class="muted" style="margin-left:auto;font-size:.85rem">vs Djem So · 1188</span></div>
+        <div class="ebar" style="--a:52%;--g:9%"><i></i><i></i></div>
+        <div class="elofoot"><span>E</span><span>42 to D</span></div>
+      </div>
+      <div class="rbtns"><button class="btn gold">↻ Rematch</button><button class="btn ghost">Stats</button><button class="btn ghost">Home</button><span class="hint" style="margin-left:auto"><kbd>Space</kbd> hold to skip</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PAUSE -->
+<section id="pause" hidden>
+  <div class="dim"></div>
+  <div class="pause glass">
+    <h2>Paused</h2>
+    <button class="btn">▶ Resume</button>
+    <button class="btn ghost">Settings</button>
+    <button class="btn ghost">Controls</button>
+    <button class="btn ghost">Restart round</button>
+    <button class="btn warn">Leave match</button>
+    <div class="pstrip"><span>Round <b>2</b></span><span>K/D <b>1/0</b></span><span>Elo <b>1240</b></span></div>
+  </div>
+</section>
+
+<!-- STATS PAGE -->
+<section class="scr" id="stats" hidden>
+  <div class="top"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="title">Stats</div>
+    <div class="seg" style="margin-left:auto"><button class="on">All</button><button>Duel</button><button>Squads</button><button>Fronts</button><button>Gauntlet</button></div></div>
+  <div class="stats">
+    <div class="shero glass"><span class="avatar"></span><div class="nm"><b>Makashi</b><span>212 matches · peak 1302</span></div>
+      <div class="big4">
+        <div><span class="rk" style="min-width:40px;height:40px;font-size:1.4rem">E</span><span style="display:block;margin-top:4px">RANK</span></div>
+        <div><b>1258</b><span>ELO</span><small class="up">+46 week</small></div>
+        <div><b>1.42</b><span>K/D</span><small class="up">+0.08</small></div>
+        <div><b>58%</b><span>WIN</span><small class="muted">123–89</small></div>
+      </div></div>
+    <div class="sgrid">
+      <div class="panel glass"><h3>Elo<div class="seg"><button>10</button><button class="on">30</button><button>100</button></div></h3><div class="chart" id="eloChart"></div></div>
+      <div class="panel glass byl"><h3>By look</h3>
+        <div class="bars">
+          <div class="brow"><span>Woman</span><div class="track"><i style="--v:61%"></i></div><b>61%</b><b class="muted">1.58</b></div>
+          <div class="brow"><span>Femboy</span><div class="track"><i style="--v:54%"></i></div><b>54%</b><b class="muted">1.30</b></div>
+          <div class="brow"><span>Rabbit</span><div class="track"><i style="--v:49%"></i></div><b>49%</b><b class="muted">1.12</b></div>
+        </div></div>
+    </div>
+    <div class="panel glass"><h3>Last matches<span class="muted" style="margin-left:auto;font:800 .78rem var(--ui)">K/D · ELO</span></h3>
+      <div class="hist">
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:41</span></div><span class="kd">3/1</span><span class="ed up">+18</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Control<span>Woman · Djem So · 4:10</span></div><span class="kd">4/1</span><span class="ed up">+12</span></div>
+        <div class="hrow"><span class="wl l">L</span><div class="md">Duel<span>Femboy · Ataru · 1:58</span></div><span class="kd">1/2</span><span class="ed down">−15</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Squads · Relic<span>Woman · Makashi · 3:22</span></div><span class="kd">2/0</span><span class="ed up">+9</span></div>
+        <div class="hrow"><span class="wl l">L</span><div class="md">Three Fronts<span>Rabbit · Soresu · 11:40</span></div><span class="kd">5/6</span><span class="ed muted">—</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Djem So · 2:05</span></div><span class="kd">2/0</span><span class="ed up">+16</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Gauntlet<span>Woman · Djem So · floor 12</span></div><span class="kd">6/0</span><span class="ed muted">—</span></div>
+        <div class="hrow"><span class="wl l">L</span><div class="md">Squads · Elimination<span>Woman · Djem So · 2:50</span></div><span class="kd">1/1</span><span class="ed down">−11</span></div>
+        <div class="hrow"><span class="wl w">W</span><div class="md">Duel<span>Woman · Makashi · 3:02</span></div><span class="kd">2/1</span><span class="ed up">+14</span></div>
+      </div></div>
+  </div>
+</section>
+</div>
+
+<script type="module">
+import {dpr,rnd,glow,ridge,fighter,spark,smear,arenaScene} from './scene.js';
+const view=new URLSearchParams(location.search).get('view')||'home';
+const bg=document.getElementById('bg');const W=innerWidth,H=innerHeight;bg.width=W*dpr;bg.height=H*dpr;const g=bg.getContext('2d');g.scale(dpr,dpr);
+const show=id=>document.getElementById(id).hidden=false;
+const phone=W<600;
+function dimBg(a='#140b2eaa'){g.fillStyle=a;g.fillRect(0,0,W,H);const v=g.createRadialGradient(W/2,H*.4,H*.2,W/2,H/2,H*.95);v.addColorStop(0,'#00000000');v.addColorStop(1,'#000000aa');g.fillStyle=v;g.fillRect(0,0,W,H);}
+function fit(cv){const r=cv.getBoundingClientRect();cv.width=r.width*dpr;cv.height=r.height*dpr;const c=cv.getContext('2d');c.scale(dpr,dpr);return [c,r.width,r.height];}
+function cardArt(cv,kind){
+  const [c,w,h]=fit(cv);
+  const pal={duel:['#3b1a8a','#ff5f8f','#ffb347'],squad:['#0e2a6a','#7a3fd0','#ff8a5c'],fronts:['#0b3a6e','#1fa3c9','#7af0c8'],tour:['#4a1060','#c23a6a','#ffd23f'],gaunt:['#2a0f20','#8a1a3a','#ff7a3d'],heroes:['#1b2a6a','#5a5ae6','#c9a0ff']}[kind];
+  const gr=c.createLinearGradient(0,0,w*.3,h);gr.addColorStop(0,pal[0]);gr.addColorStop(.6,pal[1]);gr.addColorStop(1,pal[2]);c.fillStyle=gr;c.fillRect(0,0,w,h);
+  glow(c,w*.75,h*.3,Math.max(w,h)*.6,'#ffffff44');ridge(c,w,h,h*.78,h*.12,'#00000055',kind.length*13);
+  const s=Math.min(h*.32,w*.22),small=h<80;
+  if(kind==='duel'){const a=fighter(c,{x:w*(small?.36:.52),gy:h*(small?.86:.62),h:small?h*.7:s*1.15,look:'woman',team:0,act:'rush',t:.32,face:1,ring:false});fighter(c,{x:w*(small?.7:.84),gy:h*(small?.86:.62),h:small?h*.7:s*1.15,look:'rabbit',team:1,act:'parry',t:.32,face:-1,ring:false});spark(c,a.tip[0],a.tip[1],(small?h*.2:s*.3),'#ffffff');}
+  if(kind==='squad'){const lk=['woman','femboy','rabbit','woman2','femboy2'];for(let i=0;i<5;i++){fighter(c,{x:w*(.14+i*.17),gy:h*.88,h:h*.6,look:lk[i],team:i<3?0:1,act:['rush','guard','sweep','parry','hit'][i],t:.3,face:i<3?1:-1,ring:false});}}
+  if(kind==='fronts'){c.globalAlpha=.5;c.strokeStyle='#fff';c.lineWidth=small?3:6;for(const k of [-1,0,1]){c.beginPath();c.moveTo(w*.15,h*.85);c.quadraticCurveTo(w*(.5+k*.25),h*.5,w*.85,h*.15);c.stroke();}c.globalAlpha=1;
+    const d=small?9:22;for(const [x,y,cl] of [[w*.15,h*.85,'#2ec4ff'],[w*.85,h*.15,'#ff4d6d']]){c.fillStyle=cl;c.beginPath();c.moveTo(x,y-d);c.lineTo(x+d*.7,y);c.lineTo(x,y+d);c.lineTo(x-d*.7,y);c.fill();glow(c,x,y,d*2.3,cl+'aa');}
+    if(!small)fighter(c,{x:w*.8,gy:h*.84,h:s*1.0,look:'femboy',team:0,act:'dash',t:.32,face:1,ring:false});}
+  if(kind==='tour'){const x=w*.7,y=h*.42,k=small?.35:1;c.fillStyle='#ffd23f';c.beginPath();c.moveTo(x-30*k,y-40*k);c.lineTo(x+30*k,y-40*k);c.lineTo(x+22*k,y);c.quadraticCurveTo(x,y+18*k,x-22*k,y);c.closePath();c.fill();c.fillRect(x-6*k,y+10*k,12*k,20*k);c.fillRect(x-20*k,y+28*k,40*k,9*k);glow(c,x,y-10*k,90*k,'#ffd23f66');}
+  if(kind==='gaunt'){for(let i=0;i<5;i++){c.fillStyle='#00000055';c.fillRect(w*.5+i*w*.08,h*(.7-i*.1),w,h);}fighter(c,{x:w*.7,gy:h*.78,h:small?h*.6:s*1.2,look:'woman2',team:0,act:'leap',t:.32,face:1,ring:false});}
+  if(kind==='heroes'){for(const [i,lk,act] of [[0,'woman','guard'],[1,'rabbit','parry'],[2,'femboy','force']])fighter(c,{x:w*(.5+i*.15),gy:h*(.86+(i%2)*.04),h:s*1.05,look:lk,team:i===1?1:0,act,t:.32,face:i===1?-1:1,ring:false});}
+}
+function lookArt(cv){const [c,w,h]=fit(cv);const lk=cv.dataset.look;
+  const gg=c.createRadialGradient(w/2,h*.75,4,w/2,h*.7,w*.7);gg.addColorStop(0,'#3d2d86');gg.addColorStop(1,'#140b2e00');c.fillStyle=gg;c.fillRect(0,0,w,h);
+  fighter(c,{x:w*.5,gy:h*.92,h:h*.72,look:lk,team:0,act:'guard',t:.2,face:1,ring:false});}
+function eloChart(el){
+  const R=rnd(17);let e=1180;const pts=[];for(let i=0;i<30;i++){e+=Math.round((R()-.42)*30);pts.push(e);}pts[29]=1258;pts[28]=1240;pts[27]=1228;
+  const r=el.getBoundingClientRect(),w=r.width,h=r.height,pad=[8,44,22,8];
+  const lo=Math.floor((Math.min(...pts)-10)/50)*50,hi=Math.ceil((Math.max(...pts)+10)/50)*50;
+  const X=i=>pad[3]+i*(w-pad[1]-pad[3])/29,Y=v=>pad[0]+(hi-v)*(h-pad[0]-pad[2])/(hi-lo);
+  let grid='';for(let v=lo;v<=hi;v+=50)grid+=`<line x1="${pad[3]}" x2="${w-pad[1]}" y1="${Y(v)}" y2="${Y(v)}" stroke="#ffffff14" stroke-width="1"/><text x="${w-pad[1]+6}" y="${Y(v)+4}" fill="#a59cd6" font-size="11" font-weight="800">${v}</text>`;
+  const line=pts.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  const area=`${X(0)},${h-pad[2]} ${line} ${X(29)},${h-pad[2]}`;
+  const lx=X(29),ly=Y(pts[29]);
+  el.innerHTML=`<svg viewBox="0 0 ${w} ${h}"><defs><linearGradient id="ea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23f" stop-opacity=".28"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/></linearGradient></defs>${grid}
+  <text x="${pad[3]}" y="${h-4}" fill="#a59cd6" font-size="11" font-weight="800">30 matches ago</text><text x="${w-pad[1]}" y="${h-4}" fill="#a59cd6" font-size="11" font-weight="800" text-anchor="end">now</text>
+  <polygon points="${area}" fill="url(#ea)"/><polyline points="${line}" fill="none" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="${lx}" x2="${lx}" y1="${pad[0]}" y2="${h-pad[2]}" stroke="#ffffff55" stroke-dasharray="3 4"/>
+  <circle cx="${lx}" cy="${ly}" r="6" fill="#ffd23f" stroke="#1d1347" stroke-width="2"/>
+  <g transform="translate(${lx-118},${ly<54?ly+12:ly-46})"><rect width="108" height="36" rx="9" fill="#140b2e" stroke="#5a47b8"/><text x="10" y="15" fill="#fff" font-size="12" font-weight="900">1258 <tspan fill="#3df5a7">+18</tspan></text><text x="10" y="29" fill="#a59cd6" font-size="10.5" font-weight="800">Win · Duel</text></g></svg>`;
+}
+
+if(view==='home'){show('home');arenaScene(g,W,H,'none');dimBg();}
+if(view==='modes'){show('modes');arenaScene(g,W,H,'none');dimBg('#140b2ecc');}
+if(view==='loadout'){show('loadout');arenaScene(g,W,H,'none');g.fillStyle='#140b2e66';g.fillRect(0,0,W,H);
+  const s=phone?140:H*.36,x=phone?W*.5:W*.3,gy=phone?318:H*.8;
+  glow(g,x,gy-s*.5,s*1.2,'#ffd23f22');
+  g.save();g.fillStyle='#0c0624aa';g.beginPath();g.ellipse(x,gy+4,s*.55,s*.12,0,0,7);g.fill();g.restore();
+  fighter(g,{x,gy,h:s,look:'woman',team:0,act:'guard',t:.2,face:1});
+  if(phone){const np=document.querySelector('#loadout .nameplate');np.style.bottom='auto';np.style.top='210px';}
+}
+if(view==='settings'){show('settings');arenaScene(g,W,H,'none');dimBg('#140b2ed8');}
+if(view==='board'){arenaScene(g,W,H,'squad');show('squadhud');show('board');}
+if(view==='results'){show('results');arenaScene(g,W,H,'none');g.fillStyle='#140b2e88';g.fillRect(0,0,W,H);
+  const s=phone?150:H*.38,x=phone?W*.42:W*.24,gy=phone?300:H*.82;
+  glow(g,x,gy-s*.6,s*1.3,'#ffd23f33');
+  // light rays
+  g.save();g.globalAlpha=.10;g.fillStyle='#fff';for(let i=0;i<9;i++){g.beginPath();g.moveTo(x,gy-s*.6);const a=-Math.PI/2+(i-4)*.22;g.lineTo(x+Math.cos(a-.05)*H,gy-s*.6+Math.sin(a-.05)*H);g.lineTo(x+Math.cos(a+.05)*H,gy-s*.6+Math.sin(a+.05)*H);g.fill();}g.restore();
+  fighter(g,{x,gy,h:s,look:'woman',team:0,act:'guard',t:.2,face:1});
+  if(phone){document.querySelector('#results .res').style.gridTemplateRows='250px auto';}
+}
+if(view==='pause'){arenaScene(g,W,H,'duel');show('pause');}
+if(view==='stats'){show('stats');arenaScene(g,W,H,'none');dimBg('#140b2ee0');}
+
+document.fonts.ready.then(()=>{
+  document.querySelectorAll(':not([hidden]) [data-art]').forEach(cv=>{if(cv.offsetParent)cardArt(cv,cv.dataset.art);});
+  const mp=document.getElementById('mprevArt');if(view==='modes'){const [c,w,h]=fit(mp);if(!phone)c.translate(0,-h*.2);arenaScene(c,w,h,'squad');}
+  document.querySelectorAll('[data-look]').forEach(cv=>{if(cv.offsetParent)lookArt(cv);});
+  const ec=document.getElementById('eloChart');if(view==='stats')eloChart(ec);
+  document.body.dataset.ready='1';
+});
+</script>
+</body>
+</html>
