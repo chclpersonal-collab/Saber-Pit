@@ -176,6 +176,8 @@ function view(now=Date.now()){
   const showPatrol=Boolean(available>0||status.patrolNextMs!>0);
   hide('rpgPatrol',!showPatrol);$<HTMLButtonElement>('rpgPatrolCollect').disabled=!available;
   put('rpgPatrolDetail',available?pretty(available)+' patrol salvage ready':'Next patrol salvage in '+seconds(status.patrolNextMs??0));
+  const legacyReady=questStatus(state,now).phase==='ready';
+  hide('rpgClaimAll',Number(phase==='ready')+Number(available>0)+Number(legacyReady)<2);
   showRoute(status);showJournal(status);showLegacyStatus(now);
 }
 function persistCampaign(action: (prior?: IdleCampaign) => IdleCampaign | undefined,{quiet=false}={}){
@@ -220,6 +222,16 @@ $('questDispatch').addEventListener('submit',event=>{
   }
 });
 $('questClaim').addEventListener('click',()=>{if(persistCampaign(c=>claimIdleCampaign(c)))tick();});
+$('rpgClaimAll').addEventListener('click',()=>{
+  const now=Date.now(), campaignReady=idleCampaignStatus(loadQuests().campaign,now);
+  // Saves move one revision at a time, so each reward is its own save, in order.
+  let ok=true;
+  if(campaignReady.phase==='ready')ok=persistCampaign(c=>claimIdleCampaign(c,now))&&ok;
+  if(Number(idleCampaignStatus(loadQuests().campaign,now).patrolReward??0)>0)ok=persistCampaign(c=>collectIdleCampaignPatrol(c,now))&&ok;
+  if(!ok)notice('Some rewards could not be claimed. The latest save is shown.');
+  if(questStatus(loadQuests(),now).phase==='ready'&&!persistLegacy(c=>claimQuest(c)))notice('Could not claim the original reward.');
+  tick();
+});
 $('rpgUpgradeBuy').addEventListener('click',()=>{if(persistCampaign(c=>upgradeIdleCampaignHero(c,picker.value,savedHeroes())))tick();});
 $('rpgPatrolCollect').addEventListener('click',()=>{if(persistCampaign(c=>collectIdleCampaignPatrol(c)))tick();});
 $('questWatch').addEventListener('click',()=>{const s=idleCampaignStatus(state.campaign);showWave(s.run,s.index,true);});
