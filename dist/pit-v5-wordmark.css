@@ -1,0 +1,6 @@
+/* Loomen header wordmark: same type and glow as the approved v5 menu logo. Text only; the mark stays. */
+body.pit-v5 .mast .wordmark{font:400 clamp(1.45rem,2.6vw,2.05rem)/.9 "Pit Display",system-ui,sans-serif;letter-spacing:.01em;
+  background:linear-gradient(#fff 30%,#ffe08a 60%,#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 #3a1a00) drop-shadow(0 0 12px #ff8a3d66);transform:rotate(-3deg);transform-origin:left center}
+body.pit-v5 .mast .wordmark span{display:block;margin-top:4px;background:none;color:#2ec4ff;-webkit-text-fill-color:#2ec4ff;
+  font:900 .6rem/1 "Pit UI",system-ui,sans-serif;letter-spacing:.22em;text-shadow:0 0 10px #2ec4ff99}
