@@ -23,7 +23,7 @@ import {arcadeChessStyleForId,normalizeArcadeChessStyle} from './arcade-chess-st
 import {tournamentFixtureTerrain,tournamentTerrainOption} from './arcade-map-rotation.js';
 import {sanitizeMatchReport} from './arcade-match-report.js?v=2.33.0';
 import {peakLeaderboard,readEloPeaks,recordRatedEloPeak,seedKnownEloPeak} from './arcade-peak-elo.js?v=2.28.0';
-import {ARCADE_FORM_IDS} from './arcade-engine.js?v=3.0.0';
+import {ARCADE_FORM_IDS} from './arcade-engine.js?v=5.0.0';
 import {fighterNameParts,fighterNameKeysGiven,fighterNameKeysFamily} from './arcade-fighter-names.js?v=2.18.2';
 
 import {clampElo,eloFloor,updateEloPair} from './arcade-elo.js';

@@ -1,6 +1,6 @@
 # Saber Pit
 
-Saber Pit 4.00.0 is a 2D browser-based saber arena. Play or spectate custom fights, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
+Saber Pit 5.0.0 is a 2D browser-based saber arena. Play or spectate custom fights, push three lanes in Three Fronts, train in Style Lab, run 1v1, 5v5 and 1v3 tournaments, and send Saved Heroes through an offline-capable Idle RPG expedition.
 
 ## Run locally
 
@@ -14,6 +14,10 @@ npm start
 Open <http://127.0.0.1:4173>. For the original mode, open [Classic](http://127.0.0.1:4173/classic.html). Set the `PORT` environment variable to use a different port.
 
 The local server serves the generated website from `build/dist/`. Arena, tournaments, Style Lab, Idle RPG, browser-local saves and JSON backup/import work without an account or server-side service. Linked-device saves require an authenticated backend that is not included here. Leave linked saves off for local use.
+
+## Three Fronts
+
+[Three Fronts](http://127.0.0.1:4173/moba.html) is a separate local 5v5 fight with three lanes, minion waves, towers, and a Core. You control one fighter. The nine others use AI. It does not require matchmaking or modify your Arena career. [Controls and objectives](docs/three-fronts.md)
 
 ## Arena Elo
 

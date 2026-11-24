@@ -7,7 +7,7 @@ import {ARCADE_TECHNIQUES} from './arcade-repertoire.js?v=2.42.0';
 import {TOURNAMENT_KEY,loadTournament,saveTournament,startTournament,nextTournamentBout,runTournamentStep,
   tournamentLeaderboard,tournamentPeakLeaderboard,saveTournamentHero,removeTournamentHero,tournamentHeroes,tournamentHeroEligible,setTournamentHeroElo,setTournamentHeroGender,resetTournament,saveSquadTournamentHero,squadTournamentHeroId,squadTournamentHeroEligible} from './arcade-tournament.js?v=4.01.1';
 import {FIGHTER_GENDERS,fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
-import {drawArcadeFighterPreview} from './arcade-painter.js?v=4.0.0';
+import {drawArcadeFighterPreview} from './arcade-painter.js?v=5.0.0';
 import {ELO_FLOORS} from './arcade-elo.js?v=2.18.5';
 import {playTournamentBout,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=3.0.0';
 import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament,startSquadTournament,nextSquadBout,runSquadStep,resetSquadTournament,squadLeaderboard,squadPeakLeaderboard,squadGenderLabel,SQUAD_ELO_START,SQUAD_ELO_FLOOR} from './squad-tournament.js?v=4.01.1';

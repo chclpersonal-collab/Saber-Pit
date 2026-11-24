@@ -7,6 +7,7 @@ export interface ArcadeMotionFlow {
   movingEntries:boolean;
   chain:Readonly<{standardDelay:number;eliteDelay:number;eliteGrade:number}>;
   clashStrikeBuffer?:boolean;
+  windupSteering?:number;
   blockRebound?:Readonly<{standardDelay:number;eliteDelay:number}>;
 }
 export type ArcadeMotionFlowInput=Partial<Omit<ArcadeMotionFlow,'chain'>>&{
@@ -14,7 +15,7 @@ export type ArcadeMotionFlowInput=Partial<Omit<ArcadeMotionFlow,'chain'>>&{
 };
 const chain=Object.freeze({standardDelay:.050,eliteDelay:.025,eliteGrade:14});
 export const ARENA_MOTION_FLOW:Readonly<ArcadeMotionFlow>=Object.freeze({
-  plantFeet:true,styleTurns:true,stanceFollowThrough:true,impactRecovery:true,movingEntries:true,chain,clashStrikeBuffer:true,blockRebound:Object.freeze({standardDelay:.090,eliteDelay:.060}),
+  plantFeet:true,styleTurns:true,stanceFollowThrough:true,impactRecovery:true,movingEntries:true,chain,clashStrikeBuffer:true,windupSteering:.22,blockRebound:Object.freeze({standardDelay:.090,eliteDelay:.060}),
 });
 export const PREVIEW_MOTION_FLOW:Readonly<ArcadeMotionFlow>=Object.freeze({
   plantFeet:true,styleTurns:true,stanceFollowThrough:false,impactRecovery:false,movingEntries:false,chain,
@@ -29,6 +30,8 @@ export function normalizeArcadeMotionFlow(input:ArcadeMotionFlowInput,impactPhys
     plantFeet:input.plantFeet??true,styleTurns:input.styleTurns??true,
     stanceFollowThrough:input.stanceFollowThrough??true,impactRecovery:impactPhysics&&(input.impactRecovery??true),
     movingEntries:input.movingEntries??true,chain:{standardDelay,eliteDelay,eliteGrade},
+    ...(typeof input.windupSteering==='number'&&Number.isFinite(input.windupSteering)&&input.windupSteering>0?
+      {windupSteering:Math.min(.22,input.windupSteering)}:{}),
     ...(input.clashStrikeBuffer===true?{clashStrikeBuffer:true}:{}),
     ...(input.blockRebound?{blockRebound:{
       standardDelay:Math.max(standardDelay,validDelay(input.blockRebound.standardDelay,.090)),

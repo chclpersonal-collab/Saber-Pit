@@ -1,7 +1,7 @@
-import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=4.0.0';
+import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=5.0.0';
 /** Original ink-cutout art for Saber Pit. Sampled rig is read-only: hands,
  * shoes and all blade tips come from the same motion/contact calculation. */
-import type {FighterPaintIdentity,FighterPaintOptions,FighterPreviewOptions} from './arcade-painter.js';
+import type {FighterPaintIdentity,FighterPaintOptions,FighterPreviewOptions} from './arcade-painter.js?v=5.0.0';
 interface PaintPoint{x:number;y:number}
 interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;side?:number}
 interface InkActor extends FighterPaintIdentity{action?:string;attack?:unknown;vx?:number}

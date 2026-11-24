@@ -1,6 +1,6 @@
-import {contactChainApplies,contactChainOpen} from './arcade-motion-flow.js';
+import {contactChainApplies,contactChainOpen} from './arcade-motion-flow.js?v=5.0.0';
 import type {SimGame,SimFighter,SimMove,BladeCast,BladeSegment,Technique,LocalPressure,SimCommand,Cover,Point} from './arcade-engine-state.js';
-import type {ArcadeOptions,ArcadeInput} from './arcade-engine-api.js';
+import type {ArcadeOptions,ArcadeInput} from './arcade-engine-api.js?v=5.0.0';
 import {bodyGap,inside,openAt,crossed,blockedBetween,canSlide,bodyMotionFraction,separate,chooseRoute,spawnPosition} from './arcade-engine-geometry.js';
 import {aerialArcs,vaultArc,evadeArc,launchArc,startAir,updateAir} from './arcade-engine-air.js';
 import {ARCADE_STAT_KEYS,record,roundStats,credit,recordDamage,recordKnockout} from './arcade-engine-stats.js';
@@ -12,7 +12,7 @@ export {ARCADE_RANK_COMBAT};
 import {stepGame} from './arcade-engine-step.js';
 import {archetypes,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_ATTACKS,legacyForm,profile,styleTimings,quickCounter,art,arcadeContactHeight} from './arcade-engine-profile.js';
 export {ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_ATTACKS,arcadeContactHeight};
-import {buildArcadeConfig} from './arcade-engine-config.js';
+import {buildArcadeConfig} from './arcade-engine-config.js?v=5.0.0';
 import {arcadeBodyStaminaReward} from './arcade-stamina.js?v=2.37.0';
 import {arcadeChessStyleFor,arcadeChessMove,arcadeChessAllowsLane,arcadeChessDesiredBearing,arcadeChessPawnStrike,chooseArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {chooseArenaMatchGoal} from './arcade-match-goal.js?v=2.33.0';
@@ -29,8 +29,8 @@ import {normalizeHeroTactics,observeHeroPlan} from './arcade-hero-tactics.js?v=2
 import {fighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
 import {normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
 /** The real-time Saber Pit arcade rules. No DOM, browser clocks, or external state. */
-import {findArcadeBladeContact} from './arcade-clashes.js?v=3.0.0';
-import {sampleArcadeFighter,arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=3.0.0';
+import {findArcadeBladeContact} from './arcade-clashes.js?v=5.0.0';
+import {sampleArcadeFighter,arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=5.0.0';
 import {ARCADE_TECHNIQUES,arcadeMovesFor} from './arcade-repertoire.js?v=3.1.0';
 import {createArcadeInjuries,applyArcadeInjury,arcadeInjuryModifiers,compareArcadeDanger} from './arcade-injuries.js?v=2.9.0';
 export {arcadeMovesFor};
@@ -2409,6 +2409,16 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
         :attacking.lunge*Math.sin(Math.PI*plant)**2;
     }
     f.vx=Math.cos(f.face)*burst;f.vy=Math.sin(f.face)*burst;
+    const steer=s.config.motionFlow?.windupSteering;
+    if(steer&&f.control&&f.airPhase==='grounded'&&!f.airArc&&!f.contact&&!attacking.airStrike&&
+      f.action!=='force'&&f.action!=='free_hand'&&elapsed<attacking.contact){
+      // Shift a committed cut sideways without changing aim, release time
+      // or any normal solid/body collision rule.
+      const dx=-Math.sin(f.face),dy=Math.cos(f.face),lateral=moveX*dx+moveY*dy;
+      const weight=Math.min(1,elapsed/.055,(attacking.contact-elapsed)/.065);
+      const shift=lateral*def.speed*steer*weight;
+      f.vx+=dx*shift;f.vy+=dy*shift;
+    }
     if(f.stepUntil!>s.time){
       f.vx+=Math.cos(f.stepBearing!)*71;f.vy+=Math.sin(f.stepBearing!)*71;
     }

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Saber Pit | The Three Fronts</title>
+<link rel="stylesheet" href="moba.css?v=5.0.0">
+</head>
+<body>
+<main class="shell">
+  <header class="mast">
+    <a class="brand" href="index.html"><span aria-hidden="true">◈</span><b>SABER PIT <small>VERSION 5.0.0</small></b></a>
+    <nav aria-label="Game modes"><a href="index.html">Arena</a><a href="moba.html" aria-current="page">Three Fronts</a><a href="tournament.html">Tournaments</a><a href="idle-rpg.html">Idle RPG</a></nav>
+  </header>
+  <section class="intro" aria-labelledby="fronts-title">
+    <div><p class="eyebrow"><i></i> SIEGE OPERATION / 01</p><h1 id="fronts-title">The Three Fronts</h1><p class="intro-copy">Break a lane. Breach the citadel.</p></div>
+    <div class="tags"><span>5 VS 5</span><span>3 LANES</span><span>SOLO + AI</span></div>
+  </section>
+  <section class="battle" aria-label="Battlefield">
+    <div class="score">
+      <div class="team blue"><b>VANGUARD</b><span id="blueStatus">Core intact</span></div>
+      <div class="time"><b id="clock">00:00</b><span id="wave">AWAITING DEPLOYMENT</span></div>
+      <div class="team red"><b>RAVAGERS</b><span id="redStatus">Core intact</span></div>
+    </div>
+    <div class="viewport">
+      <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Three-lane battle arena"></canvas>
+      <div class="overlay" id="brief">
+        <p class="eyebrow">FIELD BRIEFING</p><h2>Choose your front</h2><p>Pick a lane and follow your minions. Break one enemy tower, then turn toward the exposed Core at the center of their base.</p>
+        <div class="deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
+        <small>Blue: you + 4 AI allies · Red: 5 AI rivals · no Arena Elo changes</small>
+      </div>
+      <div class="overlay" id="finished" hidden>
+        <p class="eyebrow">OPERATIONS REPORT</p><h2 id="result"></h2><p id="resultInfo"></p>
+        <button type="button" id="restart">Choose another front</button>
+      </div>
+    </div>
+    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals">Ready to deploy</div></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
+  </section>
+  <section class="controls" aria-label="Battle controls">
+    <div class="move" aria-label="Movement">
+      <button type="button" data-control="up" aria-label="Move up">↑</button>
+      <button type="button" data-control="left" aria-label="Move left">←</button>
+      <button type="button" data-control="down" aria-label="Move down">↓</button>
+      <button type="button" data-control="right" aria-label="Move right">→</button>
+    </div>
+    <div class="attacks"><button type="button" data-control="attack">Slash <kbd>J</kbd></button><button type="button" data-control="lunge">Lunge <kbd>K</kbd></button><button type="button" data-control="guard">Guard <kbd>Space</kbd></button></div>
+  </section>
+  <footer><p><b>Move</b> WASD or arrows <span>·</span> <b>Aim</b> cursor or tap arena <span>·</span> <b>Upgrade</b> U near your Core <span>·</span> <b>Push</b> behind allied minions</p><p>Local match · no online matchmaking</p></footer>
+  <p id="announce" class="sr" aria-live="polite"></p>
+</main>
+<script type="module" src="arcade-moba-ui.js?v=5.0.0"></script>
+</body>
+</html>

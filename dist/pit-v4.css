@@ -52,3 +52,9 @@ body.pit-v4[data-view=menu]{
   background:#242327;color:#efdeb8;font-weight:750;font-size:.875rem;line-height:1.35;
 }
 .pit-v4 .arena-rating-status[data-rated=true]{border-color:#67e2cd;background:#172d2a;color:#bcf3e9}
+
+/* v5 route marker: shares the Three Fronts amber and the Arena's teal. */
+.pit-v4 .pit-nav .fronts-link{color:#ffd193}
+.pit-v4 .launch-links{display:flex;position:relative;align-items:center;flex-wrap:wrap;gap:.55rem 1rem;margin-top:.35rem}
+.pit-v4 .launch-links .fronts-link{padding-inline:.65rem;color:#ffd193;text-decoration:none;border-left:2px solid #e8b66d;background:#241c1a}
+.pit-v4 .launch-links .fronts-link:hover{background:#3b2a1c}

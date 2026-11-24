@@ -1,0 +1,37 @@
+/* Presentation only. Keeps legacy setup/replay selectors and reduced motion. */
+.pit-v5[data-view=menu] .arena-launch{
+  border-color:#547674;
+  background:
+    linear-gradient(112deg,#101c20 15%,#172b2cbf 62%,#3b3e32a8),
+    radial-gradient(ellipse at 90% 15%,#80d8bf,transparent 59%),#101b1e;
+}
+.pit-v5[data-view=menu] .arena-launch::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(125deg,transparent 68%,#98eac747 68.5%,transparent 69% 72%,#deb98557 72.5%,transparent 73%);
+  mask-image:linear-gradient(90deg,transparent 40%,#000);
+}
+.pit-v5 .arena-launch>*{z-index:1}
+.pit-v5 .launch-tag{font-size:.76rem}
+.pit-v5 .launch-links{padding-top:.4rem;border-top:1px solid #57767377}
+.pit-v5 .launch-links .fronts-link{font-weight:900}
+.pit-v5 .lobby-title{align-items:flex-start;padding-bottom:.6rem;border-bottom:1px solid #3a4f51}
+.pit-v5 .lobby-title .lobby-links{justify-content:flex-end;flex-wrap:wrap}
+.pit-v5 .lobby-title .lobby-links button{min-height:44px}
+.pit-v5 .lobby-bottom .lobby-links{flex-wrap:wrap}
+.pit-v5 .hud .health{position:relative;border-top:2px solid #6bdec7;background:linear-gradient(105deg,#182e31ef,#111a1be8)}
+.pit-v5 .hud .health.pink{border-top-color:#ff8a77;background:linear-gradient(255deg,#3a2327ee,#211719e8)}
+.pit-v5 .hud .clock{align-self:stretch;display:grid;align-content:center;background:#11171bef;border-top:2px solid #e8b66d;padding-inline:.16rem}
+.pit-v5 .hud .clock strong{font-variant-numeric:tabular-nums;color:#fff4d3}
+.pit-v5 .hud .hud-mini b{background:#0b151ab8;border:1px solid #869b9966;color:#f1eddd}
+.pit-v5 .hud-label strong{font-family:var(--display,var(--mono));letter-spacing:.025em}
+@media(max-width:760px){
+  .pit-v5[data-view=menu] .pit-nav{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .pit-v5 .pit-nav a{text-align:center;white-space:normal;line-height:1.1;padding-inline:.24rem}
+  .pit-v5 .launch-links{gap:.3rem .55rem}.pit-v5 .launch-links .launch-setup{font-size:.86rem;margin-top:0}
+  .pit-v5 .lobby-title{flex-wrap:wrap}
+}
+@media(max-width:420px){
+  .pit-v5 .hud .health{padding:3px}
+  .pit-v5 .hud .hud-mini b{display:none}
+  .pit-v5 .hud-label strong{font-size:10px;letter-spacing:0}
+}

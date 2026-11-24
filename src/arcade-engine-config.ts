@@ -3,8 +3,8 @@ import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
 import {normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {ENVIRONMENTS} from './environment.js?v=1.4.0';
 import type {ArcadeBounds,ArcadeCover} from './arcade-engine-geometry.js';
-import {normalizeArcadeMotionFlow} from './arcade-motion-flow.js';
-import type {ArcadeMotionFlow,ArcadeMotionFlowInput} from './arcade-motion-flow.js';
+import {normalizeArcadeMotionFlow} from './arcade-motion-flow.js?v=5.0.0';
+import type {ArcadeMotionFlow,ArcadeMotionFlowInput} from './arcade-motion-flow.js?v=5.0.0';
 import type {ArcadeRecord} from './arcade-engine-stats.js';
 
 export type ArcadeRule='elimination'|'control'|'relic';
