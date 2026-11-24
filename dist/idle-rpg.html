@@ -10,8 +10,9 @@
 <script type="module" src="./idle-rpg-sync-entry.js?v=4.01.3"></script>
 <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
   <link rel="stylesheet" href="./ops-v3-secondary.css?v=4.0.0">
-<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
-<body class="ops-shell ops-idle">
+<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0">
+<link rel="stylesheet" href="./pit-v5-pages.css?v=5.1.0"></head>
+<body class="ops-shell ops-idle v5-page v5-idle">
 <main class="quest-shell">
   <header class="ops-dock">
     <a class="ops-brand" href="./index.html" aria-label="Saber Pit Arena">
@@ -27,7 +28,7 @@
     <p class="ops-dock-foot" aria-hidden="true"><i></i> SABER PIT // OPS</p>
   </header>
   <section class="rpg-header" aria-labelledby="questTitle">
-    <div><p class="rpg-kicker">UNDERPIT CAMPAIGN</p><h1 id="questTitle">Idle RPG</h1></div>
+    <div><p class="rpg-kicker v5-sr">UNDERPIT CAMPAIGN</p><h1 id="questTitle">Idle RPG</h1></div>
     <span class="rpg-tag" id="rpgChapterBadge">CHAPTER 1</span>
   </section>
   <div class="rpg-layout">
@@ -50,30 +51,30 @@
       </div>
     </section>
     <section class="rpg-panel rpg-dispatch" aria-labelledby="dispatchTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">PARTY</p><h2 id="dispatchTitle">Saved Hero</h2></div><span class="rpg-tag" id="rpgHeroCount">0 READY</span></div>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker v5-sr">PARTY</p><h2 id="dispatchTitle">Saved Hero</h2></div><span class="rpg-tag" id="rpgHeroCount">0 READY</span></div>
       <figure id="questHeroProfile" class="quest-hero-profile" hidden><canvas id="questPortrait" width="136" height="136" aria-hidden="true"></canvas><figcaption><strong id="questHeroName"></strong><p id="questHeroForm"></p></figcaption></figure>
       <form id="questDispatch" class="rpg-dispatch-form" hidden>
         <label for="questPicker">Choose Hero</label><select id="questPicker" required></select>
         <button id="questDeploy" class="rpg-primary" type="submit">Deploy Hero</button>
       </form>
-      <p id="questEmpty" class="rpg-empty" hidden>No Saved Heroes yet. <a href="./tournament.html">Recruit one in Tournament</a>.</p>
+      <p id="questEmpty" class="rpg-empty" hidden>No Saved Heroes yet. <a href="./tournament.html">Recruit one in Tournament</a></p>
       <div class="rpg-upgrade" id="rpgUpgrade" hidden><p id="rpgUpgradeDetail"></p><button id="rpgUpgradeBuy" type="button">Upgrade</button></div>
       <p id="questStatus" class="rpg-status" aria-live="polite"></p>
       <p id="questNotice" class="rpg-notice" role="status" hidden></p>
     </section>
     <section class="rpg-panel rpg-route" aria-labelledby="rpgRouteTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">CAMPAIGN MAP</p><h2 id="rpgRouteTitle">Underpit route</h2></div><span class="rpg-tag" id="rpgRouteCount">0 / 3</span></div>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker v5-sr">CAMPAIGN MAP</p><h2 id="rpgRouteTitle">Underpit route</h2></div><span class="rpg-tag" id="rpgRouteCount">0 / 3</span></div>
       <ol id="rpgRouteNodes" class="rpg-route-nodes"></ol>
     </section>
     <section class="rpg-panel rpg-loot" aria-labelledby="rpgLootTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">LOOT</p><h2 id="rpgLootTitle">Rewards</h2></div><span class="rpg-tag" id="rpgLootStatus">LOCKED</span></div>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker v5-sr">LOOT</p><h2 id="rpgLootTitle">Rewards</h2></div><span class="rpg-tag" id="rpgLootStatus">LOCKED</span></div>
       <div class="rpg-loot-item"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4 40 13v22l-16 9-16-9V13zM24 11l8 8-8 18-8-18zM13 17h22"/></svg><div><strong id="rpgLootName">Bellkeeper’s Seal</strong><p id="rpgLootDetail">Defeat the guardian to unlock.</p></div></div>
       <button class="rpg-primary" id="questClaim" type="button" hidden>Claim reward</button>
       <div class="rpg-upgrade" id="rpgPatrol" hidden><p id="rpgPatrolDetail"></p><button id="rpgPatrolCollect" type="button">Collect salvage</button></div>
       <section id="questResult" class="rpg-reward" hidden><strong>Secured</strong><p id="rpgRewardDetail">Recorded in your journal. No change to combat or Elo.</p></section>
     </section>
-    <details class="rpg-panel rpg-journal" aria-labelledby="journalTitle">
-      <summary><span id="journalTitle">Field journal</span><small>Story &amp; encounter log</small></summary>
+    <details class="rpg-panel rpg-journal v5-fold" aria-labelledby="journalTitle">
+      <summary><span id="journalTitle">Field journal</span><small class="v5-sr">Story &amp; encounter log</small></summary>
       <ol id="questDialogue" class="quest-dialogue"></ol>
       <p class="quest-sources">Dialogue excerpts: <a href="https://www.digitaltq.com/wiki/idleon/quests/scripticus-1" target="_blank" rel="noopener">Scripticus, IdleOn</a>. Offline play inspired by <a href="https://store.steampowered.com/app/1267910/Melvor_Idle/" target="_blank" rel="noopener">Melvor Idle</a> and <a href="https://www.farlightgames.com/news/3/" target="_blank" rel="noopener">AFK Journey</a>.</p>
     </details>
