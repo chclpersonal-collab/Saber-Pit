@@ -74,7 +74,7 @@ New behaviour. Gate every item behind new `ArcadeMotionFlow` fields so old repla
 
 | ID | Where | Now | Proposed | Why |
 |---|---|---|---|---|
-| N1 | clash lock L2517 | .42s base | .32s base (same rank scaling) | pairs with A2 |
+| N1 | clash lock L2517 | .42s base | ~~.32s base~~ **dropped**: Clara tested .32, rank gap got worse (SSS+V vs F lands while F is still locked). 4.01.3 buffer fixed the dead input instead. | keep .42 until playtested |
 | N2 | elite AI after clash L2520 | +.49s | +.30s | same |
 | N3 | elite AI between attacks L502 | clamp .13-.42s | clamp .06-.24s | elites should flow fastest |
 | N4 | linked cost after a miss, `attack()` L443 | +6.9% per chain depth | x1.15 extra when the previous release was a miss | faster whiff recovery must still cost stamina |
@@ -97,7 +97,7 @@ New behaviour. Gate every item behind new `ArcadeMotionFlow` fields so old repla
 ## Suggested order
 
 1. A1 + R1 (blocked swings flow) and test.
-2. A2 + N1 + N2 + R2 (clash rebound).
+2. A2 + N2 + R2 (A2 shipped as 4.01.3, N1 dropped) (clash rebound).
 3. B1-B7 timing pass.
 4. A3 steering, then N3/N4 balance.
 5. A4 only if playtests want it.
