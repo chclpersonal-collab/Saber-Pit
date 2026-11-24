@@ -223,6 +223,8 @@ $('questDispatch').addEventListener('submit',event=>{
 });
 $('questClaim').addEventListener('click',()=>{if(persistCampaign(c=>claimIdleCampaign(c)))tick();});
 $('rpgClaimAll').addEventListener('click',()=>{
+  // A repeat click lands after the first has saved and hidden the button; never claim twice.
+  if($('rpgClaimAll').hidden)return;
   const now=Date.now(), campaignReady=idleCampaignStatus(loadQuests().campaign,now);
   // Saves move one revision at a time, so each reward is its own save, in order.
   let ok=true;
