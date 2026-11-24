@@ -16,4 +16,4 @@ const server = http.createServer(async (req, res) => {
     res.end(data);
   } catch { res.writeHead(404).end('Not found'); }
 });
-server.listen(port, '127.0.0.1', () => console.log(`Saber Pit: http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`Loomen: http://127.0.0.1:${port}`));

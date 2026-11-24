@@ -148,7 +148,7 @@ export function inspectArcadeBackup(text: unknown): BackupInspection | BackupFai
     if(typeof text!=='string'||text.length>MAX_BACKUP_BYTES||bytes(text)>MAX_BACKUP_BYTES)return fail('This file is larger than the backup limit.');
     const raw=JSON.parse(text) as {format?: unknown; version?: unknown; createdAt?: unknown; sections: Record<string,unknown>} | null;
     if(raw?.format!==BACKUP_FORMAT||raw.version!==1||!object(raw.sections))
-      return fail('Choose a Saber Pit backup JSON file.');
+      return fail('Choose a Loomen backup JSON file.');
     const included=Object.keys(raw.sections) as BackupSection[];
     if(!included.length||included.some(k=>!has(CONFIG,k)))return fail('The backup contains no supported set of saves.');
     const sections: Partial<BackupStates>={},summary: BackupSummary={};
