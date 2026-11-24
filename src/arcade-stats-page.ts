@@ -28,7 +28,7 @@ export function statsView(save:ReturnType<typeof readArcadeCareer>):StatsView {
 }
 
 const fmt=(n:number)=>Number.isInteger(n)?String(n):n.toFixed(1);
-const label=(f:StatsFighter)=>`${f.team===0?'Blue':'Red'} ${f.slot+1}`;
+const label=(f:StatsFighter)=>`${f.team===0?'Blue':'Pink'} ${f.slot+1}`;
 
 function el<K extends keyof HTMLElementTagNameMap>(tag:K,cls?:string,text?:string){
   const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;
@@ -57,7 +57,7 @@ export function renderStats(root:HTMLElement,view:StatsView){
   view.teams.forEach((team,i)=>{
     if(!team.length)return;
     const card=el('section','st-card st-team st-team-'+(i?'red':'blue'));
-    const h=el('h3',undefined,i?'Red team':'Blue team');const id='stTeam'+i;h.id=id;card.setAttribute('aria-labelledby',id);
+    const h=el('h3',undefined,i?'Pink team':'Blue team');const id='stTeam'+i;h.id=id;card.setAttribute('aria-labelledby',id);
     const list=el('ol','st-list');
     for(const f of team){
       const row=el('li','st-row'+(view.you?.id===f.id?' st-you':''));
