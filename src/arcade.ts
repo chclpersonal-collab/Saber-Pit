@@ -45,6 +45,7 @@ import {buildArenaScoreboard} from './arcade-scoreboard.js';
 import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
 import {renderRoundResult} from './arcade-results-view.js';
+import {recordArenaRound} from './arcade-record.js';
 import {activeArenaPreset,arenaSetupSummary} from './arcade-setup-summary.js';
 import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
@@ -685,6 +686,8 @@ function showEnd(){
     elo:persisted&&settled.rated?{who:me?null:'Blue fighter 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
       floor:eloFloor(selected.after.grade),cap:selected.ratingCap}:null,
   }));
+  // Player's own K/D and wins, kept apart from the career save.
+  if(me&&(mode==='duel'||mode==='squad')&&!autoDuel.active)recordArenaRound(me.stats??{},game.phase);
   $('again').textContent='Next round';
   updateHUD();
   scoreboard.close();$('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
