@@ -41,6 +41,7 @@ type AttackChoice={id:string;family:string};
 export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'|'chessPawn'|'airRequest'|'heroEloFloorGrade'|'heroPlan'|'spawn'|'injuries'>,
  Partial<Record<NumericOption,number>>, Partial<Record<BooleanOption,boolean>>, Partial<Record<StringOption,string|null>> {
  motionLinkedHit?:boolean;
+ motionLinkedBlock?:boolean;
  motionAirCarry?:boolean;
  attackSpec:SimMove|null;
  archetype:ArcadeArchetype;formRules:boolean;

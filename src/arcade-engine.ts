@@ -348,7 +348,7 @@ function startExpanded(s: SimGame,f: SimFighter,id: string | null | undefined,be
     damage:move.damage*strength,lunge:(move as {lunge?:number}).lunge??(force?0:58),freeHand:!force,expanded:true};
   f.attack=id!;f.attackSpec=spec;f.technique=id!;f.contact=false;f.offhandContact=true;f.combo=0;
   f.counterMove=false;f.releaseOutcome=null;f.buffer=null;f.chainDepth=1;
-  if(s.config.motionFlow)f.motionLinkedHit=false;f.invuln=0;f.face=bearing;
+  if(s.config.motionFlow)f.motionLinkedHit=false;if(s.config.motionFlow?.blockRebound)f.motionLinkedBlock=false;f.invuln=0;f.face=bearing;
   f.attackFamily=force?'cast':'cut';f.attackVariant='center';
   f.attackSerial=s.eventId+1;f.expandedReadyAt=s.time+(f.control?1.05:4.6);
   if(force){credit(s,f,'forceCasts');f.lastForceAt=s.time;}else countMove(f,'unarmed_swings');
@@ -492,6 +492,7 @@ function attack(s: SimGame,f: SimFighter,name: string,to: number,{redirected=fal
   if(forceMove)f.lastForceAt=s.time;
   if(!live)turnForAttack(f,to); f.attack=name;f.attackSpec=move;f.technique=name;f.contact=false;f.offhandContact=false;f.buffer=null;f.attackSerial=s.eventId+1;f.staffTouched=null;f.staffLanded=false;f.releaseOutcome=null;
   if(s.config.motionFlow){f.motionLinkedHit=false;f.motionAirCarry=airCarry;}
+  if(s.config.motionFlow?.blockRebound)f.motionLinkedBlock=false;
   if(live){
     f.liveAim={serial:f.attackSerial,base:f.face,target:to,until:Math.max(0,move.contact-.031)};
     if(pose)pose.stride=live;
@@ -762,6 +763,8 @@ function applyDamage(s: SimGame,attacker: SimFighter,victim: SimFighter,spec: Si
     }
   }
   if(blocked){
+    if(s.config.motionFlow?.blockRebound&&guarding&&!deflecting&&!moveIsForce&&!freeHand&&
+       !spec.airStrike&&attacker.airPhase==='grounded'&&!attacker.airArc)attacker.motionLinkedBlock=true;
     event(s,'block',victim,impactX,impactY,{targetId:attacker.id,damage,...origin,...impact.meta});
     confirmGuardRead(s,victim,attacker,impactX,impactY,'block');
   }
@@ -1193,22 +1196,25 @@ function clockSpacing(s: SimGame,f: SimFighter,enemy: SimFighter,aim: number,ran
 }
 function continuation(s: SimGame,f: SimFighter,enemy: SimFighter,range: number,aligned: boolean,urgent: boolean){
   const move=atk(f);
-  const hit=Boolean(move&&contactChainOpen(s.config.motionFlow,f,move));
+  const timed=Boolean(move&&contactChainOpen(s.config.motionFlow,f,move));
+  const hit=timed&&f.motionLinkedHit===true;
+  // A hit by either emitter wins over the other emitter's ordinary block.
+  const outcome=s.config.motionFlow?.blockRebound&&hit?'landed':f.releaseOutcome;
   if(!move||!chainWindow(s,f,move)||!aligned||urgent||f.energy<25||f.chainDepth!>=chainLimit(f)||
      Math.abs(rankGap(f,enemy))>4||range>123||enemy.action==='dash'||enemy.airPhase==='airborne'||
-     !hit&&!['landed','guarded'].includes(f.releaseOutcome!))return null;
-  if(f.releaseOutcome==='guarded'&&enemy.action!=='guard'&&enemy.action!=='stagger')return null;
-  if(f.career.gradeIndex<8&&f.form!=='juyo'&&f.releaseOutcome==='guarded'&&enemy.exposedUntil!<=s.time)return null;
-  if(f.releaseOutcome==='guarded'&&f.chainDepth!>1&&f.form!=='juyo')return null;
+     !timed&&!['landed','guarded'].includes(outcome!))return null;
+  if(outcome==='guarded'&&enemy.action!=='guard'&&enemy.action!=='stagger')return null;
+  if(f.career.gradeIndex<8&&f.form!=='juyo'&&outcome==='guarded'&&enemy.exposedUntil!<=s.time)return null;
+  if(outcome==='guarded'&&f.chainDepth!>1&&f.form!=='juyo')return null;
   const active=ARCADE_TECHNIQUES[f.attack!], base=ARCADE_ATTACKS[f.attack as keyof typeof ARCADE_ATTACKS];
   const finalStage=s.elitePacing&&s.elitePacing.stage==='decisive';
   const canRepeat=(f.chainRepeat??0)<(f.form==='juyo'?2:1)&&!active?.air&&!(active?.tactical)&&
-    range<(move.reach+3)&&f.releaseOutcome==='landed'&&enemy.action!=='guard'&&
+    range<(move.reach+3)&&outcome==='landed'&&enemy.action!=='guard'&&
     (active?.role==='light'||f.form==='juyo'||base&&f.attack!.startsWith('slash'));
   if(!f.stanceFlow&&canRepeat&&(!s.config.arenaCuts||!f.attack!.startsWith('slash'))&&f.energy>=37&&(f.form==='juyo'||enemy.action==='stagger'||finalStage))return f.attack;
   const pool=arcadeMovesFor(f.form,f.career.gradeIndex,{circuitCuts:s.config.circuitCuts,arenaCuts:s.config.arenaCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves}).filter(m=>m.id!==f.attack&&!m.air&&m.mapAction!=='force'&&m.role==='light'&&
     m.contact<.31&&range<=m.reach+10&&f.energy>=m.cost+10);
-  if(enemy.action==='guard'&&f.releaseOutcome!=='landed'&&f.form==='soresu')return null;
+  if(enemy.action==='guard'&&outcome!=='landed'&&f.form==='soresu')return null;
   if(hit&&f.airPhase!=='grounded'&&f.airArc?.kind){
     // Deliberately favor a short grounded-kit cut; attack() verifies exact
     // final timing before spending anything.
@@ -2283,7 +2289,7 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
   } else if(attacking){
     if(request) f.buffer={type:request,until:s.time+(f.formRules?.59:.39)};
     const canCancel=f.actionTime>Math.max(attacking.contact+(f.formRules?.115:.065),(attacking.offhand?.contact??0)+.038)&&f.airPhase!=='airborne'&&(!attacking.airStrike||f.airPhase==='grounded');
-    const hitChain=contactChainApplies(s.config.motionFlow,f,attacking);
+    const timedChain=contactChainApplies(s.config.motionFlow,f,attacking);
     const buffered=f.buffer?.type;
     const follow=buffered===undefined?null:buffered==='strike'?(f.combo===0?'slash':'slash'+(f.combo+1)):
       buffered==='heavy'?def.heavy:buffered;
@@ -2291,14 +2297,14 @@ function actionStep(s: SimGame,f: SimFighter,dt: number,commands: SimCommand,ene
     if(canCancel&&commands.dash) dash(s,f,dashAngle,commands.evasion);
     else if(commands.chain&&chainWindow(s,f,attacking)&&f.chainDepth!<chainLimit(f))
       attack(s,f,commands.chain,aim,{linked:true});
-    else if(hitChain&&!forceFollow&&follow&&contactChainOpen(s.config.motionFlow,f,attacking)&&f.chainDepth!<chainLimit(f)&&(
+    else if(timedChain&&!forceFollow&&follow&&contactChainOpen(s.config.motionFlow,f,attacking)&&f.chainDepth!<chainLimit(f)&&(
       buffered==='strike'?f.combo<(def.comboCap??3):buffered==='heavy'||Boolean(ARCADE_TECHNIQUES[follow])
     )){
       attack(s,f,follow,aim,{linked:true});
     }
-    else if(!hitChain&&canCancel&&f.chainDepth!<chainLimit(f)&&f.buffer?.type==='strike'&&f.combo>0&&f.combo<(def.comboCap??3)&&f.actionTime>=attacking.duration*(f.formRules?(f.form==='juyo'?.72:.82):.68)){
+    else if(!timedChain&&canCancel&&f.chainDepth!<chainLimit(f)&&f.buffer?.type==='strike'&&f.combo>0&&f.combo<(def.comboCap??3)&&f.actionTime>=attacking.duration*(f.formRules?(f.form==='juyo'?.72:.82):.68)){
       attack(s,f,'slash'+(f.combo+1),aim,{linked:true});
-    } else if((!hitChain||forceFollow)&&canCancel&&f.chainDepth!<chainLimit(f)&&(['heavy','force'].includes(f.buffer?.type!)||ARCADE_TECHNIQUES[f.buffer?.type!])&&f.actionTime>=attacking.duration*(f.formRules?.85:.76)&&(f.combo>0||f.control&&f.chainDepth!<chainLimit(f))){
+    } else if((!timedChain||forceFollow)&&canCancel&&f.chainDepth!<chainLimit(f)&&(['heavy','force'].includes(f.buffer?.type!)||ARCADE_TECHNIQUES[f.buffer?.type!])&&f.actionTime>=attacking.duration*(f.formRules?.85:.76)&&(f.combo>0||f.control&&f.chainDepth!<chainLimit(f))){
       attack(s,f,ARCADE_TECHNIQUES[f.buffer!.type!]?f.buffer!.type:f.buffer!.type==='force'?'force':def.heavy,aim,{linked:f.buffer!.type!=='force'});
     }
   } else if(f.actionDuration===0&&f.action!=='stagger'&&f.airPhase!=='airborne'){
