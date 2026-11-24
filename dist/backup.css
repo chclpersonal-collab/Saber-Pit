@@ -58,6 +58,7 @@ input[type=checkbox] { flex: 0 0 auto; width: 1.1rem; height: 1.1rem; accent-col
 .backup-status { min-height: 1.6rem; margin-top: .9rem; color: var(--soft); font-size: .87rem; }
 .backup-status[data-tone=error] { color: #ffb4a2; }
 .backup-status[data-tone=success] { color: #dbdaa9; }
+.backup-status[data-tone=due] { color: #e8b66d; font-weight: 700; }
 @media(max-width: 660px) {
   .backup-shell { width: min(34rem,calc(100% - 1.4rem)); }
   .backup-grid { grid-template-columns: minmax(0,1fr); gap: .75rem; }

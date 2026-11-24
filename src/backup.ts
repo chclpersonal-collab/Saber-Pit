@@ -1,6 +1,6 @@
 import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js';
 import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=4.01.1';
-import {daysSinceBackup,markBackupSaved} from './backup-reminder.js';
+import {backupReminderText,markBackupSaved} from './backup-reminder.js';
 const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
 const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');
@@ -61,7 +61,7 @@ $('downloadBackup').addEventListener('click',()=>{
   }catch{announce('The browser could not start the download.','error');}
   finally{if(url)setTimeout(()=>URL.revokeObjectURL(url!),2000);}
 });
-function lastBackup(){const d=daysSinceBackup(),el=document.getElementById('backupLast');if(el)el.textContent=d===null?'':d===0?'Last download: today':'Last download: '+d+(d===1?' day':' days')+' ago';}
+function lastBackup(){const el=document.getElementById('backupLast');if(!el)return;const r=backupReminderText();el.textContent=r.text;el.dataset.tone=r.due?'due':'';}
 lastBackup();
 confirm.addEventListener('change',sync);
 sections.addEventListener('change',()=>{confirm.checked=false;sync();});
