@@ -89,9 +89,14 @@ body.v5-page .next { padding: .8rem 1rem; margin-block: .2rem .7rem; }
 body.v5-page .next h3 { font-size: clamp(1.15rem, 2vw, 1.45rem); margin: .1rem 0; }
 body.v5-page .next p:not(.kicker) { margin: 0; }
 
-/* Leaderboard: every column on wide screens; phones keep rank, name, Elo, K/D and record. */
+/* Leaderboard: every column at every size. On narrow screens the table scrolls sideways,
+   with a label saying so and the fighter name pinned. */
+.v5-tournament .v5-swipe { display: none; }
 @media (max-width: 640px) {
-  .v5-tournament .career-table :is(th, td):is(:nth-child(4), :nth-child(5), :nth-child(8), :nth-child(9)) { display: none; }
+  .v5-tournament .v5-swipe { display: block; margin: 0 0 .35rem; font-size: .78rem; color: var(--pit-muted, #aebdc1); }
+  .v5-tournament .career-table :is(th, td):nth-child(2) {
+    position: sticky; left: 0; z-index: 1; background: var(--pit-panel, #171e23); box-shadow: 1px 0 var(--pit-line, #32434a);
+  }
 }
 /* Context lines stay, set small. */
 body.v5-tournament :is(#seasonWeek, #leaderDetail, #peakDetail, #formatDescription) { font-size: .82rem; margin: 0 0 .5rem; color: var(--pit-muted, #aebdc1); }
