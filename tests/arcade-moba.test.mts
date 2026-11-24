@@ -7,7 +7,7 @@ test('three lanes host deterministic 5v5, synchronized waves and one local playe
   const a=createMoba(871,2), b=createMoba(871,2);
   assert.equal(a.player.lane,2);
   assert.deepEqual(a.heroes.filter(h=>h.control),[a.player]);
-  assert.deepEqual(a.towers.map(t=>t.y),[...MOBA_LANES,...MOBA_LANES]);
+  assert.deepEqual(a.towers.map(t=>t.y),[185,360,535,185,360,535]);
   assert.equal(a.cores.every(c=>c.shielded),true);
   for(let i=0;i<120;i++)stepMoba(a,tick);
   for(let i=0;i<60;i++)stepMoba(b,tick*2);

@@ -34,7 +34,7 @@
         <button type="button" id="restart">Choose another front</button>
       </div>
     </div>
-    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals">Ready to deploy</div></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
+    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready to deploy</b><span>HP <b id="heroHP">—</b></span><span>Stamina <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints">WASD move · J slash · K lunge · Space guard · M map · Esc pause</small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
   </section>
   <section class="controls" aria-label="Battle controls">
     <div class="move" aria-label="Movement">
@@ -45,7 +45,7 @@
     </div>
     <div class="attacks"><button type="button" data-control="attack">Slash <kbd>J</kbd></button><button type="button" data-control="lunge">Lunge <kbd>K</kbd></button><button type="button" data-control="guard">Guard <kbd>Space</kbd></button></div>
   </section>
-  <footer><p><b>Move</b> WASD or arrows <span>·</span> <b>Aim</b> cursor or tap arena <span>·</span> <b>Upgrade</b> U near your Core <span>·</span> <b>Push</b> behind allied minions</p><p>Local match · no online matchmaking</p></footer>
+  <footer><p><b>Move</b> WASD or arrows <span>·</span> <b>Aim</b> cursor or tap arena <span>·</span> <b>Map</b> M <span>·</span> <b>Upgrade</b> U near your Core <span>·</span> <b>Push</b> behind allied minions</p><p>Local match · no online matchmaking</p></footer>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
 <script type="module" src="arcade-moba-ui.js?v=5.0.0"></script>

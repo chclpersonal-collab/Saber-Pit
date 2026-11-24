@@ -1,5 +1,6 @@
+import {MOBA_BATTLEFIELD,mobaClearPath,mobaWalk,mobaLaneWaypoint,mobaNavPoint} from './arcade-moba-map.js';
 /** Standalone, fixed-step, local Arena MOBA. No Arena career or tournament writes. */
-export const MOBA_WIDTH=1280, MOBA_HEIGHT=720;
+export const MOBA_WIDTH=MOBA_BATTLEFIELD.width, MOBA_HEIGHT=MOBA_BATTLEFIELD.height;
 export const MOBA_LANES=[165,360,555] as const;
 export const MOBA_WAVE_INTERVAL=12, MOBA_MATCH_LIMIT=600;
 const DT=1/60, HERO_RADIUS=15;
@@ -38,8 +39,8 @@ const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const gap=(a:MobaPoint,b:MobaPoint)=>Math.hypot(a.x-b.x,a.y-b.y);
 const direction=(team:MobaTeam)=>team===0?1:-1;
 const enemyTeam=(team:MobaTeam):MobaTeam=>team===0?1:0;
-const homeX=(team:MobaTeam)=>team===0?72:1208;
-const spawnX=(team:MobaTeam)=>team===0?115:1165;
+const homeX=(team:MobaTeam)=>MOBA_BATTLEFIELD.cores[team].x;
+const spawnX=(team:MobaTeam)=>MOBA_BATTLEFIELD.spawns[team].x;
 const rotate=(xs:MobaHero[],i:number)=>xs.slice(i).concat(xs.slice(0,i));
 const finite=(value:unknown)=>typeof value==='number'&&Number.isFinite(value)?value:0;
 const positiveAngle=(r:number)=>Math.atan2(Math.sin(r),Math.cos(r));
@@ -57,7 +58,7 @@ function setAction(h:MobaHero,action:MobaHero['action']){
 function structure(team:MobaTeam,lane:MobaLane,kind:MobaStructure['kind']):MobaStructure {
   const core=kind==='core', maxHp=core?930:420;
   return {team,lane,kind,id:kind+'-'+team+(core?'':'-'+lane),
-    x:core?homeX(team):team===0?365:915,y:core?MOBA_LANES[1]:MOBA_LANES[lane],
+    ...(core?MOBA_BATTLEFIELD.cores[team]:MOBA_BATTLEFIELD.lanes[lane].towerNodes[team]),
     hp:maxHp,maxHp,alive:true,radius:core?30:22,shielded:core,cooldown:0};
 }
 export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho'):MobaState {
@@ -147,16 +148,16 @@ function nearest<T extends MobaUnit>(origin:MobaPoint,pool:readonly T[],test:(a:
 }
 function move(h:MobaHero,dx:number,dy:number,speed:number,aim?:number){
   const length=Math.hypot(dx,dy), factor=length>1?1/length:1;
-  h.vx=dx*factor*speed;h.vy=dy*factor*speed;
-  h.x=clamp(h.x+h.vx*DT,34,MOBA_WIDTH-34);
-  h.y=clamp(h.y+h.vy*DT,55,MOBA_HEIGHT-55);
+  const next=mobaWalk(h,dx*factor*speed*DT,dy*factor*speed*DT,h.radius);
+  h.vx=(next.x-h.x)/DT;h.vy=(next.y-h.y)/DT;
+  h.x=next.x;h.y=next.y;
   if(aim!==undefined)h.face=aim;
   else if(length>.06)h.face=Math.atan2(dy,dx);
   return length>.06;
 }
 function moveToward(h:MobaHero,p:MobaPoint,speed=126,aim?:number){
-  const d=gap(h,p);
-  return move(h,(p.x-h.x)/Math.max(1,d),(p.y-h.y)/Math.max(1,d),Math.min(speed,d/DT),aim);
+  const node=mobaNavPoint(h,p,h.radius), d=gap(h,node);
+  return move(h,(node.x-h.x)/Math.max(1,d),(node.y-h.y)/Math.max(1,d),Math.min(speed,d/DT),aim);
 }
 function build(h:MobaHero,s:MobaState){
   const cost=mobaUpgradeCost(h);
@@ -183,7 +184,7 @@ function strike(s:MobaState,h:MobaHero,targets:readonly MobaUnit[],lunge:boolean
     return;
   }
   const aim=hasAim?{x:aimX!,y:aimY!}:{x:h.x+Math.cos(h.face)*form.reach,y:h.y+Math.sin(h.face)*form.reach};
-  const candidate=nearest(aim,targets,e=>e.team!==h.team&&vulnerable(s,e)&&gap(h,e)<=form.reach+e.radius&&
+  const candidate=nearest(aim,targets,e=>e.team!==h.team&&vulnerable(s,e)&&mobaClearPath(h,e)&&gap(h,e)<=form.reach+e.radius&&
     Math.abs(positiveAngle(Math.atan2(e.y-h.y,e.x-h.x)-h.face))<form.arc);
   emit(s,'attack',h,candidate);
   if(candidate)hitWithHero(s,h,candidate,form.slash);
@@ -204,6 +205,7 @@ function dashStep(s:MobaState,h:MobaHero,targets:readonly MobaUnit[]){
     stop=entry;victim=t;
   }
   const x=clamp(h.x+dx*stop,34,MOBA_WIDTH-34), y=clamp(h.y+dy*stop,55,MOBA_HEIGHT-55);
+  if(!mobaClearPath(h,{x,y},h.radius)){h.vx=0;h.vy=0;h.dashRemaining=0;return;}
   h.vx=(x-h.x)/DT;h.vy=(y-h.y)/DT;h.x=x;h.y=y;
   h.dashRemaining=Math.max(0,h.dashRemaining-DT);
   if(victim){hitWithHero(s,h,victim,form.lungeDamage);h.dashRemaining=0;}
@@ -247,9 +249,9 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
     const exposure=tower&&!s.minions.some(m=>m.team===h.team&&m.alive&&gap(m,tower)<133);
     const retreat=h.hp<h.maxHp*.24||h.hp<h.maxHp*.64&&gap(h,fountain)<124;
     const desired={x:tower?.x??(core.shielded?640:core.x),y:tower?laneY:core.shielded?laneY:core.y};
-    const follow=exposure?{x:desired.x-faction*161,y:laneY}:desired;
+    const follow=exposure?{x:desired.x-faction*161,y:desired.y}:desired;
     const target=nearest(h,units,e=>e.team!==h.team&&vulnerable(s,e)&&
-      (e.kind==='hero'||e.lane===h.lane||e.kind==='core')&&gap(h,e)<(e.kind==='hero'?112:83));
+      (e.kind==='hero'||e.lane===h.lane||e.kind==='core')&&mobaClearPath(h,e)&&gap(h,e)<(e.kind==='hero'?112:83));
     let moving=false;
     if(retreat){moving=moveToward(h,fountain,151);build(h,s);}
     else if(target&&(!exposure||target.kind!=='tower')){
@@ -259,7 +261,8 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
       const tryLunge=target.kind==='hero'&&d>form.reach+target.radius&&d<=lungeReach+target.radius&&h.energy>65&&h.lungeCooldown<=0;
       if(d<=target.radius+(tryLunge?lungeReach:form.reach))strike(s,h,units,tryLunge,target.x,target.y);
     }else{
-      moving=moveToward(h,follow,132);
+      const waypoint=tower||core.shielded?mobaLaneWaypoint(h.lane,h.team,h,follow):follow;
+      moving=moveToward(h,waypoint,132);
       if(tower&&gap(h,tower)<74&&!exposure)strike(s,h,units,false,tower.x,tower.y);
       else if(!core.shielded&&gap(h,core)<80)strike(s,h,units,false,core.x,core.y);
     }
@@ -272,8 +275,9 @@ function minionStep(s:MobaState,m:MobaMinion,units:readonly MobaUnit[]){
   m.cooldown=Math.max(0,m.cooldown-DT);
   const foe=enemyTeam(m.team), laneY=MOBA_LANES[m.lane], tower=s.towers.find(t=>t.team===foe&&t.lane===m.lane&&t.alive), core=s.cores[foe];
   const enemy=nearest(m,units,e=>e.team!==m.team&&vulnerable(s,e)&&(e.kind==='hero'?Math.abs(e.y-laneY)<100:e.kind==='core'||e.lane===m.lane)&&
-    gap(m,e)<(m.ranged?107:72));
-  const goal=enemy??tower??(core.shielded?{x:core.x,y:laneY}:core);
+    gap(m,e)<(m.ranged?107:72)&&mobaClearPath(m,e));
+  const desired=tower??(core.shielded?{x:core.x,y:laneY}:core);
+  const goal=enemy??(tower||core.shielded?mobaLaneWaypoint(m.lane,m.team,m,desired):mobaNavPoint(m,desired,m.radius));
   const d=gap(m,goal);
   const reach=m.ranged?73:19;
   if(enemy&&d<reach+enemy.radius){
@@ -281,13 +285,13 @@ function minionStep(s:MobaState,m:MobaMinion,units:readonly MobaUnit[]){
     return;
   }
   const dx=goal.x-m.x,dy=goal.y-m.y;
-  if(d>.5){m.face=Math.atan2(dy,dx);m.x+=dx/d*Math.min(d,74*DT);m.y+=dy/d*Math.min(d,74*DT);}
+  if(d>.5){m.face=Math.atan2(dy,dx);const next=mobaWalk(m,dx/d*Math.min(d,74*DT),dy/d*Math.min(d,74*DT),m.radius);m.x=next.x;m.y=next.y;}
 }
 function structureStep(s:MobaState,t:MobaStructure,units:readonly MobaUnit[]){
   if(!t.alive)return;
   t.cooldown=Math.max(0,t.cooldown-DT);
   if(t.cooldown>0)return;
-  const query=(u:MobaUnit)=>u.team!==t.team&&vulnerable(s,u)&&gap(t,u)<(t.kind==='tower'?135:113);
+  const query=(u:MobaUnit)=>u.team!==t.team&&vulnerable(s,u)&&mobaClearPath(t,u)&&gap(t,u)<(t.kind==='tower'?135:113);
   const target=nearest(t,units,e=>e.kind==='minion'&&query(e))??nearest(t,units,e=>e.kind==='hero'&&query(e));
   if(target){damage(s,t,target,t.kind==='tower'?23:18);t.cooldown=t.kind==='tower'?.84:1.1;}
 }

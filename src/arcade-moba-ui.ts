@@ -1,5 +1,6 @@
 import {createMoba,stepMoba,mobaUpgradeCost,MOBA_FORMS,MOBA_FORM_IDS,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js';
 import type {MobaInput,MobaLane,MobaForm,MobaHero,MobaState} from './arcade-moba.js';
+import {frameMobaCamera,mobaCanvasAim,type MobaView} from './arcade-moba-camera.js';
 import {paintMobaTerrain,paintMobaField} from './arcade-moba-field.js';
 
 function byId<T extends HTMLElement=HTMLElement>(id:string):T{
@@ -9,7 +10,7 @@ function byId<T extends HTMLElement=HTMLElement>(id:string):T{
 }
 const canvas=byId<HTMLCanvasElement>('field'), context=canvas.getContext('2d',{alpha:false})!;
 const nodes={brief:byId('brief'),finished:byId('finished'),clock:byId('clock'),wave:byId('wave'),
-  map:byId<HTMLButtonElement>('map'),blue:byId('blueStatus'),red:byId('redStatus'),vitals:byId('vitals'),pause:byId<HTMLButtonElement>('pause'),
+  map:byId<HTMLButtonElement>('map'),blue:byId('blueStatus'),red:byId('redStatus'),vitals:byId('vitals'),hp:byId('heroHP'),energy:byId('heroEnergy'),level:byId('heroLevel'),record:byId('heroRecord'),form:byId('heroForm'),pause:byId<HTMLButtonElement>('pause'),
   leave:byId<HTMLButtonElement>('leave'),upgrade:byId<HTMLButtonElement>('upgrade'),result:byId('result'),
   detail:byId('resultInfo'),announce:byId('announce')};
 const width=MOBA_WIDTH,height=MOBA_HEIGHT;
@@ -27,11 +28,18 @@ formInput.addEventListener('change',renderFormHint);
 renderFormHint();
 const active=new Set<string>(), pulses=new Set<string>(), touches=new Map<number,string>(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const keys:Readonly<Record<string,string>>={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right',j:'attack',k:'lunge',' ':'guard',u:'upgrade'};
-const mobile=matchMedia('(max-width: 720px)');
-let follow=true, view={x:0,y:0,zoom:1};
+let follow=true, view:MobaView={x:0,y:0,zoom:1,width,height};
+let viewport={width:canvas.clientWidth,height:canvas.clientHeight};
+const measureViewport=()=>{viewport={width:canvas.clientWidth,height:canvas.clientHeight};};
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(measureViewport).observe(canvas);
+else window.addEventListener('resize',measureViewport);
 let game:MobaState=createMoba(), playing=false, paused=false, aim:{x:number;y:number}|null=null,
     prior=0, lastUi=-1, upgrade=false,lastAnnounced=0;
 const stamp=(el:HTMLElement,value:string)=>{if(el.textContent!==value)el.textContent=value;};
+function renderCameraControl(){
+  stamp(nodes.map,follow?'Show overview':'Follow hero');
+  nodes.map.setAttribute('aria-label',follow?'Show whole battlefield':'Follow your hero');
+}
 const press=(id:string)=>active.has(id)||Array.from(touches.values()).includes(id);
 const setScreen=(screen:'brief'|'field'|'finished')=>{
   playing=screen==='field'; nodes.brief.hidden=screen!=='brief';nodes.finished.hidden=screen!=='finished';
@@ -45,12 +53,12 @@ function clearControls(){
 }
 function begin(lane:MobaLane){
   game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm()); aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;
-  follow=mobile.matches;clearControls();setScreen('field');stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
+  follow=true;clearControls();setScreen('field');measureViewport();renderCameraControl();stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
   canvas.focus({preventScroll:true});renderHud();
 }
 function leave(){
   clearControls();paused=false;aim=null;game=createMoba();setScreen('brief');renderHud();
-  document.querySelector<HTMLButtonElement>('[data-lane="1"]')?.focus();
+  document.querySelector<HTMLButtonElement>('[data-lane="1"]')?.focus({preventScroll:true});
 }
 function pause(value:boolean){
   if(!playing)return;
@@ -62,7 +70,8 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-lane]')){
   btn.addEventListener('click',()=>begin(Number(btn.dataset.lane) as MobaLane));
 }
 byId('restart').addEventListener('click',leave);
-nodes.map.addEventListener('click',()=>{follow=!follow;canvas.focus({preventScroll:true});});
+function toggleCamera(){follow=!follow;aim=null;renderCameraControl();canvas.focus({preventScroll:true});}
+nodes.map.addEventListener('click',toggleCamera);
 nodes.leave.addEventListener('click',leave);nodes.pause.addEventListener('click',()=>pause(!paused));
 nodes.upgrade.addEventListener('click',()=>{if(playing&&!paused){upgrade=true;canvas.focus({preventScroll:true});}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause(true);});
@@ -70,17 +79,15 @@ window.addEventListener('blur',()=>clearControls());
 window.addEventListener('keydown',event=>{
   if(!playing||event.target instanceof HTMLButtonElement||event.target instanceof HTMLAnchorElement)return;
   if(event.key.toLowerCase()==='escape'&&!event.repeat){event.preventDefault();pause(!paused);return;}
+  if(event.key.toLowerCase()==='m'&&!event.repeat){event.preventDefault();toggleCamera();return;}
   const key=keys[event.key.toLowerCase()];
   if(!key||paused)return;
   event.preventDefault();if(key==='upgrade'){if(!event.repeat)upgrade=true;}else {active.add(key);if(key==='attack'||key==='lunge')pulses.add(key);}
 });
 window.addEventListener('keyup',event=>active.delete(keys[event.key.toLowerCase()]));
 function aimAt(event:PointerEvent){
-  const rect=canvas.getBoundingClientRect(),fit=Math.min(rect.width/width,rect.height/height);
-  if(fit<=0)return;
-  const x=(event.clientX-rect.left-(rect.width-width*fit)/2)/fit,
-    y=(event.clientY-rect.top-(rect.height-height*fit)/2)/fit;
-  if(x>=0&&y>=0&&x<=width&&y<=height)aim={x:view.x+x/view.zoom,y:view.y+y/view.zoom};
+  const target=mobaCanvasAim(view,canvas.getBoundingClientRect(),{x:event.clientX,y:event.clientY});
+  if(target)aim=target;
 }
 canvas.addEventListener('pointermove',event=>{if(playing&&event.pointerType!=='touch')aimAt(event);});
 canvas.addEventListener('pointerdown',event=>{if(playing&&!paused)aimAt(event);});
@@ -104,11 +111,14 @@ function renderHud(){
   stamp(nodes.wave,!playing&&nodes.finished.hidden?'AWAITING DEPLOYMENT':!game.wave?'WAVE INBOUND':'WAVE '+game.wave+' · '+Math.max(0,Math.ceil(game.nextWaveAt-game.time))+'S');
   for(const [team,el] of [[0,nodes.blue],[1,nodes.red]] as const){
     const p=game.cores[team], towers=game.towers.filter(t=>t.team===team&&t.alive).length;
-    stamp(el,(p.shielded?'Shielded':Math.ceil(p.hp/p.maxHp*100)+'% Core')+' · '+towers+' / 3 towers');
+    stamp(el,(p.shielded?'Shielded':Math.ceil(p.hp/p.maxHp*100)+'% Core')+' · '+towers+'/3 towers');
   }
   const p=game.player;
-  const stats=playing?MOBA_FORMS[p.form].name+' · Lv '+p.level+' · '+Math.ceil(p.hp)+' HP · '+Math.floor(p.energy)+' stamina · '+p.kills+'/'+p.deaths+' K/D':'Ready to deploy';
-  stamp(nodes.vitals,playing&&!p.alive?'Respawn in '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s · '+stats:stats);
+  stamp(nodes.form,playing?(!p.alive?'Respawn '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s':MOBA_FORMS[p.form].name):'Ready to deploy');
+  stamp(nodes.hp,playing?String(Math.ceil(p.hp)):'—');
+  stamp(nodes.energy,playing?String(Math.floor(p.energy)):'—');
+  stamp(nodes.level,playing?String(p.level):'—');
+  stamp(nodes.record,playing?p.kills+'/'+p.deaths:'—');
   const cost=mobaUpgradeCost(p),canBuy=p.alive&&Math.hypot(p.x-game.cores[0].x,p.y-game.cores[0].y)<=123&&cost!==null&&p.credits>=cost;
   stamp(nodes.upgrade,cost===null?'Kit maxed':'Upgrade '+p.credits+'/'+cost);
   nodes.upgrade.disabled=!playing||paused||!canBuy;
@@ -137,10 +147,9 @@ function frame(now:number){
   if(!document.hidden){
     moving.clear();
     if(!reduced.matches)for(const p of game.heroes)if(Math.hypot(p.vx,p.vy)>22)moving.add(p);
-    const zoom=playing&&follow?2.1:1;
-    view={zoom,x:Math.max(0,Math.min(width-width/zoom,game.player.x-width/(2*zoom))),
-      y:Math.max(0,Math.min(height-height/zoom,game.player.y-height/(2*zoom)))};
-    stamp(nodes.map,zoom>1?'Full map':'Follow');
+    view=frameMobaCamera(game.player,playing&&follow,viewport);
+    if(canvas.width!==view.width)canvas.width=view.width;
+    if(canvas.height!==view.height)canvas.height=view.height;
     paintMobaField(context,backdrop,game,playing?game.player:undefined,moving,view,!reduced.matches);
   }
   requestAnimationFrame(frame);
