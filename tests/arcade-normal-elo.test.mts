@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {recordDamage,recordKnockout} from '../dist/arcade-engine-stats.js';
 import {createArcade,stepArcade} from '../dist/arcade-engine.js';
 import {ARCADE_CAREER_KEY,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from '../dist/arcade-career.js';
 import {arenaNormalCap,arenaNormalRanked,arenaNormalRating,safeArenaNormalRatings,updateArenaNormalRatings} from '../dist/arcade-normal-elo.js';
@@ -14,33 +15,40 @@ test('regular ranks start at 100, next-grade ceiling is half a point below its b
   assert.equal(arenaNormalCap(1),299.5);
   assert.equal(arenaNormalCap(13),1499.5);
   assert.equal(arenaNormalCap(14),null);
-  const grandmaster=settleArcadeCareer({...game(1),fighters:game(1).fighters.map(f=>({...f,career:{merit:6000}}))})!;
-  assert.deepEqual(grandmaster.arenaRatings,{'0-0':108,'1-0':100});
 });
-test('each fighter gets the same transfer by team average (100 Elo difference is 2:1), with a 100 floor',()=>{
-  const prior={'0-0':250,'0-1':350,'1-0':200,'1-1':200};
-  const expectedWin=updateArenaNormalRatings(prior,slots(2),0,true);
-  assert.deepEqual(expectedWin.arenaRatings,{'0-0':255.5,'0-1':355.5,'1-0':194.5,'1-1':194.5});
-  assert.deepEqual(updateArenaNormalRatings(prior,slots(2),1,true).arenaRatings,{'0-0':239.5,'0-1':339.5,'1-0':210.5,'1-1':210.5});
-  assert.deepEqual(updateArenaNormalRatings(prior,slots(2),null,true).arenaRatings,{'0-0':247.5,'0-1':347.5,'1-0':202.5,'1-1':202.5});
-  assert.equal(prior['0-0'],250);
+const ko=(victimId:string,killerId:string|null,assists:string[]=[])=>
+  ({victimId,killerId,assists});
+test('only credited fighters gain from a KO; a lower Elo killer costs the victim more',()=>{
+  const prior={'0-0':200,'0-1':300,'0-2':250,'1-0':300,'1-1':220,'1-2':245};
+  const upset=updateArenaNormalRatings(prior,slots(3),[ko('1-0','0-0',['0-1'])],true);
+  assert.deepEqual(upset.arenaRatings,{'0-0':208,'0-1':302.5,'0-2':250,'1-0':289.5,'1-1':220,'1-2':245});
+  const expected=updateArenaNormalRatings(prior,slots(3),[ko('0-0','1-0')],true);
+  assert.equal(expected.changes['0-0'].ratingDelta,-5.5);
+  assert.equal(expected.changes['1-0'].ratingDelta,5.5);
+  assert.equal(prior['0-0'],200);
 });
-test('a capped fighter banks nothing; a genuine promotion can unlock the next band on this round',()=>{
-  const first=game(2);
-  first.fighters[0].alive=false; // Blue won, but this slot was KO'd and ends as F.
-  const result=settleArcadeCareer(first,{'0-0':199,'0-1':199})!;
-  assert.equal(result.report[0].after.grade,'F');
-  assert.equal(result.report[0].ratingAfter,199.5);
-  assert.equal(result.report[0].ratingDelta,.5);
-  assert.equal(result.report[1].after.grade,'E');
-  assert.ok(result.report[1].ratingAfter>199.5);
-  assert.strictEqual(settleArcadeCareer(first,{'0-0':1200}),result);
-  const next=game(2);
-  next.fighters[0].career=result.careers['0-0'];
-  const promoted=settleArcadeCareer(next,result.arenaRatings)!;
-  const baseline=updateArenaNormalRatings(result.arenaRatings,slots(2),0,true);
-  assert.equal(promoted.report[0].after.grade,'E');
-  assert.equal(promoted.report[0].ratingAfter,baseline.arenaRatings['0-0']);
+test('simultaneous KO transfers use the same starting ratings regardless of order',()=>{
+  const prior={'0-0':200,'1-0':300};
+  const kos=[ko('1-0','0-0'),ko('0-0','1-0')];
+  const actual=updateArenaNormalRatings(prior,slots(1),kos,true);
+  assert.deepEqual(actual.arenaRatings,{'0-0':205,'1-0':295});
+  assert.deepEqual(updateArenaNormalRatings(prior,slots(1),kos.reverse(),true),actual);
+});
+test('ceilings, floor, duplicate attribution, uncredited and invalid KOs cannot award extra Elo',()=>{
+  const prior={'0-0':199,'0-1':199,'0-2':198,'1-0':100,'1-1':180,'1-2':190};
+  const credited=ko('1-0','0-0',['0-1','0-2','0-2','1-1','0-0','x']);
+  const events=[credited,credited,ko('1-1',null),ko('1-2','1-1')];
+  const result=updateArenaNormalRatings(prior,slots(3,0),events,true);
+  assert.deepEqual(result.arenaRatings,{'0-0':199.5,'0-1':199.5,'0-2':198.5,'1-0':100,'1-1':180,'1-2':190});
+  assert.equal(updateArenaNormalRatings(prior,slots(3,1),[credited],true).changes['0-0'].ratingAfter,203);
+});
+test('won, lost, or drawn rounds with no verified knockout do not move Elo',()=>{
+  for(const phase of ['won','lost','draw']){
+    const prior={'0-0':130,'1-0':140};
+    const settled=settleArcadeCareer(game(1,phase),prior)!;
+    assert.deepEqual(settled.arenaRatings,prior);
+    assert.strictEqual(settleArcadeCareer(game(1,'playing'),prior),null);
+  }
 });
 test('eligibility requires canonical even regular elimination rosters from 1 through 15',()=>{
   for(const n of [1,2,5,10,15])assert.equal(arenaNormalRanked(game(n)),true);
@@ -80,4 +88,21 @@ test('a finished actual Arena simulation earns Elo once without mutating the fig
   assert.equal(result.rated,true);
   assert.deepEqual(result.arenaRatings,{'0-0':108,'1-0':100});
   assert.deepEqual(match,frozen);
+});
+
+test('authoritative attribution survives HUD event trimming and credits only recent real damage',()=>{
+  const g=createArcade({mode:'watch',teamSizes:[3,3],startingRanks:['SSS+V','SSS+V'],seed:91,limit:45});
+  const [a,b,old,victim]=g.fighters;
+  assert.equal(victim.team,1);
+  const stats=g as Parameters<typeof recordDamage>[0];
+  const [aF,bF,oldF,victimF]=stats.fighters;
+  stats.time=1;recordDamage(stats,oldF,victimF,70);
+  stats.time=7.25;recordDamage(stats,aF,victimF,15);recordDamage(stats,bF,victimF,5);
+  recordKnockout(stats,victimF);
+  assert.deepEqual(victimF.stats.deaths,1);
+  assert.deepEqual(oldF.stats.assists,0);
+  g.events.length=0;
+  g.phase='draw';
+  const row=Object.fromEntries(settleArcadeCareer(g)!.report.map(r=>[r.id,r.ratingDelta]));
+  assert.deepEqual(row,{[a.id]:6,[b.id]:2,[old.id]:0,[victim.id]:0,'1-1':0,'1-2':0});
 });

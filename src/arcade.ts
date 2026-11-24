@@ -957,7 +957,7 @@ function buildLobby(){
     $('teamControls').append(card);
   }
   const floors=$('rankFloorList');
-  const note=reportCell('p','Arena Elo starts at 100. Equal-size Elimination matches from 1v1 through 15v15 count, unless a saved Hero joins. Raise training rank to unlock a higher Elo cap. In rated matches, higher Elo sharpens AI decisions. Tournament Hero floors are listed below.');
+  const note=reportCell('p','Arena Elo starts at 100. Kills and assists earn Elo. Knockouts cost more when credited to a lower-rated fighter. Equal-size Elimination matches from 1v1 through 15v15 count, unless a saved Hero joins. Raise training rank to unlock a higher Elo cap. In rated matches, higher Elo sharpens AI decisions. Tournament Hero floors are listed below.');
   floors.before(note);
   for(const grade of SOLDIER_GRADES){
     const row=document.createElement('div');

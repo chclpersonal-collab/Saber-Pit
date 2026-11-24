@@ -1,3 +1,4 @@
+import {arcadeKnockoutFor} from './arcade-engine-stats.js';
 import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import {createCareer, awardMerit, meritForRound, progressionSummary} from './progression.js?v=1.4.0';
 
@@ -52,8 +53,12 @@ export function settleArcadeCareer(game:Game|null|undefined,priorArenaRatings:un
     const after=progressionSummary(awardMerit(before,reward));
     return {id:f.id,team:f.team,before,after,reward:after.merit-before.merit,promoted:after.gradeIndex>before.gradeIndex};
   });
+  const knockouts=game.fighters.flatMap(victim=>{
+    const attribution=arcadeKnockoutFor(victim);
+    return attribution?[{victimId:victim.id,...attribution}]:[];
+  });
   const {arenaRatings,changes}=updateArenaNormalRatings(ledgers,rewards.flatMap(f=>
-    f.team===0||f.team===1?[{id:f.id,team:f.team,gradeIndex:f.after.gradeIndex}]:[]),winning,rated);
+    f.team===0||f.team===1?[{id:f.id,team:f.team,gradeIndex:f.after.gradeIndex}]:[]),knockouts,rated);
   const report=rewards.map(({team:_,...row})=>{
     const rating=arenaNormalRating(ledgers[row.id]);
     return {...row,...(changes[row.id]??{ratingBefore:rating,ratingAfter:rating,ratingDelta:0,ratingCap:arenaNormalCap(row.after.gradeIndex)})};

@@ -29,6 +29,11 @@ export function recordDamage(s: StatsLedger,attacker: RatedFighter,victim: Rated
   victim.contributors=victim.contributors.filter(entry=>entry.time>=s.time-6).slice(-95);
   victim.contributors.push({id:attacker.id,time:s.time,damage:amount});
 }
+export type ArcadeKnockout={killerId:string|null;assists:readonly string[]};
+const knockouts=new WeakMap<object,ArcadeKnockout>();
+export function arcadeKnockoutFor(fighter:object):ArcadeKnockout|undefined {
+  return knockouts.get(fighter);
+}
 export function recordKnockout(s: StatsLedger,victim: RatedFighter){
   credit(s,victim,'deaths');
   const dealt=new Map<string,number>();
@@ -37,6 +42,8 @@ export function recordKnockout(s: StatsLedger,victim: RatedFighter){
   const [killer,...assists]=contributors;
   if(killer){credit(s,killer,'kills');for(const helper of assists)credit(s,helper,'assists');}
   else credit(s,victim,'environmentDeaths');
-  return {killerId:killer?.id??null,assists:assists.map(f=>f.id)};
+  const attribution={killerId:killer?.id??null,assists:assists.map(f=>f.id)};
+  knockouts.set(victim,attribution);
+  return attribution;
 }
 

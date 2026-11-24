@@ -51,32 +51,37 @@ export function arenaNormalRanked(game:ArenaNormalMatch|null|undefined):boolean 
   return true;
 }
 type RankedSlot={id:string;team:Team;gradeIndex:number};
-/** Round the paired team transfer once, then gate individual positive gains. */
+type Knockout={victimId:string;killerId:string|null;assists:readonly string[]};
+/** Per knockout, fund a shared kill/assist transfer using pre-round individual ratings. */
 export function updateArenaNormalRatings(
-  prior:ArenaNormalRatings, slots:readonly RankedSlot[], winning:Team|null, rated:boolean,
+  prior:ArenaNormalRatings, slots:readonly RankedSlot[], knockouts:readonly Knockout[], rated:boolean,
 ):{arenaRatings:ArenaNormalRatings;changes:Record<string,ArenaNormalRatingChange>} {
   const arenaRatings=safeArenaNormalRatings(prior);
-  const means:[number,number]=[0,0];
-  const counts:[number,number]=[0,0];
-  for(const f of slots){
-    means[f.team]+=arenaNormalRating(arenaRatings[f.id]);
-    counts[f.team]++;
+  const byId=new Map(slots.map(f=>[f.id,f]));
+  const adjustments=new Map<string,number>();
+  const seen=new Set<string>();
+  const add=(id:string,halfPoints:number)=>adjustments.set(id,(adjustments.get(id)??0)+halfPoints);
+  for(const ko of rated?knockouts:[]){
+    const victim=byId.get(ko.victimId), killer=ko.killerId?byId.get(ko.killerId):undefined;
+    if(!victim||!killer||killer.team===victim.team||seen.has(victim.id))continue;
+    seen.add(victim.id);
+    const assists=[...new Set(ko.assists)].filter(id=>id!==killer.id&&byId.get(id)?.team===killer.team).sort();
+    const pool=Math.round(2*ELO_K*(1-eloExpected(arenaNormalRating(arenaRatings[killer.id]),arenaNormalRating(arenaRatings[victim.id]))));
+    const assistPool=assists.length?Math.round(pool*.25):0;
+    add(victim.id,-pool);
+    add(killer.id,pool-assistPool);
+    // Round shares in half points, deterministically preserving the total.
+    assists.forEach((id,i)=>add(id,Math.round(assistPool*(i+1)/assists.length)-Math.round(assistPool*i/assists.length)));
   }
-  const effective=rated&&counts[0]>0&&counts[1]>0;
-  const expected=effective?eloExpected(means[0]/counts[0],means[1]/counts[1]):.5;
-  const actual=winning===null?.5:winning===0?1:0;
-  const raw=effective?ELO_K*(actual-expected):0;
-  const transferA=(raw<0?-Math.round(-raw*2):Math.round(raw*2))/2;
   const changes:Record<string,ArenaNormalRatingChange>={};
   for(const f of slots){
     const ratingBefore=arenaNormalRating(arenaRatings[f.id]);
     const ratingCap=arenaNormalCap(f.gradeIndex);
-    const transfer=f.team===0?transferA:-transferA;
-    // A different lobby grade can put someone above their current cap. Keep
-    // points they earned earlier, but don't add more until training catches up.
+    const transfer=(adjustments.get(f.id)??0)/2;
+    // An already higher rating is retained but may not increase above the current rank cap.
     const allowed=transfer>0&&ratingCap!==null?Math.min(transfer,Math.max(0,ratingCap-ratingBefore)):transfer;
-    const ratingAfter=effective?arenaNormalRating(ratingBefore+allowed):ratingBefore;
-    if(effective)arenaRatings[f.id]=ratingAfter;
+    const ratingAfter=arenaNormalRating(ratingBefore+allowed);
+    if(rated)arenaRatings[f.id]=ratingAfter;
     changes[f.id]={ratingBefore,ratingAfter,ratingDelta:ratingAfter-ratingBefore,ratingCap};
   }
   return {arenaRatings,changes};
