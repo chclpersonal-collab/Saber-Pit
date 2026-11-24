@@ -1,12 +1,12 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101112"><meta name="description" content="Saber Pit. Hand-inked saber duels and squad battles.">
-<title>Saber Pit</title><link rel="stylesheet" href="./arcade.css?v=2.40.0"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=4.01.3"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
+<title>Saber Pit</title><link rel="stylesheet" href="./arcade.css?v=2.40.0"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=4.01.4"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"></head>
 <body class="pit-v3 pit-v4">
 <main id="app">
-  <header class="mast"><a href="./index.html" class="identity" aria-label="Saber Pit home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">SABER PIT<span>VERSION 4.01.3</span></div></a>
+  <header class="mast"><a href="./index.html" class="identity" aria-label="Saber Pit home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">SABER PIT<span>VERSION 4.01.4</span></div></a>
   <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
-  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" hidden>Stats</button><button type="button" id="sound" aria-pressed="false">Sound off</button><button type="button" id="motion" aria-pressed="false">Reduced motion</button><button type="button" id="pause" hidden>Pause</button></div></header>
+  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" hidden>Stats</button><button type="button" id="sound" aria-pressed="false">Sound off</button><button type="button" id="motion" aria-pressed="false">Reduced motion</button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
   <section class="arena-launch" aria-labelledby="arenaLaunchTitle">
     <div class="launch-tag"><i aria-hidden="true"></i> THE ARENA</div>
     <h1 id="arenaLaunchTitle">Enter <br>the Pit.</h1>
@@ -19,7 +19,7 @@
   </section>
   <section id="entry" class="entry" aria-labelledby="lobbyHeading">
     <form id="lobby" class="lobby">
-      <div class="lobby-title"><div><p class="eyebrow">LOADOUT &amp; RULES</p><h2 id="lobbyHeading">Match setup</h2></div><button type="button" id="continueRun" hidden>Continue run</button></div>
+      <div class="lobby-title"><div><p class="eyebrow">LOADOUT &amp; RULES</p><h2 id="lobbyHeading">Match setup</h2></div><div class="lobby-links"><button type="button" id="continueRun" hidden>Continue run</button><button type="button" id="autoDuelSaved" hidden>Auto battle saved run</button></div></div>
       <div class="setup-tabs" hidden role="tablist" aria-label="Match setup">
         <button role="tab" type="button" id="setup-tab-match" aria-controls="setup-panel-match">Match</button>
         <button role="tab" type="button" id="setup-tab-roster" aria-controls="setup-panel-roster">Fighters</button>
@@ -92,7 +92,7 @@
       </div>
       <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Arena Elo…</p>
       <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Start match</button>
-      <div class="lobby-links"><button id="formsGuide" type="button">Form guide</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
+      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="Both sides use AI. Rated rounds continue until you stop.">Auto battle</button><button id="formsGuide" type="button">Form guide</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
       <output class="sr" id="setupStatus"></output>
     </form>
   </section>
@@ -110,8 +110,8 @@
       <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" data-home>Setup</button></div></div>
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
-      <div class="dialog"><p class="eyebrow" id="resultRound"></p><h2 id="resultTitle"></h2><p id="resultText"></p><p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><div class="dialog-actions">
-      <button type="button" id="again" class="primary">Next round</button><button type="button" id="resultStats">Stats</button><button type="button" data-home>Setup</button></div></div>
+      <div class="dialog"><p class="eyebrow" id="resultRound"></p><h2 id="resultTitle"></h2><p id="resultText"></p><p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><p id="autoDuelCountdown" class="promotion" hidden></p><div class="dialog-actions">
+      <button type="button" id="again" class="primary">Next round</button><button type="button" id="resultStats">Stats</button><button type="button" id="stopAutoDuelResult" hidden>Stop auto</button><button type="button" data-home>Setup</button></div></div>
     </section>
   </div>
   <div class="floor-ui" id="floorUI" hidden>
@@ -175,4 +175,4 @@
   </dialog>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
-<script type="module" src="./arcade-sync-entry.js?v=4.01.3"></script><script type="module" src="./pit-v3-ui.js?v=4.01.3"></script></body></html>
+<script type="module" src="./arcade-sync-entry.js?v=4.01.4"></script><script type="module" src="./pit-v3-ui.js?v=4.01.4"></script></body></html>

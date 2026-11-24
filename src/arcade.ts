@@ -1,3 +1,4 @@
+import {createAutoDuel} from './arcade-auto-duel.js';
 import {ARENA_MOTION_FLOW,PREVIEW_MOTION_FLOW} from './arcade-motion-flow.js';
 import {MINOR_MOVE_HINTS} from './arcade-minor-moves.js?v=3.1.0';
 import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=3.2.0';
@@ -13,7 +14,7 @@ import {sampleArcadeFighter,arcadeBladeWorld,arcadeHeroLabelWorld} from './arcad
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {createArcadeStage,drawArcadeStage,createArcadeTerrain,drawArcadeObstacle,resolveArcadeMap} from './arcade-stage.js?v=4.0.0';
 import {FRAME_STEP,advanceSim,displayDelta,displayFighters,fighterSamples,newDisplayClock,resetDisplayClock} from './arcade-display.js?v=2.44.0';
-import {classicCareers,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
+import {ARCADE_CAREER_KEY,classicCareers,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {ARCADE_BODY_REGIONS,arcadeInjuryReport,ARCADE_INJURY_REFERENCE} from './arcade-injuries.js?v=2.9.0';
 import {crowdedFighters,sharesSilhouette} from './arcade-layout.js?v=2.9.0';
 import {ARCADE_RANK_FOOTWORK,arcadeRankFootworkFor} from './arcade-rank-footwork.js?v=2.27.0';
@@ -68,6 +69,10 @@ const lore={
 const ratingText=(value:number)=>value.toLocaleString('en-US');
 const formName=(id:string)=>field(lore,id)?.name||field(ARCADE_FORMS,id)?.name||'Saber';
 const titleCase=(value:string)=>value[0].toUpperCase()+value.slice(1);
+const autoDuel=createAutoDuel();
+let autoSaveBaseline:string|null|undefined;
+let autoCareerMode:ArenaMode|undefined;
+function rawArenaSave(){try{return localStorage.getItem(ARCADE_CAREER_KEY);}catch{return undefined;}}
 const fx=createArcadeFX({contactLabels:false}), swingWaves=createArcadeSwingWaves();
 let roundRatings:ArenaRatings={}, roundRated=false, ratingReport:NonNullable<ReturnType<typeof settleArcadeCareer>>['report']=[];
 let view:Scene='menu', mode:ArenaMode='duel', paused=false, game:ArcadeGame, stage:ReturnType<typeof createArcadeStage>, round=1, seed=0, seedCounter=0;
@@ -189,6 +194,8 @@ function inputs(){
   pulse.clear();pendingOrder=null;return data;
 }
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
+  if(nextView==='menu'){autoDuel.stop();autoSaveBaseline=undefined;autoCareerMode=undefined;}
+  else autoDuel.clearRound();
   career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;$('walkTouch').setAttribute('aria-pressed','false');
   view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
   clearInput();fx.reset();swingWaves.reset();
@@ -229,6 +236,8 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   for(const b of document.querySelectorAll<HTMLElement>('[data-order]'))b.setAttribute('aria-pressed',String(b.dataset.order===(game.order??'push')));
   $('forceAction').hidden=config.saberOnly;
   $('continueRun').hidden=!savedCareer;
+  $('autoDuelSaved').hidden=!savedCareer||!canAutoSaved(savedCareer);
+  $('again').hidden=false;
   focus={x:W/2,y:H/2,zoom:1};
   canvas.tabIndex=isMenu?-1:0;
   $('cameraView').hidden=isMenu;
@@ -242,11 +251,11 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('entry').hidden=view!=='menu';$('hud').hidden=view!=='game';$('floorUI').hidden=view!=='game';$('pause').hidden=view!=='game';$('statsButton').hidden=view!=='game';
   for(const id of ['touchLayout','touchSide','resetAim'] as const)$(id).hidden=isMenu||mode==='watch'||mode==='command';
   syncFullscreen();
-  $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';
+  $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';syncAutoDuel();
   for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
-  $('modeLabel').textContent=mode==='watch'?'Showdown':titleCase(mode);
+  $('modeLabel').textContent=autoDuel.active?'Auto battle':mode==='watch'?'Showdown':titleCase(mode);
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Saber Pit arena',...deployedHeroes].join('. '));
@@ -324,19 +333,43 @@ function setTechniqueHint(){
 }
 $('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();canvas.focus({preventScroll:true});});
 
-function launch(){
+function syncAutoDuel(){
+  const enabled=view==='game'&&autoDuel.active;
+  $('stopAutoDuel').hidden=!enabled||!$('result').hidden;
+  $('stopAutoDuelResult').hidden=!enabled;
+  const countdown=$('autoDuelCountdown'), seconds=autoDuel.seconds;
+  countdown.hidden=!enabled||seconds===null;
+  const text=seconds===null?'':'Next round in '+seconds+'s';
+  if(countdown.textContent!==text)countdown.textContent=text;
+}
+function stopAutoDuel(){
+  autoDuel.stop();syncAutoDuel();
+  $('modeLabel').textContent='Showdown';
+  if($('result').hidden)canvas.focus({preventScroll:true});else $('again').focus({preventScroll:true});
+  announce('Auto battle stopped.');
+}
+for(const id of ['stopAutoDuel','stopAutoDuelResult'] as const)$(id).addEventListener('click',stopAutoDuel);
+function launch(automatic=false){
+  if(automatic){autoDuel.start();autoSaveBaseline=rawArenaSave();autoCareerMode=setupMode(setup);}
+  else {autoDuel.stop();autoSaveBaseline=undefined;autoCareerMode=undefined;}
   const preset=setup.seed??Number(new URLSearchParams(location.search).get('seed'));
   seed=preset>0?preset>>>0:Math.floor(1+Math.random()*4294967295);
   seedCounter=0;
-  setScene('game',setupMode(setup),1,{careers:imported,setup});
+  setScene('game',automatic?'watch':setupMode(setup),1,{careers:imported,setup});
 }
 $('lobby').addEventListener('submit',e=>{e.preventDefault();readLobby();launch();});
+$('autoDuelStart').addEventListener('click',()=>{
+  if(!$('lobby').reportValidity())return;
+  readLobby();
+  if(!$('autoDuelStart').disabled)launch(true);
+});
 function goHome(){setScene('menu');$('startMatch').focus({preventScroll:true});window.scrollTo({top:0});}
 for(const b of document.querySelectorAll<HTMLElement>('[data-home]'))b.addEventListener('click',goHome);
-$('again').addEventListener('click',()=>{
-  if(!career)return;
+function nextCareerRound(){
+  if(!career||$('again').hidden)return;
   seed=career.seed;setScene('game',mode,career.round,{careers:career.careers,records:career.records,setup:career.setup,heroLineup:career.heroLineup,arenaRatings:career.arenaRatings});
-});
+}
+$('again').addEventListener('click',nextCareerRound);
 for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
   button.addEventListener('click',()=>{
     if(mode!=='command'||game.phase!=='playing')return;
@@ -473,16 +506,23 @@ function showEnd(){
   }
   const settled=settleArcadeCareer(game,roundRatings)!, selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
   ratingReport=settled.report;
-  career={arenaRatings:settled.arenaRatings,mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
-  const persisted=saveArcadeCareer(career);
-  if(persisted)savedCareer=career;
+  career={arenaRatings:settled.arenaRatings,mode:autoCareerMode??mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
+  const conflict=autoSaveBaseline!==undefined&&rawArenaSave()!==autoSaveBaseline;
+  const persisted=!conflict&&saveArcadeCareer(career);
+  if(persisted){
+    savedCareer=career;
+    if(autoSaveBaseline!==undefined)autoSaveBaseline=rawArenaSave();
+  }else if(conflict)savedCareer=readCareerForUI();
   const promoted=settled.report.filter(f=>f.promoted);
   const promotions=promoted.length>1?' · '+promoted.length+' promotions':selected.promoted?' · Promoted':'';
-  $('rankResult').textContent=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions+(persisted?'':' · Save unavailable');
+  $('rankResult').textContent=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions+(persisted?'':conflict?' · Save changed in another tab. Return to Setup to continue that save.':' · Save unavailable');
   $('rankResult').textContent+=(settled.rated?' · '+arenaRatingDetail(selected.id,selected.after.gradeIndex):' · Unrated');
   $('again').textContent='Next round';
   updateHUD();
-  $('result').hidden=false;$('pause').hidden=true;clearInput();$('again').focus({preventScroll:true});announce(text);
+  $('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
+  $(conflict?'resultStats':'again').focus({preventScroll:true});
+  autoDuel.completeRound(persisted&&career.round<=100000);syncAutoDuel();
+  announce(autoDuel.active?text+'. Next round in 3 seconds.':text);
 }
 const regionName=(id:string)=>ARCADE_BODY_REGIONS.find(x=>x.id===id)?.label??'Body';
 const shortRegion={head:'Head',torso:'Torso',leftArm:'L arm',rightArm:'R arm',leftLeg:'L leg',rightLeg:'R leg'};
@@ -768,7 +808,13 @@ function frame(now:number){
         sim.previous=null;
         endDelay+=dt;
 
-        if(view==='game'&&endDelay>.80)showEnd();
+        if(view==='game'&&endDelay>.80){
+          if($('result').hidden)showEnd();
+          else if(autoDuel.active){
+            if(autoDuel.advance(dt,true))nextCareerRound();
+            else syncAutoDuel();
+          }
+        }
       }
       events(dt);
       if(view==='game'&&displayTime-hudAt>.075){updateHUD();hudAt=displayTime;}
@@ -814,14 +860,23 @@ $('useClassic').addEventListener('click',async()=>{
   }catch{$('careerStatus').textContent='Could not read the Classic save.';}
   finally{button.disabled=false;}
 });
-function resumeRun(){
-  if(!savedCareer)return;
-  if($('rankDialog').open)$('rankDialog').close();
-  const next=savedCareer;seed=next.seed;seedCounter=0;
-  const old=normalizeSetup({...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
-  setScene('game',next.mode,next.round,{careers:next.careers,records:next.records,setup:next.setup??old,heroLineup:next.heroLineup,arenaRatings:next.arenaRatings});
+const savedSetup=(next:Career)=>normalizeSetup(next.setup??{...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
+function canAutoSaved(next:Career){
+  const options=savedSetup(next);
+  const heroes=next.heroLineup?normalizeHeroLineup(next.heroLineup):battleHeroLineup(options.heroPicks,heroRoster,tournamentHeroLoadout);
+  return arenaLobbyRating(next.mode,options.rule,options.teamSizes,heroes).rated;
 }
-$('resumeCareer').addEventListener('click',resumeRun);$('continueRun').addEventListener('click',resumeRun);
+function resumeRun(automatic=false){
+  if(!savedCareer||automatic&&!canAutoSaved(savedCareer))return;
+  if($('rankDialog').open)$('rankDialog').close();
+  if(automatic){autoDuel.start();autoSaveBaseline=rawArenaSave();autoCareerMode=savedCareer.mode;}
+  else {autoDuel.stop();autoSaveBaseline=undefined;autoCareerMode=undefined;}
+  const next=savedCareer;seed=next.seed;seedCounter=0;
+  setScene('game',automatic?'watch':next.mode,next.round,{careers:next.careers,records:next.records,setup:savedSetup(next),heroLineup:next.heroLineup,arenaRatings:next.arenaRatings});
+}
+$('resumeCareer').addEventListener('click',()=>resumeRun());$('continueRun').addEventListener('click',()=>resumeRun());
+$('autoDuelSaved').addEventListener('click',()=>{savedCareer=readCareerForUI();resumeRun(true);});
+window.addEventListener('pagehide',()=>{if(autoDuel.active){autoDuel.stop();syncAutoDuel();$('modeLabel').textContent='Showdown';}});
 const reportRows=[['Saber swings','saberSwings'],['Saber hits','saberHits'],
   ['Blocks','blocks'],['Parries','parries'],['Directional reads','guardReads'],['Feints','feints'],['Ripostes','ripostes'],['Blade clashes','clashes'],['Ally-blocked swings','allyBlocks'],['Punishes','punishes'],['Counter hits','counters'],['Force casts','forceCasts'],
   ['Force hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard deaths','environmentDeaths']] as const;
@@ -1032,6 +1087,7 @@ function updateLobbyRating(teamSizes:readonly number[]){
   const output=$('arenaRatingStatus');
   if(output.textContent!==label)output.textContent=label;
   output.dataset.rated=String(rated);
+  $('autoDuelStart').disabled=!rated;
 }
 for(const count of [$('count0'),$('count1')])count.addEventListener('input',()=>
   updateLobbyRating([$('count0').valueAsNumber,$('count1').valueAsNumber]));

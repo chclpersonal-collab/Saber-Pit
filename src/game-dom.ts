@@ -12,6 +12,7 @@ export interface StyleLabElements {
   'labStance':HTMLSelectElement; 'labEntry':HTMLSelectElement; 'labPace':HTMLSelectElement;
 }
 export interface ArenaElements {
+  'autoDuelStart':HTMLButtonElement; 'autoDuelSaved':HTMLButtonElement; 'stopAutoDuel':HTMLButtonElement; 'stopAutoDuelResult':HTMLButtonElement; 'autoDuelCountdown':HTMLElement;
   'cameraView':HTMLButtonElement; 'statsButton':HTMLButtonElement; 'sound':HTMLButtonElement; 'motion':HTMLButtonElement; 'pause':HTMLButtonElement; 'continueRun':HTMLButtonElement; 'setup-tab-match':HTMLButtonElement;
   'setup-tab-roster':HTMLButtonElement; 'setup-tab-rules':HTMLButtonElement; 'watchHero':HTMLButtonElement; 'resetSetup':HTMLButtonElement; 'startMatch':HTMLButtonElement; 'formsGuide':HTMLButtonElement; 'rankSetup':HTMLButtonElement;
   'resume':HTMLButtonElement; 'again':HTMLButtonElement; 'resultStats':HTMLButtonElement; 'heroWatchFocus':HTMLButtonElement; 'heroWatchStats':HTMLButtonElement; 'touchStick':HTMLButtonElement; 'walkTouch':HTMLButtonElement;
