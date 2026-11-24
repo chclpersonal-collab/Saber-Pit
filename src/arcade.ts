@@ -25,6 +25,8 @@ import {actionFrame,stepActionFrame,screenToArena,composeArcadeFrame} from './ar
 import {battleHeroLineup,normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
 import {fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
 import {eloFloor} from './arcade-elo.js?v=2.18.5';
+import {arenaNormalRanked,arenaNormalRating,arenaNormalCap} from './arcade-normal-elo.js';
+import type {ArenaNormalRatings as ArenaRatings} from './arcade-normal-elo.js';
 import {loadTournament,tournamentHeroes} from './arcade-tournament.js?v=3.0.0';
 import {tournamentHeroLoadout} from './arcade-tournament-sim.js?v=3.0.0';
 import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
@@ -35,14 +37,13 @@ interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
 type TouchAim={id:string}|(Point&{id?:never;until:number});
 type SavedHero=ReturnType<typeof tournamentHeroes>[number];
-type Career={mode:ArcadeMode;seed:number;round:number;careers:NonNullable<ArcadeOptions['careers']>;
+type Career={mode:ArcadeMode;seed:number;round:number;arenaRatings?:ArenaRatings;careers:NonNullable<ArcadeOptions['careers']>;
   records?:ArcadeOptions['records'];setup?:ReturnType<typeof loadSetup>;form?:string;body?:string;heroLineup?:ArcadeOptions['heroLineup'];};
 type TechniqueRow={name:string;id:string;tactical?:string;opening?:string;circuitCut?:boolean;arenaCut?:boolean;minorMove?:boolean};
 const field = <T extends object>(obj:T,key:PropertyKey|undefined):T[keyof T]|undefined => obj[key as keyof T];
 const readCareerForUI=readArcadeCareer as unknown as ()=>Career|null;
-const settleCareerForUI=settleArcadeCareer as unknown as (game:ArcadeGame)=>ReturnType<typeof settleArcadeCareer>;
 type HeroLineup=ReturnType<typeof battleHeroLineup>;
-type SceneOptions=Pick<ArcadeOptions,'records'|'careers'|'heroLineup'>&{setup?:ReturnType<typeof loadSetup>};
+type SceneOptions=Pick<ArcadeOptions,'records'|'careers'|'heroLineup'>&{setup?:ReturnType<typeof loadSetup>;arenaRatings?:ArenaRatings};
 type AimEvent=Pick<PointerEvent,'clientX'|'clientY'>;
 const canvas=$('arena'), ctx=canvas.getContext('2d',{alpha:false})!;
 let W=1120,H=640;
@@ -66,6 +67,7 @@ const ratingText=(value:number)=>value.toLocaleString('en-US');
 const formName=(id:string)=>field(lore,id)?.name||field(ARCADE_FORMS,id)?.name||'Saber';
 const titleCase=(value:string)=>value[0].toUpperCase()+value.slice(1);
 const fx=createArcadeFX({contactLabels:false}), swingWaves=createArcadeSwingWaves();
+let roundRatings:ArenaRatings={}, roundRated=false, ratingReport:NonNullable<ReturnType<typeof settleArcadeCareer>>['report']=[];
 let view:Scene='menu', mode:ArenaMode='duel', paused=false, game:ArcadeGame, stage:ReturnType<typeof createArcadeStage>, round=1, seed=0, seedCounter=0;
 let heroWatchEvents:ReturnType<typeof captureHeroWatch>={},heroWatchFocus=false,watchedHeroIdentity='',heroWatchKey='';
 let moveSeen:Record<string,number>={}, echoes=new Map<string,{pose:ArcadeFighter;time:number;at:number}[]>(), watchedPhases:Record<string,boolean>={}, maxHeight=0;
@@ -185,7 +187,7 @@ function inputs(){
   pulse.clear();pendingOrder=null;return data;
 }
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
-  career=null;crowdedLOD=false;pendingOrder=null;touchWalk=false;$('walkTouch').setAttribute('aria-pressed','false');
+  career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;$('walkTouch').setAttribute('aria-pressed','false');
   view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
   clearInput();fx.reset();swingWaves.reset();
   const config=nextView==='menu'?setup:normalizeSetup(options.setup??matchSetup);
@@ -205,11 +207,19 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const lineups=engineLineups(config);
   const sideSizes=isMenu?[1,1]:config.teamSizes;
   const sideHeroes=isMenu?previewHeroes(useHeroes):useHeroes;
+  const useArenaElo=!isMenu&&arenaNormalRanked({mode,config:{rule:config.rule,teamSizes:sideSizes},
+    fighters:sideSizes.flatMap((size,team)=>Array.from({length:size},(_,slot)=>{
+      const id=`${team}-${slot}`;
+      return {id,team,heroId:sideHeroes[id]?.id};
+    }))});
+  const fighterRatings=useArenaElo?sideSizes.map((size,team)=>Array.from({length:size},(_,slot)=>
+    arenaNormalRating(roundRatings[team+'-'+slot]))):undefined;
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
-    round,terrain,limit:config.duration,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,styleChoreo:true,peasantMotion:true,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,stanceFlow:!isMenu,liveEntry:!isMenu,impactPhysics:!isMenu,recoveryFlow:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
+    round,terrain,limit:config.duration,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,styleChoreo:true,peasantMotion:true,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,stanceFlow:!isMenu,liveEntry:!isMenu,impactPhysics:!isMenu,recoveryFlow:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
+  roundRated=!isMenu&&arenaNormalRanked(game);
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});
   const shownMap=resolveArcadeMap(config.mapId,round);
   $('mapCaptionName').textContent=field(ARCADE_MAPS,shownMap)?.[0]??'Arena';
@@ -242,7 +252,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Saber Pit arena',...deployedHeroes].join('. '));
-  $('profileText').textContent=mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label;
+  $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
@@ -327,7 +337,7 @@ function goHome(){setScene('menu');$('startMatch').focus({preventScroll:true});w
 for(const b of document.querySelectorAll<HTMLElement>('[data-home]'))b.addEventListener('click',goHome);
 $('again').addEventListener('click',()=>{
   if(!career)return;
-  seed=career.seed;setScene('game',mode,career.round,{careers:career.careers,records:career.records,setup:career.setup,heroLineup:career.heroLineup});
+  seed=career.seed;setScene('game',mode,career.round,{careers:career.careers,records:career.records,setup:career.setup,heroLineup:career.heroLineup,arenaRatings:career.arenaRatings});
 });
 for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
   button.addEventListener('click',()=>{
@@ -463,13 +473,15 @@ function showEnd(){
     const reason=field(punishLabels,lastPunish.punishReason);
     $('turningPoint').textContent=(lastPunish.team?'Pink':'Blue')+' punished '+(reason?'a '+reason:'an opening')+(lastPunish.region?' with a hit to '+regionName(lastPunish.region).toLowerCase():'')+' late in the round.';
   }
-  const settled=settleCareerForUI(game)!, selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
-  career={mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
+  const settled=settleArcadeCareer(game,roundRatings)!, selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
+  ratingReport=settled.report;
+  career={arenaRatings:settled.arenaRatings,mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
   const persisted=saveArcadeCareer(career);
   if(persisted)savedCareer=career;
   const promoted=settled.report.filter(f=>f.promoted);
   const promotions=promoted.length>1?' · '+promoted.length+' promotions':selected.promoted?' · Promoted':'';
   $('rankResult').textContent=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions+(persisted?'':' · Save unavailable');
+  $('rankResult').textContent+=(settled.rated?' · '+arenaRatingDetail(selected.id,selected.after.gradeIndex):' · Unrated');
   $('again').textContent='Next round';
   updateHUD();
   $('result').hidden=false;$('pause').hidden=true;clearInput();$('again').focus({preventScroll:true});announce(text);
@@ -539,6 +551,17 @@ $('heroWatchStats').addEventListener('click',()=>{
   const hero=activeWatchHero();if(!hero)return;
   openStats();$('moveFighter').value=hero.id;showMoveStats();
 });
+function arenaRatingDetail(id:string, gradeIndex:number, compact=false){
+  if(!roundRated)return 'Unrated';
+  const result=ratingReport.find(r=>r.id===id);
+  const rating=result?.ratingAfter??arenaNormalRating(roundRatings[id]);
+  const cap=result?.ratingCap===null?null:result?.ratingCap??arenaNormalCap(gradeIndex);
+  const head=ratingText(rating)+' Elo';
+  if(compact)return head;
+  const delta=result?.ratingDelta;
+  return head+(typeof delta==='number'?' ('+(delta>0?'+':'')+delta+')':'')+
+    (cap===null?' · no rank cap':rating>=cap?' · '+ratingText(cap)+' cap · rank up':' · rank cap '+ratingText(cap));
+}
 function updateHUD(){
   updateHeroWatch();
   for(const [team,side] of [[0,'blue'],[1,'red']] as const){
@@ -546,7 +569,8 @@ function updateHUD(){
     const lead=roster.find(f=>f.control)??roster.find(f=>f.alive)??roster[0];
     const final=career?.careers?.[lead?.id as `${number}-${number}`];
     const rank=gradeDisplayLabel(final?SOLDIER_GRADES.findLast(g=>g.threshold<=(final as {merit:number}).merit)?.label??'F':lead?.career?.grade??'F');
-    $(`${side}Rank`).textContent=rank;$(`${side}Rank`).title='Displayed fighter rank';
+    $(`${side}Rank`).textContent=rank+(lead&&roundRated?' · '+arenaRatingDetail(lead.id,lead.career.gradeIndex,true):'');
+    $(`${side}Rank`).title=lead?arenaRatingDetail(lead.id,lead.career.gradeIndex):'Displayed fighter rank';
     $(`${side}Count`).textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
     if(lead)renderRibbon(`${side}Injuries`,lead);
   }
@@ -797,7 +821,7 @@ function resumeRun(){
   if($('rankDialog').open)$('rankDialog').close();
   const next=savedCareer;seed=next.seed;seedCounter=0;
   const old=normalizeSetup({...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
-  setScene('game',next.mode,next.round,{careers:next.careers,records:next.records,setup:next.setup??old,heroLineup:next.heroLineup});
+  setScene('game',next.mode,next.round,{careers:next.careers,records:next.records,setup:next.setup??old,heroLineup:next.heroLineup,arenaRatings:next.arenaRatings});
 }
 $('resumeCareer').addEventListener('click',resumeRun);$('continueRun').addEventListener('click',resumeRun);
 const reportRows=[['Saber swings','saberSwings'],['Saber hits','saberHits'],
@@ -829,7 +853,7 @@ function showMoveStats(){
   $('fighterDamageDealt').textContent=damage(f?.stats?.damage);
   $('fighterDamageTaken').textContent=damage(f?.stats?.damageTaken);
   const grade=f?.career?.grade??'F';
-  const rating=f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo as number)+' Elo · floor '+ratingText(eloFloor(f.heroEloFloorGrade))+' · '+(f.control?'Your control':titleCase(f.heroPlan??'balanced')):'Elo floor '+ratingText(eloFloor(grade));
+  const rating=f&&roundRated?arenaRatingDetail(f.id,f.career.gradeIndex):f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo as number)+' Elo · floor '+ratingText(eloFloor(f.heroEloFloorGrade))+' · '+(f.control?'Your control':titleCase(f.heroPlan??'balanced')):'Unrated';
   const chess=chessReadout(f);
   $('moveRank').textContent=f?gradeDisplayLabel(grade)+' · '+formName(f.form)+(chess?' · '+chess+' style':'')+(f.heroId?' · '+fighterGenderLabel(f.gender):'')+' · '+rating+(habitName(f)?' · '+habitName(f):''):'';
   const moves=Object.entries(f?.moves??{}).filter(([id,n])=>n>0&&typeof id==='string').sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
@@ -846,7 +870,7 @@ $('moveFighter').addEventListener('change',showMoveStats);
 function openStats(){
   if(view!=='game')return;
   clearInput();sim.remainder=0;sim.previous=null;
-  $('statsRound').textContent='ROUND '+round+(game.phase==='playing'?' · PAUSED':' · COMPLETE');
+  $('statsRound').textContent='ROUND '+round+(game.phase==='playing'?' · PAUSED':' · COMPLETE')+(roundRated?' · RATED':' · UNRATED');
   $('roundStats').replaceChildren(...reportRows.map(([label,key])=>{
     const row=document.createElement('tr'), head=reportCell('th',label);head.scope='row';
     row.append(head,reportCell('td',game.stats?.[key]?.[0]??0,'blue'),reportCell('td',game.stats?.[key]?.[1]??0,'pink'));return row;
@@ -873,7 +897,7 @@ function openStats(){
   fillOptions($('moveFighter'),game.fighters.map(f=>[f.id,(f.displayName??((f.team?'Pink ':'Blue ')+(f.slot+1)))+' · '+formName(f.form)]));
   $('moveFighter').value=game.fighters.some(f=>f.id===prior)?prior:game.fighters.find(f=>f.control)?.id??game.fighters[0].id;
   showMoveStats();
-  const awards=settleCareerForUI(game);
+  const awards=settleArcadeCareer(game,roundRatings);
   $('fighterStats').replaceChildren(...game.fighters.map(f=>{
     const side=f.team?'Pink':'Blue', row=document.createElement('tr'), label=reportCell('th',f.displayName??side+' '+(f.slot+1),f.team?'pink':'blue');
     label.scope='row';if(f.displayName)label.append(reportCell('small',side+' '+(f.slot+1)+' · Hero'));label.append(reportCell('small',formName(f.form)),reportCell('small',arcadeSaberOption(f.gear).label));
@@ -883,6 +907,7 @@ function openStats(){
     const earned=awards?.report.find(a=>a.id===f.id), summary=earned?.after??f.career;
     const rank=reportCell('td',''), record=game.records?.soldiers.find(r=>r.id===f.id);
     rank.append(reportCell('b',gradeDisplayLabel(summary?.grade??'F')),reportCell('small',(summary?.merit??0).toLocaleString()+' pts'+(earned?.reward?' / +'+earned.reward:'')+(earned?.promoted?' · Up':'')));
+    if(roundRated)rank.append(reportCell('small',arenaRatingDetail(f.id,f.career.gradeIndex)));
     row.append(label,rank,reportCell('td',[record?.kills??0,record?.deaths??0,record?.assists??0].join(' / ')));return row;
   }));
   $('statsDialog').showModal();
@@ -934,6 +959,8 @@ function buildLobby(){
     $('teamControls').append(card);
   }
   const floors=$('rankFloorList');
+  const note=reportCell('p','Arena Elo starts at 100. Equal-size Elimination matches from 1v1 through 15v15 count, unless a saved Hero joins. Raise training rank to unlock a higher Elo cap. In rated matches, higher Elo sharpens AI decisions. Tournament Hero floors are listed below.');
+  floors.before(note);
   for(const grade of SOLDIER_GRADES){
     const row=document.createElement('div');
     row.append(reportCell('dt',grade.displayLabel),reportCell('dd',ratingText(eloFloor(grade.label))));floors.append(row);

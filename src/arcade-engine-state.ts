@@ -6,7 +6,7 @@ import type {normalizeHeroLineup} from './arcade-heroes.js';
 import type {environmentAt} from './environment.js';
 import type {arcadeChessPawnStrike} from './arcade-chess-styles.js';
 import type {arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js';
-import type {arcadeEloSkill} from './arcade-elo-skill.js';
+import type {arcadeEloSkill,ArenaReadSkill} from './arcade-elo-skill.js';
 import type {ARCADE_TECHNIQUES} from './arcade-repertoire.js';
 import type {ARCADE_RANK_COMBAT} from './arcade-engine-rank.js';
 import type {ArcadeArchetype} from './arcade-engine-profile.js';
@@ -60,6 +60,8 @@ export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'
  clashFrom?:(BladeSegment&{offhand:boolean;bladeId:Blade})|null;
  closeAlternate?:{id:string;at:number}|null;
  eloSkill?:ReturnType<typeof arcadeEloSkill>;
+ arenaReadSkill?:ArenaReadSkill;
+ arenaPattern?:{rival:string;serial:number;time:number;patterns:{family:string}[]};
  guardLaneChange?:{target:string;readAt:number;until:number;bearing:number};
  heldGuardOpening?:{target:string;guardStart:number;at:number;serial:number;count:number}|null;
  heroAdaptation?:ReturnType<typeof normalizeHeroTactics>;

@@ -15,7 +15,7 @@ import {buildArcadeConfig} from './arcade-engine-config.js';
 import {arcadeBodyStaminaReward} from './arcade-stamina.js?v=2.37.0';
 import {arcadeChessStyleFor,arcadeChessMove,arcadeChessAllowsLane,arcadeChessDesiredBearing,arcadeChessPawnStrike,chooseArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {chooseArenaMatchGoal} from './arcade-match-goal.js?v=2.33.0';
-import {arcadeEloSkill} from './arcade-elo-skill.js?v=2.32.0';
+import {arcadeEloSkill,arenaReadSkill,arenaPatternRead} from './arcade-elo-skill.js?v=2.32.0';
 import {arcadeExpandedMoveById} from './arcade-expanded-combat.js?v=3.1.0';
 export {ARCADE_EXPANDED_MOVES,arcadeExpandedMovesFor} from './arcade-expanded-combat.js?v=3.1.0';
 import {chooseAdvancedFollowup} from './arcade-advanced-moves.js?v=2.30.0';
@@ -105,7 +105,7 @@ function makeFighter(s: SimGame,team: 0|1,slot: number,count: number,control: bo
   // The first authoritative tick fills rankDominance before any fighter acts.
   return initial as SimFighter;
 }
-export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}: ArcadeOptions={}){
+export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype='vanguard',form,body='femboy',round=1,records,careers,startingRanks,teamSizes,limit,playerSlot,teamForms,saberOnly=false,terrain,doctrines,targeting,formations,rule,weather,environment,deployments,startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,heroLineup,customHeroTactics=false,advancedArena=false,weaponFlow=false,expandedCombat=false,ratingSkill=false,arenaRatingSkill=false,sideElo,fighterRatings,matchGoalPlanning=false,circuitCuts=false,soloTournamentClock=false,chessStyles,fighterChessStyles,perfectParryStamina=false,continuousCombat=false,anticipatingCombat=false,arenaCuts=false,activeFootwork=false,styleTravel=false,repertoireSupport=false,styleChoreo=false,peasantMotion=false,exchangeVariety=false,stanceFlow=false,impactPhysics=false,recoveryFlow=false,balancePass=false,closeChoice=false,guardCounterplay=false,squadDecisive=false,minorMoves=false,forceVariants=false,liveEntry=false,eloReads=false,fluidFootwork=false}: ArcadeOptions={}){
   mode=['duel','squad','watch','command'].includes(mode)?mode:'duel';
   width=clamp(finite(width)?width:1120,480,2400);height=clamp(finite(height)?height:640,360,1440);
   const stringSeed=typeof seed==='string'?Array.from(seed).reduce((n,c)=>Math.imul(n^c.codePointAt(0)!,16777619),-2128831035):Number(seed);
@@ -114,7 +114,7 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
   const fallback=mode==='duel'?1:3;
   const sizes: [number,number]=[teamSize(teamSizes?.[0],fallback),teamSize(teamSizes?.[1],fallback)];
   const map=terrainFor(typeof terrain==='string'&&terrain!=='open'?createArcadeTerrain(terrain,width,height,round):terrain,width,height);
-  const config=buildArcadeConfig({startingSaberQuality, startingDualSabers, startingSaberWeapon, startingSaberGrip, startingDualPhase, startingForceFamily, startingForceQuality, limit, soloTournamentClock, rule, circuitCuts, matchGoalPlanning, weaponFlow, expandedCombat, customHeroTactics, advancedArena, playerSlot, teamForms, saberOnly, doctrines, targeting, formations, weather, environment, deployments, chessStyles, fighterChessStyles, perfectParryStamina, continuousCombat, anticipatingCombat, arenaCuts, activeFootwork, styleTravel, repertoireSupport, styleChoreo, peasantMotion, exchangeVariety, stanceFlow, impactPhysics, recoveryFlow, balancePass, closeChoice, guardCounterplay, minorMoves, forceVariants, liveEntry, eloReads, ratingSkill, fluidFootwork},mode,sizes);
+  const config=buildArcadeConfig({startingSaberQuality, startingDualSabers, startingSaberWeapon, startingSaberGrip, startingDualPhase, startingForceFamily, startingForceQuality, limit, soloTournamentClock, rule, circuitCuts, matchGoalPlanning, weaponFlow, expandedCombat, customHeroTactics, advancedArena, playerSlot, teamForms, saberOnly, doctrines, targeting, formations, weather, environment, deployments, chessStyles, fighterChessStyles, perfectParryStamina, continuousCombat, anticipatingCombat, arenaCuts, activeFootwork, styleTravel, repertoireSupport, styleChoreo, peasantMotion, exchangeVariety, stanceFlow, impactPhysics, recoveryFlow, balancePass, closeChoice, guardCounterplay, minorMoves, forceVariants, liveEntry, eloReads, ratingSkill, fluidFootwork, arenaRatingSkill},mode,sizes);
   const s: SimGame={mode:mode as SimGame['mode'],width,height,formRules,config,heroLineup:normalizeHeroLineup(heroLineup),terrain:map,playerForm:(hasForm?form:legacyForm[archetype as keyof typeof legacyForm]??'shii_cho') as SimGame['playerForm'],playerBody:['woman','rabbit'].includes(body)?body as SimGame['playerBody']:'femboy',time:0,round:Number.isInteger(round)&&round>0?round:1,phase:'playing',fighters:[],events:[], /* simulation arrays are populated below */eventId:0,
     bounds:map.bounds,objective:createArcadeObjective(config.rule,width,height,map.bounds),order:'push',weather:null,weatherSeed:stringSeed>>>0,
     rng:(stringSeed>>>0)||1, playerArchetype:Object.hasOwn(archetypes,archetype)?archetype as SimGame['playerArchetype']:'vanguard',edges:{},limit:config.limit,tick:0,
@@ -131,9 +131,10 @@ export function createArcade({mode='duel',seed=1,width=1120,height=640,archetype
         if(config.anticipatingCombat&&!f.control)f.chessBaseStyle=chessStyle;
       }
     }
-    if(ratingSkill===true||config.matchGoalPlanning){
+    if(ratingSkill===true||config.matchGoalPlanning||config.arenaRatingSkill){
       const sample=f.heroElo??fighterRatings?.[f.team]?.[f.slot]??sideElo?.[f.team];
-      if(ratingSkill===true)f.eloSkill=arcadeEloSkill(sample,true);
+      if(config.arenaRatingSkill)f.arenaReadSkill=arenaReadSkill(sample);
+      else if(ratingSkill===true)f.eloSkill=arcadeEloSkill(sample,true);
       if(config.matchGoalPlanning){f.matchGoal='win';f.matchGoalSince=0;f.matchGoalRating=finite(sample)?sample:1500;}
     }
     if(config.continuousCombat)f.continuousCombat=true;
@@ -1421,21 +1422,36 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
   const opening=elite&&!danger&&!allyScreen&&ready&&aligned&&enemy.exposedUntil!>s.time+.18-(f.eloSkill?.readRecovery??0)&&d<106&&f.energy>=13;
   refreshMatchGoal(s,f,enemy,{range:d,urgent,danger:Boolean(danger),local,opening});
   let plannedBlock=false, plannedDodge=false;
+  const arenaIQ=f.arenaReadSkill;
+  const arenaEdge=arenaIQ?.level?Math.tanh((arenaIQ.rating-(enemy.arenaReadSkill?.rating??100))/200):0;
   const readLevel=s.config.eloReads?Math.max(0,f.eloSkill?.level??0):0;
   const pattern=readLevel&&threatened&&!obstructed&&!allyScreen&&!follow&&f.airPhase==='grounded'&&
     (enemy.attackChoices?.length??0)>=3&&enemy.attackChoices!.slice(-3).every(o=>o.family===enemy.attackFamily);
-  const poised=pattern&&Math.abs(angleDelta(aim,f.face))<.66&&f.energy>=24&&f.guardLock<=0;
-  const measuredRead=poised&&untilContact>0&&untilContact<=.118+readLevel*.075;
-  if(elite&&ready&&!danger&&(urgent||measuredRead)&&f.action!=='guard'&&f.energy>=12&&f.reactedTo!==enemy.attackSerial){
+  if(arenaIQ?.level&&incoming&&enemy.attack&&enemy.attackFamily&&enemy.attackSerial!=null&&
+    !obstructed&&!follow&&d<195&&enemy.actionTime<incoming.contact){
+    const previous=f.arenaPattern;
+    if(previous?.rival!==enemy.id||s.time-previous.time>7)
+      f.arenaPattern={rival:enemy.id,serial:enemy.attackSerial,time:s.time,patterns:[{family:enemy.attackFamily}]};
+    else if(previous.serial!==enemy.attackSerial){
+      previous.serial=enemy.attackSerial;previous.time=s.time;
+      previous.patterns=[...previous.patterns.slice(-3),{family:enemy.attackFamily}];
+    }
+  }
+  const learned=arenaPatternRead(arenaIQ,enemy.arenaReadSkill,enemy.attackFamily,
+    f.arenaPattern?.rival===enemy.id?f.arenaPattern.patterns:undefined);
+  const arenaPoised=learned>0&&threatened&&!obstructed&&!allyScreen&&!follow&&f.airPhase==='grounded'&&enemy.action!=='force';
+  const poised=(pattern||arenaPoised)&&Math.abs(angleDelta(aim,f.face))<.66&&f.energy>=24&&f.guardLock<=0;
+  const measuredRead=poised&&untilContact>0&&untilContact<=.118+readLevel*.075+learned*.085;
+  if((elite||arenaPoised)&&ready&&!danger&&(urgent||measuredRead)&&f.action!=='guard'&&f.energy>=12&&f.reactedTo!==enemy.attackSerial){
     const favorGuard=def.guardAI??.45;
     const canDash=f.energy>27&&!isArcadeCarrier(s,f);
     // A read can be wrong; current direction, gas and one reaction per committed move matter.
-    const lead=f.eloSkill?.readLead??0;
+    const lead=(f.eloSkill?.readLead??0)+(arenaIQ?.level?arenaIQ.level*.032+arenaEdge*.018:0);
     if(untilContact<=.10+lead||measuredRead||(!canDash&&untilContact<=.15+lead)){
       f.reactedTo=enemy.attackSerial;
       const read=rng(s);
       const heroParryBias=f.heroPlan==='defensive'?.09:f.heroPlan==='aggressive'?-.06:0;
-      const blockGate=.28+.40*favorGuard+f.eliteRankEdge*.08+heroParryBias+(poised?.11*readLevel:0);
+      const blockGate=.28+.40*favorGuard+f.eliteRankEdge*.08+heroParryBias+(poised?.11*readLevel+.14*learned:0)+(arenaIQ?.level ? .08*arenaEdge : 0);
       if(poised)f.lastRatedRead={time:s.time,remaining:untilContact,family:enemy.attackFamily!,choice:enemy.action!=='force'&&read<blockGate?'guard':canDash&&read<.73?'dodge':'hold'};
       if(enemy.action!=='force'&&read<blockGate){
         f.decision='guard';f.guardUntil=s.time+.26;plannedBlock=true;
@@ -1485,7 +1501,7 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
   }
   if(f.baitUntil!>s.time&&f.decision==='guard'&&!urgent)guardAim=f.baitBearing;
   if(f.think<=0){
-    f.think=(def.wind+.048+rng(s)*.15-difficulty*.047)*(1-.28*f.skill.skill)*(1-(rankAdvantage!==0?f.rankCombat.initiative*.40:0))*(f.eloSkill?.decisionClock??1);
+    f.think=(def.wind+.048+rng(s)*.15-difficulty*.047)*(1-.28*f.skill.skill)*(1-(rankAdvantage!==0?f.rankCombat.initiative*.40:0))*(f.eloSkill?.decisionClock??1)*(arenaIQ?.level?arenaIQ.decisionClock:1);
     if(!elite&&rankAdvantage<5&&urgent&&f.energy>13&&f.action!=='dash'&&f.action!=='guard'){
       const rating=rng(s), preference=(def.guardAI??(f.archetype==='warden'?.69:f.archetype==='duelist'?.34:.47))+difficulty*.11+f.skill.skill*.076+(doctrine==='defensive'?.18:doctrine==='aggressive'?-.14:0);
       if(rating<preference){ f.decision='guard'; f.guardUntil=s.time+.23+rng(s)*.14; }
@@ -1517,6 +1533,12 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
       f.decision=null;strike=true;heavy=false;force=false;
     }
   }
+  // A rated opponent can exploit a real committed release/miss while it
+  // is still ahead of schedule. It still has to reach with a legal move.
+  const liveRatedOpening=arenaEdge>.19&&arenaIQ!.level>.45&&ready&&!urgent&&!danger&&
+    !plannedBlock&&!plannedDodge&&!follow&&!obstructed&&!allyScreen&&aligned&&d<90&&f.energy>=19&&
+    enemy.exposedBy==='whiff'&&(enemy.exposedUntil??0)>s.time+.16;
+  if(liveRatedOpening){f.decision=null;strike=true;heavy=false;force=false;}
   if(!elite&&crowd>=2&&ready&&!obstructed&&!allyScreen&&!follow&&aligned&&f.energy>=24&&d<144){
     f.decision=null;strike=false;heavy=true;roll=false;force=false;
   }
@@ -1535,6 +1557,14 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
       strike=false;heavy=false;force=false;
       if(peerTactics)guardAim=aim+Math.sign(angleDelta(enemy.face,aim+Math.PI))*.28;
     }
+  }
+  // Strong reads commit a directional guard on the actual release rather
+  // than just swinging more often. Commit once and only with real stamina.
+  if(arenaEdge>.19&&arenaIQ!.level>.45&&ready&&threatened&&untilContact<.105&&untilContact>0&&
+    aligned&&!danger&&!follow&&!obstructed&&!allyScreen&&enemy.action!=='force'&&f.guardLock<=0&&f.energy>21&&
+    !plannedDodge&&f.action!=='guard'){
+    f.reactedTo=enemy.attackSerial;f.decision='guard';f.guardUntil=Math.max(f.guardUntil??0,s.time+.16);
+    strike=false;heavy=false;force=false;roll=false;guardAim=aim;
   }
   if(f.heroPlan==='defensive'&&rankAdvantage<5&&ready&&urgent&&aligned&&f.energy>12&&enemy.action!=='force'&&
      f.guardLock<=0){
@@ -2049,6 +2079,42 @@ function ai(s: SimGame,f: SimFighter,enemy: SimFighter | null,dt: number): SimCo
         event(s,'guard_lane_change',f,undefined,undefined,{targetId:enemy.id,bearing});
         return {x:Math.cos(bearing)*.63,y:Math.sin(bearing)*.63,aim};
       }
+    }
+  }
+  // A healthy lead with only seconds left is worth protecting. This is
+  // ordinary visible spacing using the same injury and remaining-clock state
+  // available to a playing opponent; it never chooses a winner or adds stats.
+  if(arenaEdge>.19&&arenaIQ!.level>.45&&matchedLineups&&s.config.rule==='elimination'&&
+    s.config.teamSizes[0]===1&&s.limit-s.time<7&&ready&&f.actionDuration===0&&f.airPhase==='grounded'&&
+    aimClear&&!urgent&&!danger&&!follow&&!roll&&!pressureGuard&&!plannedBlock&&!canAnswer&&d<142&&
+    (f.injuryEffects.burden[0]<enemy.injuryEffects.burden[0]||
+      f.injuryEffects.burden[4]+.17<enemy.injuryEffects.burden[4])&&
+    compareArcadeDanger(f.injuryEffects.burden,enemy.injuryEffects.burden)<0){
+    const space=clockSpacing(s,f,enemy,aim,d,orbit);
+    if(space)return space;
+  }
+  // Rank and grip still determine the physical move. Experienced AI can
+  // turn down a bad exchange, and select a reachable counter in a visible gap.
+  if(arenaIQ?.level&&arenaEdge>.19&&ready&&f.airPhase==='grounded'&&f.actionDuration===0&&
+    aimClear&&aligned&&!danger&&!follow&&!roll&&!pressureGuard&&!plannedBlock&&!trakata&&!vaultExit&&!airEntry&&
+    !activeJump&&!chain&&!advanced&&f.guardLock<=0&&d<146){
+    const guarded=enemy.action==='guard'&&Math.abs(angleDelta(aim+Math.PI,enemy.guardBearing??enemy.face))<.82;
+    if(guarded&&enemy.energy>=22&&!canAnswer&&(strike||heavy)&&f.energy<73){
+      const turn=Math.sign(orbit)||1;
+      for(const side of [turn,-turn]){
+        const from=aim+side*1.35;
+        if(footworkPath(s,f,from,22))return {x:Math.cos(from)*.56,y:Math.sin(from)*.56,aim};
+      }
+    }
+    const until=Math.max(0,(enemy.exposedUntil??0)-s.time,
+      enemy.action==='stagger'?enemy.actionDuration-enemy.actionTime:0);
+    if(until>.17&&d<125&&!guarded&&!urgent&&f.energy>=22){
+      const moves=arcadeMovesFor(f.form,f.career.gradeIndex,{rankCuts:true,circuitCuts:s.config.circuitCuts,
+        arenaCuts:s.config.arenaCuts,exchangeVariety:s.config.exchangeVariety,minorMoves:s.config.minorMoves});
+      const response=moves.filter(m=>m.mapAction!=='force'&&!m.air&&m.contact<until-.026&&m.cost<f.energy-10&&
+        d<=arcadeChessMove(f.chessStyle,m,{promoted:f.chessPawn?.promoted===true}).reach*.92+enemy.radius*.38);
+      response.sort((a,b)=>(b.damage-a.damage)*.13-(b.contact-a.contact)*9-(b.cost-a.cost)*.055);
+      if(response[0])return {strike:true,technique:response[0].id,aim};
     }
   }
   if(advanced&&!pressureGuard&&!plannedBlock&&!trakata&&!vaultExit&&!airEntry&&f.decision!=='guard')

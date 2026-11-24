@@ -10,7 +10,7 @@ const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const optionSet=<T extends string>(value:string|undefined,choices:readonly T[],fallback:T): T=>choices.includes(value as T)?value as T:fallback;
 const doctrineAliases: Readonly<Record<string,string|undefined>>={assault:'aggressive',guard:'defensive'};
 
-type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork';
+type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill';
 type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive';
 type GearOptions='startingSaberQuality'|'startingDualSabers'|'startingSaberWeapon'|'startingSaberGrip'|'startingDualPhase'|'startingForceFamily'|'startingForceQuality';
 type InputRecord=Partial<ArcadeRecord>;
@@ -59,7 +59,7 @@ export interface ArcadeConfig extends ReturnType<typeof normalizeArcadeGear>, Pa
 }
 
 export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [number,number]): ArcadeConfig {
-  const {startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,limit,soloTournamentClock,rule,circuitCuts,matchGoalPlanning,weaponFlow,expandedCombat,customHeroTactics,advancedArena,playerSlot,teamForms,saberOnly,doctrines,targeting,formations,weather,environment,deployments,chessStyles,fighterChessStyles,perfectParryStamina,continuousCombat,anticipatingCombat,arenaCuts,activeFootwork,styleTravel,repertoireSupport,styleChoreo,peasantMotion,exchangeVariety,stanceFlow,impactPhysics,recoveryFlow,balancePass,closeChoice,guardCounterplay,minorMoves,forceVariants,liveEntry,eloReads,ratingSkill,fluidFootwork}=options;
+  const {startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,limit,soloTournamentClock,rule,circuitCuts,matchGoalPlanning,weaponFlow,expandedCombat,customHeroTactics,advancedArena,playerSlot,teamForms,saberOnly,doctrines,targeting,formations,weather,environment,deployments,chessStyles,fighterChessStyles,perfectParryStamina,continuousCombat,anticipatingCombat,arenaCuts,activeFootwork,styleTravel,repertoireSupport,styleChoreo,peasantMotion,exchangeVariety,stanceFlow,impactPhysics,recoveryFlow,balancePass,closeChoice,guardCounterplay,minorMoves,forceVariants,liveEntry,eloReads,ratingSkill,fluidFootwork,arenaRatingSkill}=options;
   const requestedLimit=Number(limit);
   const longSoloClock=requestedLimit===360&&soloTournamentClock===true&&mode==='watch'&&sizes.every(n=>n===1)&&(!rule||rule==='elimination');
   const config: ArcadeConfig={...normalizeArcadeGear({startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality}),teamSizes:sizes,limit:longSoloClock||[45,75,90,150].includes(requestedLimit)?requestedLimit:75,
@@ -100,6 +100,7 @@ export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [nu
   if(minorMoves===true)config.minorMoves=true;
   if(forceVariants===true&&expandedCombat===true)config.forceVariants=true;
   if(liveEntry===true)config.liveEntry=true;
+  if(arenaRatingSkill===true)config.arenaRatingSkill=true;
   if(eloReads===true&&ratingSkill===true)config.eloReads=true;
   if(fluidFootwork===true)config.fluidFootwork=true;
   return config;

@@ -15,6 +15,10 @@ Open <http://127.0.0.1:4173>. For the original mode, open [Classic](http://127.0
 
 The local server serves the generated website from `build/dist/`. Arena, tournaments, Style Lab, Idle RPG, browser-local saves and JSON backup/import work without an account or server-side service. Linked-device saves require an authenticated backend that is not included here. Leave linked saves off for local use.
 
+## Arena Elo
+
+Equal-team Arena elimination rounds from 1v1 through 15v15 earn Elo. Fighters start at 100, and their training rank sets a ceiling just below the next rank's threshold (for example, F caps at 199.5 until promotion to E). Higher rated Arena AI reads and adapts to fights more effectively; its rating does not add health or damage. Results and ratings stay with the Arena run on this device. Training, objective and Hero matches do not change this rating, and tournament ratings remain separate.
+
 ## Source and validation
 
 Browser code lives in `src/*.ts`; development tools and tests use `.mts`. The checked-in `dist/` contains static HTML, CSS and assets. No standalone JavaScript source files are checked in. The build emits browser and Node JavaScript under the ignored `build/` directory. The generated website has no runtime package dependencies.

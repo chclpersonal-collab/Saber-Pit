@@ -1,16 +1,18 @@
 import {createCareer, awardMerit, meritForRound, progressionSummary} from './progression.js?v=1.4.0';
 
 import {ELO_SCALE,migrateLegacyElo} from './arcade-elo.js?v=2.18.5';
+import {arenaNormalRanked,arenaNormalRating,arenaNormalCap,safeArenaNormalRatings,updateArenaNormalRatings} from './arcade-normal-elo.js';
+import type {ArenaNormalMatch,ArenaNormalRatings,ArenaNormalRatingChange} from './arcade-normal-elo.js';
 
 export const ARCADE_CAREER_KEY='saber-pit-arcade-careers-v1';
 type Career = ReturnType<typeof createCareer>;
 type Summary = ReturnType<typeof progressionSummary>;
-type Fighter = { id: string; career: Career; stats?: { damage?: number; kills?: number }; hp: number; team: number };
-type Game = { phase: string; fighters: Fighter[] };
-type FinalReport = { id: string; before: Summary; after: Summary; reward: number; promoted: boolean };
-type Settlement = { careers: Record<string,Career>; report: FinalReport[] };
+type Fighter = { id:string;career:Career;stats?:{damage?:number;kills?:number};hp?:number;alive?:boolean;team:number;heroId?:string|null };
+type Game = Omit<ArenaNormalMatch,'fighters'> & {phase:string;fighters:readonly Fighter[]};
+type FinalReport = { id: string; before: Summary; after: Summary; reward: number; promoted: boolean } & ArenaNormalRatingChange;
+type Settlement = { careers: Record<string,Career>; report: FinalReport[];arenaRatings:ArenaNormalRatings;rated:boolean };
 type CareerSave = { version?: number; mode: string; seed: number; round: number; eloScale?: number;
-  careers?: Record<string,{merit?: number}>; heroLineup?: Record<string,unknown>; [section:string]:unknown };
+  careers?: Record<string,{merit?: number}>; arenaRatings?:unknown; heroLineup?: Record<string,unknown>; [section:string]:unknown };
 const modes=['duel','squad','watch','command'];
 const slots=/^[01]-(?:[0-9]|1[0-9]|2[0-3])$/;
 export function safeCareers(candidate?: Record<string,{merit?:number}|null>|null){
@@ -25,27 +27,37 @@ export function readArcadeCareer(storage?:Pick<Storage,'getItem'>|null){
     if(data?.version!==1||!modes.includes(data.mode??'')||typeof data.round!=='number'||!Number.isInteger(data.round)||data.round<1||data.round>100000||!Number.isInteger(data.seed))return null;
     const heroLineup=data.heroLineup;
     const migrate=data.eloScale!==ELO_SCALE&&heroLineup&&typeof heroLineup==='object'&&!Array.isArray(heroLineup);
-    return {...data,eloScale:ELO_SCALE,careers:safeCareers(data.careers),
+    return {...data,eloScale:ELO_SCALE,careers:safeCareers(data.careers),arenaRatings:safeArenaNormalRatings(data.arenaRatings),
       ...(migrate?{heroLineup:Object.fromEntries(Object.entries(heroLineup).map(([slot,h])=>
         [slot,h&&typeof h==='object'?{...h,elo:migrateLegacyElo((h as {elo?:unknown}).elo)}:h]))}:{})};
   }catch{return null;}
 }
 export function saveArcadeCareer(data:object,storage?:Pick<Storage,'setItem'>|null){
-  try{(storage??globalThis.localStorage).setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,version:1,eloScale:ELO_SCALE}));return true;}
+  try{(storage??globalThis.localStorage).setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE}));return true;}
   catch{return false;}
 }
-const settled = new WeakMap<Game,Settlement>();
-export function settleArcadeCareer(game:Game|null|undefined){
-  if(!game||game.phase==='playing')return null;
-  if(settled.has(game))return settled.get(game);
+const settled=new WeakMap<Game,Settlement>();
+export function settleArcadeCareer(game:Game|null|undefined,priorArenaRatings:unknown={}):Settlement|null {
+  if(!game||!['won','lost','draw'].includes(game.phase))return null;
+  const previous=settled.get(game);
+  if(previous)return previous;
   const winning=game.phase==='won'?0:game.phase==='lost'?1:null;
-  const report=game.fighters.map(f=>{
+  const ledgers=safeArenaNormalRatings(priorArenaRatings);
+  const rated=arenaNormalRanked(game);
+  const rewards=game.fighters.map(f=>{
     const before=progressionSummary(f.career);
-    const reward=meritForRound({damageDealt:f.stats?.damage,kills:f.stats?.kills,survived:f.hp>0,won:f.team===winning});
+    const survived=f.alive??((f.hp??0)>0);
+    const reward=meritForRound({damageDealt:f.stats?.damage,kills:f.stats?.kills,survived,won:f.team===winning});
     const after=progressionSummary(awardMerit(before,reward));
-    return {id:f.id,before,after,reward:after.merit-before.merit,promoted:after.gradeIndex>before.gradeIndex};
+    return {id:f.id,team:f.team,before,after,reward:after.merit-before.merit,promoted:after.gradeIndex>before.gradeIndex};
   });
-  const result={careers:Object.fromEntries(report.map(({id,after})=>[id,createCareer(after.merit)])),report};
+  const {arenaRatings,changes}=updateArenaNormalRatings(ledgers,rewards.flatMap(f=>
+    f.team===0||f.team===1?[{id:f.id,team:f.team,gradeIndex:f.after.gradeIndex}]:[]),winning,rated);
+  const report=rewards.map(({team:_,...row})=>{
+    const rating=arenaNormalRating(ledgers[row.id]);
+    return {...row,...(changes[row.id]??{ratingBefore:rating,ratingAfter:rating,ratingDelta:0,ratingCap:arenaNormalCap(row.after.gradeIndex)})};
+  });
+  const result={careers:Object.fromEntries(report.map(({id,after})=>[id,createCareer(after.merit)])),report,arenaRatings,rated};
   settled.set(game,result);
   return result;
 }
