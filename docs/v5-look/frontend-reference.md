@@ -6,6 +6,7 @@ Short reference for CLARISSA-01 and CLARA-01. Read before mocking or building an
 
 1. **One tap to play.** Home has a big Play button that starts the last mode. Mode select is a short vertical list of big cards, never a horizontal scrolling tile strip (players rejected Battlefield 6's streaming-style tiles: awkward with a mouse, popular modes pushed off screen). No more than two levels to any match.
 2. **Few words.** Icons and numbers over sentences. One line per card at most. Details in a tooltip or one tap away.
+   No slogans or taglines on modes (the player rejected lines like "3 lanes. Towers. Push the core." as AI-sounding). A mode gets its name and, only if needed, a plain category tag the way real games label them: "1v1", "MOBA", "Bracket", "Solo", "Ranked", "Team · up to 15v15".
 3. **Settings in tabs with presets.** Tabs: Gameplay, Controls, Video, Audio, Accessibility. Search box. A preset row on top. Advanced options folded. Every option saves on change.
 4. **Accessibility is basic, not extra.** The four most complained about gaps: key remapping, text size, colorblind support, subtitles. Also separate volume for effects, voice and music, game speed, sensitivity, vibration toggle, screen shake and flash off, toggle instead of hold, no rapid tapping required, whole UI usable with the game's own input. Nothing essential shown by color alone.
 5. **Results are fast and skippable.** One screen, the key stats, Elo change, Rematch as the main button. A hold-to-skip on any animation (Marvel Rivals had to add one after players hated flicking pages).
