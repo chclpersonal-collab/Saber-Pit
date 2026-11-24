@@ -188,3 +188,24 @@ kbd{display:none;font:700 .78rem/1 ui-monospace,monospace;color:var(--amber);bor
   .shell:has(#pause:not([hidden])) .field-tools{flex-wrap:wrap}
   .shell:has(#pause:not([hidden])) .field-tools>div{display:block;flex:1 0 100%}
 }
+
+/* Score hooks: tower pips, core state, team knockouts. Text stays for screen readers. */
+.tally{display:flex;align-items:baseline;gap:.7rem}
+.kills{font:700 1.2rem/1 ui-monospace,monospace;min-width:1.4ch;text-align:center}
+.kills:empty{display:none}
+#blueStatus[data-towers],#redStatus[data-towers]{font-size:0;display:inline-flex;align-items:center;gap:8px;--on:currentColor;--off:#ffffff24}
+#blueStatus[data-towers]{color:var(--blue)}#redStatus[data-towers]{color:var(--red)}
+#blueStatus[data-towers]::before,#redStatus[data-towers]::before{content:"";width:9px;height:9px;margin-right:28px;transform:rotate(45deg);background:var(--p1);box-shadow:14px -14px 0 var(--p2),28px -28px 0 var(--p3)}
+[data-towers="3"]{--p1:var(--on);--p2:var(--on);--p3:var(--on)}
+[data-towers="2"]{--p1:var(--on);--p2:var(--on);--p3:var(--off)}
+[data-towers="1"]{--p1:var(--on);--p2:var(--off);--p3:var(--off)}
+[data-towers="0"]{--p1:var(--off);--p2:var(--off);--p3:var(--off)}
+#redStatus[data-towers]{flex-direction:row-reverse}
+#redStatus[data-towers]::before{margin:0 0 0 28px;box-shadow:-14px 14px 0 var(--p2),-28px 28px 0 var(--p3)}
+#blueStatus[data-core]::after,#redStatus[data-core]::after{content:attr(data-core) "%";font:700 .86rem/1 ui-monospace,monospace;color:var(--white)}
+#blueStatus[data-core=shield]::after,#redStatus[data-core=shield]::after{content:"";width:16px;height:16px;background:var(--mute);-webkit-mask:var(--shield) center/contain no-repeat;mask:var(--shield) center/contain no-repeat}
+.score{--shield:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z'/%3E%3C/svg%3E")}
+.score .kills{box-shadow:none;padding:0}
+.time .tally{color:var(--white);font-size:inherit;letter-spacing:0;font-weight:700}
+#blueStatus[data-towers]::before{margin-right:36px}
+#redStatus[data-towers]::before{margin-left:36px}
