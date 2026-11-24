@@ -31,7 +31,7 @@
   <div class="v5-head">
   <section class="intro ops-hero" aria-labelledby="tournamentTitle">
     <div class="ops-hero-copy"><p class="kicker ops-kicker">TOURNAMENT / IRON CIRCUIT</p><h1 id="tournamentTitle"><span class="heading-duel">1v1 Tournament</span><span class="heading-squad">5v5 Tournament</span></h1>
-    <p id="formatDescription" class="v5-sr">One-on-one bouts train the field. Save fighters as Heroes for custom matches.</p></div>
+    <p id="formatDescription">One-on-one bouts train the field. Save fighters as Heroes for custom matches.</p></div>
     <svg class="circuit-schematic ops-hero-art" viewBox="0 0 296 176" aria-hidden="true">
       <circle cx="149" cy="86" r="71"/><circle cx="149" cy="86" r="59" stroke-dasharray="1 7"/>
       <path d="M5 18h26m-26 0v22m286 116h-26m26 0v-22M149 5v16m0 129v18M67 86h-19m183 0h18M59 48h34l12 14h24m-70 62h34l12-14h24m108-62h-34l-12 14h-24m70 62h-34l-12-14h-24"/>
@@ -51,7 +51,7 @@
     <div class="left-column">
       <section class="panel schedule" aria-labelledby="seasonTitle">
         <div class="section-top"><div><p class="kicker">BOUT DESK</p><h2 id="seasonTitle">The bracket</h2></div><span class="badge" id="seasonBadge">No season</span></div>
-        <p class="muted detail v5-sr" id="seasonWeek">One season is one in-game week.</p>
+        <p class="muted detail" id="seasonWeek">One season is one in-game week.</p>
         <div id="activeSeed" class="seed-strip" hidden><span class="muted">Bracket seed <strong id="activeSeedValue"></strong></span><button type="button" id="copyActiveSeed">Copy seed</button></div>
         <div class="next" id="nextBout" data-tone="empty">
           <p class="kicker" id="nextLabel">FIRST BOUT</p><h3 id="matchup">The ring is empty</h3><p id="matchMeta">Start a season to draw the bracket.</p>
@@ -96,7 +96,7 @@
     </div>
     <div class="right-column">
       <section class="panel board" aria-labelledby="leadersTitle"><div class="section-top"><div><p class="kicker">CAREER RECORD</p><h2 id="leadersTitle">Top 10</h2></div><span class="meta" id="leaderTag">ELO</span></div>
-        <p class="muted detail v5-sr" id="leaderDetail">Career Elo across seasons. Separate from the current bracket.</p>
+        <p class="muted detail" id="leaderDetail">Career Elo across seasons. Separate from the current bracket.</p>
         <p class="muted detail" id="leaderForms" hidden></p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="leadersTitle"><table class="career-table">
           <thead><tr><th scope="col">#</th><th scope="col" id="leaderSubject">Fighter</th><th scope="col" id="leaderRating">Elo</th><th scope="col">KO</th><th scope="col">D</th><th scope="col">K/D</th><th scope="col"><abbr title="Wins, draws, losses">W–D–L</abbr></th><th scope="col">Loss %</th><th scope="col">Win + Draw %</th></tr></thead><tbody id="leaderRows"><tr><td colspan="9" class="empty">No bouts recorded.</td></tr></tbody>
@@ -133,7 +133,7 @@
       </section>
       <details class="panel board peak-board v5-fold" id="peakFold">
         <summary><h2 id="peaksTitle" tabindex="-1">Peak Elo Top 10</h2></summary>
-        <p class="muted detail v5-sr" id="peakDetail">Highest recorded Elo for each fighter. It stays on this board even if their Elo falls.</p>
+        <p class="muted detail" id="peakDetail">Highest recorded Elo for each fighter. It stays on this board even if their Elo falls.</p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="peaksTitle"><table>
           <thead><tr><th scope="col">#</th><th scope="col" id="peakSubject">Fighter</th><th scope="col">Peak Elo</th><th scope="col">Season / Week</th></tr></thead><tbody id="peakRows"><tr><td colspan="4" class="empty">No peak ratings recorded yet.</td></tr></tbody>
         </table></div>

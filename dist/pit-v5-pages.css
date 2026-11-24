@@ -3,7 +3,6 @@
 
 .v5-page .v5-sr,
 .v5-page .section-top .kicker,
-.v5-page .g-section-top .ops-kicker,
 .v5-page .ops-hero-copy .ops-kicker {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -57,13 +56,13 @@ body.v5-page .panel h2 { font-size: 1.05rem; letter-spacing: -.01em; margin: 0; 
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; translate: -50% 0;
   padding: .25rem .5rem; border-radius: .35rem; white-space: nowrap; pointer-events: none; z-index: 5;
   background: #0b1114; border: 1px solid var(--pit-line-strong, #547278); color: var(--pit-text, #eef5f4);
-  font: 600 .78rem/1.2 inherit;
+  font-size: .78rem; font-weight: 600; line-height: 1.2;
 }
 .v5-page #autoSeasons[aria-pressed=true] { color: var(--pit-accent, #67e2cd); border-color: var(--pit-accent, #67e2cd); }
 
 /* Action row: one big next step, small tools beside it. */
-body.v5-page :is(.schedule .actions, .g-operations .g-actions) { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
-body.v5-page :is(.schedule .actions, .g-operations .g-actions) > .primary { flex: 1 1 7rem; min-height: 48px; font-size: 1rem; }
+body.v5-page .schedule .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+body.v5-page .schedule .actions > .primary { flex: 1 1 7rem; min-height: 48px; font-size: 1rem; }
 /* No bout to play: New season becomes the big button, the disabled play tools step aside. */
 body.v5-page .schedule .actions:has(#newButton:not(:disabled)) :is(#nextButton, #runButton):disabled { display: none; }
 body.v5-page .schedule .actions:has(#nextButton:disabled):has(#newButton:not(:disabled)) #newButton {
@@ -82,13 +81,21 @@ body.v5-page .schedule .actions #newButton:disabled { display: none; }
 }
 .v5-page .v5-more-menu button { width: 100%; }
 
+/* An open More menu sits above the panels below it. */
+body.v5-page .panel:has(.v5-more[open]) { position: relative; z-index: 10; }
+
 /* Next bout card: the matchup is the headline. */
 body.v5-page .next { padding: .8rem 1rem; margin-block: .2rem .7rem; }
 body.v5-page .next h3 { font-size: clamp(1.15rem, 2vw, 1.45rem); margin: .1rem 0; }
 body.v5-page .next p:not(.kicker) { margin: 0; }
 
-/* Leaderboard: rank, name, rating, K/D, record. The rest is in each fighter's file. */
-.v5-tournament .career-table :is(th, td):is(:nth-child(4), :nth-child(5), :nth-child(8), :nth-child(9)) { display: none; }
+/* Leaderboard: every column on wide screens; phones keep rank, name, Elo, K/D and record. */
+@media (max-width: 640px) {
+  .v5-tournament .career-table :is(th, td):is(:nth-child(4), :nth-child(5), :nth-child(8), :nth-child(9)) { display: none; }
+}
+/* Context lines stay, set small. */
+body.v5-tournament :is(#seasonWeek, #leaderDetail, #peakDetail, #formatDescription) { font-size: .82rem; margin: 0 0 .5rem; color: var(--pit-muted, #aebdc1); }
+body.v5-tournament .v5-head #formatDescription { margin: .15rem 0 0; max-width: 38rem; }
 
 /* Secondary boards fold to one line each. */
 body.v5-page .v5-fold { padding: 0; }
@@ -110,12 +117,12 @@ body.v5-page .v5-fold[open] { padding-bottom: .9rem; }
 
 /* Desktop: the whole desk fits the window; long lists scroll inside their column. */
 @media (min-width: 1000px) and (min-height: 620px) {
-  body.v5-page :is(#tournamentApp, .gauntlet-shell) {
+  body.v5-page #tournamentApp {
     height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; padding-bottom: 1rem;
   }
   body.v5-page .ops-dock { flex: none; }
-  body.v5-page :is(.desk, .gauntlet-grid) { flex: 1; min-height: 0; align-items: stretch; }
-  body.v5-page :is(.left-column, .right-column, .g-main, .g-aside) {
+  body.v5-page .desk { flex: 1; min-height: 0; align-items: stretch; }
+  body.v5-page :is(.left-column, .right-column) {
     min-height: 0; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; padding-right: .2rem;
     align-content: start;
   }
@@ -127,68 +134,10 @@ body.v5-page .v5-fold[open] { padding-bottom: .9rem; }
   body.v5-page .v5-head .format-picker :is(button, a) { flex: 1; padding-inline: .4rem; font-size: .88rem; }
 }
 
-/* Season setup open: its own Draw button is the action, so New season steps aside. Hints stay for screen readers. */
+/* Season setup open: its own Draw button is the action, so New season steps aside. */
 body.v5-page .schedule:has(#newSetup:not([hidden])) #newButton { display: none; }
-.v5-tournament :is(#seedHelp, #newNote, #terrainHelp, #squadClockHelp) {
-  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-}
+body.v5-tournament .new-setup p.muted { font-size: .82rem; margin: .35rem 0 0; }
 body.v5-tournament .new-setup .actions { margin-top: .7rem; }
 /* Seed: one quiet line. */
 body.v5-tournament .seed-strip { display: flex; align-items: center; gap: .5rem; margin: 0 0 .4rem; font-size: .84rem; }
 body.v5-tournament .seed-strip button { min-height: 36px; padding: 0 .6rem; font-size: .8rem; }
-
-/* Gauntlet. */
-.v5-gauntlet .v5-head .g-career-link { display: none; }
-.v5-page [data-ico=filter] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18l-7 8.5V20l-4-2v-4.5z'/%3E%3C/svg%3E"); }
-body.v5-gauntlet .g-operations:has(#gSetup:not([hidden])) :is(#gPlay, #gRun):disabled { display: none; }
-body.v5-gauntlet .g-setup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; align-items: end; }
-body.v5-gauntlet .g-setup #gDraw { grid-column: 1 / -1; min-height: 48px; font-size: 1rem; }
-body.v5-gauntlet .v5-more-menu.g-archive { display: grid; margin: 0; justify-content: stretch; }
-body.v5-gauntlet .v5-more-menu.g-archive a { padding: 0 .6rem; }
-body.v5-gauntlet .g-next { margin-block: .2rem .7rem; }
-.v5-page .v5-filter { margin-bottom: .5rem; }
-.v5-page .v5-filter > summary {
-  display: inline-flex; min-height: 36px; padding: 0 .7rem; border: 1px solid var(--pit-line, #32434a); border-radius: .5rem;
-  cursor: pointer; list-style: none; color: var(--pit-muted, #aebdc1); font-size: .85rem; font-weight: 700;
-}
-.v5-page .v5-filter > summary::-webkit-details-marker { display: none; }
-.v5-page .v5-filter[open] > summary { margin-bottom: .5rem; color: var(--pit-text, #eef5f4); }
-@media (max-width: 640px) { body.v5-gauntlet .g-setup { grid-template-columns: 1fr 1fr; } body.v5-gauntlet .g-setup label:first-of-type { grid-column: 1 / -1; } }
-.v5-gauntlet .g-next .ops-kicker { color: var(--pit-accent, #67e2cd); font: 700 .74rem/1.2 ui-monospace, monospace; letter-spacing: .14em; margin: 0; }
-body.v5-page .panel:has(.v5-more[open]) { position: relative; z-index: 10; }
-
-/* Idle RPG: stage left, party, loot and route stacked right, all in one window. */
-body.v5-idle .rpg-header { padding: .5rem 0 .6rem; align-items: center; }
-body.v5-idle .rpg-header h1 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); letter-spacing: -.03em; }
-body.v5-idle .rpg-panel h2 { font-size: 1.05rem; }
-body.v5-idle .rpg-empty a {
-  display: inline-flex; align-items: center; min-height: 40px; margin-top: .4rem; padding: 0 .8rem; border-radius: .45rem;
-  background: var(--pit-accent, #67e2cd); color: var(--pit-accent-ink, #092225); font-weight: 700; text-decoration: none;
-}
-@media (min-width: 841px) {
-  body.v5-idle .rpg-layout {
-    grid-template-rows: max-content max-content 1fr;
-    grid-template-areas: 'fight hero' 'fight loot' 'fight route' 'journal journal' 'legacy legacy';
-  }
-}
-@media (min-width: 841px) and (min-height: 620px) {
-  /* Cap the stage so the fight controls stay on screen; art covers, the duel letterboxes. */
-  body.v5-idle .rpg-viewport { aspect-ratio: auto; height: min(calc((100vw - 2.5rem) * .63 * 9 / 16), calc(100dvh - 19rem)); }
-  body.v5-idle .quest-shell { padding-bottom: 1rem; }
-}
-
-/* Style Lab: bigger stage, one strike button, compares and extras quieter. */
-body.v5-lab main { max-width: 100rem; }
-body.v5-lab .intro { margin-bottom: .7rem; align-items: center; }
-body.v5-lab .intro .eyebrow { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-body.v5-lab .intro h1 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); letter-spacing: -.03em; }
-body.v5-lab .intro .back { padding: .35rem .7rem; font-size: .88rem; }
-@media (min-width: 55.01rem) { body.v5-lab .lab { grid-template-columns: minmax(0, 2.3fr) minmax(18rem, 1fr); } }
-body.v5-lab .controls .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
-body.v5-lab #labStrike { grid-column: 1 / -1; min-height: 52px; font-size: 1.05rem; }
-body.v5-lab :is(#labCompare, #labCompareWeapons) { grid-column: span 1; font-size: .86rem; }
-body.v5-lab #labCompare.strong { clip-path: none; }
-body.v5-lab #labCompare.strong:not(:hover) { color: var(--text); background: var(--field); border-color: var(--edge); }
-body.v5-lab #labStop:disabled { display: none; }
-body.v5-lab #labStop:not(:disabled) { grid-column: 1 / -1; }
-body.v5-lab .controls .notes:not([hidden]) { font-size: .84rem; }
