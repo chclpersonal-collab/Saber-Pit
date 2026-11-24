@@ -46,7 +46,7 @@ The arena backdrop stays darker and cooler than the fighters, so fighters always
 
 ## Fight HUD (fixed zones, nothing else in a fight)
 
-- **Top corners:** round portrait in team color with rank badge, name, Elo small. Skewed health bar with a white trail that lags behind big hits. Round pips. Four Force segments.
+- **Top corners:** round portrait in team color holding a six-part body doll for real injury states, rank badge, name, Elo small. Slim stamina bar from the real value. Round pips. Force segments from the real value. No HP bar (Clara).
 - **Top center:** timer, round number.
 - **Desktop bottom:** skill dock with key badges and a cooldown sweep.
 - **Phone:** thumb stick bottom left; big attack button and three round skills bottom right; HUD scales down; no dock.
@@ -66,7 +66,8 @@ The arena backdrop stays darker and cooler than the fighters, so fighters always
 
 - Illustrated parallax layers: sky, far ridge, buildings, near ridge.
 - A floating stage with rim light, torch glow and drifting embers.
-- **Fighters:** thick round-capped limbs in team color, a dark outline on every fighter, head with a hair or helmet shape.
+- **Fighters (sketch for Clara's pass):** grim, Madness-inspired but our own. Round faceless head, tapered body, floating hands and feet, thick ink outline, low wide stance. Bodies pale grey; team color on bandana, shades, visor or sash, the blade, and a ring under the feet.
+- **Impacts:** thin sharp slash crescents, jagged spark shards, dark ink splats.
 - **Sabers:** additive glow with a white core.
 
 ## Tech (Clara's call)
