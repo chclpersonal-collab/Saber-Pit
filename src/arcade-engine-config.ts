@@ -1,4 +1,7 @@
+import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
 /** Options that the current game normalizes before the first authoritative tick. */
+import {normalizeArcadeForcePool} from './arcade-force-pool.js';
+import type {ArcadeForcePoolId} from './arcade-force-pool.js';
 import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
 import {normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {ENVIRONMENTS} from './environment.js?v=1.4.0';
@@ -23,6 +26,9 @@ type RankInputs=readonly RankSetting[]|{blue?:RankSetting;red?:RankSetting;0?:Ra
 interface InputTerrain {id?:string;bounds?:Partial<ArcadeBounds>;solids?:readonly ArcadeCover[];zones?:readonly ArcadeCover[]}
 export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Partial<Record<GearOptions,unknown>> {
   motionFlow?: ArcadeMotionFlowInput;
+  teamGenders?:readonly unknown[];
+  teamAppearances?:readonly unknown[];
+  forcePools?: readonly (readonly string[]|null)[];
   mode?: string;
   seed?: number|string;
   width?: number;
@@ -55,6 +61,10 @@ export interface ArcadeOptions extends Partial<Record<Flag|Toggle,boolean>>, Par
 }
 export interface ArcadeConfig extends ReturnType<typeof normalizeArcadeGear>, Partial<Record<Flag,true>> {
   motionFlow?: ArcadeMotionFlow;
+  novicePractice?:true; // Arena controller only: unrated playback speed, no engine changes.
+  teamGenders?:ReturnType<typeof normalizeTeamLooks<typeof ARENA_TEAM_GENDERS[number]>>;
+  teamAppearances?:ReturnType<typeof normalizeTeamLooks<typeof ARENA_TEAM_APPEARANCES[number]>>;
+  forcePools?:readonly [readonly ArcadeForcePoolId[],readonly ArcadeForcePoolId[]];
   teamSizes:[number,number];limit:number;rule:ArcadeRule;weather:string;
   playerSlot:number;saberOnly:boolean;teamForms:(string|readonly string[]|null)[];
   doctrines:string[];targeting:string[];formations:string[];deployments:string[];
@@ -78,6 +88,12 @@ export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [nu
     rule:optionSet<ArcadeRule>(rule,['elimination','control','relic'],'elimination'),
     weather:optionSet(weather??environment,Object.keys(ENVIRONMENTS),'clear'),
     deployments:[0,1].map(i=>optionSet(deployments?.[i],['standard','forward','reserve'],'standard'))};
+  const pools=[normalizeArcadeForcePool(options.forcePools?.[0]),normalizeArcadeForcePool(options.forcePools?.[1])] as const;
+  if(!config.saberOnly&&['duel','squad','watch','command'].includes(mode)&&!config.matchGoalPlanning&&!options.soloTournamentClock&&pools.some(pool=>pool.length))config.forcePools=pools;
+  const genders=normalizeTeamLooks(options.teamGenders,ARENA_TEAM_GENDERS);
+  const looks=normalizeTeamLooks(options.teamAppearances,ARENA_TEAM_APPEARANCES);
+  if(genders)config.teamGenders=genders;
+  if(looks)config.teamAppearances=looks;
   const styleOptions=[0,1].map(i=>normalizeArcadeChessStyle(chessStyles?.[i]));
   if(styleOptions.some(x=>x!=='none'))config.chessStyles=styleOptions;
   const concreteStyles=[0,1].map(i=>Array.from({length:sizes[i]},(_,slot)=>{

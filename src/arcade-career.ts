@@ -38,6 +38,13 @@ export function saveArcadeCareer(data:object,storage?:Pick<Storage,'setItem'>|nu
   try{const target=storage??globalThis.localStorage;target.setItem(ARCADE_CAREER_KEY,JSON.stringify({...data,...('arenaRatings' in data?{arenaRatings:safeArenaNormalRatings(data.arenaRatings)}:{}),version:1,eloScale:ELO_SCALE}));notifyCloudSaveCommitted(target);return true;}
   catch{return false;}
 }
+/** Opt-in training/custom Force runs are temporary and never dirty a saved career. */
+export function isArenaSessionOnly(config:ArenaNormalMatch['config']):boolean{
+  return Boolean(config?.novicePractice||(!config?.saberOnly&&config?.forcePools?.some(pool=>pool?.length)));
+}
+export function persistArenaRound(data:object, config:ArenaNormalMatch['config'], storage?:Pick<Storage,'setItem'>|null){
+  return !isArenaSessionOnly(config)&&saveArcadeCareer(data,storage);
+}
 const settled=new WeakMap<Game,Settlement>();
 export function settleArcadeCareer(game:Game|null|undefined,priorArenaRatings:unknown={}):Settlement|null {
   if(!game||!['won','lost','draw'].includes(game.phase))return null;

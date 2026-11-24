@@ -6,7 +6,7 @@ import { canOccupy, lineOfSight, terrainAt } from '../dist/terrain.js';
 
 const ids=['crossroads','zigzag','craterfield'];
 test('map catalog restores all three classic maps alongside the open rotating rings',()=>{
-  assert.deepEqual(Object.keys(ARCADE_MAPS),[...ids,'underpit','foundry','ember_ring']);
+  assert.deepEqual(Object.keys(ARCADE_MAPS),['high_bastion',...ids,'underpit','foundry','ember_ring']);
   assert.deepEqual([1,2,3,4].map(round=>resolveArcadeMap('rotation',round)),['underpit','foundry','ember_ring','underpit']);
   const ring=createArcadeTerrain('foundry',1280,720);
   assert.equal(ring.solids.length,0);

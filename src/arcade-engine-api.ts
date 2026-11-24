@@ -49,7 +49,7 @@ export interface ArcadeEvent extends ArcadePoint {
   damage?:number;contact?:number;duration?:number;staminaGain?:number;
   region?:string;direction?:'front'|'rear';fatal?:boolean;perfect?:boolean;punish?:boolean;offhand?:boolean;
   punishReason?:string; route?:string; plan?:string; interrupted?:boolean;
-  airStrike?:string; forceAbility?:string; attackVariant?:string;
+  airStrike?:string; forceAbility?:string; poolAbility?:string; attackVariant?:string;
   moveId?:string;effect?:string;jumpKind?:string;phase?:ArcadePhase;reason?:string;
 }
 export interface ArcadeGame {

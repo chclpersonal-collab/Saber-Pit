@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sampleArcadeFighter,sampleArcadeRenderRig,arcadeBladeWorld} from '../dist/arcade-fighters.js';
+import {arcadeBasis} from '../dist/arcade-rig-projection.js';
 
 const delta=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
 const length=(p)=>Math.hypot(p.x,p.y);
@@ -42,7 +43,7 @@ test('a short linked staff strike carries from the actual outgoing silhouette, t
   Object.assign(f,{action:'rush',attack:'rush',attackFamily:'thrust',attackSpec:{contact:.085},
     actionDuration:.28,actionTime:0,attackSerial:2,chainFrom:'sweep'});
   const start=paint(f,.22+1/120).art;
-  assert.ok(length(delta(start.shoulder,finish.shoulder))<1e-8);
+  assert.ok(length(delta(arcadeBasis(f,start).project(start.shoulder),arcadeBasis(f,finish).project(finish.shoulder)))<1e-8);
   let noLateReset=true;
   for(let i=1;i<=11;i++){
     f.actionTime=i/120;

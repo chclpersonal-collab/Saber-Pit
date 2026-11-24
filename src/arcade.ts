@@ -1,3 +1,4 @@
+import {ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
 import {createAutoDuel} from './arcade-auto-duel.js';
 import {ARENA_MOTION_FLOW,PREVIEW_MOTION_FLOW} from './arcade-motion-flow.js?v=5.0.0';
 import {MINOR_MOVE_HINTS} from './arcade-minor-moves.js?v=3.1.0';
@@ -14,14 +15,15 @@ import {sampleArcadeFighter,arcadeBladeWorld,arcadeHeroLabelWorld} from './arcad
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {createArcadeStage,drawArcadeStage,createArcadeTerrain,drawArcadeObstacle,resolveArcadeMap} from './arcade-stage.js?v=4.0.0';
 import {FRAME_STEP,advanceSim,displayDelta,displayFighters,fighterSamples,newDisplayClock,resetDisplayClock} from './arcade-display.js?v=2.44.0';
-import {ARCADE_CAREER_KEY,classicCareers,readArcadeCareer,saveArcadeCareer,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
+import {ARCADE_CAREER_KEY,classicCareers,readArcadeCareer,persistArenaRound,isArenaSessionOnly,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {ARCADE_BODY_REGIONS,arcadeInjuryReport,ARCADE_INJURY_REFERENCE} from './arcade-injuries.js?v=2.9.0';
 import {crowdedFighters,sharesSilhouette} from './arcade-layout.js?v=2.9.0';
 import {ARCADE_RANK_FOOTWORK,arcadeRankFootworkFor} from './arcade-rank-footwork.js?v=2.27.0';
 import {ARCADE_TECHNIQUES} from './arcade-repertoire.js?v=3.1.0';
 import {gradeDisplayLabel,SOLDIER_GRADES} from './progression.js?v=1.4.0';
-import {ARCADE_MAPS,SIZE,presets,normalizeSetup,setupPlayAs,playAsSetup,watchHeroSetup,lobbyHeroControl,setupMode,engineLineups,engineChessStyleOverrides,loadSetup,saveSetup} from './arcade-setup.js?v=2.38.0';
+import {ARCADE_MAPS,SIZE,arenaWorldSize,presets,normalizeSetup,setupPlayAs,playAsSetup,watchHeroSetup,lobbyHeroControl,setupMode,engineLineups,engineChessStyleOverrides,engineForcePools,canArenaNovicePractice,loadSetup,saveSetup} from './arcade-setup.js?v=2.38.0';
 import {ARCADE_CHESS_STYLES} from './arcade-chess-styles.js?v=2.44.0';
+import {ARCADE_FORCE_POOL,arcadeForcePoolEntry} from './arcade-force-pool.js';
 import {ARCADE_GEAR_QUALITIES,ARCADE_FORCE_FAMILIES,ARCADE_SABER_OPTIONS,arcadeFighterGear,arcadeSaberOption} from './arcade-loadouts.js?v=3.1.0';
 import {actionFrame,stepActionFrame,screenToArena,composeArcadeFrame} from './arcade-camera.js?v=2.16.0';
 import {battleHeroLineup,normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
@@ -86,6 +88,20 @@ let lastAudioAt=-1,audioEventsAtTime=0;
 let transform:Omit<ReturnType<typeof composeArcadeFrame>,"scaleY">&{scaleY?:number}={scale:1,x:0,y:0},canvasPixelScale=1;
 let focus={x:W/2,y:H/2,zoom:1}, aim:Point|null=null,touchAim:TouchAim|null=null,touchDown:(Point&{id:number})|null=null;
 const keys=new Set<string>(), pointers=new Map<number,string>(), pulse=new Set<string>();
+const HUD_TEXT_KEY='saber-pit-arena-hud-text';
+const hudText=$('arenaHudText');
+function applyHudText(value:unknown){
+  const setting=value==='125'||value==='150'?value:'100';
+  hudText.value=setting;
+  document.body.dataset.hudText=setting;
+  return setting;
+}
+try{applyHudText(localStorage.getItem(HUD_TEXT_KEY));}catch{applyHudText(null);}
+hudText.addEventListener('change',()=>{
+  const setting=applyHudText(hudText.value);
+  try{localStorage.setItem(HUD_TEXT_KEY,setting);}catch{}
+});
+
 const keyMap:Record<string,string>={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
 const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
 const callouts=createArcadeFloatingText();
@@ -210,20 +226,23 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
     careers={...careers};
     for(const slot of Object.keys(useHeroes))delete (careers as Record<string,unknown>)[slot];
   }
-  [W,H]=SIZE[config.mapSize as keyof typeof SIZE];
+  [W,H]=arenaWorldSize(config.mapId,config.mapSize as keyof typeof SIZE);
   const terrain=createArcadeTerrain(config.mapId,W,H,round);
   const isMenu=view==='menu';
   const lineups=engineLineups(config);
   const sideSizes=isMenu?[1,1]:config.teamSizes;
   const sideHeroes=isMenu?previewHeroes(useHeroes):useHeroes;
-  const useArenaElo=!isMenu&&arenaLobbyRating(mode,config.rule,sideSizes,sideHeroes).rated;
+  const forcePools=isMenu?undefined:engineForcePools(config);
+  const novicePractice=!isMenu&&mode==='duel'&&config.novicePractice&&canArenaNovicePractice(config,sideHeroes);
+  const useArenaElo=!isMenu&&arenaLobbyRating(mode,config.rule,sideSizes,sideHeroes,forcePools,novicePractice).rated;
   const fighterRatings=useArenaElo?sideSizes.map((size,team)=>Array.from({length:size},(_,slot)=>
     arenaNormalRating(roundRatings[team+'-'+slot]))):undefined;
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
     round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
-    teamSizes:sideSizes,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
+    teamSizes:sideSizes,forcePools,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
+  if(novicePractice)game.config.novicePractice=true;
   roundRated=!isMenu&&arenaNormalRanked(game);
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});
   const shownMap=resolveArcadeMap(config.mapId,round);
@@ -259,7 +278,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Saber Pit arena',...deployedHeroes].join('. '));
-  $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
+  $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':game.config.novicePractice?'Practice · 0.75× · ':'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
@@ -508,14 +527,15 @@ function showEnd(){
   ratingReport=settled.report;
   career={arenaRatings:settled.arenaRatings,mode:autoCareerMode??mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
   const conflict=autoSaveBaseline!==undefined&&rawArenaSave()!==autoSaveBaseline;
-  const persisted=!conflict&&saveArcadeCareer(career);
+  const sessionOnly=isArenaSessionOnly(game.config);
+  const persisted=!conflict&&persistArenaRound(career,game.config);
   if(persisted){
     savedCareer=career;
     if(autoSaveBaseline!==undefined)autoSaveBaseline=rawArenaSave();
   }else if(conflict)savedCareer=readCareerForUI();
   const promoted=settled.report.filter(f=>f.promoted);
   const promotions=promoted.length>1?' · '+promoted.length+' promotions':selected.promoted?' · Promoted':'';
-  $('rankResult').textContent=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions+(persisted?'':conflict?' · Save changed in another tab. Return to Setup to continue that save.':' · Save unavailable');
+  $('rankResult').textContent=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions+(persisted?'':sessionOnly?' · Session only. Saved run unchanged.':conflict?' · Save changed in another tab. Return to Setup to continue that save.':' · Save unavailable');
   $('rankResult').textContent+=(settled.rated?' · '+arenaRatingDetail(selected.id,selected.after.gradeIndex):' · Unrated');
   $('again').textContent='Next round';
   updateHUD();
@@ -800,7 +820,7 @@ function frame(now:number){
       displayTime+=dt;
       hitDelay=Math.max(0,hitDelay-dt);
       if(view==='game'&&game.phase==='playing'){
-        advanceSim(sim,dt*(mode==='watch'||mode==='command'?matchSetup.pace:1),{blocked:hitDelay>0,playing:()=>game.phase==='playing',step:()=>{
+        advanceSim(sim,dt*(mode==='watch'||mode==='command'?matchSetup.pace:game.config.novicePractice ? .75 : 1),{blocked:hitDelay>0,playing:()=>game.phase==='playing',step:()=>{
           sim.previous=fighterSamples(game.fighters);
           if(view==='game')stepArcade(game,FRAME_STEP,inputs() as ArcadeInput);
         }});
@@ -864,7 +884,7 @@ const savedSetup=(next:Career)=>normalizeSetup(next.setup??{...field(presets,nex
 function canAutoSaved(next:Career){
   const options=savedSetup(next);
   const heroes=next.heroLineup?normalizeHeroLineup(next.heroLineup):battleHeroLineup(options.heroPicks,heroRoster,tournamentHeroLoadout);
-  return arenaLobbyRating(next.mode,options.rule,options.teamSizes,heroes).rated;
+  return arenaLobbyRating(next.mode,options.rule,options.teamSizes,heroes,engineForcePools(options),options.novicePractice&&canArenaNovicePractice(options,heroes)).rated;
 }
 function resumeRun(automatic=false){
   if(!savedCareer||automatic&&!canAutoSaved(savedCareer))return;
@@ -913,7 +933,7 @@ function showMoveStats(){
   for(const [id,defense] of [['attackMoves',false],['defenseMoves',true]] as const){
     const rows=moves.filter(([key])=>defense===Boolean(defenseNames[key]||ARCADE_TECHNIQUES[key]?.tactical==='moving_guard')).map(([key,n])=>{
       const row=document.createElement('div');
-      row.append(reportCell('dt',defenseNames[key]??combatMoveLabel(key)??baseAttackNames[key]??words(key)),reportCell('dd',n));return row;
+      row.append(reportCell('dt',defenseNames[key]??combatMoveLabel(key)??baseAttackNames[key]??arcadeForcePoolEntry(key)?.label??words(key)),reportCell('dd',n));return row;
     });
     if(!rows.length){const row=document.createElement('div');row.append(reportCell('dt','None yet'),reportCell('dd','0'));rows.push(row);}
     $(id).replaceChildren(...rows);
@@ -934,12 +954,13 @@ function openStats(){
     h.scope='row';row.append(h,...obj.score.map((n,i)=>reportCell('td',Math.floor(n+1e-8),i?'pink':'blue')));$('roundStats').append(row);
   }
   $('reportSeed').textContent='Seed '+seed;$('copySeed').textContent='Copy seed';
-  const eventsBy:Record<string,string>={stamina_hit:'Stamina earned',expanded_release:'Technique released',hero_plan:'Hero changed tactics',advanced_route:'Tactical follow-up',hero_reposition:'Hero escaped a crossfire',trakata_off:'Tràkata: blade doused',trakata_on:'Tràkata: blade relit',feint:'Feint',read:'Directional read',riposte:'Riposte',ally_blocked:'Ally blocked strike lane',clash:'Blade clash',parry:'Parry',break:'Guard break',ko:'Knockout',hazard:'Hazard hit',capture:'Point captured',deliver:'Relic delivered',pickup:'Relic picked up',drop:'Relic dropped'};
+  const eventsBy:Record<string,string>={stamina_hit:'Stamina earned',expanded_release:'Technique released',force_pool_release:'AI Force released',hero_plan:'Hero changed tactics',advanced_route:'Tactical follow-up',hero_reposition:'Hero escaped a crossfire',trakata_off:'Tràkata: blade doused',trakata_on:'Tràkata: blade relit',feint:'Feint',read:'Directional read',riposte:'Riposte',ally_blocked:'Ally blocked strike lane',clash:'Blade clash',parry:'Parry',break:'Guard break',ko:'Knockout',hazard:'Hazard hit',capture:'Point captured',deliver:'Relic delivered',pickup:'Relic picked up',drop:'Relic dropped'};
   const namedCommit=(e:ArcadeEvent)=>(e.contact as number)>0&&!e.offhand&&combatMoveLabel(e.moveId??e.technique,e);
   const visible=game.events.filter(e=>e.punish||e.region||eventsBy[e.kind]||namedCommit(e)).slice(-8).reverse();
   const eventLabel=(e:ArcadeEvent)=>{
     if(e.kind==='stamina_hit')return 'Stamina +'+Math.round((e.staminaGain as number)*10)/10+' · '+regionName(e.region as string);
     if(e.kind==='parry'&&e.perfect)return 'Perfect parry';
+    if(e.kind==='force_pool_release')return (arcadeForcePoolEntry(typeof e.poolAbility==='string'?e.poolAbility:undefined)?.label??'Force')+' released';
     const expanded=e.kind==='expanded_release'&&arcadeExpandedMoveById(e.moveId as string,{forceVariants:true});
     if(expanded)return expanded.label;
     if(e.region)return (e.fatal||e.kind==='ko'?'Fatal hit':e.punish?'Punish':'Injury')+' · '+regionName(e.region)+(e.direction==='rear'?' (rear)':'');
@@ -976,7 +997,24 @@ $('statsDialog').addEventListener('close',()=>{if(!paused&&game.phase==='playing
 
 $('formsGuide').addEventListener('click',()=>$('guide').showModal());
 
+const forcePoolId=(team:number,slot:number)=>'forcePool'+team+'-'+slot;
+const forcePoolControl=(team:number,slot:number)=>document.getElementById(forcePoolId(team,slot)) as HTMLSelectElement;
+function showForcePools(){
+  for(const team of [0,1]){
+    const inactive=team===0&&setup.participation==='play'&&setup.teamSizes[0]===1;
+    (document.getElementById('forceMixed'+team) as HTMLButtonElement).disabled=inactive;
+    for(let slot=0;slot<3;slot++){
+      const control=forcePoolControl(team,slot);
+      control.value=setup.forcePools[team][slot]??'';
+      control.disabled=inactive;
+      const hint=document.getElementById(control.id+'Hint')!;
+      hint.textContent=control.disabled?(slot===0?'No Blue AI in this match.':''):ARCADE_FORCE_POOL.find(o=>o.id===control.value)?.description??'';
+    }
+  }
+}
 const pairs:Record<string,[string,string][]>= {
+  teamGenders:ARENA_TEAM_GENDERS.map(id=>[id,id==='default'?'Default':id==='mixed'?'Mixed':'All '+id]),
+  teamAppearances:ARENA_TEAM_APPEARANCES.map(id=>[id,id==='default'?'Default':id==='woman'?'Slim-thick woman':id==='rabbit'?'Rabbit duelist':titleCase(id)]),
   startingRanks:SOLDIER_GRADES.map(g=>[g.label,g.displayLabel]),
   groupForms:[['mixed','Mixed'],...ARCADE_FORM_IDS.map(id=>[id,formName(id)] as [string,string])],
   chessStyles:Object.entries(ARCADE_CHESS_STYLES).filter(([id])=>id!=='none').map(([id,style])=>[id,style.label]),
@@ -988,7 +1026,7 @@ const pairs:Record<string,[string,string][]>= {
   startingForceQuality:ARCADE_GEAR_QUALITIES.map(x=>[x.id,x.label]),
   startingForceFamily:ARCADE_FORCE_FAMILIES.map(x=>[x.id,x.label])
 };
-const teamLabels:Record<string,string>={startingRanks:'Starting rank',groupForms:'Team forms',doctrines:'AI style',formations:'Formation',targeting:'Target priority',deployments:'Deployment',startingSaberQuality:'Saber grade',startingForceQuality:'Force grade',startingForceFamily:'Force ability'};
+const teamLabels:Record<string,string>={teamGenders:'Team gender',teamAppearances:'Team appearance',startingRanks:'Starting rank',groupForms:'Team forms',doctrines:'AI style',formations:'Formation',targeting:'Target priority',deployments:'Deployment',startingSaberQuality:'Saber grade',startingForceQuality:'Force grade',startingForceFamily:'Primary Force'};
 function fillOptions(select:HTMLSelectElement,options:readonly (readonly [string|number,string])[]){select.replaceChildren(...options.map(([value,label])=>new Option(label,value as string)));}
 function createLabel(name:string,field:HTMLElement){
   const label=document.createElement('label');label.append(document.createTextNode(name),field);return label;
@@ -1001,14 +1039,40 @@ function buildLobby(){
     fillOptions($(`chessStyles${i}`),pairs.chessStyles);
     const card=document.createElement('section');
     card.append(reportCell('h2',name,i?'pink':'blue'));
+    const advanced=document.createElement('details');
+    advanced.className='arena-team-advanced';
+    advanced.append(reportCell('summary','Advanced AI setup'));
+    const advancedKeys=new Set(['doctrines','formations','targeting','deployments']);
     for(const [key,opts] of Object.entries(pairs)){
       if(key==='groupForms'||key==='chessStyles')continue;
       const select=document.createElement('select');select.id=key+i;
       select.setAttribute('aria-label',name+' '+teamLabels[key].toLowerCase());fillOptions(select,opts);
       const label=createLabel(teamLabels[key],select);
       if(key.startsWith('startingForce'))label.dataset.forceSetting='';
-      card.append(label);
+      (advancedKeys.has(key)?advanced:card).append(label);
     }
+    const deck=document.createElement('details');
+    deck.className='force-pool';
+    deck.dataset.forceSetting='';
+    const info=reportCell('p','Choose up to three abilities for this side’s bots. An empty loadout uses Primary Force. Custom pools are unrated and do not replace your saved run.');
+    const summary=reportCell('summary','AI Force loadout');
+    deck.append(summary,info);
+    for(let slot=0;slot<3;slot++){
+      const control=document.createElement('select');
+      control.id=forcePoolId(i,slot);
+      control.setAttribute('aria-label',name+' AI Force slot '+(slot+1));
+      fillOptions(control,[['','Empty'],...ARCADE_FORCE_POOL.map(o=>[o.id,o.label] as const)]);
+      const help=reportCell('small','', 'force-pool-description');
+      help.id=control.id+'Hint';
+      control.setAttribute('aria-describedby',help.id);
+      deck.append(createLabel('Slot '+(slot+1),control),help);
+    }
+    const mixed=reportCell('button','Mixed trio');mixed.type='button';mixed.id='forceMixed'+i;
+    mixed.addEventListener('click',()=>{
+      for(const [slot,id] of ['force_push','force_anchor','force_siphon'].entries())forcePoolControl(i,slot).value=id;
+      readLobby();
+    });
+    deck.append(mixed); card.append(deck,advanced);
     $('teamControls').append(card);
   }
   const floors=$('rankFloorList');
@@ -1083,7 +1147,12 @@ const kitHints:Record<string,string>={
 };
 function updateLobbyRating(teamSizes:readonly number[]){
   const chosen=battleHeroLineup(setup.heroPicks,heroRoster,tournamentHeroLoadout);
-  const {rated,label}=arenaLobbyRating(setupMode(setup),setup.rule,teamSizes,chosen);
+  const snapshot={...setup,teamSizes:[...teamSizes]};
+  const practiceAvailable=canArenaNovicePractice(snapshot,chosen);
+  const practice=$('novicePractice');
+  practice.disabled=!practiceAvailable;
+  $('novicePracticeHint').textContent=practiceAvailable?'Play at 0.75× speed. Session only; no Elo or change to your saved run.':'Available for a played 1v1 F/E Elimination duel without Heroes.';
+  const {rated,label}=arenaLobbyRating(setupMode(snapshot),setup.rule,teamSizes,chosen,engineForcePools(snapshot),setup.novicePractice&&practiceAvailable);
   const output=$('arenaRatingStatus');
   if(output.textContent!==label)output.textContent=label;
   output.dataset.rated=String(rated);
@@ -1092,6 +1161,11 @@ function updateLobbyRating(teamSizes:readonly number[]){
 for(const count of [$('count0'),$('count1')])count.addEventListener('input',()=>
   updateLobbyRating([$('count0').valueAsNumber,$('count1').valueAsNumber]));
 function updateSetupHints(){
+  const fixedSize=setup.mapId==='high_bastion';
+  $('mapSize').disabled=fixedSize;
+  $('mapSize').title=fixedSize?'High Bastion has a fixed 1920 × 1080 layout.':'';
+
+  showForcePools();
   updateLobbyRating(setup.teamSizes);
   for(const i of [0,1] as const){
     $(`kitHint${i}`).textContent=kitHints[$(`saberKit${i}`).value]??kitHints.single;
@@ -1106,6 +1180,10 @@ function updateSetupHints(){
   const pick=setup.heroPicks[0];
   const hero=play&&pick.slot===setup.playerSlot?heroRoster.find(h=>h.id===pick.id):null;
   $('style').disabled=Boolean(hero);
+  const usesTeamLook=Boolean(setup.teamAppearances?.[0]&&setup.teamAppearances[0]!=='default');
+  const look=$('bodyStyle');
+  look.disabled=Boolean(hero)||usesTeamLook;
+  $('bodyStyleHelp').textContent=hero?'This slot uses the saved Hero appearance.':usesTeamLook?'Blue team appearance is active under Teams, gear & AI.':'Default appearance when the team setting is Default.';
   $('pace').disabled=play;$('pace').title=play?'Available for Spectator and Commander':'';
   for(const el of document.querySelectorAll<HTMLElement>('[data-force-setting]'))el.hidden=setup.saberOnly;
   for(const b of document.querySelectorAll<HTMLElement>('[data-preset]')){
@@ -1121,9 +1199,10 @@ function applyLobby(){
   $('participation').value=setupPlayAs(setup);
   $('style').value=setup.fixedForm;
   for(const [key,id] of Object.entries(scalar))if(key!=='playerSlot')$(id).value=setup[key as keyof typeof setup]===null?'':String(setup[key as keyof typeof setup]);
-  for(const key of Object.keys(pairs))for(const i of [0,1] as const)(document.getElementById(key+i) as HTMLSelectElement).value=((setup as unknown as Record<string,string[]>)[key])[i];
+  for(const key of Object.keys(pairs))for(const i of [0,1] as const)(document.getElementById(key+i) as HTMLSelectElement).value=((setup as unknown as Record<string,string[]>)[key])?.[i]??'default';
   for(const i of [0,1] as const){$(`count${i}`).value=setup.teamSizes[i] as unknown as string;$(`saberKit${i}`).value=arcadeSaberOption(arcadeFighterGear(setup,i)).id;$(`dualPhase${i}`).checked=setup.startingDualPhase[i];}
   $('saberOnly').checked=setup.saberOnly;
+  $('novicePractice').checked=setup.novicePractice;
   rosterFromSetup();heroSelects();updateSetupHints();
 }
 function readLobby(){
@@ -1136,6 +1215,8 @@ function readLobby(){
   input.startingSaberGrip=kits.map(o=>o.grip);
   input.startingDualPhase=([0,1] as const).map(i=>$(`dualPhase${i}`).checked);
   input.saberOnly=$('saberOnly').checked;
+  input.novicePractice=$('novicePractice').checked;
+  input.forcePools=[0,1].map(team=>[0,1,2].map(slot=>forcePoolControl(team,slot).value));
   input.heroPicks=([0,1] as const).map(i=>({id:$(`heroChoice${i}`).value,slot:$(`heroPos${i}`).value}));
   input.teamForms=([0,1] as const).map(i=>setup.teamForms[i].map((prior,j)=>$(`slotForm${i}-${j}`)?.value??prior));
   setup=normalizeSetup(input);
@@ -1146,6 +1227,7 @@ function readLobby(){
   const rePreview=(['mapId','mapSize','environment','form','body','participation','playerSlot'] as const).some(k=>old[k]!==setup[k])||
     engineLineups(old).flat().join()!==engineLineups(setup).flat().join()||
     (['startingSaberWeapon','startingSaberGrip','startingDualPhase','chessStyles'] as const).some(k=>old[k].join()!==setup[k].join())||
+    old.teamGenders?.join()!==setup.teamGenders?.join()||old.teamAppearances?.join()!==setup.teamAppearances?.join()||
     old.heroPicks.some((p,i)=>p.id!==setup.heroPicks[i].id||p.slot!==setup.heroPicks[i].slot);
   if(rePreview&&view==='menu')setScene('menu');
 }

@@ -1,7 +1,7 @@
 import {paintCompound,paintCompoundObstacle,animateCompound} from './arcade-maps.js?v=4.0.0';
 import { createBattlefield, MAP_SIZES } from './maps.js?v=1.4.0';
 
-interface StageBox{x:number;y:number;width:number;height:number;kind:string}
+interface StageBox{x:number;y:number;width:number;height:number;kind:string;moveCost?:number;damagePerSecond?:number}
 interface StageBounds{minX:number;minY:number;maxX:number;maxY:number}
 interface StageTerrain{id?:string;width?:number;height?:number;bounds:StageBounds;playBounds?:StageBounds;solids?:StageBox[];zones?:StageBox[]}
 interface StageOptions{mapId?:string;terrain?:StageTerrain|null;environment?:string}
@@ -9,6 +9,7 @@ interface Stage{image:HTMLCanvasElement;terrain:StageTerrain;id:string;obstacles
 export const ARCADE_MAP_SIZES = MAP_SIZES;
 const RINGS = ['underpit','foundry','ember_ring'];
 export const ARCADE_MAPS = Object.freeze(Object.fromEntries([
+  ['high_bastion','High Bastion','Grand siege court: central gate, perimeter approaches, and vent crossings.'],
   ['crossroads','Crossroads','Three approach lanes divided by physical cover and short center walls.'],
   ['zigzag','Zigzag','Staggered cover breaks up straight approaches.'],
   ['craterfield','Craterfield','Rough approaches and four dangerous vent beds.'],
@@ -39,6 +40,24 @@ function useCavernArt(stage:Stage,repaint:()=>void){
 const dimensions=(w:number,h:number)=>[saneSize(w,1120),saneSize(h,640)];
 export function createArcadeTerrain(mapId:string|undefined,w:number,h:number,round=1) {
   const [width,height]=dimensions(w,h), id=resolveArcadeMap(mapId,round), entry=ARCADE_MAPS[id];
+  if(id==='high_bastion'){
+    const bounds={minX:width*.033,minY:height*.205,maxX:width*.967,maxY:height*.938};
+    const sx=width/1920,sy=height/1080;
+    const box=(kind:string,x:number,y:number,w:number,h:number)=>({kind,x:x*sx,y:y*sy,width:w*sx,height:h*sy});
+    const mirrored=(kind:string,x:number,y:number,w:number,h:number)=>[box(kind,x,y,w,h),box(kind,1920-x-w,y,w,h)];
+    const solids=[
+      ...mirrored('wall',765,300,45,169),...mirrored('wall',765,681,45,184),
+      ...mirrored('wall',410,399,176,33),...mirrored('wall',410,777,176,33),
+      ...mirrored('barricade',640,498,53,56),...mirrored('barricade',640,639,53,56),
+    ];
+    const zones=[
+      {...box('hazard',947,343,26,128),damagePerSecond:28},
+      {...box('hazard',947,678,26,112),damagePerSecond:28},
+      {...box('rough',794,483,120,70),moveCost:1.18},
+      {...box('rough',1006,620,120,70),moveCost:1.18},
+    ];
+    return {...entry,width,height,bounds,playBounds:{...bounds},solids,zones};
+  }
   if (RINGS.includes(id)) {
     const bounds={minX:width*.031,minY:height*.192,maxX:width*.969,maxY:height*.937};
     return {...entry,width,height,bounds,playBounds:{...bounds},solids:[],zones:[]};

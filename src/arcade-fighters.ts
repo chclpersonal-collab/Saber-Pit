@@ -40,8 +40,8 @@ type AirBridge={at:number;x:number;y:number;hop:number;feet:LegWorld[];body:Reco
 type AirPose={phase:string|undefined;x:number;y:number;hop:number;time:number;bridge:AirBridge|null;paint:PaintRig};
 type RecoveryPose={impactAt:number;time:number;x:number;y:number;body:Record<ChestKey,Point>;feet:LegWorld[]};
 type Emitter=ReturnType<typeof arcadeBladeWorld>['blades'][number];
-type Interruption={time:number;x:number;y:number;blades:Emitter[];target:Emitter[];span:number};
-type InterruptionPose={kind:string;time:number;x:number;y:number;phase:string;blades:Emitter[];bridge:Interruption|null};
+type Interruption={time:number;x:number;y:number;blades:Emitter[];target:Emitter[];span:number;preserveHilt?:boolean;twistMask?:boolean[]};
+type InterruptionPose={kind:string;time:number;x:number;y:number;phase:string;rotation:number;blades:Emitter[];bridge:Interruption|null};
 type SupportFoot={anchor?:Point;toe?:Point;planted?:boolean;cycle?:number;cycleRun?:number;resume?:boolean;swing?:{forcedAt?:number;fromSwing?:number;anchor:Point;toe:Point;target:Point;targetToe?:Point}|null};
 type PlantMemory={legs:SupportFoot[];x?:number;y?:number;time?:number;distance?:number;idleSince?:number|null;axis?:Point;
   lastFeet?:Leg[];lastWorld?:LegWorld[];stopFeet?:LegWorld[];stopGoal?:LegWorld[];stopRoot?:Point;stopReach?:number;stopSupport?:number;replant?:number};
@@ -1560,7 +1560,7 @@ function sampleGroundStride(f:Fighter, r:PaintRig, time:number){
 // and the head follows through with a brief lag. Never feed back into arcs,
 // emitters, simulation positions, or ground contact.
 const bodyHandoffs=new WeakMap<object,FacePose>();
-const bodyHandoffMoves=new Set(['ready','guard','slash','sweep','rush','parry','feint','freehand']);
+const bodyHandoffMoves=new Set(['ready','guard','slash','sweep','rush','leap','parry','feint','freehand']);
 // Artist-facing upper-body keys: chamber, contact, overshoot, robe torque.
 // Coordinates are display pixels before fighter scale, not weapon movement.
 const BODY_SWING_KEYS={
@@ -1617,8 +1617,13 @@ function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
     robeTurn*=r.hdx;
     contactSpan=contact;
   }
-  const target={shoulder:P(r.shoulder.x+leadX,r.shoulder.y+leadY),
-    head:P(r.head.x+leadX*.54,r.head.y+leadY*.51)};
+  // Store paint anchors in achieved world-root space. The new rig can
+  // change roll or facing on hit, dash, and interrupted wind-up in one tick.
+  // Reusing last frame's local offsets in that new basis double-rotates them.
+  const {project,local}=arcadeBasis(f,r);
+  const offset=(p:Point)=>{const q=project(p);return P(q.x-root.x,q.y-root.y);};
+  const target={shoulder:offset(P(r.shoulder.x+leadX,r.shoulder.y+leadY)),
+    head:offset(P(r.head.x+leadX*.54,r.head.y+leadY*.51))};
   const safe=prior&&time>=prior.time&&time-prior.time<.12&&Math.hypot(root.x-prior.root.x,root.y-prior.root.y)<17;
   const gap=safe?Math.max(Math.hypot(target.head.x-prior.head.x,target.head.y-prior.head.y),
     Math.hypot(target.shoulder.x-prior.shoulder.x,target.shoulder.y-prior.shoulder.y)):0;
@@ -1626,18 +1631,22 @@ function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
   if(safe&&(kind!==prior.kind||(!carry&&gap>11))){
     carry={at:time,shoulder:prior.shoulder,head:prior.head};
   }
-  let {shoulder,head}=target;
+  let drawn=target;
   if(carry){
     const age=time-carry.at;
     if(age<.135){
       const bridge=(from:Point,to:Point,span:number)=>P(mix(from.x,to.x,smooth(age/span)),mix(from.y,to.y,smooth(age/span)));
       // Never give a short attack the same 135 ms handoff as a measured
       // recovery: the previous pose would swallow its whole chamber.
-      shoulder=bridge(carry.shoulder,target.shoulder,Math.min(.104,Math.max(.025,contactSpan*.42)));
-      head=bridge(carry.head,target.head,Math.min(.135,Math.max(.036,contactSpan*.62)));
+      drawn={
+        shoulder:bridge(carry.shoulder,target.shoulder,Math.min(.104,Math.max(.025,contactSpan*.42))),
+        head:bridge(carry.head,target.head,Math.min(.135,Math.max(.036,contactSpan*.62))),
+      };
     }else carry=null;
   }
-  bodyHandoffs.set(actor,{kind,root,time,shoulder,head,carry});
+  bodyHandoffs.set(actor,{kind,root,time,...drawn,carry});
+  const shoulder=local(P(drawn.shoulder.x+root.x,drawn.shoulder.y+root.y));
+  const head=local(P(drawn.head.x+root.x,drawn.head.y+root.y));
   if(!leadX&&!leadY&&!robeTurn&&!carry)return r;
   return {...r,shoulder,head,torsoTurn:r.torsoTurn+robeTurn,
     frontElbow:P(r.frontElbow.x+(shoulder.x-r.shoulder.x)*.38,r.frontElbow.y+(shoulder.y-r.shoulder.y)*.38),
@@ -1761,7 +1770,13 @@ export function sampleArcadeImpactPose(f:Fighter, r:PaintRig, time:number){
     return {...leg,hip:p(leg.hip,hipX,hipY),k:p(leg.k,hipX*.6+x*.5,hipY*.6+y*.55),
       foot:p(leg.foot,x,y),toes:p(leg.toes,x,y),planted:lift>.6?false:leg.planted};
   });
-  return {...r,shoulder,head,helmet:head,pelvis,legs,
+  // Keep a grounded robe snap behind the real shove, then a short counter-
+  // swing as the support boot catches. This is a silhouette accent, not an
+  // afterimage of the weapon, a damage window, or a frozen actor.
+  const clothScale=hit.kind==='hard'?.78:hit.kind==='glance'?.22:hit.kind==='guard'?.41:.38;
+  const clothLag=smooth((age-.014)/.043)*(1-smooth((age-.078)/Math.max(.046,duration-.078)));
+  const hemTurn=r.reducedMotion||fly?0:Math.cos(bearing)*weight*clothScale*(clothLag-catchBeat*.29);
+  return {...r,shoulder,head,helmet:head,pelvis,legs,torsoTurn:r.torsoTurn+hemTurn,
     frontElbow:p(r.frontElbow,ux*push*.38,uy*push*.31+dip*.38),
     backElbow:p(r.backElbow,ux*push*.47,uy*push*.37+dip*.52)};
 }
@@ -1849,7 +1864,8 @@ export function sampleArcadeBladeInterruption(f:Fighter, r:PaintRig, time:number
   const close=previous&&time>=previous.time&&time-previous.time<.080&&
     Math.hypot(x-previous.x,y-previous.y)<18&&previous.phase===base.phase&&
     previous.blades.length===base.blades.length&&previous.blades.every((b,i)=>b.id===base.blades[i].id);
-  const passiveJump=r.action==='jump'&&r.airPhase!=='grounded'&&!r.trick?.kind;
+  const passiveJump=r.action==='jump'&&r.airPhase!=='grounded';
+  const rotation=arcadeRigRotation(r);
   const eligible=(passiveBladePoses.has(r.action)||passiveJump)&&!f.attack&&!r.clash;
   let bridge=close&&eligible?previous.bridge:null;
   if(close&&eligible&&(!passiveJump&&kind!==previous.kind||passiveJump&&!bridge)){
@@ -1857,28 +1873,40 @@ export function sampleArcadeBladeInterruption(f:Fighter, r:PaintRig, time:number
       b.tip.x-previous.blades[i].tip.x-x+previous.x,b.tip.y-previous.blades[i].tip.y-y+previous.y)));
     // On a passive jump a shortest-angle authored branch may flip at π
     // inside the same action. Smooth only that sharp twist around a steady
-    // hilt. Don't slow an actual lunge, trick, strike, or bind.
-    const seam=passiveJump&&gap>35&&base.blades.some((b,i)=>{
+    // hilt. Measure wrist motion outside the body's actual roll, so a
+    // corkscrew can keep its whole turn without adding a phantom blade flip.
+    const roll=rotation-previous.rotation;
+    const twistMask=passiveJump&&gap>35?base.blades.map((b,i)=>{
       const old=previous.blades[i];
       const ax=b.tip.x-b.hand.x,ay=b.tip.y-b.hand.y, bx=old.tip.x-old.hand.x,by=old.tip.y-old.hand.y;
-      const angle=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);
-      return Math.abs(angle)>1.02&&Math.hypot(b.hand.x-old.hand.x-x+previous.x,b.hand.y-old.hand.y-y+previous.y)<15;
-    });
-    if(seam||!passiveJump&&gap>9)bridge={time,x:previous.x,y:previous.y,blades:previous.blades,target:base.blades,
-      span:passiveJump?.105:r.action==='parry'?.055:r.action==='guard'?.075:.098};
+      const angle=Math.atan2(ay*bx-ax*by,ax*bx+ay*by)-roll;
+      const wrist=Math.atan2(Math.sin(angle),Math.cos(angle));
+      return Math.abs(wrist)>1.02&&Math.hypot(b.hand.x-old.hand.x-x+previous.x,b.hand.y-old.hand.y-y+previous.y)<15;
+    }):undefined;
+    const seam=twistMask?.some(Boolean)===true;
+    if(seam||!passiveJump&&gap>9){
+      const rolling=passiveJump&&!!r.trick?.kind;
+      const blades=rolling?previous.blades.map(b=>{
+        const dx=b.tip.x-b.hand.x,dy=b.tip.y-b.hand.y;
+        return {...b,tip:P(b.hand.x+dx*Math.cos(roll)-dy*Math.sin(roll),b.hand.y+dx*Math.sin(roll)+dy*Math.cos(roll))};
+      }):previous.blades;
+      bridge={time,x:previous.x,y:previous.y,blades,target:base.blades,preserveHilt:rolling,twistMask:r.staff?undefined:twistMask,
+        span:passiveJump?.105:r.action==='parry'?.055:r.action==='guard'?.075:.098};
+    }
   }
   if(bridge&&time-bridge.time>=bridge.span)bridge=null;
   let paint=r;
   if(bridge){
     const w=1-Math.max(smooth((time-bridge.time)/bridge.span),smooth((Math.hypot(x-bridge.x,y-bridge.y)-20)/28)), {local}=arcadeBasis(f,r);
     const carry=(i:number)=>{
+      if(bridge.twistMask?.[i]===false)return i===0?[r.emitter,r.blade]:[r.offEmitter,r.offBlade!];
       const target=base.blades[i], old=bridge.blades[i];
       const a=Math.atan2(target.tip.y-target.hand.y,target.tip.x-target.hand.x);
       const b=Math.atan2(old.tip.y-old.hand.y,old.tip.x-old.hand.x);
       const initial=bridge.target[i], start=Math.atan2(initial.tip.y-initial.hand.y,initial.tip.x-initial.hand.x);
       const pitch=a+Math.atan2(Math.sin(b-start),Math.cos(b-start))*w;
       const span=Math.hypot(target.tip.x-target.hand.x,target.tip.y-target.hand.y);
-      const h=P(mix(target.hand.x,old.hand.x+x-bridge.x,w),mix(target.hand.y,old.hand.y+y-bridge.y,w));
+      const h=bridge.preserveHilt?target.hand:P(mix(target.hand.x,old.hand.x+x-bridge.x,w),mix(target.hand.y,old.hand.y+y-bridge.y,w));
       return [local(h),local(P(h.x+Math.cos(pitch)*span,h.y+Math.sin(pitch)*span))];
     };
     const [emitter,blade]=carry(0);
@@ -1900,7 +1928,7 @@ export function sampleArcadeBladeInterruption(f:Fighter, r:PaintRig, time:number
       frontElbow:elbow(r.frontElbow,hand,r.hand),backElbow:elbow(r.backElbow,backHand,r.backHand)};
   }
   const drawn=paint===r?base:arcadeBladeWorld(f,paint);
-  bladeInterruptions.set(actor,{kind,time,x,y,phase:drawn.phase,blades:drawn.blades,bridge});
+  bladeInterruptions.set(actor,{kind,time,x,y,phase:drawn.phase,rotation,blades:drawn.blades,bridge});
   return paint;
 }
 

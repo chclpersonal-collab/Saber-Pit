@@ -1,3 +1,4 @@
+import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
 import type {SaberForm,StorageReader,StorageWriter} from './arcade-save-types.js';
 import type {ArcadeHeroLineup, HeroPick} from './arcade-heroes.js';
 type FormSelection = SaberForm|'mixed';
@@ -6,13 +7,15 @@ type UnknownGear = Parameters<typeof normalizeArcadeGear>[0];
 type RawSetup = UnknownGear & {
  form?:unknown;fixedForm?:unknown;teamSizes?:readonly unknown[];environment?:unknown;
  deployments?:readonly unknown[];participation?:unknown;heroPicks?:readonly (Partial<HeroPick>|null)[];rule?:unknown;
- duration?:unknown;mapId?:unknown;mapSize?:unknown;body?:unknown;playerSlot?:unknown;pace?:unknown;seed?:unknown;saberOnly?:unknown;
- startingRanks?:readonly unknown[];chessStyles?:readonly unknown[];doctrines?:readonly unknown[];
+ novicePractice?:unknown;duration?:unknown;mapId?:unknown;mapSize?:unknown;body?:unknown;playerSlot?:unknown;pace?:unknown;seed?:unknown;saberOnly?:unknown;
+ forcePools?:readonly unknown[];startingRanks?:readonly unknown[];chessStyles?:readonly unknown[];doctrines?:readonly unknown[];
  targeting?:readonly unknown[];formations?:readonly unknown[];groupForms?:readonly unknown[];
+ teamGenders?:readonly unknown[];teamAppearances?:readonly unknown[];
  teamForms?:readonly (readonly unknown[]|null|undefined)[];
 };
 import {normalizeHeroPick} from './arcade-heroes.js?v=2.42.0';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
+import {normalizeArcadeForcePool} from './arcade-force-pool.js';
 import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
 import {normalizeArcadeChessStyle,arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 const FORMS:readonly SaberForm[]=['shii_cho','makashi','soresu','ataru','djem_so','niman','juyo'];
@@ -26,11 +29,15 @@ export const ARCADE_MAPS={
   ember_ring:['Ember Ring','Open rooftop ring above a dusk village.'],
   crossroads:['Crossroads','Multiple approaches around central walls.'],
   zigzag:['Zigzag','Staggered barriers break up direct approaches.'],
-  craterfield:['Craterfield','Rough ground and dangerous vents. Watch your footing.']
+  craterfield:['Craterfield','Rough ground and dangerous vents. Watch your footing.'],
+  high_bastion:['High Bastion','Grand 1920 × 1080 siege court with perimeter routes, a central gate, and jumpable vent seams.']
 };
 export const SIZE={
   small:[960,540], medium:[1280,720], large:[1600,900]
 };
+export function arenaWorldSize(mapId:string,size:keyof typeof SIZE){
+  return mapId==='high_bastion'?[1920,1080]:SIZE[size];
+}
 export const presets={
   duel:{participation:'play',teamSizes:[1,1],rule:'elimination'},
   squad:{participation:'play',teamSizes:[3,3],rule:'elimination'},
@@ -48,12 +55,17 @@ export function normalizeSetup(input:unknown={}){
   const form=pick<FormSelection,'makashi'>(raw.form,['mixed',...FORMS],'makashi');
   const fixedForm=form==='mixed'?pick(raw.fixedForm,FORMS,'makashi'):form;
   const teamSizes=[0,1].map(i=>integer(raw.teamSizes?.[i],1,ARCADE_MAX_FIGHTERS,3));
+  const teamGenders=normalizeTeamLooks(raw.teamGenders,ARENA_TEAM_GENDERS);
+  const teamAppearances=normalizeTeamLooks(raw.teamAppearances,ARENA_TEAM_APPEARANCES);
   return {
     ...normalizeArcadeGear(raw),
+    ...(teamGenders?{teamGenders}:{}),...(teamAppearances?{teamAppearances}:{}),
+    forcePools:[0,1].map(i=>normalizeArcadeForcePool(raw.forcePools?.[i])),
     environment:pick(raw.environment,['clear','rain','fog','sandstorm'],'clear'),
     deployments:[0,1].map(i=>pick(raw.deployments?.[i],['standard','forward','reserve'],'standard')),
     participation:pick<Participation,'play'>(raw.participation,['play','watch','command'],'play'),
     teamSizes, heroPicks: teamSizes.map((count,i)=>normalizeHeroPick(raw.heroPicks?.[i],count)), rule:pick(raw.rule,['elimination','control','relic'],'elimination'),
+    novicePractice:raw.novicePractice===true,
     duration:pick(+(raw.duration as number),[45,75,90,150],90),
     mapId:pick(raw.mapId,Object.keys(ARCADE_MAPS),'rotation'),
     mapSize:pick(raw.mapSize,Object.keys(SIZE),'medium'),
@@ -72,6 +84,18 @@ export function normalizeSetup(input:unknown={}){
 // Fighter / Mixed is a lobby presentation of the same controlled engine
 // mode. Keep the concrete form on hand when the player switches back.
 export type ArcadeSetup = ReturnType<typeof normalizeSetup>;
+// One blue slot is occupied by the human in Play; all other seats use their side's pool.
+export function canArenaNovicePractice(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):boolean{
+  return cfg.participation==='play'&&cfg.rule==='elimination'&&cfg.teamSizes.length===2&&
+    cfg.teamSizes.every(n=>n===1)&&cfg.startingRanks.every(rank=>rank==='F'||rank==='E')&&
+    Object.keys(heroes).length===0;
+}
+export function engineForcePools(cfg:ArcadeSetup): [string[],string[]] {
+  return cfg.saberOnly ? [[],[]] : [
+    cfg.participation==='play'&&cfg.teamSizes[0]===1?[]:[...cfg.forcePools[0]],
+    [...cfg.forcePools[1]]
+  ];
+}
 export function setupPlayAs(cfg:ArcadeSetup){
   return cfg.participation==='play'&&cfg.form==='mixed'?'play-mixed':cfg.participation;
 }

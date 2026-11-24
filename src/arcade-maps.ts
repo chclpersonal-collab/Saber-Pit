@@ -5,6 +5,7 @@ type Pal=readonly string[];
 /** Original stone fortresses and cutaway chambers. Static world backdrop; the regions are passed
  * in by the simulation, never defined by artwork. */
 const palettes:Record<string,Pal>={
+  high_bastion:['#152022','#899080','#676c61','#9c9d82','#414e48','HIGH BASTION'],
   crossroads:['#252123','#827b78','#645d5e','#8b807a','#51494b','CROSSROADS'],
   zigzag:['#272426','#767374','#5b5558','#7d7977','#474246','ZIGZAG'],
   craterfield:['#332a28','#7c6b66','#615451','#82716c','#4f4040','CRATERFIELD'],
@@ -149,6 +150,15 @@ function floor(c:Ctx,stage:Stage,w:number,h:number,pal:Pal){
   for(let i=0;i<210;i++){
     const xx=x+r()*gx, yy=y+r()*gy;
     box(c,xx,yy,1+r()*4,1+r(),i%3?'#1014182b':'#c3c2b229');
+  }
+  if(stage.id==='high_bastion'){
+    // Mark the three true ground routes without painting any phantom cover.
+    for(const t of [.075,.49,.94]){
+      const py=y+gy*t;
+      box(c,x,py-16,gx,32,'#c4b28e1f');
+      line(c,x,py-17,xx,py-17,'#343f3677',2);
+      line(c,x,py+17,xx,py+17,'#d0c9a649',2);
+    }
   }
   if(stage.id==='crossroads'){
     for(const a of [.16,.50,.84]){
