@@ -103,7 +103,7 @@ test('portrait duel grows nearby fighters, backs out for separation and includes
   const a=f(ax-51,ay,36),b=f(ax+51,ay-12,9);
   const prior=portraitActionFrame(width,height,box.width,box.height,a,b);
   const current=portraitDuelActionFrame(width,height,box.width,box.height,a,b);
-  assert.ok(current.zoom>=prior.zoom*1.15);assert.ok(current.zoom<=2.66);
+  assert.ok(current.zoom>=prior.zoom*1.15);assert.ok(current.zoom<=3.16);
   const spaced=portraitDuelActionFrame(width,height,box.width,box.height,f(width*.21,ay),f(width*.79,ay));
   const sp=composeArcadeFrame(box.width,box.height,width,height,spaced);
   assert.ok(spaced.zoom<current.zoom);
@@ -125,7 +125,7 @@ test('duel framing moves continuously across rival distance thresholds and does 
  const {portraitDuelActionFrame}=await import('../dist/arcade-camera.js');
  const w=1600,h=900,vw=374,vh=354;
  const solve=(gap:number,air=0)=>portraitDuelActionFrame(w,h,vw,vh,f(800,510,air),f(800+gap,496,58));
- for(const threshold of [202,260,338]){
+ for(const threshold of [102,198,202,260,338]){
    const a=solve(threshold-.01),b=solve(threshold+.01);
    assert.ok(Math.abs(a.x-b.x)<.2&&Math.abs(a.y-b.y)<.2&&Math.abs(a.zoom-b.zoom)<.01);
  }

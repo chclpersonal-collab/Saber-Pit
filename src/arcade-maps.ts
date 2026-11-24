@@ -12,7 +12,7 @@ const palettes:Record<string,Pal>={
   craterfield:['#332a28','#7c6b66','#615451','#82716c','#4f4040','CRATERFIELD'],
   underpit:['#121d22','#48575b','#38464c','#65767a','#29363b','THE UNDERPIT'],
   foundry:['#2c2424','#77706c','#605655','#7b6f68','#463936','THE FOUNDRY'],
-  ember_ring:['#1d1c2c','#5c4c63','#4b435a','#8c787f','#332f46','EMBER RING'],
+  ember_ring:['#181026','#605381','#362c55','#a591b6','#241b41','EMBER RING'],
 };
 const shape=(c:Ctx,points:readonly (readonly number[])[],fill:string|null,stroke:string|null=null,n=1)=>{
   c.beginPath();
@@ -71,15 +71,18 @@ function architecture(c:Ctx,stage:Stage,w:number,h:number,minY:number){
   if(id==='ember_ring'){
     // A city below, not an inside wall. Silhouettes stay above the real combat boundary.
     const sky=c.createLinearGradient(0,0,0,y);
-    sky.addColorStop(0,'#1d2140');sky.addColorStop(.55,'#514060');sky.addColorStop(1,'#b47867');
+    sky.addColorStop(0,'#24124d');sky.addColorStop(.49,'#824379');sky.addColorStop(.79,'#d27876');sky.addColorStop(1,'#f3b382');
     box(c,0,0,w,y,sky);
-    const sunX=w*.69,sunY=y*.435,sunRadius=y*.22;
+    const sunX=w*.61,sunY=y*.53,sunRadius=y*.255;
     const bloom=c.createRadialGradient(sunX,sunY,sunRadius*.15,sunX,sunY,sunRadius*2.75);
-    bloom.addColorStop(0,'#ffdb9d73');bloom.addColorStop(1,'#ffab7000');
+    bloom.addColorStop(0,'#ffe7b2ad');bloom.addColorStop(1,'#ffa56700');
     box(c,sunX-sunRadius*3,0,sunRadius*6,y,bloom);
-    c.beginPath();c.arc(sunX,sunY,sunRadius,0,Math.PI*2);c.fillStyle='#f1b788';c.fill();
+    c.beginPath();c.arc(sunX,sunY,sunRadius,0,Math.PI*2);c.fillStyle='#ffe3a6';c.fill();
+    for(const [i,t] of [.19,.32,.44].entries()){const py=y*t;line(c,w*(.06+i*.025),py,w*(.38+i*.16),py,'#f3b8b82b',Math.max(1,y*.017));}
     shape(c,[[0,y*.67],[w*.12,y*.47],[w*.25,y*.69],[w*.36,y*.53],[w*.49,y*.74],
-      [w*.62,y*.60],[w*.74,y*.71],[w*.90,y*.43],[w,y*.57],[w,y],[0,y]],'#554255');
+      [w*.62,y*.60],[w*.74,y*.71],[w*.90,y*.43],[w,y*.57],[w,y],[0,y]],'#743d67');
+    shape(c,[[0,y*.84],[w*.14,y*.66],[w*.26,y*.78],[w*.45,y*.61],[w*.55,y*.87],
+      [w*.68,y*.73],[w*.79,y*.83],[w*.91,y*.66],[w,y*.78],[w,y],[0,y]],'#47294f');
     const r=rng(413);
     for(const depth of [0,1]) {
       for(let x=-w*.02;x<w;){
@@ -90,22 +93,29 @@ function architecture(c:Ctx,stage:Stage,w:number,h:number,minY:number){
         x+=bw*(.77+r()*.55);
       }
     }
-    // Far citadel above the city roofline.
-    const keep=w*.33, ky=y*.68;
-    for(const [offset,scale] of [[-.047,.69],[.002,1],[.05,.60]]){
-      const x=keep+offset*w, bw=w*.024, top=ky-y*.53*scale;
-      shape(c,[[x-bw*.66,ky],[x-bw*.61,top+y*.10],[x,top],[x+bw*.61,top+y*.10],[x+bw*.62,ky]],'#29263d');
-      line(c,x,top-y*.075,x,top,'#29263d',1.5);
-      box(c,x-bw*.055,top+y*.19,bw*.11,y*.075,'#d08164');
+    // Distant stepped rooflines, entirely in the non-playable horizon.
+    for(const [cx,size,base] of [[w*.31,y*.52,y*.86],[w*.80,y*.38,y*.84]]){
+      const d=size,ink='#211631';
+      box(c,cx-d*.40,base-d*.62,d*.80,d*.62,ink);
+      for(const [q,k] of [[.18,.70],[.46,.60],[.70,.48]]) {
+        const top=base-d*q;
+        shape(c,[[cx-d*k,top],[cx-d*k*.68,top-d*.13],[cx,top-d*.28],
+          [cx+d*k*.68,top-d*.13],[cx+d*k,top]],ink,'#482842',Math.max(1,d*.012));
+      }
+      line(c,cx,base-d*.98,cx,base-d*1.12,ink,Math.max(1.2,d*.033));
+      for(const offset of [-.24,0,.24])box(c,cx+d*offset-d*.035,base-d*.15,d*.07,d*.11,'#e7a86d');
     }
     const ledge=y*.93;
-    box(c,0,ledge,w,y-ledge,'#1b1c2b');
-    line(c,0,ledge,w,ledge,'#95706877',Math.max(1,y*.011));
-    const battlement=w*.105;
-    for(let x=-battlement*.13;x<w;x+=battlement){
-      const q=x+battlement*.26, ramp=y*.057;
-      shape(c,[[x,ledge],[x,ledge-ramp],[q,ledge-ramp],[q+y*.038,ledge],[q,ledge+y*.016],[x,ledge+y*.016]],'#333047');
-      line(c,x,ledge-ramp,q,ledge-ramp,'#756175',Math.max(1,y*.01));
+    box(c,0,ledge,w,y-ledge,'#251935');
+    for(const tx of [w*.16,w*.84]){
+      const fy=y*.70, fl=y*.065;
+      const shine=c.createRadialGradient(tx,fy,0,tx,fy,y*.22);
+      shine.addColorStop(0,'#ffb76f9e');shine.addColorStop(1,'#fd776e00');
+      box(c,tx-y*.22,fy-y*.22,y*.44,y*.44,shine);
+      line(c,tx,fy+fl*.5,tx,ledge,'#20162b',Math.max(4,y*.04));
+      shape(c,[[tx-fl*.55,fy+fl*.6],[tx-fl*.50,fy],[tx-fl*.17,fy-fl*.95],
+        [tx,fy-fl*.32],[tx+fl*.45,fy-fl*.92],[tx+fl*.65,fy+fl*.30]],'#ffd185');
+      shape(c,[[tx-fl*.25,fy+fl*.61],[tx,fy-fl*.38],[tx+fl*.29,fy+fl*.60]],'#fff4ce');
     }
   }else if(id==='foundry'){
     masonry(c,'#595053',w,y,id);
@@ -238,18 +248,22 @@ function floor(c:Ctx,stage:Stage,w:number,h:number,pal:Pal){
       }
       stroke(c,cx-gy*.16,cy-gy*.12,gy*.32,gy*.24,'#a5a3985d',3);
     }else if(stage.id==='ember_ring'){
-      // Decorative stone inlay only, deliberately faint so it cannot read as an attack marker.
-      const halo=c.createRadialGradient(cx,y,1,cx,y,gy*.74);
-      halo.addColorStop(0,'#fcbb7835');halo.addColorStop(1,'#fcbb7800');
-      box(c,x,y,gx,gy,halo);
-      const inset=Math.min(gx*.021,gy*.052);
-      line(c,x+inset,y+inset,xx-inset,y+inset,'#cf9b745c',2);
-      line(c,x+inset,yy-inset,xx-inset,yy-inset,'#a6867f57',2);
-      for(const edge of [x+inset,xx-inset])line(c,edge,y+inset,edge,yy-inset,'#9c808861',2);
-      for(const p of [-1,1]){
-        const ex=cx+p*gx*.43, ey=y+gy*.27, size=Math.min(gx*.022,gy*.058);
-        shape(c,[[ex,ey-size],[ex+size,ey],[ex,ey+size],[ex-size,ey]],'#a0837520','#cb9a774c',1.5);
+      // Subtle inlay on the real level floor; never a raised side-view platform.
+      const wash=c.createLinearGradient(0,y,0,yy);
+      wash.addColorStop(0,'#66539430');wash.addColorStop(.24,'#584a7c00');wash.addColorStop(1,'#20143332');
+      box(c,x,y,gx,gy,wash);
+      const inset=Math.min(gx*.017,gy*.035);
+      stroke(c,x+inset,y+inset,gx-inset*2,gy-inset*2,'#ac90c05c',2);
+      for(const side of [-1,1]){
+        const ex=cx+gx*.43*side;
+        for(const ey of [y+gy*.13,yy-gy*.13]){
+          const q=Math.min(gx*.015,gy*.041);
+          shape(c,[[ex,ey-q],[ex+q,ey],[ex,ey+q],[ex-q,ey]],'#cf95b525','#cf95b55c',1.6);
+        }
       }
+      const emblemY=y+gy*.54, r=Math.min(gy*.13,gx*.080);
+      c.beginPath();c.ellipse(cx,emblemY,r,r*.60,0,0,Math.PI*2);c.strokeStyle='#cfaa9c36';c.lineWidth=1.75;c.stroke();
+      shape(c,[[cx,emblemY-r*.42],[cx+r*.57,emblemY],[cx,emblemY+r*.42],[cx-r*.57,emblemY]],null,'#cfaa9c3f',1.3);
     }else{
       line(c,x+15,y+23,xx-15,y+23,'#a6959373',2);line(c,x+15,yy-31,xx-15,yy-31,'#a6959373',2);
       for(const p of [-1,1]){const q=cx+p*gx*.30;stroke(c,q-46,cy-38,92,76,'#9c8b875d',2);line(c,q-25,cy,q+25,cy,'#9c8b8783',2);}
@@ -301,7 +315,17 @@ export function paintCompound(c:Ctx,stage:Stage,w:number,h:number){
   architecture(c,stage,w,h,minY);
   box(c,minX-10,minY-5,maxX-minX+20,8,'#0e1113');
   floor(c,stage,w,h,pal);
-  if(stage.id==='ember_ring'){c.restore();return;}
+  if(stage.id==='ember_ring'){
+    // Stone fascia and bright boundary rim are outside the exact collision bounds.
+    const {maxY}=stage.terrain.bounds, depth=h-maxY;
+    shape(c,[[minX,maxY],[maxX,maxY],[maxX-depth*.9,h],[minX+depth*.9,h]],'#271a41','#472f63',2);
+    const rim=c.createLinearGradient(minX,0,maxX,0);
+    rim.addColorStop(0,'#9653ca');rim.addColorStop(.25,'#c688db');rim.addColorStop(.64,'#ffc997');rim.addColorStop(1,'#9356c1');
+    const thickness=Math.max(2,h*.004);
+    box(c,minX,minY-thickness,maxX-minX,thickness,rim);
+    box(c,minX,maxY,maxX-minX,thickness,rim);
+    c.restore();return;
+  }
   const pl=Math.max(8,minY*.47), ww=Math.min(198,w*.25);
   box(c,w*.5-ww*.5,pl-9,ww,18,'#151719');
   stroke(c,w*.5-ww*.5,pl-9,ww,18,'#86868477',1);

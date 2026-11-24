@@ -151,3 +151,19 @@ test('depth-facing idle/guard retains exact sole and reduces cuff gap at nonzero
  assert.deepEqual(near[1],fast[1]); // sole including its toe path
  assert.ok(near[0][2][1][2]<fast[0][2][1][2]-1); // upper cuff only
 });
+
+
+test('coarse interior mask stitches differentiate live body looks without changing rendered rig',()=>{
+ const marks=new Map();
+ for(const body of ['woman','femboy','rabbit'])for(const face of [0,Math.PI,Math.PI/2]){
+  const actor={...f,body,face,appearanceSeed:24};
+  const rig=sampleArcadeFighter(actor,0), p=paint();
+  assert.equal(drawArcadePeasantFighter(p.ctx,actor,0,{rig,lowDetail:true,reducedMotion:true}),rig);
+  const [,width,commands]=p.records.find(([style])=>style==='#bfacbd');
+  assert.ok(width>=1.25);
+  if(face===0)marks.set(body,commands.map(([,x,y])=>[x,y]));
+  if(body==='femboy')assert.equal(p.records.filter(([style])=>style==='#9a879a').length,1);
+  if(body==='woman')assert.equal(p.records.filter(([style])=>style==='#938194').length,1);
+ }
+ assert.equal(new Set([...marks.values()].map(JSON.stringify)).size,3);
+});

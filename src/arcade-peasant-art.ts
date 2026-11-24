@@ -77,7 +77,7 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
   for(const [i,x] of [[0,-7.3],[1,6.5]]){
    c.save();c.translate(x+ax*1.5,-12);c.rotate((i?.22:-.24)+sway);
    cap(c,0,-10,i?4.3:4.7,i?13.5:15.5,0,face,ink,1.3);
-   cap(c,0,-10.6,1.9,i?9:10.5,0,'#8a7485',null);c.restore();
+   cap(c,0,-10.6,2.2,i?9:10.5,0,'#765b76',null);c.restore();
   }
  }else if(variant===2){
   const knot=-ax*6.9;cap(c,knot,-16,5.7,4.6,-.25,hair,ink,1.25);
@@ -98,7 +98,11 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
    q.lineTo(forward+sweep,4.55);q.lineTo(w-.95,6.5);
    q.quadraticCurveTo(w-4,16.15,.12,16);q.quadraticCurveTo(-w+5.2,15.8,-w+.65,5.3);
   });
-  stroke(c,'#96818c',.8,forward-2.45,9.25,forward+.4,10.1,forward+2.1,9.45);
+  // Three coarse mask constructions survive at actual combat scale rather than granular scratches.
+  if(rabbit)stroke(c,'#bfacbd',1.25,forward-2.05,9.4,forward+2.2,9.4);
+  else if(femme)stroke(c,'#bfacbd',1.35,forward-4.0,8.15,forward-.5,10.25,forward+3.25,8.7);
+  else stroke(c,'#bfacbd',1.25,forward-1.4,8,forward+.45,11.15);
+
   const outer=clamp(forward+spread,-w+3.1,w-2.9), inner=clamp(forward-spread,-w+3.1,w-2.9);
   const slope=ax*(active?.85:1.0);
   const eyes=hit?2.0:active?.45:0;
@@ -107,6 +111,16 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
   if(Math.abs(outer-inner)>4.75)
     stroke(c,edge,1.43,outer-1.8,.27+slope*.5,outer+.6,-.51+eyes*.61,outer+2.15,-1.16+slope*.46);
   c.restore();
+ }
+ if(!rabbit&&!femme&&variant===0){
+  // Short segmented cap follows the unmodified outer head dimensions.
+  const brow=ax*3.6;
+  path(c,'#34303c',ink,q=>{
+   q.moveTo(-w+.4,-5.2);q.quadraticCurveTo(-w+1.15,-14.35,-7,-15.5);
+   q.quadraticCurveTo(brow-1,-18,9,-14.9);q.quadraticCurveTo(w-1,-12,w-.5,-6.7);
+   q.lineTo(brow+4.4,-7.7);q.lineTo(brow-3,-6.4);q.lineTo(-w+.4,-5.2);
+  },1.7);
+  stroke(c,'#9a879a',1.45,brow-5.8,-11.1,brow+.7,-12.1,brow+5.85,-10.7);
  }
  if(!rabbit&&(femme||variant!==0)){
   const off=-ax*3.05, back=1-visible;
@@ -126,8 +140,9 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
    q.lineTo(-w+1.5,lower+(long?11:7.6));q.lineTo(-w+.2,lower+3.9);
    q.lineTo(-w-2,lower+6.5);q.quadraticCurveTo(-w-3.1,lower+2.15,-w*.96-1,-3.7);
   },1.65);
-  stroke(c,'#60555b',.83,-9+off,-13.4,-5.2+off,-15.6,1.7+off,-16.05);
-  stroke(c,'#645860',.72,4.1+off,-14.5,7.1+off,-12.75,10.4+off,lower-1.5);
+  // One confident highlight follows the actual fringe mass; omit sub-pixel secondary grooves.
+  stroke(c,'#938194',femme?1.45:1.3,-9+off,-13.1,-5.2+off,-15.25,1.8+off,-16.05);
+  if(femme)stroke(c,'#716073',1.24,2.6+off,-13.8,5.0+off,-11.1,8.9+off,lower-2.0);
  }
  c.restore();
 }
