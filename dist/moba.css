@@ -33,3 +33,11 @@ button:active,[data-held=true]{background:#346262}.deploy button:nth-child(2){ba
 footer{color:var(--mute);flex-wrap:wrap;font-size:.74rem;border-top:1px solid var(--edge)}footer p{margin:.6rem 0 0}footer span{margin:0 .2em}.sr{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
 @media(max-width:560px){.mast{gap:0}nav{width:100%;gap:0}nav a{padding:.4rem .45rem}.intro{align-items:start}.tags{justify-content:flex-end;max-width:6.5rem;gap:3px}.tags span{padding:.12em .35em}.score{padding:5px 7px}.team b{letter-spacing:.05em;font-size:.73rem}.time span{font-size:.59rem}.overlay{width:94%}.controls{gap:5px;flex-wrap:wrap}.attacks{margin-left:auto}.attacks kbd{display:none}.field-tools button{padding-inline:.45em}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+.form-pick{display:grid;grid-template-columns:max-content minmax(9rem,1fr);align-items:center;gap:.35rem .65rem;text-align:left;max-width:25rem;margin:.45rem auto .2rem}
+.form-pick label{font-size:.75rem;font-weight:700;color:var(--amber)}
+.form-pick select{width:100%;min-height:44px;border:1px solid #5b736d;background:#122229;color:var(--white);font:inherit;padding:0 .45rem}
+.form-pick select:focus-visible{outline:2px solid var(--amber)}
+.form-pick #formHint{grid-column:1/-1;margin:0;color:var(--mute);font-size:.77rem;min-height:2.15em}
+.viewport:has(#brief:not([hidden])){min-height:305px}
+@media(max-width:560px){.viewport:has(#brief:not([hidden])){min-height:325px}.form-pick{grid-template-columns:1fr;gap:.15rem}.form-pick #formHint{min-height:2.35em}}

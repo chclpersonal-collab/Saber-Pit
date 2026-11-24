@@ -3,7 +3,7 @@ const lanes=[165,360,555];
 const colors=['#70e4d0','#fa8a71'] as const;
 type Side=0|1;
 type Position={x:number;y:number};
-type Fighters=Position&{team:Side;hp:number;maxHp:number;alive:boolean;face:number;action?:string;actionTime?:number};
+type Fighters=Position&{team:Side;hp:number;maxHp:number;alive:boolean;face:number;action?:string;actionTime?:number;dashRemaining?:number};
 type Unit=Position&{team:Side;hp:number;maxHp:number;alive?:boolean;shielded?:boolean};
 export interface MobaFieldData {heroes:readonly Fighters[];minions:readonly Unit[];towers:readonly Unit[];cores:readonly Unit[];time:number;events?:readonly (Position&{type:string;time:number;team:Side})[]}
 export function paintMobaTerrain():HTMLCanvasElement {
@@ -54,12 +54,16 @@ function structure(c:CanvasRenderingContext2D,p:Unit,core:boolean){
   if(core&&p.shielded&&p.hp>0){c.strokeStyle=color+'78';c.lineWidth=1.5;c.setLineDash([4,6]);c.beginPath();c.ellipse(0,-8,s+12,s+3,0,0,Math.PI*2);c.stroke();c.setLineDash([]);}
   c.restore();if(p.hp>0)bar(c,p,-s-13,s*1.65);
 }
-function hero(c:CanvasRenderingContext2D,p:Fighters,own:boolean,time:number,moving:boolean){
+function hero(c:CanvasRenderingContext2D,p:Fighters,own:boolean,time:number,moving:boolean,effects:boolean){
   if(!p.alive)return;
   const color=colors[p.team],ax=Math.cos(p.face),ay=Math.sin(p.face);
   const step=moving?Math.sin(time*18)*4:0;
   c.save();c.translate(p.x,p.y);
   c.fillStyle='#0008';c.beginPath();c.ellipse(1,9,22,10,0,0,Math.PI*2);c.fill();
+  if(effects&&p.dashRemaining&&p.dashRemaining>0){
+    c.strokeStyle=color+'9f';c.lineWidth=3;
+    for(const j of [-1,1]){const ox=-ay*j*5,oy=ax*j*5+3;c.beginPath();c.moveTo(ox-ax*13,oy-ay*13);c.lineTo(ox-ax*31,oy-ay*31);c.stroke();}
+  }
   if(own){c.strokeStyle='#fff2c9';c.lineWidth=2;c.beginPath();c.ellipse(0,8,20,9,0,0,Math.PI*2);c.stroke();}
   c.lineCap='round';c.strokeStyle='#0a131b';c.lineWidth=7;
   for(const s of [-1,1]){c.beginPath();c.moveTo(s*6,-4);c.lineTo(s*(7+step*.26),8+step*s);c.stroke();}
@@ -78,7 +82,7 @@ export function paintMobaField(c:CanvasRenderingContext2D,terrain:HTMLCanvasElem
   c.clearRect(0,0,W,H);c.save();c.scale(view.zoom,view.zoom);c.translate(-view.x,-view.y);c.drawImage(terrain,0,0);
   for(const p of state.towers)structure(c,p,false);for(const p of state.cores)structure(c,p,true);
   for(const p of state.minions){if(p.alive===false||p.hp<=0)continue;c.fillStyle='#091111';c.fillRect(p.x-6,p.y-6,12,12);c.fillStyle=colors[p.team];c.fillRect(p.x-4,p.y-4,8,8);}
-  for(const p of [...state.heroes].sort((a,b)=>a.y-b.y))hero(c,p,p===own,state.time,moving.has(p));
+  for(const p of [...state.heroes].sort((a,b)=>a.y-b.y))hero(c,p,p===own,state.time,moving.has(p),extraEffects);
   // Existing contact and break events drive the restrained feedback.
   if(extraEffects)for(const e of state.events??[]){
     const dt=state.time-e.time,strong=e.type==='tower'||e.type==='core',life=strong?.50:.17;

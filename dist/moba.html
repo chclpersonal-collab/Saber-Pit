@@ -25,7 +25,8 @@
       <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Three-lane battle arena"></canvas>
       <div class="overlay" id="brief">
         <p class="eyebrow">FIELD BRIEFING</p><h2>Choose your front</h2><p>Pick a lane and follow your minions. Break one enemy tower, then turn toward the exposed Core at the center of their base.</p>
-        <div class="deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
+        <div class="form-pick"><label for="saberForm">Saber form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint"></p></div>
+        <div class="deploy" aria-label="Choose front and deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
         <small>Blue: you + 4 AI allies · Red: 5 AI rivals · no Arena Elo changes</small>
       </div>
       <div class="overlay" id="finished" hidden>

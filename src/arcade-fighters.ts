@@ -1849,13 +1849,23 @@ export function sampleArcadeBladeInterruption(f:Fighter, r:PaintRig, time:number
   const close=previous&&time>=previous.time&&time-previous.time<.080&&
     Math.hypot(x-previous.x,y-previous.y)<18&&previous.phase===base.phase&&
     previous.blades.length===base.blades.length&&previous.blades.every((b,i)=>b.id===base.blades[i].id);
-  const eligible=passiveBladePoses.has(r.action)&&!f.attack&&!r.clash;
+  const passiveJump=r.action==='jump'&&r.airPhase!=='grounded'&&!r.trick?.kind;
+  const eligible=(passiveBladePoses.has(r.action)||passiveJump)&&!f.attack&&!r.clash;
   let bridge=close&&eligible?previous.bridge:null;
-  if(close&&eligible&&kind!==previous.kind){
+  if(close&&eligible&&(!passiveJump&&kind!==previous.kind||passiveJump&&!bridge)){
     const gap=Math.max(...base.blades.map((b,i)=>Math.hypot(
       b.tip.x-previous.blades[i].tip.x-x+previous.x,b.tip.y-previous.blades[i].tip.y-y+previous.y)));
-    if(gap>9)bridge={time,x:previous.x,y:previous.y,blades:previous.blades,target:base.blades,
-      span:r.action==='parry'?.055:r.action==='guard'?.075:.098};
+    // On a passive jump a shortest-angle authored branch may flip at π
+    // inside the same action. Smooth only that sharp twist around a steady
+    // hilt. Don't slow an actual lunge, trick, strike, or bind.
+    const seam=passiveJump&&gap>35&&base.blades.some((b,i)=>{
+      const old=previous.blades[i];
+      const ax=b.tip.x-b.hand.x,ay=b.tip.y-b.hand.y, bx=old.tip.x-old.hand.x,by=old.tip.y-old.hand.y;
+      const angle=Math.atan2(ax*by-ay*bx,ax*bx+ay*by);
+      return Math.abs(angle)>1.02&&Math.hypot(b.hand.x-old.hand.x-x+previous.x,b.hand.y-old.hand.y-y+previous.y)<15;
+    });
+    if(seam||!passiveJump&&gap>9)bridge={time,x:previous.x,y:previous.y,blades:previous.blades,target:base.blades,
+      span:passiveJump?.105:r.action==='parry'?.055:r.action==='guard'?.075:.098};
   }
   if(bridge&&time-bridge.time>=bridge.span)bridge=null;
   let paint=r;
@@ -1912,7 +1922,10 @@ export function sampleArcadeAirHandoff(f:Fighter, r:PaintRig, time:number){
     const launch=phase==='takeoff'&&prior.phase==='grounded';
     const catchDown=phase==='landing'&&prior.phase==='airborne';
     const stepOut=phase==='grounded'&&prior.phase==='landing';
-    bridge=null;
+    // The feet can still be leaving their takeoff paint bridge when the
+    // engine switches phase (notably Ataru's quick dash launch).
+    const midLift=phase==='airborne'&&prior.phase==='takeoff'&&bridge?.phase==='takeoff';
+    if(!midLift)bridge=null;
     if(launch||catchDown||stepOut){
       const origin={x:prior.x,y:prior.y}, feet=arcadeFeetWorld(origin,prior.paint);
       const basis=arcadeBasis(origin,prior.paint);
@@ -1956,20 +1969,28 @@ export function sampleArcadeAirHandoff(f:Fighter, r:PaintRig, time:number){
 }
 
 /** Shared live-art rig for both drawing styles. The engine never calls this. */
-const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[]}>();
+const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[];phase?:string;launchUntil?:number}>();
 /** Follow the painted pose, with a short world-space boot lift at pose seams.
  * This is the final visual layer; the physical rig/weapon endpoints are never
  * interpolated here. Airborne steps, teleports and reduced motion opt out. */
 function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
   const actor=f[WALK_SOURCE]?.actor??f;
+  const prev=soleTrajectories.get(actor), phase=r.airPhase;
+  // The final sole cap may still be catching up after the dash lifts off.
+  // Carry it from the actual previous frame into the short passive launch,
+  // not from the pre-cap rig, and never apply it to authored aerial attacks.
+  const launchUntil=f.recoveryFlow===true&&phase==='airborne'&&r.action==='dash'&&!f.attack&&
+    prev&&time>=prev.time&&time-prev.time<.05?
+        (prev.phase==='takeoff'?time+.082:prev.launchUntil):undefined;
+  const launch=launchUntil!==undefined&&time<launchUntil;
   if(f.peasantMotion!==true||r.reducedMotion||f.alive===false||
-    !['grounded','takeoff','landing'].includes(r.airPhase!)||!isFinite(time)){
+    (!['grounded','takeoff','landing'].includes(phase!)&&!launch)||!isFinite(time)){
     soleTrajectories.delete(actor);return r;
   }
-  const root=P(val(f.x),val(f.y)), target=arcadeFeetWorld(f,r), prev=soleTrajectories.get(actor);
+  const root=P(val(f.x),val(f.y)), target=arcadeFeetWorld(f,r);
   const dt=prev?time-prev.time:0, rootStep=prev?Math.hypot(root.x-prev.root.x,root.y-prev.root.y):0;
   if(!prev||dt<0||dt>.105||rootStep>18){
-    soleTrajectories.set(actor,{time,root,feet:target});return r;
+    soleTrajectories.set(actor,{time,root,feet:target,phase});return r;
   }
   const {local}=arcadeBasis(f,r), next:LegWorld[]=[];
   let changed=false;
@@ -1980,7 +2001,7 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
     const toeReach=Math.hypot(goal.toes.x-prior.toes.x,goal.toes.y-prior.toes.y);
     const settle=prior.planted&&goal.planted&&reach<.8&&toeReach<1.1&&rootStep<4.2;
     const seam=Math.max(reach,toeReach);
-    const limit=clamp(dt*420+rootStep*.23,.35,12);
+    const limit=clamp(dt*(launch?1130:420)+rootStep*.23,.35,12);
     if(!settle&&seam<=limit){next.push(goal);return leg;}
     if(settle&&seam<1e-6){next.push(goal);return leg;}
     changed=true;
@@ -1994,7 +2015,7 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
     next.push({side:leg.side,foot,toes,k:knee,planted:groundedPlanted});
     return {...leg,foot:local(foot),toes:local(toes),k:local(knee),planted:groundedPlanted};
   });
-  soleTrajectories.set(actor,{time,root,feet:next});
+  soleTrajectories.set(actor,{time,root,feet:next,phase,launchUntil});
   return changed?{...r,legs:legs.sort((a,b)=>a.foot.y-b.foot.y)}:r;
 }
 

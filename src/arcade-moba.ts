@@ -6,10 +6,22 @@ const DT=1/60, HERO_RADIUS=15;
 export type MobaTeam=0|1;
 export type MobaLane=0|1|2;
 export type MobaPoint={x:number;y:number};
+export const MOBA_FORMS={
+  shii_cho:{name:'Shii-Cho',role:'Vanguard',description:'Wide slashes; balanced stamina and dash.',hp:150,speed:175,slash:26,arc:1.45,reach:55,guard:.37,lungeSpeed:475,lungeTime:.17,lungeCost:26,lungeDamage:36},
+  makashi:{name:'Makashi',role:'Duelist',description:'Long, narrow strikes; less health.',hp:133,speed:181,slash:31,arc:.76,reach:67,guard:.42,lungeSpeed:510,lungeTime:.18,lungeCost:27,lungeDamage:39},
+  soresu:{name:'Soresu',role:'Guardian',description:'Best armor and guard; short dash and lighter cuts.',hp:185,speed:155,slash:20,arc:1.19,reach:47,guard:.23,lungeSpeed:400,lungeTime:.14,lungeCost:30,lungeDamage:29},
+  ataru:{name:'Ataru',role:'Mobile striker',description:'Fastest, longest dash; fragile and stamina-hungry.',hp:128,speed:199,slash:23,arc:1.10,reach:49,guard:.46,lungeSpeed:570,lungeTime:.20,lungeCost:32,lungeDamage:42},
+  djem_so:{name:'Djem So',role:'Guardian',description:'Hardest close-range cuts and solid guard; slow feet.',hp:174,speed:151,slash:36,arc:1.06,reach:44,guard:.31,lungeSpeed:420,lungeTime:.16,lungeCost:32,lungeDamage:42},
+  niman:{name:'Niman',role:'Vanguard',description:'Reliable reach and a cheaper dash; moderate damage.',hp:152,speed:171,slash:25,arc:1.23,reach:56,guard:.37,lungeSpeed:454,lungeTime:.17,lungeCost:21,lungeDamage:33},
+  juyo:{name:'Juyo',role:'Mobile striker',description:'Quick, brutal dash; a weaker guard.',hp:140,speed:188,slash:30,arc:1.02,reach:50,guard:.55,lungeSpeed:550,lungeTime:.17,lungeCost:24,lungeDamage:44},
+} as const;
+export type MobaForm=keyof typeof MOBA_FORMS;
+export const MOBA_FORM_IDS=Object.keys(MOBA_FORMS) as MobaForm[];
+
 export type MobaInput={moveX?:number;moveY?:number;attack?:boolean;lunge?:boolean;guard?:boolean;aimX?:number;aimY?:number;useUpgrade?:boolean};
 export type MobaUnit=MobaPoint&{id:string;team:MobaTeam;lane:MobaLane;hp:number;maxHp:number;alive:boolean;radius:number;kind:'hero'|'minion'|'tower'|'core'};
 export type MobaHero=MobaUnit&{
-  kind:'hero'; name:string;control:boolean;face:number;vx:number;vy:number;action:'idle'|'run'|'guard'|'slash'|'rush'|'ko';
+  kind:'hero'; name:string;control:boolean;form:MobaForm;dashRemaining:number;face:number;vx:number;vy:number;action:'idle'|'run'|'guard'|'slash'|'rush'|'ko';
   actionTime:number;energy:number;level:number;xp:number;credits:number;upgrade:number;kills:number;deaths:number;
   respawnAt:number; cooldown:number; lungeCooldown:number; spawnProtectUntil:number;upgradingUntil:number;
 };
@@ -48,20 +60,22 @@ function structure(team:MobaTeam,lane:MobaLane,kind:MobaStructure['kind']):MobaS
     x:core?homeX(team):team===0?365:915,y:core?MOBA_LANES[1]:MOBA_LANES[lane],
     hp:maxHp,maxHp,alive:true,radius:core?30:22,shielded:core,cooldown:0};
 }
-export function createMoba(seed=1,playerLane:MobaLane=1):MobaState {
+export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho'):MobaState {
   const lane=lanes.includes(playerLane)?playerLane:1;
   const towers=sides.flatMap(team=>lanes.map(l=>structure(team,l,'tower')));
   const cores=sides.map(team=>structure(team,1,'core'));
   const heroes=sides.flatMap(team=>[0,0,1,2,2].map((v,index):MobaHero=>{
     const l=v as MobaLane, mirrored=((seed>>>0)+(l*13+index*7))%17-8;
-    return {id:'hero-'+team+'-'+index,kind:'hero',team,lane:l,control:false,name:heroNames[team][index],
+    const form=MOBA_FORM_IDS[(index+Math.floor((seed>>>0)%7))%7], hp=MOBA_FORMS[form].hp;
+    return {form,dashRemaining:0,id:'hero-'+team+'-'+index,kind:'hero',team,lane:l,control:false,name:heroNames[team][index],
       x:spawnX(team)+mirrored*direction(team),y:MOBA_LANES[l]+(index===1||index===4?22:-12),
-      hp:150,maxHp:150,alive:true,radius:HERO_RADIUS,face:team===0?0:Math.PI,vx:0,vy:0,
+      hp,maxHp:hp,alive:true,radius:HERO_RADIUS,face:team===0?0:Math.PI,vx:0,vy:0,
       energy:100,action:'idle',actionTime:0,level:1,xp:0,credits:0,upgrade:0,kills:0,deaths:0,
       respawnAt:0,cooldown:0,lungeCooldown:0,spawnProtectUntil:0,upgradingUntil:0};
   }));
   const player=heroes.find(h=>h.team===0&&h.lane===lane)!;
   player.control=true;
+  if(MOBA_FORM_IDS.includes(playerForm)){player.form=playerForm;player.maxHp=MOBA_FORMS[playerForm].hp;player.hp=player.maxHp;}
   return {seed:seed>>>0,tick:0,time:0,phase:'playing',winner:null,endReason:null,heroes,minions:[],towers,cores,player,
     events:[],nextWaveAt:.5,wave:0,remainder:0,eventId:0,pendingAttack:false,pendingLunge:false,pendingUpgrade:false};
 }
@@ -102,7 +116,7 @@ function damage(s:MobaState,actor:MobaUnit,target:MobaUnit,raw:number){
   const guarded=hero?.action==='guard'&&hero.energy>=5&&
     Math.abs(positiveAngle(Math.atan2(actor.y-target.y,actor.x-target.x)-hero.face))<1.16;
   if(guarded)hero.energy=Math.max(0,hero.energy-8);
-  const amount=Math.min(target.hp,guarded?raw*.35:raw);
+  const amount=Math.min(target.hp,guarded?raw*MOBA_FORMS[hero.form].guard:raw);
   target.hp=Math.max(0,target.hp-amount);
   // Keep a combat ribbon for meaningful hero actions and structure damage,
   // not dozens of simultaneous minion trades.
@@ -110,7 +124,7 @@ function damage(s:MobaState,actor:MobaUnit,target:MobaUnit,raw:number){
   if(target.hp>0)return;
   target.alive=false;
   reward(s,actor,target);
-  if(hero){hero.deaths++;hero.respawnAt=s.time+Math.min(14,7+hero.level*.65);hero.vx=0;hero.vy=0;setAction(hero,'ko');emit(s,'ko',actor,target);}
+  if(hero){hero.deaths++;hero.respawnAt=s.time+Math.min(14,7+hero.level*.65);hero.vx=0;hero.vy=0;hero.dashRemaining=0;setAction(hero,'ko');emit(s,'ko',actor,target);}
   else if(target.kind==='tower'){
     s.cores[target.team].shielded=false;
     emit(s,'tower',actor,target);
@@ -152,28 +166,48 @@ function build(h:MobaHero,s:MobaState){
   emit(s,'upgrade',h,undefined,h.upgrade);
 }
 export const mobaUpgradeCost=(h:Pick<MobaHero,'upgrade'>)=>h.upgrade>=3?null:35+h.upgrade*28;
+function hitWithHero(s:MobaState,h:MobaHero,target:MobaUnit,base:number){
+  const structure=target.kind==='tower'||target.kind==='core';
+  const screened=structure&&s.minions.some(m=>m.alive&&m.team===h.team&&gap(m,target)<135);
+  damage(s,h,target,(base+(h.level-1)*3+h.upgrade*5)*(structure?(screened?.93:.55):1));
+}
 function strike(s:MobaState,h:MobaHero,targets:readonly MobaUnit[],lunge:boolean,aimX?:number,aimY?:number){
-  if(h.cooldown>0||h.energy<(lunge?26:8)||lunge&&h.lungeCooldown>0)return;
-  const mobileAim=Number.isFinite(aimX)&&Number.isFinite(aimY);
-  if(mobileAim)h.face=Math.atan2(aimY!-h.y,aimX!-h.x);
-  const reach=lunge?105:52;
-  const aim=mobileAim?{x:aimX!,y:aimY!}:{x:h.x+Math.cos(h.face)*reach,y:h.y+Math.sin(h.face)*reach};
-  const candidate=nearest(aim,targets,e=>e.team!==h.team&&vulnerable(s,e)&&gap(h,e)<=reach+e.radius&&
-    Math.abs(positiveAngle(Math.atan2(e.y-h.y,e.x-h.x)-h.face))<(lunge?.75:1.20));
-  h.energy-=lunge?26:8;h.cooldown=lunge?.88:.58;
+  const form=MOBA_FORMS[h.form], cost=lunge?form.lungeCost:8;
+  if(h.cooldown>0||h.energy<cost||lunge&&h.lungeCooldown>0)return;
+  const hasAim=Number.isFinite(aimX)&&Number.isFinite(aimY);
+  if(hasAim)h.face=Math.atan2(aimY!-h.y,aimX!-h.x);
+  h.energy-=cost;h.cooldown=lunge?.88:.58;
   h.action=lunge?'rush':'slash';h.actionTime=0;
   if(lunge){
-    h.lungeCooldown=3.4;
-    const distance=candidate?clamp(gap(h,candidate)-candidate.radius-15,0,57):47;
-    h.x=clamp(h.x+Math.cos(h.face)*distance,34,MOBA_WIDTH-34);
-    h.y=clamp(h.y+Math.sin(h.face)*distance,55,MOBA_HEIGHT-55);
+    h.lungeCooldown=3.4;h.dashRemaining=form.lungeTime;emit(s,'lunge',h);
+    return;
   }
-  emit(s,lunge?'lunge':'attack',h,candidate);
-  if(candidate){
-    const wavePressure=candidate.kind==='tower'||candidate.kind==='core';
-    const screened=wavePressure&&s.minions.some(m=>m.alive&&m.team===h.team&&gap(m,candidate)<135);
-    damage(s,h,candidate,((lunge?38:26)+(h.level-1)*3+h.upgrade*5)*(wavePressure?(screened?.93:.55):1));
+  const aim=hasAim?{x:aimX!,y:aimY!}:{x:h.x+Math.cos(h.face)*form.reach,y:h.y+Math.sin(h.face)*form.reach};
+  const candidate=nearest(aim,targets,e=>e.team!==h.team&&vulnerable(s,e)&&gap(h,e)<=form.reach+e.radius&&
+    Math.abs(positiveAngle(Math.atan2(e.y-h.y,e.x-h.x)-h.face))<form.arc);
+  emit(s,'attack',h,candidate);
+  if(candidate)hitWithHero(s,h,candidate,form.slash);
+}
+function dashStep(s:MobaState,h:MobaHero,targets:readonly MobaUnit[]){
+  const form=MOBA_FORMS[h.form], distance=Math.min(DT,h.dashRemaining)*form.lungeSpeed;
+  const dx=Math.cos(h.face),dy=Math.sin(h.face);
+  let stop=distance, victim:MobaUnit|undefined;
+  // The path and attack meet at the first opposing body, never a remotely
+  // selected target; the entry distance accounts for both physical radii.
+  for(const t of targets){
+    if(!t.alive||t.team===h.team)continue;
+    const x=t.x-h.x,y=t.y-h.y,along=x*dx+y*dy;
+    const radius=h.radius+t.radius+3, side=x*dy-y*dx;
+    if(along<0||Math.abs(side)>radius)continue;
+    const entry=Math.max(0,along-Math.sqrt(radius*radius-side*side));
+    if(entry>stop)continue;
+    stop=entry;victim=t;
   }
+  const x=clamp(h.x+dx*stop,34,MOBA_WIDTH-34), y=clamp(h.y+dy*stop,55,MOBA_HEIGHT-55);
+  h.vx=(x-h.x)/DT;h.vy=(y-h.y)/DT;h.x=x;h.y=y;
+  h.dashRemaining=Math.max(0,h.dashRemaining-DT);
+  if(victim){hitWithHero(s,h,victim,form.lungeDamage);h.dashRemaining=0;}
+  else if(Math.hypot(h.vx,h.vy)*DT<stop-.001)h.dashRemaining=0;
 }
 function regen(s:MobaState,h:MobaHero){
   h.energy=Math.min(100,h.energy+DT*(h.action==='guard'?-20:20));
@@ -189,10 +223,18 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
     h.cooldown=0;h.lungeCooldown=0;h.spawnProtectUntil=s.time+1.25;setAction(h,'idle');emit(s,'respawn',h);
   }
   h.actionTime+=DT;
+  if(h.dashRemaining>1e-6){
+    dashStep(s,h,units);
+    // A button held from the previous frame must not fire a second action.
+    if(h.control){s.pendingAttack=false;s.pendingLunge=false;s.pendingUpgrade=false;}
+    regen(s,h);return;
+  }
+  h.dashRemaining=0;
+  const form=MOBA_FORMS[h.form];
   if(h.control){
     const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?Math.atan2(input.aimY!-h.y,input.aimX!-h.x):undefined;
     const guarding=input.guard&&h.energy>1;
-    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?88:175,aim);
+    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?form.speed*.5:form.speed,aim);
     if(guarding)setAction(h,'guard');
     else if(h.action!=='slash'&&h.action!=='rush')setAction(h,moving?'run':'idle');
     if(s.pendingUpgrade)build(h,s);
@@ -213,8 +255,9 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
     else if(target&&(!exposure||target.kind!=='tower')){
       const d=gap(h,target);
       moving=moveToward(h,d>target.radius+33?target:h,139,Math.atan2(target.y-h.y,target.x-h.x));
-      const tryLunge=target.kind==='hero'&&d>70&&h.energy>65&&h.lungeCooldown<=0;
-      if(d<=target.radius+(tryLunge?105:51))strike(s,h,units,tryLunge,target.x,target.y);
+      const lungeReach=form.lungeSpeed*form.lungeTime+h.radius;
+      const tryLunge=target.kind==='hero'&&d>form.reach+target.radius&&d<=lungeReach+target.radius&&h.energy>65&&h.lungeCooldown<=0;
+      if(d<=target.radius+(tryLunge?lungeReach:form.reach))strike(s,h,units,tryLunge,target.x,target.y);
     }else{
       moving=moveToward(h,follow,132);
       if(tower&&gap(h,tower)<74&&!exposure)strike(s,h,units,false,tower.x,tower.y);

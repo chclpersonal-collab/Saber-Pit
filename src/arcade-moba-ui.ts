@@ -1,5 +1,5 @@
-import {createMoba,stepMoba,mobaUpgradeCost,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js';
-import type {MobaInput,MobaLane,MobaHero,MobaState} from './arcade-moba.js';
+import {createMoba,stepMoba,mobaUpgradeCost,MOBA_FORMS,MOBA_FORM_IDS,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js';
+import type {MobaInput,MobaLane,MobaForm,MobaHero,MobaState} from './arcade-moba.js';
 import {paintMobaTerrain,paintMobaField} from './arcade-moba-field.js';
 
 function byId<T extends HTMLElement=HTMLElement>(id:string):T{
@@ -15,6 +15,16 @@ const nodes={brief:byId('brief'),finished:byId('finished'),clock:byId('clock'),w
 const width=MOBA_WIDTH,height=MOBA_HEIGHT;
 canvas.width=width;canvas.height=height;
 const backdrop=paintMobaTerrain();
+const formInput=byId<HTMLSelectElement>('saberForm'),formHint=byId('formHint');
+for(const id of MOBA_FORM_IDS){
+  const option=document.createElement('option'),form=MOBA_FORMS[id];
+  option.value=id;option.textContent=form.name+' · '+form.role;
+  formInput.append(option);
+}
+const selectedForm=():MobaForm=>MOBA_FORM_IDS.find(key=>key===formInput.value)??MOBA_FORM_IDS[0];
+const renderFormHint=()=>{formHint.textContent=MOBA_FORMS[selectedForm()].description;};
+formInput.addEventListener('change',renderFormHint);
+renderFormHint();
 const active=new Set<string>(), pulses=new Set<string>(), touches=new Map<number,string>(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const keys:Readonly<Record<string,string>>={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right',j:'attack',k:'lunge',' ':'guard',u:'upgrade'};
 const mobile=matchMedia('(max-width: 720px)');
@@ -34,7 +44,7 @@ function clearControls(){
   for(const btn of document.querySelectorAll<HTMLElement>('[data-control]'))delete btn.dataset.held;
 }
 function begin(lane:MobaLane){
-  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane); aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;
+  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm()); aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;
   follow=mobile.matches;clearControls();setScreen('field');stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
   canvas.focus({preventScroll:true});renderHud();
 }
@@ -97,7 +107,7 @@ function renderHud(){
     stamp(el,(p.shielded?'Shielded':Math.ceil(p.hp/p.maxHp*100)+'% Core')+' · '+towers+' / 3 towers');
   }
   const p=game.player;
-  const stats=playing?'Lv '+p.level+' · '+Math.ceil(p.hp)+' HP · '+Math.floor(p.energy)+' stamina · '+p.kills+'/'+p.deaths+' K/D':'Ready to deploy';
+  const stats=playing?MOBA_FORMS[p.form].name+' · Lv '+p.level+' · '+Math.ceil(p.hp)+' HP · '+Math.floor(p.energy)+' stamina · '+p.kills+'/'+p.deaths+' K/D':'Ready to deploy';
   stamp(nodes.vitals,playing&&!p.alive?'Respawn in '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s · '+stats:stats);
   const cost=mobaUpgradeCost(p),canBuy=p.alive&&Math.hypot(p.x-game.cores[0].x,p.y-game.cores[0].y)<=123&&cost!==null&&p.credits>=cost;
   stamp(nodes.upgrade,cost===null?'Kit maxed':'Upgrade '+p.credits+'/'+cost);

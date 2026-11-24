@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMoba,stepMoba,mobaUpgradeCost,MOBA_LANES,MOBA_WIDTH,MOBA_WAVE_INTERVAL} from '../dist/arcade-moba.js';
+import {createMoba,stepMoba,mobaUpgradeCost,MOBA_LANES,MOBA_WIDTH,MOBA_WAVE_INTERVAL,MOBA_FORMS,MOBA_FORM_IDS} from '../dist/arcade-moba.js';
 
 const tick=1/60;
 test('three lanes host deterministic 5v5, synchronized waves and one local player',()=>{
@@ -38,6 +38,8 @@ test('local input moves, aims, spends stamina and cannot damage the shielded cor
   assert.equal(c.shielded,false);
   a.x=c.x-49;a.y=c.y;a.cooldown=0;c.hp=5;
   stepMoba(s,tick,{lunge:true,aimX:c.x,aimY:c.y});
+  assert.equal(s.phase,'playing');
+  while(s.phase==='playing'&&a.dashRemaining>1e-6)stepMoba(s,tick);
   assert.equal(s.phase,'won');
   assert.equal(s.winner,0);
   assert.equal(s.endReason,'core');
@@ -73,4 +75,41 @@ test('natural waves and lane AI eventually open a core and finish an actual seed
   assert.ok(s.heroes.some(h=>h.deaths>1));
   assert.ok(s.events.some(e=>e.type==='core'));
   assert.ok(s.events.length<=96);
+});
+
+test('all seven forms are selectable and roles provide actual tradeoffs',()=>{
+  assert.equal(new Set(MOBA_FORM_IDS.map(id=>MOBA_FORMS[id].role)).size,4);
+  for(const form of MOBA_FORM_IDS)assert.equal(createMoba(17,1,form).player.form,form);
+  const guardian=createMoba(17,1,'soresu'), mobile=createMoba(17,1,'ataru'), duelist=createMoba(17,1,'makashi');
+  assert.ok(guardian.player.hp>duelist.player.hp&&duelist.player.hp>mobile.player.hp);
+  const [startGuardian,startMobile]=[guardian.player.x,mobile.player.x];
+  for(let i=0;i<30;i++){
+    stepMoba(guardian,tick,{moveX:1});stepMoba(mobile,tick,{moveX:1});
+  }
+  assert.ok(mobile.player.x-startMobile>guardian.player.x-startGuardian+20);
+  for(const g of [guardian,duelist]){
+    const enemy=g.heroes[7], h=g.player;
+    Object.assign(h,{x:500,y:360,face:0});
+    Object.assign(enemy,{x:571,y:360});
+    stepMoba(g,tick,{attack:true,aimX:571,aimY:360});
+  }
+  assert.equal(guardian.heroes[7].hp,guardian.heroes[7].maxHp);
+  assert.ok(duelist.heroes[7].hp<duelist.heroes[7].maxHp);
+});
+test('lunge travels over ticks and the first opposing body shields targets further down the path',()=>{
+  const s=createMoba(14,1,'ataru'), h=s.player,m=s.heroes[7], n=s.heroes[5];
+  Object.assign(h,{x:480,y:360,face:0});Object.assign(m,{x:556,y:360});Object.assign(n,{x:585,y:360,lane:1});
+  const hp=[m.hp,n.hp];
+  stepMoba(s,tick,{lunge:true,aimX:n.x,aimY:n.y});
+  assert.equal(h.x,480);
+  assert.deepEqual([m.hp,n.hp],hp);
+  assert.ok(h.dashRemaining>0);
+  let frames=0;
+  while(h.dashRemaining>1e-6&&frames<20){stepMoba(s,tick);frames++;}
+  assert.ok(frames>1&&frames<20);
+  const last=s.events.findLast(e=>e.actorId===h.id&&e.type==='hit');
+  assert.equal(last?.targetId,m.id);
+  assert.ok(m.hp<hp[0]);
+  assert.equal(n.hp,hp[1]);
+  assert.ok(h.x>480&&h.x<n.x-h.radius);
 });
