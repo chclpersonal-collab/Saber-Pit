@@ -4,7 +4,7 @@ Status: draft from CLARISSA-01, to agree with CLARA-01 before anything is built.
 
 Player's verdict on 5.1.0: it looks like a hacker terminal or a submarine console, not a game from today. Decluttering did not fix that. v5 needs a new art direction.
 
-Mockup: `mock.html?view=menu|duel|squad`. Shots in `shots/` (1340x820 and 390x844). Static, hand-drawn on canvas, for direction only.
+Mockup: `mock.html?view=menu|duel|squad|looks`, served from the repo root after a build (it imports the fighter painter from `build/dist`). Shots in `shots/` (1340x820 and 390x844). Static, for direction only.
 
 ## Inspiration, our own look
 
@@ -66,7 +66,8 @@ The arena backdrop stays darker and cooler than the fighters, so fighters always
 
 - Illustrated parallax layers: sky, far ridge, buildings, near ridge.
 - A floating stage with rim light, torch glow and drifting embers.
-- **Fighters (sketch for Clara's pass):** grim, Madness-inspired but our own. Round faceless head, tapered body, floating hands and feet, thick ink outline, low wide stance. Bodies pale grey; team color on bandana, shades, visor or sash, the blade, and a ring under the feet.
+- **Fighters: our own cast, unchanged identity.** The mockup draws them with the game's live ink-cutout painter and rig (`arcade-painter.js`, peasant art): round pale heads, two-stroke eyes, hair caps, layered robe and mantle, belt clasp, laced boots, big pale gloves. Looks: woman (long hair, ponytail or braid with a team ribbon, from the classic woman art), femboy (short cap or knot), rabbit (long ears). See `shots/looks-*.png`.
+- **PW2 feel on top:** a thick ink pass around the whole body, deep lunges and recoils from the game's own action frames (rush, sweep, leap, parry, hit), slash smears and impact sparks. No new characters.
 - **Impacts:** thin sharp slash crescents, jagged spark shards, dark ink splats.
 - **Sabers:** additive glow with a white core.
 
