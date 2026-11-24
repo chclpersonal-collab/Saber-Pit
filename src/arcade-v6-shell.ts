@@ -115,7 +115,16 @@ function showHome(){setScreen('home');fillCard();window.scrollTo(0,0);}
 function showPlay(){setScreen('play');window.scrollTo(0,0);}
 for(const a of document.querySelectorAll<HTMLAnchorElement>('a.launch-setup[href="#entry"]'))a.addEventListener('click',e=>{e.preventDefault();showPlay();});
 let lastView=body.dataset.view;
-new MutationObserver(()=>{const v=body.dataset.view;if(v===lastView)return;lastView=v;if(v==='menu'){fillCard();requestAnimationFrame(paintAll);}}).observe(body,{attributes:true,attributeFilter:['data-view']});
+/* HUD: the player's own Elo beside their name, as in the mock. */
+const hudElo=el('span','v6-hud-elo');hudElo.setAttribute('aria-label','Your Elo');
+function fillHudElo(){
+  const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;
+  hudElo.textContent=you?.elo!=null?String(Math.round(you.elo)):'';
+  hudElo.hidden=!hudElo.textContent;
+  const name=get('blueName');if(name&&hudElo.previousElementSibling!==name)name.after(hudElo);
+}
+new MutationObserver(()=>{const v=body.dataset.view;if(v===lastView)return;lastView=v;if(v==='menu'){fillCard();requestAnimationFrame(paintAll);}if(v==='game')fillHudElo();}).observe(body,{attributes:true,attributeFilter:['data-view']});
+const roundEl=get('round');if(roundEl)new MutationObserver(fillHudElo).observe(roundEl,{childList:true,characterData:true,subtree:true});
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=window.setTimeout(paintAll,120);});
 setScreen(location.hash==='#entry'?'play':'home');
 
