@@ -453,6 +453,48 @@ const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=binding
 syncKeyLabels(keysPanel.bindings());
 $('keysOpen').addEventListener('click',()=>{if(paused){clearInput(false);keysPanel.open();}});
 $('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused)$('keysOpen').focus({preventScroll:true});});
+// Settings: one dialog for the device settings that already exist. Same storage, same handlers.
+const settingsDialog=document.getElementById('settingsDialog') as HTMLDialogElement|null;
+let settingsReturn:HTMLElement|null=null, keysFromSettings=false;
+function syncSettings(){
+  if(!settingsDialog)return;
+  const pick=(attr:string,value:string)=>settingsDialog.querySelectorAll<HTMLButtonElement>(`[${attr}]`).forEach(b=>b.setAttribute('aria-pressed',String(b.getAttribute(attr)===value)));
+  pick('data-touch-layout',touchPrefs.layout);pick('data-touch-side',touchPrefs.side);pick('data-hud-text',hudText.value);
+}
+function openSettings(from:HTMLElement|null){
+  if(!settingsDialog||settingsDialog.open)return;
+  if(view==='game'&&!paused)pause(true,{focus:false});
+  settingsReturn=from;clearInput(false);syncSettings();settingsDialog.showModal();
+}
+if(settingsDialog){
+  const tabs=[...settingsDialog.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+  const select=(tab:HTMLButtonElement,focus=false)=>{
+    for(const t of tabs){const on=t===tab;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')!)!.hidden=!on;}
+    if(focus)tab.focus();
+  };
+  tabs.forEach((tab,i)=>{
+    tab.addEventListener('click',()=>select(tab));
+    tab.addEventListener('keydown',e=>{
+      const step=['ArrowDown','ArrowRight'].includes(e.key)?1:['ArrowUp','ArrowLeft'].includes(e.key)?-1:0;
+      const to=e.key==='Home'?0:e.key==='End'?tabs.length-1:step?(i+step+tabs.length)%tabs.length:-1;
+      if(to<0)return;e.preventDefault();select(tabs[to]!,true);
+    });
+  });
+  settingsDialog.addEventListener('click',e=>{
+    if(e.target===settingsDialog){settingsDialog.close();return;}
+    const b=(e.target as Element).closest<HTMLButtonElement>('button');if(!b)return;
+    const layout=b.dataset.touchLayout,side=b.dataset.touchSide,size=b.dataset.hudText;
+    if(layout==='stick'||layout==='arrows')onTouchPref('layout',layout);
+    else if(side==='left'||side==='right')onTouchPref('side',side);
+    else if(size){hudText.value=size;hudText.dispatchEvent(new Event('change'));}
+    else if(b.id==='settingsKeys'){keysFromSettings=true;settingsDialog.close();keysPanel.open();return;}
+    syncSettings();
+  });
+  settingsDialog.addEventListener('close',()=>{clearInput(false);if(!keysFromSettings)settingsReturn?.focus({preventScroll:true});});
+  $('keysDialog').addEventListener('close',()=>{if(!keysFromSettings)return;keysFromSettings=false;syncSettings();settingsDialog.showModal();(document.getElementById('settingsKeys') as HTMLButtonElement|null)?.focus();});
+  document.getElementById('settingsOpen')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
+  document.getElementById('pauseSettings')?.addEventListener('click',e=>openSettings(e.currentTarget as HTMLElement));
+}
 window.addEventListener('keydown',e=>{
   if(e.isTrusted&&!e.isComposing&&e.key&&e.key!=='Unidentified'&&e.key!=='Process')document.documentElement.dataset.arenaKeyboard='true';
   if(e.defaultPrevented||e.isComposing||e.ctrlKey||e.metaKey||e.altKey||view!=='game'||document.querySelector('dialog[open]:not(#scoreboard), #scoreboard[data-opened=toggle]')||isEditableTarget(e.target)||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;

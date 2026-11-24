@@ -1,12 +1,12 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101112"><meta name="description" content="Loomen. Hand-inked saber duels and squad battles.">
-<title>Loomen</title><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.2.2"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.2.2"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"></head>
+<title>Loomen</title><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.2.2"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.2.2"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.2.2"></head>
 <body class="pit-v3 pit-v4 pit-v5">
 <main id="app">
   <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 5.2.2</span></div></a>
   <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
-  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="sound" aria-pressed="false">Sound off</button><button type="button" id="motion" aria-pressed="false">Reduced motion</button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
+  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
   <section class="arena-launch home-hub" aria-labelledby="arenaLaunchTitle">
     <div class="hub-hero">
     <h1 id="arenaLaunchTitle">Arena</h1>
@@ -92,7 +92,6 @@
         <details class="lobby-fold fold-inner" id="trainingOptions"><summary>Training options</summary><div class="practice-option"><label class="switch-setting"><input id="novicePractice" type="checkbox" aria-describedby="novicePracticeHint"> Novice practice</label><p id="novicePracticeHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="squadTactics" type="checkbox" aria-describedby="squadTacticsHint"> Squad drills</label><p id="squadTacticsHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="laneDrill" type="checkbox" aria-describedby="laneDrillHint"> Spread deployment</label><p id="laneDrillHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="opponentReads" type="checkbox" aria-describedby="opponentReadsHint"> Adaptive sparring</label><p id="opponentReadsHint" class="hero-help"></p></div></details>
         <label class="switch-setting"><input id="saberOnly" type="checkbox"> Sabers only</label>
       </div><button type="button" id="resetSetup" class="quiet">Reset setup</button></details>
-      <details class="lobby-fold"><summary>Readability</summary><div class="lobby-grid fold-inner"><label>Arena HUD text<select id="arenaHudText"><option value="100">100% (standard)</option><option value="125">125% (large)</option><option value="150">150% (extra large)</option></select></label></div><p class="hero-help">Larger scores, clock and objective text. This preference stays on this device.</p></details>
       </div>
       <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Arena Elo…</p>
       <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Start match</button>
@@ -116,7 +115,7 @@
       <p id="scoreboardNote" class="sb-note"></p>
     </dialog>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
-      <div class="dialog"><p class="eyebrow">LOOMEN</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" data-home>Setup</button></div></div>
+      <div class="dialog"><p class="eyebrow">LOOMEN</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" id="pauseSettings">Settings</button><button type="button" data-home>Setup</button></div></div>
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
       <div class="dialog result-card"><p class="r-top"><span class="eyebrow" id="resultRound"></span><span id="resultBadge" class="r-badge">UNRATED</span></p><h2 id="resultTitle"></h2><p id="resultText"></p>
@@ -165,6 +164,28 @@
     <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
+  </dialog>
+  <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
+    <div class="set-head"><form method="dialog"><button type="submit" class="set-back" aria-label="Close settings"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form><h2 id="settingsTitle">Settings</h2></div>
+    <div class="set-body">
+      <div class="set-tabs" role="tablist" aria-label="Settings">
+        <button type="button" role="tab" id="setTabControls" aria-controls="setPanelControls" aria-selected="true">Controls</button><button type="button" role="tab" id="setTabAudio" aria-controls="setPanelAudio" aria-selected="false" tabindex="-1">Audio</button><button type="button" role="tab" id="setTabAccess" aria-controls="setPanelAccess" aria-selected="false" tabindex="-1">Access</button>
+      </div>
+      <div class="set-panels">
+        <section role="tabpanel" id="setPanelControls" aria-labelledby="setTabControls">
+          <div class="set-row"><div class="set-text"><b>Keys</b><span>Rebind moves and attacks</span></div><button type="button" id="settingsKeys" class="set-action">Edit keys</button></div>
+          <div class="set-row"><div class="set-text"><b>Phone movement</b><span>Stick or arrow pad</span></div><div class="set-seg" role="group" aria-label="Phone movement"><button type="button" data-touch-layout="stick" aria-pressed="false">Stick</button><button type="button" data-touch-layout="arrows" aria-pressed="false">Arrows</button></div></div>
+          <div class="set-row"><div class="set-text"><b>Attack hand</b><span>Side for the attack buttons</span></div><div class="set-seg" role="group" aria-label="Attack hand"><button type="button" data-touch-side="left" aria-pressed="false">Left</button><button type="button" data-touch-side="right" aria-pressed="false">Right</button></div></div>
+        </section>
+        <section role="tabpanel" id="setPanelAudio" aria-labelledby="setTabAudio" hidden>
+          <div class="set-row"><div class="set-text"><b>Sound</b><span>Hits, parries and knockouts</span></div><button type="button" id="sound" class="set-switch" aria-pressed="false">Sound off</button></div>
+        </section>
+        <section role="tabpanel" id="setPanelAccess" aria-labelledby="setTabAccess" hidden>
+          <div class="set-row"><div class="set-text"><b>Text size</b><span>Names and callouts in the arena</span></div><div class="set-seg" role="group" aria-label="Text size"><button type="button" data-hud-text="100" aria-pressed="false">100</button><button type="button" data-hud-text="125" aria-pressed="false">125</button><button type="button" data-hud-text="150" aria-pressed="false">150</button></div><select id="arenaHudText" hidden tabindex="-1" aria-hidden="true"><option value="100">100% (standard)</option><option value="125">125% (large)</option><option value="150">150% (extra large)</option></select></div>
+          <div class="set-row"><div class="set-text"><b>Reduced motion</b><span>Wide camera, fewer effects</span></div><button type="button" id="motion" class="set-switch" aria-pressed="false">Reduced motion</button></div>
+        </section>
+      </div>
+    </div>
   </dialog>
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
     <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
