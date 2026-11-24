@@ -1,0 +1,16 @@
+/* Saber Pit v5 design tokens. Agreed with Clara (MAILBOX PR #1): dark violet ink, amber light,
+   blue/red teams, gold for the single main action, violet for Force. Fonts ship locally (OFL, see credits). */
+@font-face{font-family:"Pit Display";src:url("./art/lilita-one.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Pit UI";src:url("./art/nunito-800.woff2") format("woff2");font-weight:500 800;font-display:swap}
+@font-face{font-family:"Pit UI";src:url("./art/nunito-900.woff2") format("woff2");font-weight:900;font-display:swap}
+:root{
+  --v5-night:#140b2e;--v5-ink:#0c0624;--v5-deep:#22164f;--v5-panel:#2b1f63;--v5-panel-hi:#3d2d86;--v5-line:#5a47b8;
+  --v5-amber:#ffb347;--v5-ember:#ff6b4a;--v5-gold:#ffd23f;--v5-gold-lip:#c98f00;
+  --v5-blue:#2ec4ff;--v5-blue-lip:#0a6fb3;--v5-red:#ff4d6d;--v5-red-lip:#b3133a;--v5-force:#a77bff;--v5-force-lip:#5a2fc0;--v5-mint:#3df5a7;
+  --v5-white:#fff;--v5-soft:#cfc8f5;--v5-muted:#a59cd6;
+  --v5-hurt:#ffb347;--v5-severe:#ff6b4a;--v5-fatal:#ff2d55;--v5-bone:#dcd7e6;
+  --v5-display:"Pit Display","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --v5-ui:"Pit UI","Segoe UI",system-ui,-apple-system,sans-serif;
+  --v5-r-sm:10px;--v5-r:14px;--v5-r-lg:20px;--v5-lip:5px;
+  --v5-shadow:0 10px 26px #0009;
+}
