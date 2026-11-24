@@ -36,6 +36,8 @@ import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
 import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=2.25.3';
 import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
+import {isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings} from './arcade-keys.js';
+import {mountKeysPanel} from './arcade-keys-panel.js';
 interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
 type TouchAim={id:string}|(Point&{id?:never;until:number});
@@ -86,7 +88,8 @@ let lastAudioAt=-1,audioEventsAtTime=0;
 let transform:Omit<ReturnType<typeof composeArcadeFrame>,"scaleY">&{scaleY?:number}={scale:1,x:0,y:0},canvasPixelScale=1;
 let focus={x:W/2,y:H/2,zoom:1}, aim:Point|null=null,touchAim:TouchAim|null=null,touchDown:(Point&{id:number})|null=null;
 const keys=new Set<string>(), pointers=new Map<number,string>(), pulse=new Set<string>();
-const keyMap:Record<string,string>={q:'jump',x:'feint',v:'phase',r:'technique',c:'walk',f:'force',j:'strike',k:'heavy',shift:'dash',' ':'guard',w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+// Player-set keys (Pause > Keys). With nothing saved this is the original fixed map.
+let keyMap:Record<string,string>=keyMapFrom(loadKeyBindings());
 const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
 const callouts=createArcadeFloatingText();
 const announce=(text:string)=>{$('announce').textContent=text;};
@@ -385,8 +388,15 @@ function pause(value:boolean,{focus=true}={}){
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
+function syncKeyLabels(bindings=loadKeyBindings()){
+  for(const [action,key] of Object.entries(bindings))document.querySelectorAll<HTMLElement>(`[data-action="${action}"] kbd`).forEach(k=>{k.textContent=keyLabel(key);});
+}
+const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;keys.clear();pulse.clear();syncKeyLabels(bindings);});
+syncKeyLabels(keysPanel.bindings());
+$('keysOpen').addEventListener('click',()=>keysPanel.open());
+$('keysDialog').addEventListener('close',()=>{if(paused)$('keysOpen').focus({preventScroll:true});});
 window.addEventListener('keydown',e=>{
-  if(view!=='game'||$('statsDialog').open||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
+  if(view!=='game'||$('statsDialog').open||$('keysDialog').open||isEditableTarget(e.target)||['BUTTON','SELECT','INPUT','A'].includes((e.target as HTMLElement).tagName)&&!paused)return;
   const key=e.key.toLowerCase();
   if(key==='escape'||key==='p'){if(!e.repeat){e.preventDefault();pause(!paused);}return;}
   const action=keyMap[key];if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;

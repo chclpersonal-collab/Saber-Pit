@@ -107,7 +107,7 @@
     <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
-      <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" data-home>Setup</button></div></div>
+      <div class="dialog"><p class="eyebrow">SABER PIT</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" data-home>Setup</button></div></div>
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
       <div class="dialog"><p class="eyebrow" id="resultRound"></p><h2 id="resultTitle"></h2><p id="resultText"></p><p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><p id="autoDuelCountdown" class="promotion" hidden></p><div class="dialog-actions">
@@ -149,6 +149,11 @@
   <div id="techniqueBar" class="technique-bar" hidden><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div>
   <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
   <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><h2 id="guideTitle">The seven saber forms</h2><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Saber Pit.</p></dialog>
+  <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
+    <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
+    <ol id="keysList" class="keys-list"></ol>
+    <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
+  </dialog>
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
     <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
     <section class="injury-report moves-used" aria-labelledby="injuryHeading">
