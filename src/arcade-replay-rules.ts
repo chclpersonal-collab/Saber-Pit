@@ -1,6 +1,6 @@
 // Tournament replay results depend on the exact 120-Hz combat and blade poses
 // used to record them. Load recorded older rules only on demand.
-import * as engine from './arcade-engine.js?v=5.0.0';
+import * as engine from './arcade-engine.js?v=5.1.0';
 import * as art from './arcade-fighters.js?v=5.0.0';
 
 import {drawArcadeFighter} from './arcade-painter.js?v=5.0.0';

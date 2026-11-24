@@ -1,4 +1,4 @@
-import {createArcade,stepArcade,ARCADE_FORMS} from './arcade-engine.js?v=5.0.0';
+import {createArcade,stepArcade,ARCADE_FORMS} from './arcade-engine.js?v=5.1.0';
 import {ARCADE_MAPS} from './arcade-stage.js?v=2.13.0';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 import {fighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';

@@ -1,3 +1,4 @@
+import type {ArcadeSquadPlan} from './arcade-squad-tactics.js';
 import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeInput,ArcadeAttackSpec} from './arcade-engine-api.js?v=5.0.0';
 import type {arcadeFootworkPlan} from './arcade-rank-footwork.js';
 import type {progressionSummary,combatSkillProfile} from './progression.js';
@@ -96,6 +97,7 @@ export interface SimGame extends Omit<ArcadeGame,'fighters'|'terrain'|'events'> 
  formRules:boolean;heroLineup:ReturnType<typeof normalizeHeroLineup>;
  playerForm:ArcadeFighter['form'];playerBody:ArcadeFighter['body'];playerArchetype:ArcadeArchetype;
  pressure:number;weather:ReturnType<typeof environmentAt>|null;weatherSeed:number;eliteCrossfire?:boolean;
+ squadTactics?:{next:number;plans:[ArcadeSquadPlan|null,ArcadeSquadPlan|null];since:[number,number]}|null;
  elitePacing?:{active:boolean;stage:string;fullAt:number;measuredUntil:number;injuryCapUntil?:number}|null;
  liveByTeam?:[number,number];edges:Partial<ArcadeInput>;
 }

@@ -13,7 +13,7 @@ const optionSet=<T extends string>(value:string|undefined,choices:readonly T[],f
 const doctrineAliases: Readonly<Record<string,string|undefined>>={assault:'aggressive',guard:'defensive'};
 
 type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill';
-type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive';
+type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive'|'squadTactics';
 type GearOptions='startingSaberQuality'|'startingDualSabers'|'startingSaberWeapon'|'startingSaberGrip'|'startingDualPhase'|'startingForceFamily'|'startingForceQuality';
 type InputRecord=Partial<ArcadeRecord>;
 type CareerValue=number|{merit:number};

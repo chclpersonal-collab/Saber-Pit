@@ -1,5 +1,5 @@
 /** Deterministic, timestamped first-quest expedition; separate from legacy runs. */
-import {createArcade} from './arcade-engine.js?v=5.0.0';
+import {createArcade} from './arcade-engine.js?v=5.1.0';
 import {normalizeBattleHero} from './arcade-heroes.js?v=2.42.0';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 import {appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
