@@ -6,7 +6,7 @@ import {createArcadeStage,drawArcadeStage,drawArcadeObstacle} from './arcade-sta
 import {createArcadeFX} from './arcade-fx.js?v=4.0.0';
 import {actionFrame,stepActionFrame} from './arcade-camera.js?v=2.16.0';
 import {createArcadeFloatingText} from './arcade-floating-text.js?v=2.42.0';
-import {createReplayStepper} from './replay-stepper.js?v=3.0.0';
+import {createReplayStepper,REPLAY_TICK} from './replay-stepper.js?v=3.0.0';
 import {fighterSamples,displayFighters,type ArcadeDisplayFighter} from './arcade-display.js?v=2.44.0';
 
 type ReplayFighter=ArcadeDisplayFighter&{id:string;team:number;alive:boolean;airHeight:number;saberOff?:boolean;peasantMotion?:boolean;displayName?:string};
@@ -35,7 +35,7 @@ export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput
   const stage=createArcadeStage(W,H,game.round,{mapId:terrain,terrain:game.terrain as never});
   const reduced=readArcadeReducedMotion(), fx=createArcadeFX({contactLabels:false});
   const captions=createArcadeFloatingText(), swingWaves=createArcadeSwingWaves();
-  let raf=0,last:number|null=null,paused=false,stopped=false,lastSecond:number|null=null,finishAt:number|null=null,reported=false,time=0;
+  let raf=0,last:number|null=null,paused=false,stopped=false,lastSecond:number|null=null,finishAt:number|null=null,reported=false,time=0,skipped=false;
   const clock=createReplayStepper({speed,playing:()=>game.phase==='playing',
     step:tick=>stepArcade(game,tick),sample:()=>fighterSamples(game.fighters)});
   const resetWallClock=()=>{last=null;};
@@ -95,8 +95,10 @@ export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput
     time+=dt;
     if(!document.hidden&&game.phase==='playing')clock.advance(elapsed);
     if(game.phase!=='playing'&&finishAt===null)finishAt=time;
-    captions.update(dt,game.events as Parameters<typeof captions.update>[1],game.fighters);
-    fx.observe(game.events as Parameters<typeof fx.observe>[0]);fx.update(dt,reduced);draw(dt);
+    // After a skip, the whole fight's events arrive at once; show the final pose, not a pile of captions.
+    if(!skipped){captions.update(dt,game.events as Parameters<typeof captions.update>[1],game.fighters);
+      fx.observe(game.events as Parameters<typeof fx.observe>[0]);}
+    fx.update(dt,reduced);draw(dt);
     const second=Math.ceil(Math.max(0,game.limit-game.time));
     if(second!==lastSecond){lastSecond=second;onFrame(second,game);}
     if(finishAt!==null&&time-finishAt>.85){
@@ -108,6 +110,15 @@ export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput
   function pause(){paused=true;cancelAnimationFrame(raf);}
   function resume(){if(stopped||!paused||reported)return;paused=false;last=null;raf=requestAnimationFrame(frame);}
   function destroy(){stopped=true;cancelAnimationFrame(raf);clean();captions.reset();}
+  /** Run the rest of the bout on the same fixed tick and show the result. Same outcome as watching. */
+  function skip(){
+    if(stopped||reported||game.phase!=='playing')return false;
+    const most=Math.ceil(Math.max(0,game.limit-game.time+30)/REPLAY_TICK);
+    for(let n=0;n<most&&game.phase==='playing';n++)stepArcade(game,REPLAY_TICK);
+    skipped=true;captions.reset();
+    if(paused){paused=false;last=null;raf=requestAnimationFrame(frame);}
+    return game.phase!=='playing';
+  }
   raf=requestAnimationFrame(frame);
-  return {pause,resume,destroy,setSpeed:clock.setSpeed};
+  return {pause,resume,destroy,skip,setSpeed:clock.setSpeed};
 }

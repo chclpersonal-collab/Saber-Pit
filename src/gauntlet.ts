@@ -31,7 +31,7 @@ interface DomMap {
   gAuto: HTMLButtonElement; gStop: HTMLButtonElement; gWatch: HTMLButtonElement; gReset: HTMLButtonElement;
   gBar: HTMLProgressElement; gStageFilter: HTMLSelectElement; gFind: HTMLInputElement; gRole: HTMLSelectElement;
   gFavoritesOnly: HTMLInputElement; gSort: HTMLSelectElement; gFighterPortrait: HTMLCanvasElement;
-  gReplayPause: HTMLButtonElement; gReplaySpeed: HTMLSelectElement; gReplayCanvas: HTMLCanvasElement;
+  gReplayPause: HTMLButtonElement; gReplaySkip: HTMLButtonElement; gReplaySpeed: HTMLSelectElement; gReplayCanvas: HTMLCanvasElement;
 }
 const $=<ID extends string>(id: ID)=>document.getElementById(id) as ID extends keyof DomMap ? DomMap[ID] : HTMLElement;
 const formNames: Readonly<Record<string,string>>={shii_cho:'Shii-Cho',makashi:'Makashi',soresu:'Soresu',ataru:'Ataru',djem_so:'Djem So',niman:'Niman',juyo:'Juyo'};
@@ -384,7 +384,7 @@ function downloadCsv(){
 async function openReplay(){
   if(busy()||$('gReplay').open||!state.active?.lastFixture)return;
   const fixture=state.active.lastFixture, session=++replayEpoch, status=$('gReplayStatus');
-  replayPaused=false;$('gReplayPause').textContent='Pause';$('gReplayPause').disabled=true;
+  replayPaused=false;$('gReplayPause').textContent='Pause';$('gReplayPause').disabled=true;$('gReplaySkip').disabled=true;
   $('gReplaySpeed').value='1';$('gReplaySpeed').disabled=true;
   status.textContent='Opening replay…';$('gReplay').showModal();
   try{
@@ -396,9 +396,9 @@ async function openReplay(){
     replay=startArcadeTournamentPlayback($('gReplayCanvas'),createGauntletBattle(fixture),fixture.terrain,rules,{
       drawOnTimeout:true,showMemberNames:true,
       onFrame(left?: number){if(valid())status.textContent=`Replay only · ${clocks(left!<=1e-6?0:Math.ceil(left!))} remaining`;},
-      onEnd(winner?: 0 | 1 | null){if(valid()){status.textContent=(winner===0?'Solo victory':winner===1?'Trio victory':'Draw')+' · replay only.';$('gReplayPause').disabled=true;$('gReplaySpeed').disabled=true;}}
+      onEnd(winner?: 0 | 1 | null){if(valid()){status.textContent=(winner===0?'Solo victory':winner===1?'Trio victory':'Draw')+' · replay only.';$('gReplayPause').disabled=true;$('gReplaySkip').disabled=true;$('gReplaySpeed').disabled=true;}}
     });
-    $('gReplayPause').disabled=!replay.pause;$('gReplaySpeed').disabled=!replay.setSpeed;
+    $('gReplayPause').disabled=!replay.pause;$('gReplaySpeed').disabled=!replay.setSpeed;$('gReplaySkip').disabled=!replay.skip;
   }catch(error){if(session===replayEpoch){console.error('Gauntlet replay failed',error);status.textContent='Could not open the replay. Your save was unchanged.';}}
 }
 $('gSetup').addEventListener('submit',event=>{
@@ -442,6 +442,7 @@ $('gReplayPause').addEventListener('click',()=>{
   if(replayPaused)replay.pause();else replay.resume();
   $('gReplayPause').textContent=replayPaused?'Resume':'Pause';
 });
+$('gReplaySkip').addEventListener('click',()=>{if(replay?.skip?.()){$('gReplaySkip').disabled=true;$('gReplayPause').disabled=true;}});
 $('gReplaySpeed').addEventListener('change',()=>replay?.setSpeed?.(Number($('gReplaySpeed').value)));
 $('gReplay').addEventListener('close',()=>{replayEpoch++;replay?.destroy?.();replay=null;$('gWatch').focus();});
 $('gReset').addEventListener('click',()=>{if(!busy()){$('gResetDialog').returnValue='';$('gResetDialog').showModal();}});
