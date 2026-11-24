@@ -296,7 +296,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('modeLabel').textContent=autoDuel.active?'Auto battle':mode==='watch'?'Showdown':titleCase(mode);
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
-  canvas.setAttribute('aria-label',['Saber Pit arena',...deployedHeroes].join('. '));
+  canvas.setAttribute('aria-label',['Loomen arena',...deployedHeroes].join('. '));
   $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':game.config.novicePractice?'Practice · 0.75× · ':laneDrill?(spreadDeployed?'Spread deployment · ':'Standard starts · '):'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
