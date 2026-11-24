@@ -3,7 +3,6 @@
  *  No save, storage key or rating code is read for writing here. */
 import {readArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {statsView} from './arcade-stats-page.js';
-import {readArenaRecord,arenaRecordView} from './arcade-record.js';
 import {paintV6Scene,paintV6Fighter,type V6Scene} from './arcade-v6-scene.js';
 
 const body=document.body;
@@ -22,9 +21,8 @@ function playerCard(){
     const av=el('span','v6-avatar');av.setAttribute('aria-hidden','true');
     const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'New fighter'),el('small',undefined,view?`${view.mode} · round ${view.round}`:'No rated rounds yet'));
     const stat=(v:string,k:string,cls='')=>{const s=el('span','v6-stat '+cls);s.append(el('b',undefined,v),el('small',undefined,k));return s;};
-    const rec=arenaRecordView(readArenaRecord());
-    card.append(av,who,stat(you?.rank?.split(' ')[0]??'—','Rank','v6-rank'),stat(you?.elo!=null?String(Math.round(you.elo)):'—','Elo'),stat(rec.kd,'K/D'),stat(rec.win,'Win'));
-    if(rec.wl)who.querySelector('small')!.textContent=rec.wl;
+    // K/D and Win stay blank until the round record travels with Saves across devices.
+    card.append(av,who,stat(you?.rank?.split(' ')[0]??'—','Rank','v6-rank'),stat(you?.elo!=null?String(Math.round(you.elo)):'—','Elo'),stat('—','K/D'),stat('—','Win'));
   };
   fill();return {card,fill};
 }
