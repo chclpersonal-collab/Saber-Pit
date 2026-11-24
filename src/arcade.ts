@@ -40,6 +40,8 @@ import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=2.25.3';
 import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
 import {createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings} from './arcade-keys.js';
+import {buildRoundResult} from './arcade-results.js';
+import {renderRoundResult} from './arcade-results-view.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
 interface Point{x:number;y:number}
 type ArenaMode=ArcadeMode; type Scene='menu'|'game';
@@ -537,7 +539,7 @@ canvas.addEventListener('pointerup',e=>{
 function showEnd(){
   if(!$('result').hidden)return;
   const text=game.phase==='draw'?'Draw':mode==='watch'?(game.phase==='won'?'Blue wins':'Pink wins'):game.phase==='won'?'Round won':'Round lost';
-  $('resultRound').textContent='ROUND '+round+' COMPLETE';$('resultTitle').textContent=text;
+  $('resultTitle').textContent=text;
   const obj=game.objective;
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
   const decidedByObjective=game.endReason==='control'||game.endReason==='relic'||(timedOut&&obj?.target&&Math.abs(obj.score[0]-obj.score[1])>=.001);
@@ -571,8 +573,17 @@ function showEnd(){
   const saveNotice=conflict?'Save changed in another tab. Return to Setup to continue that save.':
     sessionOnly?'Session only. Saved run unchanged.':persisted?'':'Save unavailable.';
   const progress=(mode==='watch'?'Blue lead: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions;
-  $('rankResult').textContent=ratingUnrecorded?saveNotice+' Elo not recorded.':
-    progress+(saveNotice?' · '+saveNotice:'')+' · '+(settled.rated?arenaRatingDetail(selected.id,selected.after.gradeIndex):'Unrated');
+  // Elo now lives in the result card's own block; this line keeps training and save notices.
+  $('rankResult').textContent=ratingUnrecorded?saveNotice:progress+(saveNotice?' · '+saveNotice:'');
+  const me=game.fighters.find(f=>f.control), lineKeys=['kills','deaths','damage','parries','saberHits','saberSwings'] as const;
+  const next=SOLDIER_GRADES[selected.after.gradeIndex+1];
+  renderRoundResult($('result'),buildRoundResult({
+    mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:settled.rated,save:tracked?saveResult:'untracked',
+    who:me?null:mode==='watch'?'Blue side':'Your side',
+    line:me?me.stats:Object.fromEntries(lineKeys.map(k=>[k,game.stats?.[k]?.[0]])) as Record<typeof lineKeys[number],number>,
+    elo:persisted&&settled.rated?{who:me?null:'Blue lead',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
+      floor:eloFloor(selected.after.grade),nextRank:next?gradeDisplayLabel(next.label):null,nextFloor:next?eloFloor(next.label):null}:null,
+  }));
   $('again').textContent='Next round';
   updateHUD();
   $('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
