@@ -236,7 +236,8 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
   if(h.control){
     const aim=Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)?Math.atan2(input.aimY!-h.y,input.aimX!-h.x):undefined;
     const guarding=input.guard&&h.energy>1;
-    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?form.speed*.5:form.speed,aim);
+    // Guarding without pointer aim keeps the last held bearing while stepping.
+    const moving=move(h,clamp(finite(input.moveX),-1,1),clamp(finite(input.moveY),-1,1),guarding?form.speed*.5:form.speed,aim??(guarding?h.face:undefined));
     if(guarding)setAction(h,'guard');
     else if(h.action!=='slash'&&h.action!=='rush')setAction(h,moving?'run':'idle');
     if(s.pendingUpgrade)build(h,s);
