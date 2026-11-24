@@ -143,6 +143,19 @@ function resize(){
 new ResizeObserver(resize).observe(canvas);resize();
 function canPortraitFollow(){return portraitUI.matches&&view==='game';}
 function canDesktopCausewayFocus(){return view==='game'&&!canPortraitFollow()&&canFocusCauseways(matchSetup.mapId,game?.fighters.length??0);}
+// Fight view: Camera and Full screen live in Pause; the top cluster keeps Camera only where it fits.
+const pauseView=document.createElement('div');pauseView.className='dialog-actions pause-view';
+const pauseCamera=document.createElement('button');pauseCamera.type='button';pauseCamera.id='pauseCamera';
+pauseCamera.addEventListener('click',()=>{$('cameraView').click();pauseCamera.focus({preventScroll:true});});
+pauseView.append(pauseCamera,$('gameFullscreen'));
+$('pauseOverlay').querySelector('.dialog')?.append(pauseView);
+function syncPauseCamera(){
+  const button=$('cameraView');
+  pauseCamera.textContent=button.textContent;pauseCamera.hidden=button.hidden;pauseCamera.disabled=button.disabled;pauseCamera.title=button.title;
+  const pressed=button.getAttribute('aria-pressed');
+  if(pressed===null)pauseCamera.removeAttribute('aria-pressed');else pauseCamera.setAttribute('aria-pressed',pressed);
+  pauseCamera.setAttribute('aria-label',button.getAttribute('aria-label')??'Camera');
+}
 function syncCamera(){
   const button=$('cameraView'), portrait=canPortraitFollow(), causeways=canDesktopCausewayFocus();
   button.disabled=view!=='game'||(portrait||causeways?reduced:!game||game.config.rule!=='elimination'||game.fighters.length>6);
@@ -152,6 +165,7 @@ function syncCamera(){
   button.setAttribute('aria-label',portrait||causeways?button.textContent:'Action camera');
   if(portrait)button.removeAttribute('aria-pressed');else button.setAttribute('aria-pressed',String(action));
   button.title=reduced?'Reduced motion uses the wide frame':button.disabled?'The full arena stays visible in this match':portrait?'Switch camera view':causeways?'Follow your fighter or the fighter selected in Stats.':'Follow nearby fighters, or switch to a fixed wide view';
+  syncPauseCamera();
 }
 portraitUI.addEventListener('change',()=>{syncCamera();resize();if(game)draw(0);});
 function setReduced(value:boolean){
@@ -373,6 +387,7 @@ function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
   setTechniqueHint();
 }
 function setTechniqueHint(){
+  const pick=$('chosenTechnique').selectedOptions[0],foldName=document.getElementById('techFoldName');if(foldName)foldName.textContent=pick?.text??'Technique';
   if($('chosenTechnique').value===ARCADE_TRAKATA_ID){
     $('quickTechnique').title=heroTechnique.name;
     $('techniqueHelp').textContent='Douse the saber, then reignite into a strike. No guard while dark.';
@@ -390,7 +405,7 @@ function setTechniqueHint(){
   $('quickTechnique').title=m?.name??'Selected technique';
   $('techniqueHelp').textContent=field(MINOR_MOVE_HINTS,selected)??field(CIRCUIT_CUT_HINTS,selected)??(m?.air?'Aerial technique.':field(tacticalHint,m?.tactical)??field(techniqueHint,m?.role)??'');
 }
-$('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();canvas.focus({preventScroll:true});});
+$('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();document.getElementById('techFold')?.removeAttribute('open');canvas.focus({preventScroll:true});});
 
 function syncAutoDuel(){
   const enabled=view==='game'&&autoDuel.active;

@@ -1,0 +1,268 @@
+/* LOOMEN fight view: the arena fills the screen and every control floats over it.
+   Same ids, same handlers, same input transform (the canvas still sizes from its own box).
+   The doubled [data-view] is deliberate: it outranks the older per-breakpoint #app grids. */
+
+:root:has(body.pit-v5[data-view=game]){overflow:hidden;overscroll-behavior:none}
+:root body.pit-v5[data-view=game][data-view]{
+  --st:max(8px,env(safe-area-inset-top,0px));--sb:max(10px,env(safe-area-inset-bottom,0px));
+  --sl:max(10px,env(safe-area-inset-left,0px));--sr:max(10px,env(safe-area-inset-right,0px));
+  --fight-hud-h:80px;--fight-chip:40px;
+  overflow:hidden;overscroll-behavior:none;background:var(--v5-night)
+}
+:root body.pit-v5[data-view=game][data-view] #app{
+  position:fixed;inset:0;display:block;width:auto;max-width:none;margin:0;padding:0;gap:0;overflow:hidden
+}
+
+/* ---------- stage ---------- */
+:root body.pit-v5[data-view=game][data-view] .arena-shell{
+  position:absolute;inset:0;width:100%;height:100%;max-width:none;aspect-ratio:auto;margin:0;
+  border:0;border-radius:0;box-shadow:none;z-index:0
+}
+:root body.pit-v5[data-view=game][data-view] .arena-shell canvas{display:block;width:100%;height:100%;max-height:none}
+:root body.pit-v5[data-view=game][data-view] .arena-shell:has(>.panel-cover:not([hidden]),>dialog[open]){z-index:20}
+:root body.pit-v5[data-view=game][data-view] .arena-shell>.panel-cover{
+  position:absolute;inset:0;padding:calc(var(--st) + 8px) calc(var(--sr) + 8px) calc(var(--sb) + 8px) calc(var(--sl) + 8px)
+}
+:root body.pit-v5[data-view=game][data-view] .hud{top:var(--st);left:var(--sl);right:var(--sr)}
+:root body.pit-v5[data-view=game][data-view] .objective-hud{top:calc(var(--st) + var(--fight-hud-h) + 4px)}
+
+/* ---------- top-right quick cluster: Stats, Pause, and Camera where it fits ---------- */
+:root body.pit-v5[data-view=game][data-view] .mast{
+  position:absolute;z-index:6;top:calc(var(--st) + var(--fight-hud-h) + 10px);right:var(--sr);
+  display:block;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;box-shadow:none
+}
+:root body.pit-v5[data-view=game][data-view] .mast :is(.identity,.pit-nav,.fps,.landscape-start,#sound,#motion,#settingsOpen){display:none}
+:root body.pit-v5[data-view=game][data-view] .mast-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0;padding:0}
+:root body.pit-v5[data-view=game][data-view] .mast-right button:not([hidden]){
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:var(--fight-chip);min-width:var(--fight-chip);
+  padding:0 13px;border:0;border-radius:999px;background:#160d3bd9;color:var(--v5-white);
+  font:900 13px/1 var(--v5-ui);box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-ink);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)
+}
+:root body.pit-v5[data-view=game][data-view] .mast-right button[aria-pressed=true]{background:#3d2d86e6;box-shadow:0 0 0 2px var(--v5-gold),0 4px 0 var(--v5-ink)}
+:root body.pit-v5[data-view=game][data-view] .mast-right button:focus-visible{outline:3px solid var(--v5-gold);outline-offset:3px}
+:root body.pit-v5[data-view=game][data-view] .mast-right button:active{transform:translateY(3px);box-shadow:0 0 0 2px var(--v5-ink)}
+:root body.pit-v5[data-view=game][data-view] #statsButton kbd{border:0;border-radius:5px;background:var(--v5-white);color:var(--v5-ink);font:900 10px/1 var(--v5-ui);padding:3px 5px}
+:root body.pit-v5[data-view=game][data-view] :is(#statsButton,#pause)::before{content:"";flex:none;width:14px;height:14px;background:currentColor}
+:root body.pit-v5[data-view=game][data-view] #pause::before{
+  -webkit-mask:linear-gradient(90deg,#000 0 34%,transparent 34% 66%,#000 66%);mask:linear-gradient(90deg,#000 0 34%,transparent 34% 66%,#000 66%)
+}
+:root body.pit-v5[data-view=game][data-view] #statsButton::before{
+  -webkit-mask:linear-gradient(#000 0 0) 0 100%/4px 7px no-repeat,linear-gradient(#000 0 0) 5px 100%/4px 14px no-repeat,linear-gradient(#000 0 0) 10px 100%/4px 10px no-repeat;
+  mask:linear-gradient(#000 0 0) 0 100%/4px 7px no-repeat,linear-gradient(#000 0 0) 5px 100%/4px 14px no-repeat,linear-gradient(#000 0 0) 10px 100%/4px 10px no-repeat
+}
+
+/* ---------- technique: a compact fold, top left ---------- */
+:root body.pit-v5[data-view=game][data-view] .technique-bar{
+  position:absolute;z-index:6;top:calc(var(--st) + var(--fight-hud-h) + 10px);left:var(--sl);
+  display:block;width:auto;max-width:calc(100% - var(--sl) - var(--sr) - 140px);margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none
+}
+:root body.pit-v5[data-view=game][data-view] .technique-bar[hidden]{display:none}
+.pit-v5 .tech-fold summary{
+  display:inline-flex;align-items:center;gap:7px;max-width:100%;min-height:var(--fight-chip,40px);padding:0 14px 0 12px;border-radius:999px;cursor:pointer;
+  list-style:none;background:#160d3bd9;color:var(--v5-white);font:900 13px/1 var(--v5-ui);
+  box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-ink);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)
+}
+.pit-v5 .tech-fold summary::-webkit-details-marker{display:none}
+.pit-v5 .tech-fold summary::after{content:"";flex:none;width:8px;height:8px;border:solid currentColor;border-width:0 2px 2px 0;rotate:45deg;translate:0 -2px}
+.pit-v5 .tech-fold[open] summary::after{rotate:225deg;translate:0 2px}
+.pit-v5 .tech-fold summary:focus-visible{outline:3px solid var(--v5-gold);outline-offset:3px}
+.pit-v5 .tech-fold-k{color:var(--v5-gold);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.pit-v5 #techFoldName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pit-v5 .tech-fold-body{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:10px;padding:10px;
+  width:min(340px,calc(100vw - 24px));border-radius:var(--v5-r);background:linear-gradient(180deg,var(--v5-panel),var(--v5-deep));
+  box-shadow:0 0 0 2px var(--v5-ink),0 6px 0 var(--v5-ink),var(--v5-shadow)
+}
+.pit-v5 .tech-fold-body label{display:grid;gap:5px;min-width:0;font:900 11px/1 var(--v5-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--v5-muted)}
+.pit-v5 .tech-fold-body select{min-height:44px;min-width:0;width:100%;border:0;border-radius:var(--v5-r-sm);background:var(--v5-ink);color:var(--v5-white);
+  font:800 14px var(--v5-ui);padding:0 10px;box-shadow:inset 0 0 0 2px var(--v5-line);text-transform:none;letter-spacing:0}
+.pit-v5 .tech-fold-body #useTechnique{align-self:end;min-height:44px;padding:0 14px;border:0;border-radius:var(--v5-r-sm);background:var(--v5-gold);color:var(--v5-ink);
+  font:900 14px var(--v5-ui);box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-gold-lip);display:inline-flex;gap:6px;align-items:center}
+.pit-v5 .tech-fold-body #useTechnique kbd{border:0;border-radius:5px;background:var(--v5-ink);color:var(--v5-gold);font:900 10px/1 var(--v5-ui);padding:3px 5px}
+.pit-v5 .tech-fold-body #techniqueHelp{grid-column:1/-1;font:700 12px/1.35 var(--v5-ui);color:var(--v5-soft)}
+.pit-v5 .tech-fold-body #techniqueHelp:empty{display:none}
+
+/* ---------- floating control layer ---------- */
+:root body.pit-v5[data-view=game][data-view] .floor-ui{
+  position:absolute;inset:0;z-index:5;display:block;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;pointer-events:none
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui[hidden]{display:none}
+:root body.pit-v5[data-view=game][data-view] .floor-ui>*{pointer-events:auto}
+:root body.pit-v5[data-view=game][data-view] .floor-ui>.loadout{
+  position:absolute;left:calc(var(--sl) + 6px);bottom:calc(var(--sb) + 8px);display:grid;gap:2px;margin:0;pointer-events:none;
+  text-shadow:0 2px 0 var(--v5-ink),0 0 10px var(--v5-ink)
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui>.loadout strong{font-size:18px}
+:root body.pit-v5[data-view=game][data-view] .floor-ui>.loadout span{color:var(--v5-soft)}
+:root body.pit-v5[data-view=game][data-view] .mobile-tools{
+  position:absolute;inset:0;z-index:6;display:block;margin:0;padding:0;border:0;background:none;pointer-events:none
+}
+:root body.pit-v5[data-view=game][data-view] .mobile-tools[hidden]{display:none}
+:root body.pit-v5[data-view=game][data-view] .mobile-tools :is(#touchLayout,#touchSide){display:none}
+:root body.pit-v5[data-view=game][data-view] .mobile-tools #resetAim{display:none}
+:root body.pit-v5[data-view=game][data-view]:not([data-watch=true],[data-command=true]) .mobile-tools #resetAim[aria-pressed=true]:not([hidden]){
+  position:absolute;display:inline-flex;align-items:center;top:calc(var(--st) + var(--fight-hud-h) + var(--fight-chip) + 22px);left:50%;translate:-50% 0;
+  min-height:var(--fight-chip);padding:0 14px;border:0;border-radius:999px;pointer-events:auto;
+  background:var(--v5-gold);color:var(--v5-ink);font:900 13px/1 var(--v5-ui);box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-gold-lip)
+}
+:root body.pit-v5[data-view=game][data-view] .mobile-tools #resetAim[aria-pressed=true]::after{content:"×";margin-left:8px;font-size:16px}
+:root body.pit-v5[data-view=game][data-view] #help{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap
+}
+:root body.pit-v5[data-view=game][data-view] #help button{display:none}
+
+/* Pause carries the view controls. */
+.pit-v5 .pause-view{margin-top:10px;padding-top:12px;border-top:2px solid #ffffff14}
+.pit-v5 .pause-view button[hidden]{display:none}
+.pit-v5 .pause-view button[aria-pressed=true]{box-shadow:0 0 0 2px var(--v5-gold),0 var(--v5-lip) 0 var(--v5-ink)}
+
+/* ---------- desktop: one key-hinted row, bottom centre ---------- */
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions{
+  position:absolute;left:50%;bottom:calc(var(--sb) + 14px);translate:-50% 0;display:flex;flex:none;gap:10px;width:auto;margin:0;padding:0
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions button{
+  flex:none;display:grid;place-items:center;align-content:center;width:72px;min-width:0;height:62px;min-height:0;margin:0 0 var(--v5-lip);padding:6px 4px 4px;
+  grid-template-columns:1fr;text-align:center;background:#2b1f63e6
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions button b{font-size:13px;line-height:1.05}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions button kbd{
+  position:absolute;top:-9px;left:-7px;min-width:20px;padding:4px 5px;font-size:10px;text-align:center
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions button small{
+  position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap
+}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions .action-compact{display:none}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions button[data-action=strike]{background:var(--v5-gold)}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions #forceAction{background:var(--v5-force)}
+:root body.pit-v5[data-view=game][data-view] .floor-ui .actions [hidden]{display:none}
+
+/* ---------- touch: stick bottom-left, thumb cluster bottom-right ---------- */
+@media (max-width:740px), (pointer:coarse) and (max-width:1100px), (orientation:landscape) and (max-height:520px) and (max-width:1100px){
+  :root body.pit-v5[data-view=game][data-view]{--fight-chip:44px;--btn:min(clamp(44px,12.4vw,56px),13.5svh)}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui>.loadout{
+    position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap
+  }
+  :root body.pit-v5[data-view=game][data-view] .mast-right button:not([hidden]){padding:0;width:var(--fight-chip);font-size:0;gap:0}
+  :root body.pit-v5[data-view=game][data-view] .mast-right button:not([hidden]) kbd{display:none}
+  :root body.pit-v5[data-view=game][data-view] .mast-right #stopAutoDuel:not([hidden]){width:auto;padding:0 13px;font-size:13px}
+  :root body.pit-v5[data-view=game][data-view] .mast-right #cameraView{display:none}
+  :root body.pit-v5[data-view=game][data-view] :is(#statsButton,#pause)::before{width:16px;height:16px}
+
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .touch-pad{
+    position:absolute;left:calc(var(--sl) + 6px);right:auto;bottom:calc(var(--sb) + 10px);display:grid;
+    grid-template-columns:var(--stick-size);grid-template-rows:auto auto;gap:10px;justify-items:start;align-self:auto;margin:0;padding:0;
+    --stick-size:clamp(104px,32vw,140px);--arrow-size:52px
+  }
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .touch-pad .touch-stick{
+    grid-row:2;grid-column:1;width:var(--stick-size);height:var(--stick-size);border:0;border-radius:50%;
+    background:radial-gradient(circle,#ffffff14 0 58%,#ffffff0a 59% 100%);box-shadow:inset 0 0 0 3px #ffffff2e,0 0 0 2px #0c062466;margin:0
+  }
+  :root body.pit-v5[data-view=game][data-view] .touch-stick::before,
+  :root body.pit-v5[data-view=game][data-view] .touch-stick::after{content:none}
+  :root body.pit-v5[data-view=game][data-view] .stick-thumb{
+    width:46%;height:46%;border:0;background:radial-gradient(circle at 40% 32%,#fff,#ded8f6 70%);
+    box-shadow:0 0 0 3px var(--v5-ink),0 6px 0 #0c0624aa
+  }
+  :root body.pit-v5[data-view=game][data-view] .touch-stick:is([data-held=true],:active) .stick-thumb{box-shadow:0 0 0 3px var(--v5-gold),0 6px 0 #0c0624aa}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .touch-pad #walkTouch{
+    grid-row:1;grid-column:1;width:auto;min-width:64px;min-height:36px;margin:0;padding:0 14px;border-radius:999px;
+    background:#160d3bcc;color:var(--v5-soft);font:900 12px/1 var(--v5-ui);box-shadow:0 0 0 2px var(--v5-ink),0 3px 0 var(--v5-ink)
+  }
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .touch-pad #walkTouch[aria-pressed=true]{background:var(--v5-gold);color:var(--v5-ink)}
+  :root body.pit-v5[data-view=game][data-touch=arrows][data-view] .floor-ui .touch-pad{
+    grid-template-columns:repeat(3,var(--arrow-size));grid-template-rows:repeat(2,var(--arrow-size));gap:6px
+  }
+  :root body.pit-v5[data-view=game][data-touch=arrows][data-view] .floor-ui .touch-pad #walkTouch{min-width:0;width:100%;height:100%;padding:0;font-size:11px}
+  :root body.pit-v5[data-view=game][data-touch=arrows][data-view] .floor-ui .touch-pad [data-move]{
+    width:100%;height:100%;border-radius:var(--v5-r);background:#2b1f63d9;font-size:22px
+  }
+
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions{
+    left:auto;right:calc(var(--sr) + 4px);bottom:calc(var(--sb) + 10px);translate:none;
+    display:grid;gap:7px;grid-template-columns:repeat(4,var(--btn));grid-template-rows:repeat(3,var(--btn));
+    grid-template-areas:"tech feint jump guard" "phase force slash slash" "dash heavy slash slash"
+  }
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions button{
+    width:100%;height:100%;margin:0;padding:0;border-radius:50%;background:#2b1f63e6;
+    box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-ink)
+  }
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions button:is(:active,[data-held=true]){transform:translateY(3px);box-shadow:0 0 0 2px var(--v5-ink)}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions button b{font-size:11px;line-height:1}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions kbd{display:none}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions .action-full{display:none}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions .action-compact{display:inline}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=strike]{
+    grid-area:slash;background:radial-gradient(circle at 40% 30%,#ffb3a8,#ff5f7a 70%);color:var(--v5-white);
+    box-shadow:0 0 0 3px var(--v5-ink),0 6px 0 var(--v5-red-lip)
+  }
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=strike] b{font:400 22px/1 var(--v5-display);text-shadow:0 2px 0 var(--v5-ink)}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=heavy]{grid-area:heavy}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions #forceAction{grid-area:force;background:radial-gradient(circle at 40% 30%,#c9a8ff,var(--v5-force) 70%)}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=jump]{grid-area:jump}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=dash]{grid-area:dash}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions [data-action=guard]{grid-area:guard;background:#120b33f0;box-shadow:0 0 0 2px var(--v5-blue),0 4px 0 var(--v5-ink)}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions #feintAction{grid-area:feint}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions #quickTechnique{grid-area:tech;background:#3d2d86e6}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .actions #phaseAction{grid-area:phase}
+
+  /* Hand: left mirrors the two clusters. */
+  :root body.pit-v5[data-view=game][data-touch-side=left][data-view] .floor-ui .touch-pad{left:auto;right:calc(var(--sr) + 6px);justify-items:end}
+  :root body.pit-v5[data-view=game][data-touch-side=left][data-view] .floor-ui .actions{
+    right:auto;left:calc(var(--sl) + 4px);grid-template-areas:"guard jump feint tech" "slash slash force phase" "slash slash heavy dash"
+  }
+  :root body.pit-v5[data-view=game][data-view] .callout{bottom:calc(var(--sb) + var(--btn) * 3 + 48px)}
+  /* Arrow pad plus thumb cluster must share a 360px-wide phone. */
+  :root body.pit-v5[data-view=game][data-touch=arrows][data-view]{--btn:min(clamp(40px,11.2vw,50px),13.5svh)}
+  :root body.pit-v5[data-view=game][data-touch=arrows][data-view] .floor-ui .touch-pad{--arrow-size:clamp(40px,11.4vw,52px)}
+}
+/* Short landscape phones get the compact cards too. */
+@media (orientation:landscape) and (max-height:520px) and (max-width:1100px){
+  :root body.pit-v5[data-view=game][data-view]{--fight-hud-h:56px}
+  :root body.pit-v5[data-view=game][data-hud-text="125"][data-view]{--fight-hud-h:60px}
+  :root body.pit-v5[data-view=game][data-hud-text="150"][data-view]{--fight-hud-h:64px}
+  :root body.pit-v5[data-view=game][data-view] .floor-ui .touch-pad{--stick-size:clamp(96px,27svh,124px)}
+  :root body.pit-v5[data-view=game][data-view] .hud{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr);gap:8px}
+  :root body.pit-v5[data-view=game][data-view] .hud .health{max-width:250px;grid-template-columns:40px minmax(0,1fr);column-gap:6px;padding:5px 7px 6px 5px}
+  :root body.pit-v5[data-view=game][data-view] .hud .health.pink{grid-template-columns:minmax(0,1fr) 40px;padding:5px 5px 6px 7px}
+  :root body.pit-v5[data-view=game][data-view] .injury-ribbon{width:40px;height:40px;padding:6px 8px 7px;gap:1.5px}
+  :root body.pit-v5[data-view=game][data-view] .hud-label strong{font-size:calc(15px*var(--arena-hud-factor,1))}
+  :root body.pit-v5[data-view=game][data-view] progress.energy{height:7px;margin-top:4px}
+  :root body.pit-v5[data-view=game][data-view] .hud .clock strong{font-size:calc(26px*var(--arena-hud-factor,1));-webkit-text-stroke-width:4px}
+  :root body.pit-v5[data-view=game][data-view] .hud .clock span{font-size:8px;padding:3px 6px}
+}
+@media (max-width:740px){
+  :root body.pit-v5[data-view=game][data-view]{--fight-hud-h:56px}
+  :root body.pit-v5[data-view=game][data-hud-text="125"][data-view]{--fight-hud-h:60px}
+  :root body.pit-v5[data-view=game][data-hud-text="150"][data-view]{--fight-hud-h:64px}
+  :root body.pit-v5[data-view=game][data-view] .technique-bar{max-width:calc(100% - var(--sl) - var(--sr) - 110px)}
+}
+@media (min-width:741px){
+  :root body.pit-v5[data-view=game][data-hud-text="125"][data-view]{--fight-hud-h:84px}
+  :root body.pit-v5[data-view=game][data-hud-text="150"][data-view]{--fight-hud-h:90px}
+}
+
+/* ---------- watch and command: one bar along the bottom ---------- */
+:root body.pit-v5[data-view=game][data-view]:is([data-watch=true],[data-command=true]) .floor-ui{
+  inset:auto var(--sr) var(--sb) var(--sl);display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:960px;margin-inline:auto;
+  max-height:46%;overflow:auto;padding:10px 12px;border-radius:var(--v5-r-lg);pointer-events:auto;
+  background:linear-gradient(180deg,#2b1f63f0,#22164ff0);box-shadow:0 0 0 2px var(--v5-ink),0 6px 0 var(--v5-ink)
+}
+:root body.pit-v5[data-view=game][data-view]:is([data-watch=true],[data-command=true]) .floor-ui>.loadout{
+  position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none;white-space:normal;text-shadow:none;pointer-events:auto
+}
+:root body.pit-v5[data-view=game][data-view]:is([data-watch=true],[data-command=true]) .floor-ui :is(.actions,.touch-pad){display:none}
+
+/* Team orders and hero watch match the cluster. */
+.pit-v5 #commandBar button,.pit-v5 .hero-watch-actions button{
+  min-height:44px;padding:0 16px;border:0;border-radius:999px;background:var(--v5-panel-hi);color:var(--v5-white);
+  font:900 14px/1 var(--v5-ui);box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-ink)
+}
+.pit-v5 #commandBar button[aria-pressed=true],.pit-v5 .hero-watch-actions button[aria-pressed=true]{background:var(--v5-gold);color:var(--v5-ink);border:0;box-shadow:0 0 0 2px var(--v5-ink),0 4px 0 var(--v5-gold-lip)}
+.pit-v5 #commandBar button:focus-visible,.pit-v5 .hero-watch-actions button:focus-visible{outline:3px solid var(--v5-gold);outline-offset:3px}
+
+/* ---------- reduced motion: nothing here animates; presses don't move ---------- */
+@media (prefers-reduced-motion:reduce){
+  :root body.pit-v5[data-view=game][data-view] :is(.floor-ui .actions button,.mast-right button):active{transform:none}
+}
+:root body.pit-v5[data-view=game][data-reduced=true][data-view] :is(.floor-ui .actions button,.mast-right button):active{transform:none}
