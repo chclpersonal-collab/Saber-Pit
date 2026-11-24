@@ -1,0 +1,34 @@
+/* Stats page: saved rank and Arena Elo per fighter. Shares the Settings dialog shell. */
+.pit-v5 .stats-page{width:min(960px,calc(100vw - 32px))}
+.st-body{overflow:auto;padding:16px 20px 22px;display:grid;gap:14px;border-top:2px solid var(--v5-line);min-height:0}
+.st-card{border-radius:var(--v5-r);background:rgb(12 6 36 / .45);padding:14px 16px}
+.st-hero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.st-who{display:grid;gap:4px}
+.st-who b{font:400 1.6rem/1 var(--v5-display)}
+.st-who span{color:var(--v5-muted);font-size:.9rem;font-weight:700}
+.st-tiles{display:flex;flex-wrap:wrap;gap:10px;margin:0}
+.st-tile{min-width:96px;padding:10px 14px;border-radius:var(--v5-r-sm);background:var(--v5-ink);text-align:center;display:flex;flex-direction:column-reverse;gap:4px}
+.st-tile dd{margin:0;font:400 1.5rem/1 var(--v5-display)}
+.st-tile dt{color:var(--v5-muted);font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.st-rank dd{color:var(--v5-gold)}
+.st-teams{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.st-team h3{margin:0 0 8px;font:400 1.2rem/1 var(--v5-display)}
+.st-team-blue h3{color:var(--v5-blue)}.st-team-red h3{color:var(--v5-red)}
+.st-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.st-row{display:grid;grid-template-columns:92px 36px 1fr 58px;align-items:center;gap:10px;min-height:40px;padding:4px 10px;border-radius:var(--v5-r-sm);background:rgb(43 31 99 / .6)}
+.st-you{box-shadow:inset 0 0 0 2px var(--v5-gold)}
+.st-name{font-weight:800;font-size:.92rem;white-space:nowrap}
+.st-badge{justify-self:start;padding:3px 7px;border-radius:8px;background:var(--v5-panel-hi);color:var(--v5-gold);font:400 .85rem/1 var(--v5-display)}
+.st-bar{height:8px;border-radius:999px;background:var(--v5-ink);overflow:hidden}
+.st-bar i{display:block;height:100%;border-radius:999px;background:var(--v5-gold)}
+.st-team-blue .st-bar i{background:var(--v5-blue)}.st-team-red .st-bar i{background:var(--v5-red)}
+.st-elo{text-align:right;font-weight:900;font-variant-numeric:tabular-nums}
+.st-empty{display:grid;gap:6px;padding:28px 8px;text-align:center}
+.st-empty b{font:400 1.3rem/1 var(--v5-display)}.st-empty span{color:var(--v5-muted)}
+@media (max-width:760px),(max-height:500px){
+  .pit-v5 .stats-page{width:100vw}
+  .st-body{padding:12px 14px 22px}
+  .st-teams{grid-template-columns:1fr}
+  .st-tiles{width:100%;flex-wrap:nowrap}.st-tile{min-width:0;flex:1 1 0;padding:10px 6px}.st-tile dt{font-size:.62rem;letter-spacing:.03em}
+}
+@media (max-height:500px) and (min-width:700px){.st-teams{grid-template-columns:1fr 1fr}.st-tile{flex:1 1 0}}

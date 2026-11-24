@@ -45,6 +45,7 @@ import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
 import {renderRoundResult} from './arcade-results-view.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
+import {mountStatsPage} from './arcade-stats-page.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
@@ -453,6 +454,7 @@ const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=binding
 syncKeyLabels(keysPanel.bindings());
 $('keysOpen').addEventListener('click',()=>{if(paused){clearInput(false);keysPanel.open();}});
 $('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused)$('keysOpen').focus({preventScroll:true});});
+mountStatsPage([...document.querySelectorAll<HTMLElement>('[data-open-stats]')]);
 // Settings: one dialog for the device settings that already exist. Same storage, same handlers.
 const settingsDialog=document.getElementById('settingsDialog') as HTMLDialogElement|null;
 let settingsReturn:HTMLElement|null=null, keysFromSettings=false;
