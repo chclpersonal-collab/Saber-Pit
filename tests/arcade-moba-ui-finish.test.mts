@@ -41,14 +41,15 @@ test('the real controller announces a natural core finish once and retry does no
   assert.deepEqual([ids.blueStatus.attributes['data-towers'],ids.redStatus.attributes['data-core'],ids.blueKills.textContent],['3','shield','0']);
   let time=1000;
   const tick=()=>frame(time+=1000/20);
-  for(let i=0;i<4800&&ids.finished.hidden;i++)tick();
+  // v6 AI: an idle player's four smart teammates hold about 250 s instead of 100 s, so allow up to 480 s.
+  for(let i=0;i<9600&&ids.finished.hidden;i++)tick();
   assert.ok(!ids.finished.hidden,'match ended naturally');
   const fallen=[ids.blueStatus,ids.redStatus].find(x=>x.textContent.includes('0% Core'));
   assert.ok(fallen,'a core fell, rather than timeout');
   assert.equal(fallen.attributes['data-core'],'0');
   assert.match(fallen.attributes['data-towers'],/^[0-2]$/);
   assert.ok(parseInt(ids.blueKills.textContent,10)+parseInt(ids.redKills.textContent,10)>0);
-  assert.equal(ids.redKills.attributes['aria-label'],'Ravager knockouts: '+ids.redKills.textContent);
+  assert.equal(ids.redKills.attributes['aria-label'],'Pink knockouts: '+ids.redKills.textContent);
   assert.match(ids.result.textContent,/^(Citadel lost|Siege won)$/);
   assert.equal(ids.announce.textContent,ids.result.textContent);
   assert.equal(announcements.filter(x=>x===ids.result.textContent).length,1);

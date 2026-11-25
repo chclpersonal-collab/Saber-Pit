@@ -141,3 +141,7 @@
   .pit-v5 .hud .pink .hud-mini{justify-self:end}
   .pit-v5 .hud .hud-mini b{display:block}
 }
+
+.pit-v5 button.injury-ribbon{border:0;cursor:pointer;touch-action:manipulation;pointer-events:auto}
+.pit-v5 button.injury-ribbon:focus-visible{outline:3px solid #fff;outline-offset:5px}
+.pit-v5 .injury-report .injury-condition{font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}

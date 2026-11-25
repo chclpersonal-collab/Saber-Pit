@@ -1,4 +1,6 @@
 type Region=keyof typeof zoneProfiles;
+export type ArcadeLimb = 'leftArm'|'rightArm'|'leftLeg'|'rightLeg';
+export const ARCADE_LIMB_DISABLE_PCT = 74;
 type Ledger=Partial<Record<Region,{front?:number;rear?:number}>>|null|undefined;
 type Strike={amount?:number;quality?:number;rank?:number;attackerRank?:number;defenderRank?:number;direction?:string;blocked?:boolean;region?:string;roll?:number};
 type Equip={weaponHand?:string;dual?:boolean};
@@ -36,7 +38,20 @@ const localRegion=(injuries:Ledger,region:Region)=>{
   // Both surfaces can matter in this region; other body regions cannot.
   return clamp(Math.max(a,b)+.34*Math.min(a,b),0,100);
 };
-const conditionTier=(value:number)=>value>=74?3:value>=43?2:value>=18?1:0;
+const conditionTier=(value:number)=>value>=ARCADE_LIMB_DISABLE_PCT?3:value>=43?2:value>=18?1:0;
+/** Severity is a fictional local 0–100 injury scale, not remaining health. */
+export function arcadeLimbDisabled(injuries:Ledger,limb:ArcadeLimb){
+  return localRegion(injuries,limb)>=ARCADE_LIMB_DISABLE_PCT;
+}
+export function arcadeRegionalCondition(injuries:Ledger){
+  return ARCADE_BODY_REGIONS.map(({id,label})=>{
+    const condition=localRegion(injuries,id), tier=conditionTier(condition);
+    const limb=id!=='head'&&id!=='torso';
+    return {id,label,condition,pct:Math.floor(condition),tier,disabled:limb&&tier===3,
+      labelCondition:limb||tier!==3?labels[tier]:'Critical'};
+  });
+}
+
 const boundedRank=(value?:number)=>clamp(Math.trunc(finite(value)),0,14);
 
 export function createArcadeInjuries(){

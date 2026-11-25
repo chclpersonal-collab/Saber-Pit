@@ -40,10 +40,10 @@ export function normalizeArcadeMotionFlow(input:ArcadeMotionFlowInput,impactPhys
   };
 }
 interface ChainActor {
-  action:string;airPhase:string;actionTime:number;contact:boolean;offhandContact:boolean;
+  action:string;airPhase:string;actionTime:number;contact:boolean;offhandContact:boolean;orbitThirdContact?:boolean;
   motionLinkedHit?:boolean;motionLinkedBlock?:boolean;airArc?:{kind?:string}|null;career:{gradeIndex:number};
 }
-interface ChainMove { contact:number;airStrike?:boolean;freeHand?:boolean;offhand?:{contact:number} }
+interface ChainMove { contact:number;airStrike?:boolean;freeHand?:boolean;offhand?:{contact:number};orbitThird?:{contact:number} }
 /** A resolved hit or ordinary block owns its window; legacy percentages cannot race it. */
 export function contactChainApplies(profile:ArcadeMotionFlow|undefined,fighter:ChainActor,move:ChainMove):profile is ArcadeMotionFlow {
   return Boolean(profile&&fighter.contact&&fighter.action!=='force'&&(
@@ -52,9 +52,9 @@ export function contactChainApplies(profile:ArcadeMotionFlow|undefined,fighter:C
   ));
 }
 export function contactChainOpen(profile:ArcadeMotionFlow|undefined,fighter:ChainActor,move:ChainMove):boolean {
-  if(!contactChainApplies(profile,fighter,move)||(move.offhand&&!fighter.offhandContact))return false;
+  if(!contactChainApplies(profile,fighter,move)||(move.offhand&&!fighter.offhandContact)||(move.orbitThird&&!fighter.orbitThirdContact))return false;
   const timings=fighter.motionLinkedHit?profile.chain:profile.blockRebound!;
   const delay=fighter.career.gradeIndex>=profile.chain.eliteGrade?timings.eliteDelay:timings.standardDelay;
-  const finalContact=Math.max(move.contact,move.offhand?.contact??move.contact);
+  const finalContact=Math.max(move.contact,move.offhand?.contact??move.contact,move.orbitThird?.contact??move.contact);
   return fighter.actionTime+1e-9>=finalContact+delay;
 }

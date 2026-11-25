@@ -39,7 +39,7 @@ export function normalizeBattleHero(input:unknown){
         wins:Math.max(0,Math.min(100000,Math.trunc(Number(row?.wins)||0))),score:Math.max(-100000,Math.min(100000,Number(row?.score)||0))}];
     }))
   }:null;
-  const weapon=select(h.weapon,['single','dual','staff'],'single');
+  const weapon=select(h.weapon,['single','dual','staff','orbit'],'single');
   const body=select(h.body,['rabbit','woman','femboy'],'femboy');
   const form=select(h.form,forms,'makashi'), move=Object.hasOwn(ARCADE_TECHNIQUES,h.preferredMove as PropertyKey)?ARCADE_TECHNIQUES[h.preferredMove as string]:null;
   const preferred=move?.form===form&&move.mapAction!=='force'?{preferredMove:move.id}:{};
@@ -49,8 +49,8 @@ export function normalizeBattleHero(input:unknown){
   return {id:h.id,name:fighterDisplayName(h.id,name),form,body,gender:fighterGender(h.gender,body,h.id),appearanceSeed,
     ...(squad?{sourceKind:'squad'}:{}),
     ...preferred,grade:'SSS+V',elo:clampElo(h.elo,eloFloorGrade),eloFloorGrade,adaptation:cleanAdaptation,doctrine:select(h.doctrine,doctrines,'balanced'),
-    weapon,grip:weapon==='staff'?'forward':select(h.grip,['forward','backhand'],'forward'),
-    dualPhase:h.dualPhase===true,forceFamily:select(h.forceFamily,['force_push','force_burst','force_pulse'],'force_push')};
+    weapon,grip:(weapon==='staff'||weapon==='orbit')?'forward':select(h.grip,['forward','backhand'],'forward'),
+    dualPhase:weapon!=='orbit'&&h.dualPhase===true,forceFamily:select(h.forceFamily,['force_push','force_burst','force_pulse'],'force_push')};
 }
 
 export type ArcadeBattleHero = NonNullable<ReturnType<typeof normalizeBattleHero>>;

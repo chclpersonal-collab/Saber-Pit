@@ -34,8 +34,8 @@ body.pit-v4[data-view=menu]{
 .pit-v4[data-view=menu] .lobby-title h2{font:900 clamp(1.6rem,2.8vw,2.55rem)/1 var(--serif);letter-spacing:-.04em;margin:0}
 .pit-v4[data-view=menu] .setup-tabs button[aria-selected=true]{border-bottom-color:var(--accent);background:#223331}
 .pit-v4[data-view=menu] .lobby button.start-match{background:var(--accent);color:#102825}
-.pit-v4[data-view=menu] .lobby button:not(.start-match):hover,
-.pit-v4[data-view=menu] .lobby button[aria-pressed=true]{background:#243836;border-color:#57a69a}
+.pit-v4[data-view=menu] .lobby button:not(.start-match,[class*=v6-]):hover,
+.pit-v4[data-view=menu] .lobby button:not([class*=v6-])[aria-pressed=true]{background:#243836;border-color:#57a69a}
 @media(max-width:700px){
   .pit-v4[data-view=menu] .arena-launch{grid-row:2;grid-column:1;padding:.95rem}
   .pit-v4 .arena-launch h1{font-size:clamp(2.7rem,12vw,4.2rem);margin:.55rem 0}

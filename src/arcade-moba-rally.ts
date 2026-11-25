@@ -40,7 +40,7 @@ export function bellRallyBonus(maxHp:number){
 export function bellRallyCue(rally:BellRally|undefined,tick:number){
   if(!rally)return null;
   if(rally.reward!==null){
-    const team=rally.reward===0?'Vanguard':'Ravagers';
+    const team=rally.reward===0?'Blue':'Pink';
     return {phase:'claimed',team:rally.reward,label:team+' · mid reinforcement',notice:team+' won the Bell Rally. One reinforced mid minion joins the next wave.'};
   }
   if(rally.phase==='open'){

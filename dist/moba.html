@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Loomen | The Three Fronts</title>
-<link rel="stylesheet" href="moba.css?v=5.1.0">
+<link rel="stylesheet" href="moba.css?v=5.1.0"><link rel="stylesheet" href="pit-v5-tokens.css?v=5.3.0"><link rel="stylesheet" href="pit-v6-moba.css?v=6.0.0">
 </head>
-<body>
+<body class="v6-moba">
 <main class="shell">
   <header class="mast">
     <a class="brand" href="index.html"><span aria-hidden="true">◈</span><b>LOOMEN <small>VERSION 5.3.0</small></b></a>
@@ -17,9 +17,9 @@
   </section>
   <section class="battle" aria-label="Battlefield">
     <div class="score">
-      <div class="team blue"><b>VANGUARD</b><span id="blueStatus">Core intact</span></div>
-      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Vanguard knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Ravager knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span><span id="bellStatus" hidden></span></div>
-      <div class="team red"><b>RAVAGERS</b><span id="redStatus">Core intact</span></div>
+      <div class="team blue"><b>BLUE</b><span id="blueStatus">Core intact</span></div>
+      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Blue knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Pink knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span><span id="bellStatus" hidden></span></div>
+      <div class="team red"><b>PINK</b><span id="redStatus">Core intact</span></div>
     </div>
     <div class="viewport">
       <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Three-lane battle arena"></canvas>
@@ -28,7 +28,7 @@
         <div class="form-pick"><label for="saberForm">Saber form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint"></p></div>
         <label class="bell-toggle"><input id="bellRally" type="checkbox" aria-describedby="bellHelp"><span>Bell Rally <small>Optional objective</small></span></label><p class="bell-help" id="bellHelp">Hold the center ring uncontested to reinforce one minion in the next mid wave.</p>
         <div class="deploy" aria-label="Choose front and deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
-        <small>Blue: you + 4 AI allies · Red: 5 AI rivals · no Arena Elo changes</small>
+        <small>Blue vs Pink · 5 a side · no Arena Elo changes</small>
       </div>
       <div class="overlay" id="finished" hidden>
         <h2 id="result"></h2><p id="resultInfo"></p>

@@ -1,11 +1,11 @@
 type Ctx=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
 type Id=string|number;
 type Point={x:number;y:number};
-type Emitter='main'|'off'|'rear';
+type Emitter='main'|'off'|'rear'|'orbit_third';
 type Blade={id?:Emitter;hand?:Point;tip?:Point};
 type BladeWorld={phase?:string;hand?:Point;tip?:Point;blade?:Point;offhand?:Blade;body?:Point;blades?:Blade[]};
 type Fighter={id?:Id;alive?:boolean;hp?:number;gear?:{weapon?:string;grip?:string};saberPhase?:string;
- attackSpec?:{contact?:number;offhand?:{contact?:number};leadBlade?:Emitter};technique?:string;attack?:string;
+ attackSpec?:{contact?:number;offhand?:{contact?:number};orbitThird?:{contact?:number};leadBlade?:Emitter};technique?:string;attack?:string;
  actionTime?:number;chainFrom?:string;chainDepth?:number;attackSerial?:number;staffLead?:string;weaponFlow?:boolean;
  form?:string;team?:number;airPhase?:string;airHeight?:number;x?:number;y?:number;vx?:number;vy?:number;face?:number;
  jumpKind?:string;jumpBearing?:number};
@@ -80,7 +80,7 @@ const FX = Object.freeze({
   launch: [.47, 3, 5], feint:[.18,1,0], read:[.23,1,0], riposte:[.21,1,0], saber_phase: [.22, 1, 0], force: [.44, 1, 0, .17], push: [.46, 3, 4],
 });
 const TRAIL_AGE = .126, TRAIL_SAMPLE = .012, TRAIL_CAP = 9;
-const EMITTER_BIT = Object.freeze({main:1,off:2,rear:4});
+const EMITTER_BIT = Object.freeze({main:1,off:2,rear:4,orbit_third:8});
 const clamp = (value:number, min:number, max:number) => Math.min(max, Math.max(min, value));
 const isFiniteNumber=(v:unknown):v is number=>Number.isFinite(v);
 const finite = (value:unknown, fallback = 0):number => isFiniteNumber(value) ? value : fallback;
@@ -604,7 +604,7 @@ export function createArcadeFX({contactLabels=true}={}) {
     const staffLead=staff?(f.attackSpec?.leadBlade??(f.staffLead==='rear'?'rear':'main')):null;
     let seen=0,count=0;
     for (const entry of entries) {
-      if(count>=2)break;
+      if(count>=(f.gear?.weapon==='orbit'?3:2))break;
       if(!entry?.id||!Object.hasOwn(EMITTER_BIT,entry.id))continue;
       const id=entry.id,bit=EMITTER_BIT[id];
       if(seen&bit)continue;
@@ -613,7 +613,9 @@ export function createArcadeFX({contactLabels=true}={}) {
       if(!isFiniteNumber(hand?.x)||!isFiniteNumber(hand?.y)||
           !isFiniteNumber(tip?.x)||!isFiniteNumber(tip?.y)) continue;
       const alternate=staff?id!==staffLead:id==='off';
-      const beat=alternate&&isFiniteNumber(offContact)?offContact:contact;
+      const orbit=f.gear?.weapon==='orbit', orbitBeat=id==='orbit_third'?f.attackSpec?.orbitThird?.contact:id==='off'?offContact:contact;
+      if(orbit&&!isFiniteNumber(orbitBeat))continue;
+      const beat=orbit?orbitBeat!:alternate&&isFiniteNumber(offContact)?offContact:contact;
       // Faster animation gets a slightly earlier and longer sampling
       // window, then the measured tip velocity controls visible weight.
       if(t<beat*(flow?.63:.74)||t>beat+(flow?.14:.115)) continue;

@@ -100,7 +100,7 @@ test('saber and Force gear do not cross-modify attacks', () => {
   assert.equal(arcadeGearMove(forceUpgrades, 'slash', ARCADE_ATTACKS.slash), ARCADE_ATTACKS.slash);
 });
 
-test('all seven saber choices round-trip, including old dual saves and two-ended staff', async () => {
+test('all eight saber choices round-trip, including old dual saves, staff and three-blade Orbit', async () => {
   const { ARCADE_SABER_OPTIONS, arcadeSaberOption } = await import('../dist/arcade-loadouts.js');
   const { normalizeSetup, loadSetup, saveSetup } = await import('../dist/arcade-setup.js');
   const store = { getItem() { return this.raw; }, setItem(_key, value) { this.raw = value; } };
@@ -110,9 +110,9 @@ test('all seven saber choices round-trip, including old dual saves and two-ended
     const settings = loadSetup(store);
     const gear = arcadeFighterGear(settings, 0), staff = arcadeFighterGear(settings, 1);
     assert.equal(arcadeSaberOption(gear).id, kit.id);
-    assert.equal(gear.dualPhase, true);
+    assert.equal(gear.dualPhase, kit.weapon!=='orbit');
     assert.equal(staff.dualPhase, false);
-    assert.equal(gear.bladeCount, ['dual','staff'].includes(kit.weapon) ? 2 : 1);
+    assert.equal(gear.bladeCount, kit.weapon==='orbit' ? 3 : ['dual','staff'].includes(kit.weapon) ? 2 : 1);
     assert.equal(arcadeSaberOption(staff).id, 'staff');
     assert.equal(staff.grip, 'forward');
     assert.equal(staff.dualSabers, false);
