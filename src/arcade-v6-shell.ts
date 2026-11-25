@@ -215,12 +215,16 @@ addEventListener('resize',()=>{if(body.dataset.v6==='loadout')paintHero();});
 const resultTitle=get('resultTitle');
 const winnerArt=el('canvas','v6-result-art');winnerArt.setAttribute('aria-hidden','true');resultTitle?.before(winnerArt);
 new MutationObserver(()=>{const o=get('result');if(!o||o.hidden||!resultTitle)return;
-  requestAnimationFrame(()=>{if(winnerArt.offsetParent)paintV6Fighter(winnerArt,get<HTMLSelectElement>('bodyStyle')?.value??'woman',{stage:false,bare:true});});
   const t=resultTitle.textContent;if(t==='Round won')resultTitle.textContent='Victory';else if(t==='Round lost')resultTitle.textContent='Defeat';
+  // Only your own win shows your fighter; a draw, a loss or a watched round shows no winner art.
+  winnerArt.hidden=t!=='Round won'&&t!=='Victory';
+  if(!winnerArt.hidden)requestAnimationFrame(()=>{if(winnerArt.offsetParent)paintV6Fighter(winnerArt,get<HTMLSelectElement>('bodyStyle')?.value??'woman',{stage:false,bare:true});});
   trimResult(o);
 }).observe(get('result')??body,{attributes:true,attributeFilter:['hidden']});
 /** One line under the title (mode, round, time, badge) and the Elo bar read as rank to next rank, as in the mock.
  *  Training progress stays in Stats; only a save warning is shown here. */
+const resultLeave=document.querySelector<HTMLButtonElement>('#result .dialog-actions [data-home]');
+resultLeave?.classList.add('v6-result-leave');
 function trimResult(o:HTMLElement){
   const top=o.querySelector<HTMLElement>('.r-top'),eyebrow=get('resultRound');
   if(top&&resultTitle&&resultTitle.nextElementSibling!==top)resultTitle.after(top);
@@ -234,6 +238,8 @@ function trimResult(o:HTMLElement){
     const right=!up?'Top rank':left?`${left} to ${up.displayLabel}`:/^At current Elo cap$/.test(raw)?`At ${up.displayLabel} line`:raw;
     next.replaceChildren(el('span',undefined,rank),el('span',undefined,right));next.dataset.v6='1';
   }
+  // A save warning hides Next round; then the way out reads as the Setup step the warning names.
+  if(resultLeave)resultLeave.textContent=get('again')?.hidden?'Back to Setup':'← Leave';
   const note=get('rankResult');
   if(note){const warn=(note.textContent??'').split(' · ').find(p=>/Save|Session only/.test(p))??'';note.textContent=warn;note.hidden=!warn;}
 }
