@@ -1672,7 +1672,7 @@ function samplePeasantBodyCarry(f:Fighter, r:PaintRig, time:number){
     backElbow:P(r.backElbow.x+(shoulder.x-r.shoulder.x)*.31,r.backElbow.y+(shoulder.y-r.shoulder.y)*.31)};
 }
 
-const groundHandoffs=new WeakMap<object,GroundPose>();
+const groundHandoffs=new WeakMap<object,GroundPose>(), REBASE_REACH=30;
 const groundHandoffMoves=new Set(['ready','guard','slash','sweep','rush','parry','feint','freehand']);
 const softContactMoves=new Set(['dash','sidestep','backstep','clash','hit']);
 export function sampleArcadeFootwork(f:Fighter, r:PaintRig, time:number){
@@ -1736,9 +1736,13 @@ export function sampleArcadeFootwork(f:Fighter, r:PaintRig, time:number){
   // During a guard turn, the underlying gait may pick a different target
   // midway through a handoff. Rebase on what was actually drawn rather than
   // letting a nominal touchdown teleport the boot to the changed endpoint.
+  // A boot already a long way behind its gait (a fighter backing off fast) is not rebased again,
+  // or it would stay pinned frame after frame while the body slides away.
   if(contiguous&&flowing&&kind===prev.kind&&(r.action==='ready'||r.action==='guard')&&
       feet.some(l=>{const p=prev.feet.find(v=>v.side===l.side);
-        return p&&Math.hypot(l.foot.x-p.foot.x,l.foot.y-p.foot.y)>11;})){
+        return p&&Math.hypot(l.foot.x-p.foot.x,l.foot.y-p.foot.y)>11;})&&
+      !prev.feet.some(p=>{const g=projected.find(v=>v.side===p.side);
+        return g&&Math.hypot(g.foot.x-p.foot.x,g.foot.y-p.foot.y)>REBASE_REACH;})){
     handoff=capture(prev.feet);
     const {local}=arcadeBasis(f,painted);
     result={...painted,legs:painted.legs.map(l=>{
@@ -2021,6 +2025,7 @@ const soleTrajectories=new WeakMap<object,{time:number;root:Point;feet:LegWorld[
 /** Follow the painted pose, with a short world-space boot lift at pose seams.
  * This is the final visual layer; the physical rig/weapon endpoints are never
  * interpolated here. Airborne steps, teleports and reduced motion opt out. */
+const SOLE_TRAIL=24, SOLE_RUN=9;
 function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
   const actor=f[WALK_SOURCE]?.actor??f;
   const prev=soleTrajectories.get(actor), phase=r.airPhase;
@@ -2079,7 +2084,9 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
     const toeReach=Math.hypot(goal.toes.x-prior.toes.x,goal.toes.y-prior.toes.y);
     const settle=prior.planted&&goal.planted&&reach<.8&&toeReach<1.1&&rootStep<4.2;
     const seam=Math.max(reach,toeReach);
-    const limit=clamp(dt*(launch?1130:420)+rootStep*.23,.35,12);
+    // A run faster than the sole cap (a crowd breaking away) would pile the lag up frame after frame
+    // into a stretched leg, so past a short trail the sole catches up. Walking never reaches SOLE_RUN.
+    const limit=clamp(dt*(launch?1130:420)+rootStep*.23,.35,12)+(rootStep>SOLE_RUN?Math.max(0,seam-SOLE_TRAIL):0);
     if(!settle&&seam<=limit){next.push(goal);return leg;}
     if(settle&&seam<1e-6){next.push(goal);return leg;}
     changed=true;
