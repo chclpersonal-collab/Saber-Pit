@@ -8,6 +8,7 @@ import {contactChainOpen} from './arcade-motion-flow.js';
 import {pacingLift} from './arcade-engine-rank.js';
 import {arcadeLimbDisabled} from './arcade-injuries.js';
 import {sampleOrbitSabers,orbitHitsBody} from './arcade-orbit-sabers.js';
+import {crowdDefense} from './arcade-crowd-ai.js';
 
 interface SmartMemory {
   seenSerial: number | null;      // enemy attack serial already judged
@@ -140,7 +141,8 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
   if(threat){
     if(m.planSerial!==serial){
       m.planSerial=serial;
-      const chance=clamp(.30+.62*q+.22*spam,0,.985);
+      // Crowd AI: terror of a far stronger foe makes the read late; a reckless fighter barely guards.
+      const chance=clamp(.30+.62*q+.22*spam,0,.985)*(s.config.crowdAI?crowdDefense(f,enemy):1);
       const roll=draw(s,f,serial??0);
       // Parry is the answer to blade work: it refunds stamina and staggers the attacker. Slip the Force, or when spent.
       const want=threat.force||f.energy<5||f.guardLock>0?'slip':'parry';

@@ -15,7 +15,7 @@ const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const optionSet=<T extends string>(value:string|undefined,choices:readonly T[],fallback:T): T=>choices.includes(value as T)?value as T:fallback;
 const doctrineAliases: Readonly<Record<string,string|undefined>>={assault:'aggressive',guard:'defensive'};
 
-type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill'|'opponentReads'|'smartAI'|'localVersus'|'regionalInjuries';
+type Flag='perfectParryStamina'|'continuousCombat'|'anticipatingCombat'|'arenaCuts'|'activeFootwork'|'styleTravel'|'repertoireSupport'|'styleChoreo'|'peasantMotion'|'exchangeVariety'|'stanceFlow'|'impactPhysics'|'recoveryFlow'|'balancePass'|'closeChoice'|'guardCounterplay'|'minorMoves'|'forceVariants'|'liveEntry'|'eloReads'|'fluidFootwork'|'arenaRatingSkill'|'opponentReads'|'smartAI'|'localVersus'|'regionalInjuries'|'crowdAI';
 type Toggle='customHeroTactics'|'advancedArena'|'weaponFlow'|'expandedCombat'|'ratingSkill'|'matchGoalPlanning'|'circuitCuts'|'soloTournamentClock'|'squadDecisive'|'squadTactics';
 type GearOptions='startingSaberQuality'|'startingDualSabers'|'startingSaberWeapon'|'startingSaberGrip'|'startingDualPhase'|'startingForceFamily'|'startingForceQuality';
 type InputRecord=Partial<ArcadeRecord>;
@@ -76,7 +76,7 @@ export interface ArcadeConfig extends ReturnType<typeof normalizeArcadeGear>, Pa
 }
 
 export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [number,number]): ArcadeConfig {
-  const {startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,limit,soloTournamentClock,rule,circuitCuts,matchGoalPlanning,weaponFlow,expandedCombat,customHeroTactics,advancedArena,playerSlot,teamForms,saberOnly,doctrines,targeting,formations,weather,environment,deployments,chessStyles,fighterChessStyles,perfectParryStamina,continuousCombat,anticipatingCombat,arenaCuts,activeFootwork,styleTravel,repertoireSupport,styleChoreo,peasantMotion,exchangeVariety,stanceFlow,impactPhysics,recoveryFlow,balancePass,closeChoice,guardCounterplay,minorMoves,forceVariants,liveEntry,eloReads,ratingSkill,fluidFootwork,arenaRatingSkill,smartAI,localVersus,regionalInjuries}=options;
+  const {startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality,limit,soloTournamentClock,rule,circuitCuts,matchGoalPlanning,weaponFlow,expandedCombat,customHeroTactics,advancedArena,playerSlot,teamForms,saberOnly,doctrines,targeting,formations,weather,environment,deployments,chessStyles,fighterChessStyles,perfectParryStamina,continuousCombat,anticipatingCombat,arenaCuts,activeFootwork,styleTravel,repertoireSupport,styleChoreo,peasantMotion,exchangeVariety,stanceFlow,impactPhysics,recoveryFlow,balancePass,closeChoice,guardCounterplay,minorMoves,forceVariants,liveEntry,eloReads,ratingSkill,fluidFootwork,arenaRatingSkill,smartAI,localVersus,regionalInjuries,crowdAI}=options;
   const requestedLimit=Number(limit);
   const longSoloClock=requestedLimit===360&&soloTournamentClock===true&&mode==='watch'&&sizes.every(n=>n===1)&&(!rule||rule==='elimination');
   const config: ArcadeConfig={...normalizeArcadeGear({startingSaberQuality,startingDualSabers,startingSaberWeapon,startingSaberGrip,startingDualPhase,startingForceFamily,startingForceQuality}),teamSizes:sizes,limit:longSoloClock||[45,75,90,150].includes(requestedLimit)?requestedLimit:75,
@@ -120,6 +120,8 @@ export function buildArcadeConfig(options: ArcadeOptions,mode: string,sizes: [nu
   if(!options.motionFlow&&recoveryFlow===true&&impactPhysics===true)config.recoveryFlow=true;
   if(balancePass===true)config.balancePass=true;
   if(smartAI===true)config.smartAI=true;
+  // v6 crowd AI (fear, morale, spacing, personalities): the live Arena only, never Commander orders.
+  if(crowdAI===true&&smartAI===true&&mode!=='command')config.crowdAI=true;
   if(regionalInjuries===true)config.regionalInjuries=true;
   // Local versus: two people on one device, Blue slot 0 against Pink slot 0, duel mode only. Never rated.
   if(localVersus===true&&mode==='duel')config.localVersus=true;
