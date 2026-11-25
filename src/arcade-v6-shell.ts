@@ -18,7 +18,7 @@ function art(scene:V6Scene){const c=el('canvas','v6-art');c.setAttribute('aria-h
 function playerCard(){
   const card=el('div','v6-player');card.setAttribute('aria-label','Your Arena record');
   const fill=()=>{
-    const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;
+    const view=statsView(readArcadeCareer()),you=view?.you??null;
     card.replaceChildren();
     const av=el('span','v6-avatar');av.setAttribute('aria-hidden','true');
     const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'You'));
@@ -54,7 +54,7 @@ grid.append(arena.t,
   tile({title:'Three Fronts',card:'fronts',cta:'Play',tag:'NEW',tagTone:'green',tone:'v6-cta-cyan',href:'./moba.html'}).t,
   tile({title:'Tournament',card:'tournament',cta:'Open',href:'./tournament.html'}).t,
   tile({title:'Gauntlet',card:'gauntlet',cta:'Climb',href:'./gauntlet.html'}).t,
-  tile({title:'Heroes',card:'heroes',cta:'Manage',href:'./tournament.html'}).t);
+  tile({title:'Heroes',card:'heroes',cta:'Manage',href:'./tournament.html#heroesPanel'}).t);
 const ICON={
   home:'<path d="M3 11 12 3l9 8v10h-6v-6H9v6H3Z"/>',
   stats:'<path d="M4 20V10h3v10Zm6.5 0V4h3v16ZM17 20v-7h3v7ZM2 21h20v1.5H2Z"/>',
@@ -62,7 +62,7 @@ const ICON={
   saves:'<path d="M4 3h16v18H4Zm4 4v10h8V7Z"/>',
   settings:'<path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z"/>'};
 const more=el('nav','v6-nav');more.setAttribute('aria-label','Menu');
-for(const [key,label,act] of [['home','Home',()=>showHome()],['stats','Stats',()=>document.querySelector<HTMLButtonElement>('[data-open-stats]')?.click()],['heroes','Heroes','./tournament.html'],['saves','Saves','./backup.html'],['settings','Settings',()=>get<HTMLButtonElement>('settingsOpen')?.click()]] as const){
+for(const [key,label,act] of [['home','Home',()=>showHome()],['stats','Stats',()=>document.querySelector<HTMLButtonElement>('[data-open-stats]')?.click()],['heroes','Heroes','./tournament.html#heroesPanel'],['saves','Saves','./backup.html'],['settings','Settings',()=>get<HTMLButtonElement>('settingsOpen')?.click()]] as const){
   const n=typeof act==='string'?Object.assign(el('a'),{href:act}):Object.assign(el('button'),{type:'button'});
   n.className='v6-nav-item';if(key==='home')n.setAttribute('aria-current','page');
   n.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">${ICON[key]}</svg>`;n.append(el('span',undefined,label));
@@ -139,7 +139,7 @@ let lastView=body.dataset.view;
 /* HUD: the player's own Elo beside their name, as in the mock. */
 const hudElo=el('span','v6-hud-elo');hudElo.setAttribute('aria-label','Your Elo');
 function fillHudElo(){
-  const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;
+  const view=statsView(readArcadeCareer()),you=view?.you??null;
   hudElo.textContent=you?.elo!=null?String(Math.round(you.elo)):'';
   hudElo.hidden=!hudElo.textContent;
   const name=get('blueName');if(name&&hudElo.previousElementSibling!==name)name.after(hudElo);
@@ -198,7 +198,7 @@ function lookPane(){
   requestAnimationFrame(()=>{row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false});});});
 }
 function paintHero(){const body=get<HTMLSelectElement>('bodyStyle')?.value??'woman';const form=get<HTMLSelectElement>('style');
-  const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;heroName.replaceChildren();
+  const view=statsView(readArcadeCareer()),you=view?.you??null;heroName.replaceChildren();
   const rk=el('span','v6-loadout-rank',you?.rank?.split(' ')[0]??'—');rk.setAttribute('aria-label','Rank');heroName.append(rk,(form?.selectedOptions[0]?.text??'').replace(/^[IVX]+\s*·\s*/,''));
   if(hero.offsetParent)paintV6Fighter(hero,body);}
 const ready=el('button','v6-cta v6-ready','Ready');ready.type='button';ready.addEventListener('click',()=>showPlay());
