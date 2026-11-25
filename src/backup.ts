@@ -1,6 +1,6 @@
-import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js?v=6.0.2';
-import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=6.0.2';
-import {cloudSyncPrefs} from './arcade-cloud-sync.js?v=6.0.2';
+import type {BackupInspection, BackupSection, ArenaSummary, CareerSummary, QuestSummary} from './arcade-backup.js?v=6.0.3-seat';
+import {MAX_BACKUP_BYTES,exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup} from './arcade-backup.js?v=6.0.3-seat';
+import {cloudSyncPrefs} from './arcade-cloud-sync.js?v=6.0.3-seat';
 const $=<T extends HTMLElement=HTMLElement>(id: string)=>document.getElementById(id) as T;
 const picker=$<HTMLInputElement>('backupFile'), preview=$('backupPreview'), confirm=$<HTMLInputElement>('backupConfirm'), replace=$<HTMLButtonElement>('restoreBackup');
 const sections=$('backupSections'), report=$('backupStatus');

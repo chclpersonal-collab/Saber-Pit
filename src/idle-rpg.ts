@@ -7,7 +7,7 @@ interface PlaybackOptions { created: ReplayCreated; name: string; enemy: string;
 interface PlaybackScene { key: string; legacy: boolean; result: QuestResult | null; index: number | null; ended: boolean }
 import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=6.0.2';
 import * as campaign from './arcade-idle-campaign.js?v=6.0.2';
-import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=6.0.2';
+import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=6.0.3-seat';
 import * as rigArt from './arcade-fighters.js?v=6.0.2';
 import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2';
 import {ARCADE_FORMS} from './arcade-engine.js?v=6.0.2';

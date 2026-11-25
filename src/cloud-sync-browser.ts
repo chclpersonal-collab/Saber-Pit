@@ -1,9 +1,9 @@
 import {CLOUD_SAVE_COMMITTED} from './cloud-save-commit.js';
-import {createCloudSyncScheduler} from './cloud-sync-scheduler.js?v=6.0.2';
-import type {SyncResult} from './arcade-cloud-sync.js?v=6.0.2';
+import {createCloudSyncScheduler} from './cloud-sync-scheduler.js?v=6.0.3-seat';
+import type {SyncResult} from './arcade-cloud-sync.js?v=6.0.3-seat';
 import type {StorageReader} from './arcade-save-types.js?v=6.0.2';
-import * as files from './arcade-backup.js?v=6.0.2';
-import {createCloudSync,createBrowserCloudTransport,storeCloudRecovery} from './arcade-cloud-sync.js?v=6.0.2';
+import * as files from './arcade-backup.js?v=6.0.3-seat';
+import {createCloudSync,createBrowserCloudTransport,storeCloudRecovery} from './arcade-cloud-sync.js?v=6.0.3-seat';
 const unavailable={getItem:()=>null,setItem:()=>{throw Error('Site storage is disabled.');},removeItem:()=>{}};
 const storage=(()=>{try{return globalThis.localStorage??unavailable;}catch{return unavailable;}})();
 const backup={...files,exportArcadeBackup:(storage?: StorageReader,sections?:readonly files.BackupSection[])=>

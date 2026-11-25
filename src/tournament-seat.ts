@@ -1,8 +1,8 @@
 /** The Tournament's seat in the v6 match screen: the person is Blue in the bracket's next bout, the Blue fighter of a 1v1
  *  or the first fighter of the Blue squad in a 5v5. Same fixture, rules and clock as a simulated bout. The bout is written
  *  once, under the Tournament's lock, and only if the save still expects this exact fixture. Leaving early writes nothing. */
-import {TOURNAMENT_KEY,loadTournament,saveTournament} from './arcade-tournament.js?v=6.0.2';
-import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament} from './squad-tournament.js?v=6.0.2';
+import {TOURNAMENT_KEY,loadTournament,saveTournament} from './arcade-tournament.js?v=6.0.3-seat';
+import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament} from './squad-tournament.js?v=6.0.3-seat';
 import {TOURNAMENT_HUMAN_KEYS,startTournamentHumanBout,commitTournamentHumanBout,tournamentRematch,type TournamentFormat} from './tournament-play.js?v=6.0.3-seat';
 import type {HumanControls} from './gauntlet-play.js?v=6.0.3-seat';
 import {readSeatSave as read,settleSeat,type ArenaSeat,type ArenaSeatEnd,type ArenaSeatOpen} from './arena-seat.js?v=6.0.3-seat';

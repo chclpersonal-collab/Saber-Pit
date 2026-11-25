@@ -1,6 +1,6 @@
 /** Cloud transport is injectable. Save contents are validated by arcade-backup
  * before either upload or import. There is no network traffic when disabled. */
-import type {BackupBundle, BackupExport, BackupFailure, BackupInspection, BackupRestored, BackupSection, BackupStates, BackupSummary, DuelSave, SquadSave} from './arcade-backup.js?v=6.0.2';
+import type {BackupBundle, BackupExport, BackupFailure, BackupInspection, BackupRestored, BackupSection, BackupStates, BackupSummary, DuelSave, SquadSave} from './arcade-backup.js?v=6.0.3-seat';
 import type {QuestSave} from './arcade-quests.js?v=6.0.2';
 import type {SaveStorage, StorageReader} from './arcade-save-types.js?v=6.0.2';
 

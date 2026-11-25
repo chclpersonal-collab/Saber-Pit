@@ -2,8 +2,8 @@
  *  Same fixture, rules, clock and learning as a simulated bout; only that fighter's controls change.
  *  A bout counts once: it is written only if the saved bracket still expects this exact fixture and attempt. */
 import {stepArcade} from './arcade-engine.js?v=6.0.2';
-import {nextTournamentBout,runTournamentStep} from './arcade-tournament.js?v=6.0.2';
-import {nextSquadBout,runSquadStep} from './squad-tournament.js?v=6.0.2';
+import {nextTournamentBout,runTournamentStep} from './arcade-tournament.js?v=6.0.3-seat';
+import {nextSquadBout,runSquadStep} from './squad-tournament.js?v=6.0.3-seat';
 import {startTournamentBout,createTournamentReplay,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.3-seat';
 import {startSquadBout,createSquadReplay,SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=6.0.3-seat';
 import {logControls,replayControls,readHumanLog,type HumanControls,type HumanRun,type HumanBoutLog} from './gauntlet-play.js?v=6.0.3-seat';

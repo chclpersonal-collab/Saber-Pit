@@ -1,7 +1,7 @@
 /** The Gauntlet's seat in the v6 match screen: the person is the Blue solo fighter against the Pink trio.
  *  Same fixture, rules and clock as a simulated bout. The bout is written once, under the Gauntlet's lock,
  *  and only if the save still expects this exact fixture. Leaving early writes nothing. */
-import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,nextGauntletBout} from './gauntlet-tournament.js?v=6.0.2';
+import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,nextGauntletBout} from './gauntlet-tournament.js?v=6.0.3-seat';
 import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,humanMarker,type HumanControls} from './gauntlet-play.js?v=6.0.3-seat';
 import {readSeatSave as read,settleSeat,type ArenaSeat,type ArenaSeatEnd,type ArenaSeatOpen} from './arena-seat.js?v=6.0.3-seat';
 

@@ -1,4 +1,4 @@
-import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,startGauntlet,nextGauntletBout,recordGauntletBout,resetGauntlet,gauntletLeaderboard} from './gauntlet-tournament.js?v=6.0.2';
+import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,startGauntlet,nextGauntletBout,recordGauntletBout,resetGauntlet,gauntletLeaderboard} from './gauntlet-tournament.js?v=6.0.3-seat';
 import {seasonWeek} from './tournament-calendar.js?v=3.0.1';
 import {fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
 import {drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2';
