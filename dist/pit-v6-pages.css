@@ -130,6 +130,8 @@
 :root body.ops-shell .schedule .actions>:is(#nextButton,#newButton){flex:1 1 auto;min-height:52px}
 :root body.ops-shell .v5-more-menu{min-width:230px;padding:10px;gap:8px;display:grid;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 8px 24px #0009;z-index:30}
 :root body.ops-shell .v5-more-menu>button{justify-content:flex-start;width:100%;font-size:15px}
+:root body.ops-shell #activeSeed{display:none}
+:root body.ops-shell .v5-more-menu>[hidden]{display:none}
 :root body.ops-shell .v5-more-menu>button[hidden]{display:none}
 :root body.ops-shell .v5-more-menu>.reset-action{color:#ff8fa3}
 :root body.ops-shell th{white-space:nowrap}
