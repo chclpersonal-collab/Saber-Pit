@@ -6,6 +6,8 @@
 import type {SimCommand,SimFighter,SimGame,SimMove} from './arcade-engine-state.js';
 import {contactChainOpen} from './arcade-motion-flow.js';
 import {pacingLift} from './arcade-engine-rank.js';
+import {arcadeLimbDisabled} from './arcade-injuries.js';
+import {sampleOrbitSabers,orbitHitsBody} from './arcade-orbit-sabers.js';
 
 interface SmartMemory {
   seenSerial: number | null;      // enemy attack serial already judged
@@ -42,17 +44,62 @@ function draw(s: SimGame,f: SimFighter,salt: number){
   return ((h^(h>>>15))>>>0)/4294967296;
 }
 
-function incoming(f: SimFighter,enemy: SimFighter){
-  const spec=enemy.attackSpec as SimMove | null;
-  if(!enemy.alive||!enemy.attack||!spec||enemy.contact)return null;
-  const until=(spec.contact??.2)-enemy.actionTime;
-  if(until<=0)return null;
-  const d=Math.hypot(f.x-enemy.x,f.y-enemy.y);
-  const reach=(spec.reach??80)+f.radius+26;
-  if(d>reach+until*240)return null;
-  const line=Math.abs(angleDelta(enemy.face,Math.atan2(f.y-enemy.y,f.x-enemy.x)));
-  if(line>(spec.arc??1)+.45)return null;
-  return {until,d,force:enemy.action==='force'};
+// Same limb gates as the engine: guard needs the sword arm (orbit emitters need no hands), dash needs both legs.
+const limbOut=(f: SimFighter,limb: Parameters<typeof arcadeLimbDisabled>[1])=>f.regionalInjuries===true&&arcadeLimbDisabled(f.injuries,limb);
+export const smartCanGuard=(f: SimFighter)=>String(f.gear.weapon)==='orbit'||!limbOut(f,'rightArm');
+export const smartCanSlip=(f: SimFighter)=>!limbOut(f,'leftLeg')&&!limbOut(f,'rightLeg');
+
+type Blade={contact?:number;reach?:number;arc?:number;backLane?:boolean;blade?:string};
+/** Every unresolved blade of the enemy's swing, so twin and orbit follow-ups are read, not just the first cut. */
+function pendingBlades(enemy: SimFighter){
+  const spec=enemy.attackSpec as (SimMove&{offhand?:Blade;orbitThird?:Blade;orbit?:boolean}) | null;
+  if(!spec)return [];
+  const out: {hit:Blade;id:'primary'|'offhand'|'orbit_third';bearing:number}[]=[];
+  if(!enemy.contact)out.push({hit:spec as Blade,id:'primary',bearing:enemy.face});
+  if(spec.offhand&&!enemy.offhandContact)out.push({hit:spec.offhand,id:'offhand',bearing:enemy.face+((spec.offhand.backLane??spec.offhand.blade==='rear')?Math.PI:0)});
+  if(spec.orbitThird&&!enemy.orbitThirdContact)out.push({hit:spec.orbitThird,id:'orbit_third',bearing:enemy.face});
+  return out;
+}
+/** Closest approach of a lit blade segment to the body's central bands (matches orbitHitsBody's sampling). */
+function bladeGap(b: {hand:{x:number;y:number};tip:{x:number;y:number}},f: SimFighter){
+  const dx=b.tip.x-b.hand.x,dy=b.tip.y-b.hand.y,h=f.y-(f.airHeight??0);
+  let best=Infinity;
+  for(const off of [24,40,55]){
+    const px=f.x,py=h-off,u=clamp(((px-b.hand.x)*dx+(py-b.hand.y)*dy)/(dx*dx+dy*dy||1),0,1);
+    best=Math.min(best,Math.hypot(px-b.hand.x-u*dx,py-b.hand.y-u*dy));
+  }
+  return best;
+}
+/** Latest contact time of the whole swing, primary and follow-up blades. */
+const lastContact=(spec: SimMove|null)=>{
+  const sp=spec as (SimMove&{offhand?:Blade;orbitThird?:Blade})|null;
+  return Math.max(sp?.contact??.2,sp?.offhand?.contact??0,sp?.orbitThird?.contact??0);
+};
+
+export function smartThreat(s: SimGame,f: SimFighter,enemy: SimFighter){
+  const spec=enemy.attackSpec as (SimMove&{orbit?:boolean}) | null;
+  if(!enemy.alive||!enemy.attack||!spec)return null;
+  const d=Math.hypot(f.x-enemy.x,f.y-enemy.y), toMe=Math.atan2(f.y-enemy.y,f.x-enemy.x);
+  let until=Infinity,last=0;
+  for(const {hit,id,bearing} of pendingBlades(enemy)){
+    const left=(hit.contact??.2)-enemy.actionTime;
+    if(left<=0)continue;
+    let threat: boolean;
+    if(spec.orbit){
+      // Emitter blades enter on offset lanes beside the body, not along the face: read where that blade will be lit at contact.
+      const at={...enemy,actionTime:hit.contact??.2,orbitCarry:null} as Parameters<typeof sampleOrbitSabers>[0];
+      const blade=sampleOrbitSabers(at,s.time+left).find(b=>b.id===id);
+      // Same body bands the engine tests, widened by how far we could drift before it lands.
+      threat=Boolean(blade)&&(orbitHitsBody(blade!,f)||bladeGap(blade!,f)<=19+Math.min(60,left*240));
+    }else{
+      const reach=(hit.reach??spec.reach??80)+f.radius+26;
+      threat=d<=reach+left*240&&Math.abs(angleDelta(bearing,toMe))<=(hit.arc??spec.arc??1)+.45;
+    }
+    if(!threat)continue;
+    until=Math.min(until,left);last=Math.max(last,left);
+  }
+  if(!Number.isFinite(until))return null;
+  return {until,last,d,force:enemy.action==='force'};
 }
 
 /** True only when the enemy can't answer before our own swing would land. */
@@ -60,7 +107,7 @@ function recovering(enemy: SimFighter){
   const spec=enemy.attackSpec as SimMove | null, left=enemy.actionDuration-enemy.actionTime;
   if(enemy.action==='stagger')return left>.14;
   if(enemy.guardLock>.14)return true;
-  return Boolean(enemy.attack&&spec&&enemy.actionTime>(spec.contact??.2)+.03&&left>.2);
+  return Boolean(enemy.attack&&spec&&enemy.actionTime>lastContact(spec)+.03&&left>.2);
 }
 
 /** An ally standing in the line to the enemy would take the swing: leave the lane-finding to the authored AI. */
@@ -88,14 +135,18 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
   const spam=clamp((m.starts.filter(sample=>sample.family===family).length-1)/3,0,1);
 
   // 1. Defend a committed incoming swing. One judgement per swing, then hold it.
-  const threat=incoming(f,enemy);
+  const threat=smartThreat(s,f,enemy);
+  const canGuard=smartCanGuard(f), canSlip=smartCanSlip(f);
   if(threat){
     if(m.planSerial!==serial){
       m.planSerial=serial;
       const chance=clamp(.30+.62*q+.22*spam,0,.985);
       const roll=draw(s,f,serial??0);
       // Parry is the answer to blade work: it refunds stamina and staggers the attacker. Slip the Force, or when spent.
-      m.plan=roll<chance?(threat.force||f.energy<5||f.guardLock>0?'slip':'parry'):'hold';
+      const want=threat.force||f.energy<5||f.guardLock>0?'slip':'parry';
+      // A disabled sword arm can't raise a guard and a disabled leg can't dash: take the answer the body still has.
+      const plan=want==='parry'?(canGuard?'parry':canSlip?'slip':'hold'):(canSlip?'slip':canGuard&&!threat.force?'parry':'hold');
+      m.plan=roll<chance?plan:'hold';
       m.slipSide=draw(s,f,(serial??0)+13)<.5?1:-1;
     }
     if(m.plan==='parry'||m.plan==='slip'){
@@ -103,17 +154,20 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
       const window=m.plan==='parry'?.07+.07*q:.12+.06*q;
       const out: SimCommand={...base,strike:false,heavy:false,force:false,feint:false,technique:null,expandedMove:null,advanced:null,chain:null};
       if(threat.until<=window||f.action==='guard'){
-        if(m.plan==='parry'&&f.energy>=6){m.guardUntil=s.time+threat.until+.1;return {...out,guard:true,guardAim:null,aim,x:0,y:0,dash:false};}
+        // Hold the guard until the last blade of the swing has resolved, not just the first.
+        if(m.plan==='parry'&&canGuard&&f.energy>=6){m.guardUntil=s.time+threat.last+.1;return {...out,guard:true,guardAim:null,aim,x:0,y:0,dash:false};}
         const side=aim+Math.PI/2*m.slipSide+(d<70?Math.PI*.22*m.slipSide:0);
-        return {...out,guard:false,dash:f.energy>=10,evasion:'sidestep',aim,x:Math.cos(side),y:Math.sin(side)};
+        if(canSlip)return {...out,guard:false,dash:f.energy>=10,evasion:'sidestep',aim,x:Math.cos(side),y:Math.sin(side)};
+        // No guard and no dash: walk out of the lane.
+        return {...out,guard:false,dash:false,aim,x:-Math.cos(aim)*.6+Math.cos(side)*.6,y:-Math.sin(aim)*.6+Math.sin(side)*.6};
       }
       // Waiting for the window: do not walk into the swing or start a slower move.
-      return {...out,guard:false,x:(base.x??0)*.35,y:(base.y??0)*.35};
+      return {...out,guard:false,dash:false,x:(base.x??0)*.35,y:(base.y??0)*.35};
     }
   }
 
   // The swing resolves on the frame its contact flips, which can come before or after our update; hold through it.
-  if(m.guardUntil>s.time&&f.action==='guard'&&!(enemy.contact&&recovering(enemy)))
+  if(m.guardUntil>s.time&&f.action==='guard'&&canGuard&&!(pendingBlades(enemy).length===0&&recovering(enemy)))
     return {...base,strike:false,heavy:false,force:false,feint:false,technique:null,expandedMove:null,advanced:null,chain:null,dash:false,guard:true,guardAim:null,aim,x:0,y:0};
 
   // 2. Punish: just parried, enemy whiffed, staggered or guard-broken, and we are in reach.
@@ -129,6 +183,8 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
       return {...base,guard:false,dash:false,strike:!heavy,heavy,aim,x:Math.cos(aim)*(d>70?1:.2),y:Math.sin(aim)*(d>70?1:.2)};
     }
   }
+  // The authored layer doesn't know about limbs: never pass on a guard or dash this body can't make.
+  if((base.guard&&!canGuard)||(base.dash&&!canSlip))base={...base,guard:base.guard&&canGuard,dash:base.dash&&canSlip};
 
   // 3. Spacing and bait vs a spammer: hover just outside their reach so the next swing whiffs.
   // Low on stamina: back off and breathe instead of trading. Vs a spammer: hover outside their reach.
@@ -143,7 +199,8 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
   }
 
   // 4. Don't throw a swing at a raised guard from the front unless it is a guard-pressure heavy.
-  if(enemy.action==='guard'&&(base.strike)&&d<100&&draw(s,f,199)<q*.6){
+  //    A foe with a dead sword arm can't hold that guard, so press them instead.
+  if(enemy.action==='guard'&&smartCanGuard(enemy)&&(base.strike)&&d<100&&draw(s,f,199)<q*.6){
     const flank=aim+(f.slot%2?.9:-.9);
     return {...base,strike:false,heavy:f.energy>=30&&draw(s,f,211)<.4,aim,x:Math.cos(flank),y:Math.sin(flank)};
   }
