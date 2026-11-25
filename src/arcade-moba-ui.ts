@@ -74,7 +74,7 @@ function clearControls(){
   for(const btn of document.querySelectorAll<HTMLElement>('[data-control]'))delete btn.dataset.held;
 }
 function begin(lane:MobaLane){
-  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm(),{bellRally:bellRally.checked}); lastBellNotice='';aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;previousAlive=true;knockoutSource=null;
+  game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm(),{bellRally:bellRally.checked,smartAI:true}); lastBellNotice='';aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;previousAlive=true;knockoutSource=null;
   follow=true;clearControls();setScreen('field');measureViewport();renderCameraControl();stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
   canvas.focus({preventScroll:true});renderHud();
 }
@@ -143,7 +143,7 @@ function renderHud(){
     // Opposing hero deaths count actual knockouts, including minion/tower kills.
     const total=game.heroes.reduce((n,h)=>n+(h.team!==team?h.deaths:0),0);
     stamp(kos,String(total));
-    kos.setAttribute('aria-label',(team===0?'Vanguard':'Ravager')+' knockouts: '+total);
+    kos.setAttribute('aria-label',(team===0?'Blue':'Pink')+' knockouts: '+total);
   }
   const bell=playing?bellRallyCue(game.bellRally,game.tick):null;
   nodes.bellStatus.hidden=!bell;
