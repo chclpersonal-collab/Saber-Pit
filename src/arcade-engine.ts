@@ -543,12 +543,13 @@ function attack(s: SimGame,f: SimFighter,name: string,to: number,{redirected=fal
     // Light cuts use one emitter. Heavy commitments telegraph and release
     // all three, but cannot damage the same target three times.
     const triple=authored?.role==='heavy'||authored?.role==='crowd'||['rush','sweep','vault','frenzy','wide_cut'].includes(name)||name===profile(f).heavy;
-    const contact=move.contact*1.18+.025;
+    // Emitters release on the hand-held beat; the follow-up blades still trail by .10 and .21 s.
+    const contact=move.contact;
     const reach=clamp(move.reach*1.09,70,112);
     const cast=(lag:number,blade: NonNullable<BladeCast['blade']>):BladeCast=>({
       contact:contact+lag,reach,arc:move.arc,damage:move.damage*.76,knock:move.knock*.62,recoil:move.recoil*.73,blade
     });
-    move={...move,orbit:true,contact,reach,damage:move.damage*.91,knock:move.knock*.77,lunge:move.lunge*.27,
+    move={...move,orbit:true,contact,reach,damage:move.damage*.91,knock:move.knock*.77,lunge:move.lunge*.8,
       duration:Math.max(contact+(triple?.40:.19),move.duration+.11),
       cost:move.cost*(triple?1.46:1.18),blade:'primary',offhand:triple?cast(.10,'offhand'):undefined,
       orbitThird:triple?cast(.21,'orbit_third'):undefined};
