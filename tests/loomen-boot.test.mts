@@ -6,7 +6,7 @@ import {runInNewContext} from 'node:vm';
 const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
 const read=(f)=>readFileSync(new URL('../dist/'+f,import.meta.url),'utf8');
 const startup=html.match(/<script>\s*\(\(\) => \{[\s\S]*?<\/script>/)?.[0]?.replace(/^<script>|<\/script>$/g,'');
-function harness({ready=true,good=true,view='menu'}={}){
+function harness({ready=true,good=true,view='menu',skin='ready'}={}){
  assert.ok(startup,'Startup controller is in the Arena document');
  const result={gate:true,inert:true,boot:{hidden:false},retry:{hidden:true},status:{textContent:'Loading arena…'},frame:null,timeout:null};
  const body={dataset:{v6:'home',view},hasAttribute:()=>result.gate,removeAttribute:()=>{result.gate=false;}};
@@ -16,6 +16,7 @@ function harness({ready=true,good=true,view='menu'}={}){
  const entry=new Promise((r,j)=>{settle=r;fail=j;});
  runInNewContext(startup.replace(/import\(['"][^'"]+['"]\)/,'loadEntry()'),{
   document:{body,getElementById:(id)=>elements[id]},loadEntry:()=>entry,
+  getComputedStyle:()=>({getPropertyValue:()=>skin}),
   requestAnimationFrame:(cb)=>{result.frame=cb;},setTimeout:(cb)=>{result.timeout=cb;return 1;},clearTimeout:()=>{}
  });
  result.complete=async()=>{good?settle():fail(Error('module load rejected'));await loaded;await loaded;};
@@ -40,7 +41,7 @@ test('timeout does not reveal the legacy app and a successful v6 still replaces 
  assert.equal(h.inert,false);
 });
 test('blocked boot and shell-not-mounted boot keep the older layout hidden and offer retry',async()=>{
- for(const options of [{good:false},{ready:false},{view:'game'}]){
+ for(const options of [{good:false},{ready:false},{view:'game'},{skin:''}]){
   const h=harness(options);
   await h.complete();
   h.frame?.();
