@@ -401,6 +401,8 @@
 @media (orientation:landscape) and (max-height:520px){
   :root body.pit-v5 #result .result-card{max-height:calc(100dvh - 16px)}
   :root body.pit-v5 #result .r-hits{margin:9px 0 6px}
+  /* Narrow landscape: the title starts past the corner Leave button instead of under it. */
+  :root body.pit-v5 #result:has(#again:not([hidden])) #resultTitle{padding-left:max(0px,calc(var(--v6-leave-clear,104px) - (100vw - min(94vw,600px)) / 2))}
 }
 @media (min-width:761px) and (min-height:521px){
   :root body.pit-v5 #result .result-card:has(.v6-result-art[hidden]){grid-template-columns:minmax(0,1fr);width:min(94%,680px)}
