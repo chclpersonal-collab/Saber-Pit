@@ -333,7 +333,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
-  $('modeLabel').textContent=autoDuel.active?'Auto battle':mode==='watch'?'Showdown':titleCase(mode);
+  $('modeLabel').textContent=matchLabel();
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Loomen arena',...deployedHeroes].join('. '));
@@ -1288,6 +1288,17 @@ function heroSelects(){
     $(`heroPos${i}`).value=String(p.slot);
     $(`heroPosLabel${i}`).hidden=!$(`heroChoice${i}`).value||setup.teamSizes[i]===1;
   }
+}
+/** The name the player picked (Showdown, Master trial, Play a Hero), not just the engine mode. */
+function matchLabel(){
+  if(autoDuel.active)return 'Auto battle';
+  if(mode==='watch')return 'Showdown';
+  if(mode!=='duel'){
+    if(setup.heroPicks[0]?.id&&setup.teamSizes.join()==='1,3')return 'Play a Hero';
+    if(activeArenaPreset(setup,'master'))return 'Master trial';
+    if(activeArenaPreset(setup,'watch'))return 'Showdown';
+  }
+  return titleCase(mode);
 }
 function prepareWatchHero(heroId?:string){
   const next=watchHeroSetup(setup,heroRoster,heroId);
