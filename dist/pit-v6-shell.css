@@ -383,3 +383,5 @@
 :root body.pit-v5 #result:has(#again:not([hidden])) .dialog-actions [data-home].v6-result-leave{display:inline-flex;width:auto;position:fixed;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));z-index:3;min-height:40px;padding:0 14px;border-radius:999px;background:#140a33cc;box-shadow:0 0 0 2px var(--v5-line);color:var(--v5-white);text-decoration:none;font-size:14px;font-weight:800;align-items:center}
 :root body.pit-v5 #result:has(#again[hidden]) .dialog-actions [data-home]{text-decoration:none;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));color:var(--v5-white);box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink)}
 :root body.pit-v5 #result .v6-result-art[hidden]{display:none}
+/* Hover keeps the v6 skin: a small lift, never the old lobby colours. */
+@media (hover:hover){:root body.pit-v5 :is(.v6-cta,.v6-chip,.v6-back):hover{filter:brightness(1.1)}}
