@@ -93,3 +93,11 @@
 @media (max-height:560px) and (orientation:landscape){
   :root body.v6-guide .guide-intro h1,:root body.v6-credits main>h1{font-size:26px}
 }
+/* Guide mode key as three chips; Classic controls dialog as a key list; credits section titles. */
+:root body.v6-guide .guide-intro p.guide-key{display:flex;flex-wrap:wrap;gap:8px}
+:root body.v6-guide .guide-key>span{padding:6px 12px;border-radius:999px;background:var(--v5-deep);border:2px solid var(--v5-line);color:var(--v5-soft);font-size:13px}
+:root body.v6-guide .guide-key b{color:var(--v5-gold);margin-right:.35em}
+:root body.v6-classic #controlsDialog ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+:root body.v6-classic #controlsDialog li{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--v5-r);background:var(--v5-deep);border:2px solid var(--v5-line);color:var(--v5-soft)}
+:root body.v6-classic #controlsDialog li b{color:var(--v5-white)}
+:root body.v6-credits main>h2{font-size:22px;margin:24px 0 10px}
