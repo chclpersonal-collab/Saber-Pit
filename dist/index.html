@@ -163,14 +163,14 @@
   </div>
   <div id="techniqueBar" class="technique-bar" hidden><details id="techFold" class="tech-fold"><summary><span class="tech-fold-k">Tech</span> <b id="techFoldName">Technique</b></summary><div class="tech-fold-body"><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div></details></div>
   <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
-  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><h2 id="guideTitle">The seven saber forms</h2><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Loomen.</p></dialog>
+  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">The seven saber forms</h2><details class="v6-info"><summary aria-label="About the forms">i</summary><div class="v6-info-pop"><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Loomen.</p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
-    <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
+    <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="About two players">i</summary><div class="v6-info-pop"><p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. A seat stays yours for the round, even if the controller drops. Pink's Technique uses their style's top technique. Pink on the keyboard:</p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
     <h3 class="keys-sub">Controller</h3>
     <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
     <h3 class="keys-sub">Two players</h3>
-    <p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. A seat stays yours for the round, even if the controller drops. Pink's Technique uses their style's top technique. Pink on the keyboard:</p>
+    
     <ul class="keys-list keys-fixed" id="p2List"><li><span>Move</span><kbd>Arrows</kbd></li><li><span>Slash</span><kbd>.</kbd></li><li><span>Signature</span><kbd>/</kbd></li><li><span>Guard (hold)</span><kbd>,</kbd></li><li><span>Dash</span><kbd>;</kbd></li><li><span>Jump</span><kbd>L</kbd></li><li><span>Feint</span><kbd>M</kbd></li><li><span>Force</span><kbd>N</kbd></li><li><span>Technique</span><kbd>'</kbd></li></ul>
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
   </dialog>
@@ -203,23 +203,23 @@
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
     <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
     <section class="injury-report moves-used" aria-labelledby="injuryHeading">
-      <div class="injury-top"><h3 id="injuryHeading">Body condition</h3><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
-      <details id="fighterAppearance" class="fighter-appearance-detail" hidden><summary>Gender &amp; appearance</summary><p id="fighterAppearanceDetails"></p></details>
+      <div class="injury-top"><div class="v6-title"><h3 id="injuryHeading">Body condition</h3><details class="v6-info"><summary aria-label="About body condition">i</summary><div class="v6-info-pop"><p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p></div></details></div><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
+      <details id="fighterAppearance" class="fighter-appearance-detail" open hidden><summary>Gender &amp; appearance</summary><p id="fighterAppearanceDetails"></p></details>
       <dl class="fighter-damage" aria-label="Selected fighter damage this round"><div><dt>Damage dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>Damage taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
       <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
-      <p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p>
+      
       <details class="recent-events"><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
     </section>
     <div class="report-layout">
       <section><h3>This round</h3><table aria-label="This round totals"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
-      <section><h3>Fighter careers</h3><table aria-label="Fighter ranks and all-round kills, deaths and assists"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank / training</th><th scope="col">K / D / A</th></tr></thead><tbody id="fighterStats"></tbody></table><p class="report-note">K / D / A are totals across rounds. Training points are awarded when a round ends.</p></section>
+      <section><div class="v6-title"><h3>Fighter careers</h3><details class="v6-info"><summary aria-label="About fighter careers">i</summary><div class="v6-info-pop"><p class="report-note">K / D / A are totals across rounds. Training points are awarded when a round ends.</p></div></details></div><table aria-label="Fighter ranks and all-round kills, deaths and assists"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank / training</th><th scope="col">K / D / A</th></tr></thead><tbody id="fighterStats"></tbody></table></section>
     </div>
 
     <details class="recent-events"><summary>Recent events</summary><ol id="recentEvents"></ol></details><div class="seed-tools"><span id="reportSeed"></span><button type="button" id="copySeed">Copy seed</button></div>
   </dialog>
   <dialog id="rankDialog" class="guide reports" aria-labelledby="rankTitle">
     <div class="guide-head"><div><p class="eyebrow">FIGHTER CAREERS</p><h2 id="rankTitle">Saves</h2></div><form method="dialog"><button type="submit">Done</button></form></div>
-    <p class="report-note">Use old ranks from Classic or pick up where you left off.</p>
+    
 
     <div class="career-actions"><button type="button" id="useClassic">Use Classic ranks</button><button type="button" id="resumeCareer">Continue saved run</button></div>
     <p class="report-note" id="careerStatus" role="status"></p>

@@ -1139,6 +1139,12 @@ function reportCell<K extends keyof HTMLElementTagNameMap>(tag:K,value:unknown,c
   const el=document.createElement(tag);el.textContent=value as string;if(cl)el.className=cl;return el;
 }
 const defenseNames:Record<string,string>={perfect_parry:'Perfect parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Hero crossfire exit',advanced_parry:'Parry follow-up',advanced_whiff:'Changed attack line',advanced_travel:'Footwork follow-up',jump:'Jump',wheel:'Wheel hop',crossflip:'Crossflip',compact:'Compact hop',line:'Line jump',bound:'Bounding jump',drift:'Drift step',pounce:'Pounce',corkscrew:'Corkscrew jump',feint:'Feint',read:'Directional read',guard_read:'Directional read',directional_parry:'Directional parry',force_ward_block:'Force ward block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash evade',vault_step:'Vault evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing defense',pressure_recover:'Stagger recovery'};
+$('bodyRows').addEventListener('click',event=>{
+  const fold=(event.target as Element|null)?.closest?.('.injury-fold');
+  if(!fold)return;
+  const open=fold.getAttribute('aria-expanded')!=='true';
+  fold.setAttribute('aria-expanded',String(open));fold.closest('tr')?.toggleAttribute('data-open',open);
+});
 function showInjuryReport(f:ArcadeFighter|undefined){
   const rank=f?.career?.gradeIndex??0;
   const opts={attackerRank:rank,defenderRank:rank};
@@ -1152,7 +1158,12 @@ function showInjuryReport(f:ArcadeFighter|undefined){
     const condition=local[i]!;
     const value=reportCell('td',condition.pct+'% · '+(fatal?'Fatal':condition.labelCondition),'injury-condition');
     value.dataset.level=severityLevel(fatal?'Fatal':condition.labelCondition);
-    row.append(h,value,ac,bc,reportCell('td',f?.alive===false?'—':a.fatalPct+'% / '+(b?.fatalPct??0)+'%'));return row;
+    // Phone folds Front, Rear and Fatal risk under the region: the region name is the toggle.
+    const fold=document.createElement('button');fold.type='button';fold.className='injury-fold';fold.textContent=a.label;fold.setAttribute('aria-expanded','false');
+    h.replaceChildren(fold);
+    const risk=reportCell('td',f?.alive===false?'—':a.fatalPct+'% / '+(b?.fatalPct??0)+'%');
+    ac.dataset.label='Front';bc.dataset.label='Rear';risk.dataset.label='Fatal risk';
+    row.append(h,value,ac,bc,risk);return row;
   }));
   const grip=String(f?.gear.weapon)==='orbit'?'Floating blades do not use either grip.':'Right arm: hand-held blade and guard. Left arm: offhand blade and free-hand moves.';
   $('injuryReference').textContent='Combined local injury, not HP. 18% strains, 43% impairs; at '+ARCADE_LIMB_DISABLE_PCT+
