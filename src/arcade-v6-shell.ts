@@ -4,6 +4,7 @@
 import {readArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {statsView} from './arcade-stats-page.js';
 import {paintV6Scene,paintV6Fighter,paintV6Card,type V6Scene,type V6Card} from './arcade-v6-scene.js';
+import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
 
 const body=document.body;
 const get=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T|null;
@@ -157,8 +158,10 @@ const pSet=get('pauseSettings');if(pSet&&keys)keys.before(pSet);
 const pauseLine=el('p','v6-pause-line');
 document.querySelector('#pauseOverlay .dialog')?.append(pauseLine);
 new MutationObserver(()=>{const o=get('pauseOverlay');if(!o||o.hidden)return;
-  const round=get('round')?.textContent??'',bk=get('blueCount')?.textContent??'',rk=get('blueRank')?.textContent??'';
-  pauseLine.textContent=[round,rk&&`Rank ${rk}`,bk&&`Standing ${bk}`].filter(Boolean).join(' · ');
+  // The mock's footer: Round and Elo, label then bold value. K/D is not readable from the menu layer.
+  const round=(get('round')?.textContent??'').replace(/^Round\s*/i,''),elo=hudElo.textContent??'';
+  pauseLine.replaceChildren();
+  for(const [label,value] of [['Round',round],['Elo',elo]] as const)if(value){const s=el('span',undefined,label+' ');s.append(el('b',undefined,value));pauseLine.append(s);}
 }).observe(get('pauseOverlay')??body,{attributes:true,attributeFilter:['hidden']});
 
 /* ---------- Loadout screen ---------- */
@@ -214,4 +217,23 @@ const winnerArt=el('canvas','v6-result-art');winnerArt.setAttribute('aria-hidden
 new MutationObserver(()=>{const o=get('result');if(!o||o.hidden||!resultTitle)return;
   requestAnimationFrame(()=>{if(winnerArt.offsetParent)paintV6Fighter(winnerArt,get<HTMLSelectElement>('bodyStyle')?.value??'woman',{stage:false,bare:true});});
   const t=resultTitle.textContent;if(t==='Round won')resultTitle.textContent='Victory';else if(t==='Round lost')resultTitle.textContent='Defeat';
+  trimResult(o);
 }).observe(get('result')??body,{attributes:true,attributeFilter:['hidden']});
+/** One line under the title (mode, round, time, badge) and the Elo bar read as rank to next rank, as in the mock.
+ *  Training progress stays in Stats; only a save warning is shown here. */
+function trimResult(o:HTMLElement){
+  const top=o.querySelector<HTMLElement>('.r-top'),eyebrow=get('resultRound');
+  if(top&&resultTitle&&resultTitle.nextElementSibling!==top)resultTitle.after(top);
+  if(eyebrow){const parts=(eyebrow.textContent??'').split(' · ');const round=parts.find(p=>/^Round \d+$/.test(p));
+    const rest=parts.filter(p=>p!==round&&p!=='1v1');const clock=rest.pop();
+    if(round&&clock)eyebrow.textContent=[...rest,round,clock].join(' · ');}
+  const next=o.querySelector<HTMLElement>('#resultElo .r-next'),rank=o.querySelector('#resultElo .r-rank')?.textContent??'';
+  if(next&&!next.dataset.v6){
+    const i=SOLDIER_GRADES.findIndex(g=>g.displayLabel===rank||g.label===rank),up=i>=0?SOLDIER_GRADES[i+1]:undefined;
+    const raw=next.textContent??'',left=raw.match(/^([\d.,]+) to current Elo cap$/)?.[1];
+    const right=!up?'Top rank':left?`${left} to ${up.displayLabel}`:/^At current Elo cap$/.test(raw)?`At ${up.displayLabel} line`:raw;
+    next.replaceChildren(el('span',undefined,rank),el('span',undefined,right));next.dataset.v6='1';
+  }
+  const note=get('rankResult');
+  if(note){const warn=(note.textContent??'').split(' · ').find(p=>/Save|Session only/.test(p))??'';note.textContent=warn;note.hidden=!warn;}
+}

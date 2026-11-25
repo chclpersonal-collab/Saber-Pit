@@ -350,3 +350,32 @@
   :root body.pit-v5 #result .dialog-actions button{min-height:42px}
   :root body.pit-v5 #result .r-hits,:root body.pit-v5 #result #rankResult{margin:4px 0}
 }
+/* Results trimmed to the mock: one line under the title, rank to next rank under the bar, no Setup link. */
+:root body.pit-v5 #result .r-top{margin:2px 0 10px;gap:10px}
+:root body.pit-v5 #result #resultRound{font-family:var(--v5-ui);font-weight:800;font-size:15px;letter-spacing:0;text-transform:none;color:#d8cdf2}
+:root body.pit-v5 #result #resultElo .r-next{display:flex;justify-content:space-between;gap:12px;font-weight:800;color:var(--v5-muted)}
+:root body.pit-v5 #result #rankResult[hidden]{display:none}
+:root body.pit-v5 #result:has(#again:not([hidden])) .dialog-actions [data-home]{display:none}
+:root body.pit-v5 .v6-pause-line{display:flex;justify-content:center;gap:18px}
+:root body.pit-v5 .v6-pause-line b{color:#fff}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5 #result .r-top{margin:0 0 6px}
+  :root body.pit-v5 #result #resultRound{font-size:13px}
+}
+/* Desktop results: winner art on the left, the result column on the right, as in the mock. */
+@media (min-width:761px) and (min-height:521px){
+  :root body.pit-v5 #result .result-card{display:grid;grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);column-gap:36px;align-items:start;width:min(96%,1180px);text-align:left}
+  :root body.pit-v5 #result .result-card>*{grid-column:2;min-width:0}
+  :root body.pit-v5 #result .v6-result-art{grid-column:1;grid-row:1/span 12;align-self:center;width:100%;height:min(520px,62vh);margin:0}
+  :root body.pit-v5 #result .r-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  :root body.pit-v5 #result .dialog-actions{justify-content:flex-start}
+}
+/* Phone landscape pause: fit the whole column, footer included, without scrolling. */
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5 #pauseOverlay .dialog-actions:not(.pause-view) button{min-height:36px;font-size:16px}
+  :root body.pit-v5 #pauseOverlay .dialog-actions:not(.pause-view){gap:6px}
+  :root body.pit-v5 #pauseOverlay h2{font-size:26px;margin:0 0 4px}
+  :root body.pit-v5 #pauseOverlay .pause-view{margin-top:6px;padding-top:6px}
+  :root body.pit-v5 #pauseOverlay .pause-view button{min-height:32px;font-size:14px}
+  :root body.pit-v5 .v6-pause-line{margin-top:6px}
+}
