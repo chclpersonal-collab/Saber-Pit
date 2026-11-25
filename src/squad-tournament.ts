@@ -12,7 +12,7 @@ type Season = Bracket & {id:string;season:number;seed:number;limit:number;terrai
 type State = {version:number;ratingVersion:number;season:number;championId:string|null;active:Season|null;teams:Record<string,Team>;peaks:ReturnType<typeof readEloPeaks>;history:{season:number;championId:string;runnerUpId:string;quarterfinalistIds?:string[];titleByDraw?:boolean}[]};
 type FighterWire = {name?:unknown;form?:string;body?:string;gender?:string;appearanceSeed?:unknown;chessStyle?:string;id?:string;gear?:{weapon?:string;grip?:string;dualPhase?:unknown}};
 type TeamWire = {id?:unknown;name?:unknown;fighters?:FighterWire[];elo?:unknown;combatElo?:number;wins?:unknown;draws?:unknown;losses?:unknown;kills?:unknown;deaths?:unknown;titles?:unknown;lastSeason?:unknown};
-type ReplayWire = {ruleset:number;seed:number;limit:number;terrain:string;round:number;stage?:Stage;attempt?:number;id?:string;teams:(TeamWire&{fighters:FighterWire[]})[];matchReport?:unknown};
+type ReplayWire = {fought?:unknown;ruleset:number;seed:number;limit:number;terrain:string;round:number;stage?:Stage;attempt?:number;id?:string;teams:(TeamWire&{fighters:FighterWire[]})[];matchReport?:unknown};
 type AttemptWire = {deaths?:unknown[];kills?:unknown[];damage?:unknown[];stats?:{deaths?:unknown;kills?:unknown;damage?:unknown}[];winnerId?:string|null;winnerIndex?:number|null;reason?:unknown;time?:unknown;elapsed?:unknown;replay?:ReplayWire|null;then?:unknown};
 type Bout = {id:string;stage:Stage;round:number;index:number;attempt:number;teamIds:string[];teams:Team[];seed:number;limit:number;terrain:string;rank:string;grade:string};
 type HistoryWire={season?:number;championId?:string;runnerUpId?:string;titleByDraw?:boolean;quarterfinalistIds?:string[]};
@@ -267,7 +267,7 @@ function replayFrom(raw:ReplayWire|null|undefined,expected:Omit<Bout,'grade'|'ra
   if(recorded?.some(side=>side.some(style=>!style)))return null;
   const report=sanitizeMatchReport(raw.matchReport);
   const matchReport=raw.ruleset>=11&&report?.limit===expected.limit&&report.seed===expected.seed&&report.sides.length===10?{matchReport:report}:{};
-  return {...matchReport,ruleset:raw.ruleset,seed:expected.seed,limit:expected.limit,terrain:expected.terrain,round:expected.round,
+  return {...matchReport,...(raw.fought===true?{fought:true as const}:{}),ruleset:raw.ruleset,seed:expected.seed,limit:expected.limit,terrain:expected.terrain,round:expected.round,
     stage:expected.stage,attempt:expected.attempt,id:expected.id,teams:expected.teams.map(({id,name,fighters,rank,grade},i)=>({...((raw.ruleset>=10)?{combatElo:ratings[i]}:{}),id,name,
       fighters:fighters.map(({chessStyle,...f},j)=>({...f,...(recorded?{chessStyle:recorded[i][j]}:{})})),
       rank,grade}))};

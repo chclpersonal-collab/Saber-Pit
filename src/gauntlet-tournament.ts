@@ -22,7 +22,7 @@ type Phase='groups'|'final';
 type ActiveStatus=Phase|'complete';
 type Winner=0|1|null;
 type Slot={id:string;phase:Phase;group:number|null;soloId:string;trioIds:string[];seed:number;limit:number;terrain:string};
-type Replay=Slot&{simulationVersion:number;fighters:Array<Fighter&{role:Role;profile:ReturnType<typeof roleProfile>}>};
+type Replay=Slot&{fought?:true;simulationVersion:number;fighters:Array<Fighter&{role:Role;profile:ReturnType<typeof roleProfile>}>};
 type Bout=Slot&{winner:Winner;winnerIndex:Winner;time:number|null;reason:string;eloDelta:number[];requestedEloDelta:number[]};
 type Standings={id:string;seed:number;soloPoints:number;points:number;solo:RoleRecord;trio:RoleRecord};
 type ActiveInput={seed:number;limit:number;terrain:string;groups:string[][];bouts:Bout[];cursor:number;lastFixture:Replay|null};
@@ -33,7 +33,7 @@ type State={version:number;season:number;fighters:Fighter[];active:Active|null;h
 type Observation=RawProfile&{fighterId?:string;id?:string};
 type BoutInput={winnerIndex:Winner;time?:unknown;reason?:unknown;simulationVersion?:number;fighters?:Observation[]|null};
 type RawSave={version:number;season:number;fighters:RawFighter[];history:History[];lastChampion?:unknown;active?:{
-  seed:number;limit?:unknown;terrain?:string;groups:string[][];bouts:Bout[];lastFixture?:{fighters:RawFighter[];simulationVersion?:number}
+  seed:number;limit?:unknown;terrain?:string;groups:string[][];bouts:Bout[];lastFixture?:{fighters:RawFighter[];simulationVersion?:number;fought?:unknown}
 }};
 const count=(n:unknown,max=1e7)=>typeof n==='number'&&Number.isFinite(n)?Math.max(0,Math.min(max,Math.trunc(n))):0;
 const rate=(n:unknown,fallback=.5)=>typeof n==='number'&&Number.isFinite(n)?Math.min(1,Math.max(0,n)):fallback;
@@ -238,7 +238,7 @@ export function normalizeGauntlet(value:unknown):State|null{
       a.lastFixture.fighters.map(x=>fighter(x,raw.season)):null;
     const version=gauntletReplayVersion(a.lastFixture);
     if(f&&version&&prev&&prev.every((x,i)=>x?.id===[f.soloId,...f.trioIds][i])){
-      active.lastFixture={...f,simulationVersion:version,fighters:prev.map((x,i)=>{
+      active.lastFixture={...f,simulationVersion:version,...(a.lastFixture.fought===true?{fought:true as const}:{}),fighters:prev.map((x,i)=>{
         const role=i===0?'solo':'trio';
         return {...x!,role,profile:profileFor(x,role)};
       })};

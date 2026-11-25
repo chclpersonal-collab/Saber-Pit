@@ -40,7 +40,8 @@ test('a fought bout settles exactly one fixture with the same Elo and record rul
   assert.equal(next.active.bouts.length,state.active.bouts.length+1);
   assert.equal(next.active.bouts.at(-1).id,fixture.id);
   const viaRecord=recordGauntletBout(state,fixture.id,bout.result());
-  assert.deepEqual(next,viaRecord,'same write as handing the result to the season');
+  assert.equal(next.active.lastFixture.fought,true,'the season keeps that this bout was fought');
+  assert.deepEqual(next,{...viaRecord,active:{...viaRecord.active,lastFixture:{...viaRecord.active.lastFixture,fought:true}}},'otherwise the same write as handing the result to the season');
   const solo=f=>f.fighters.find(x=>x.id===fixture.fighters[0].id).solo;
   const before=solo(state),after=solo(next);
   assert.equal(after.wins+after.draws+after.losses,before.wins+before.draws+before.losses+1);

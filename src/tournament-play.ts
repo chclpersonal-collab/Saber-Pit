@@ -66,7 +66,10 @@ export function commitTournamentHumanBout(state: State,bout: TournamentHumanBout
      expected.seed!==f.seed||expected.limit!==f.limit||expected.terrain!==f.terrain||roster(expected)!==roster(f))return {ok:false,reason:'stale'};
   const result=bout.result() as never;
   const done=bout.format==='squad'?runSquadStep(state as SquadState,()=>result):runTournamentStep(state as SoloState,()=>result);
-  return done?{ok:true,state}:{ok:false,reason:'rejected'};
+  if(!done)return {ok:false,reason:'rejected'};
+  const replay=state.active?.lastReplay as {seed?: number;fought?: true} | null | undefined;
+  if(replay&&replay.seed===f.seed)replay.fought=true;
+  return {ok:true,state};
 }
 
 /** True when the bracket's next bout is a rematch of this one: it was drawn and queued again. */
@@ -79,7 +82,7 @@ export function tournamentHumanReplay(raw: string | null | undefined,state: Stat
   try{saved=JSON.parse(raw??'null');}catch{/* unreadable: not tied to this bout */}
   const ids=(replay?.teams??replay?.fighters??[]).map(s=>s.id).join('|');
   if(!replay||!saved||saved.season!==state.season||saved.bracket!==active!.seed||saved.seed!==replay.seed||
-     !Array.isArray(saved.sides)||saved.sides.join('|')!==ids)return {kind:'none'};
+     !Array.isArray(saved.sides)||saved.sides.join('|')!==ids)return (replay as {fought?: true} | null | undefined)?.fought?{kind:'unavailable'}:{kind:'none'};
   const log=readHumanLog(raw) as TournamentBoutLog | null;
   const current=replay.teams?SQUAD_REPLAY_RULESET:TOURNAMENT_REPLAY_RULESET;
   return log&&replay.ruleset===current?{kind:'replay',log}:{kind:'unavailable'};

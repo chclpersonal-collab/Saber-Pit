@@ -37,7 +37,7 @@ type SquadSource={season:number;teams?:Record<string,{id:string;wins?:number;dra
 type Update=RawProfile&{profile?:RawProfile};
 type AttemptInput={winnerId?:string|null;winner?:string|null;winnerIndex?:number;kills?:number[];deaths?:number[];pressure?:number[];score?:number[];stats?:{kills?:number;deaths?:number;saberHits?:number}[];
   reason?:string;time?:number;elapsed?:number;then?:unknown;profiles?:Update[];adaptations?:Update[];replay?:ReplayInput|null};
-type ReplayInput={seed:number;round:number;limit:number;terrain:string;grade:string;ruleset:number;fighters:(FighterInput&{combatElo?:number})[];
+type ReplayInput={fought?:unknown;seed:number;round:number;limit:number;terrain:string;grade:string;ruleset:number;fighters:(FighterInput&{combatElo?:number})[];
   plans:{doctrine:string;move?:string}[];matchReport?:unknown};
 type SavedActive=Omit<Partial<Active>,'lastReplay'>&{lastReplay?:ReplayInput|null};
 type Save={version?:number;season?:number;peaks?:unknown;eloScale?:number;records?:Record<string,FighterInput>;heroes?:Record<string,HeroInput>;
@@ -364,7 +364,8 @@ function replaySnapshot(value:ReplayInput|null|undefined){
   if(safeFighters.some(f=>!f)||safeFighters[0]!.id===safeFighters[1]!.id)return null;
   const report=sanitizeMatchReport(value.matchReport);
   const matchReport=value.ruleset>=12&&report?.limit===value.limit&&report.seed===(value.seed>>>0)&&report.sides.length===2?{matchReport:report}:{};
-  return {...matchReport,ruleset:Number.isSafeInteger(value.ruleset)&&value.ruleset>=1?value.ruleset:1,seed:value.seed>>>0,round:value.round,limit:value.limit,terrain:value.terrain,grade:value.grade,
+  // A bout the person fought keeps that mark in the bracket, so a restore without its controls never shows an AI replay.
+  return {...matchReport,...(value.fought===true?{fought:true as const}:{}),ruleset:Number.isSafeInteger(value.ruleset)&&value.ruleset>=1?value.ruleset:1,seed:value.seed>>>0,round:value.round,limit:value.limit,terrain:value.terrain,grade:value.grade,
     fighters:safeFighters as NonNullable<typeof safeFighters[number]>[],plans:plans.map((p,i)=>({doctrine:p.doctrine,...(validTournamentMove(p.move,safeFighters[i]!.form,value.grade)?{move:p.move}:{})}))};
 }
 function alignedAttempt(attempt:Attempt,original:(string|null)[],simOrder:(string|null)[]){

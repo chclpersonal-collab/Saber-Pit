@@ -96,7 +96,9 @@ export function commitHumanBout(state: State,bout: HumanBout): CommitOutcome{
     return {ok:false,reason:'stale'};
   const next=recordGauntletBout(state,bout.fixture.id,bout.result());
   if(next===state||next.active?.cursor!==state.active.cursor+1)return {ok:false,reason:'rejected'};
-  return {ok:true,state:next};
+  // The season itself keeps that this bout was fought, so a restore without its controls never shows an AI replay.
+  const last=next.active.lastFixture;
+  return {ok:true,state:last?{...next,active:{...next.active,lastFixture:{...last,fought:true}}}:next};
 }
 
 export function readHumanLog(raw: string | null | undefined): HumanBoutLog | null{
@@ -142,5 +144,5 @@ export function humanBoutReplay(raw: string | null | undefined,state: State): {k
     const a=state.active;
     if(v&&a?.lastFixture&&v.season===state.season&&v.cursor===a.cursor&&v.fixtureId===(a.lastFixture as {id?:string}).id)return {kind:'unavailable'};
   }catch{/* unreadable: not tied to this bout */}
-  return {kind:'none'};
+  return (state.active?.lastFixture as {fought?: true} | null | undefined)?.fought?{kind:'unavailable'}:{kind:'none'};
 }

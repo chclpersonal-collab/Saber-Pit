@@ -13,6 +13,7 @@ const {GAUNTLET_KEY,startGauntlet,loadGauntlet,saveGauntlet,nextGauntletBout,rec
 const {simulateGauntlet}=await import('../dist/gauntlet-sim.js?v=3.2.3');
 const {openGauntletSeat}=await import('../dist/gauntlet-seat.js');
 const {GAUNTLET_HUMAN_KEY,humanBoutReplay}=await import('../dist/gauntlet-play.js');
+const {exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup}=await import('../dist/arcade-backup.js');
 
 function fresh(seed=41){
   data.clear();refuse=()=>false;
@@ -94,4 +95,20 @@ test('a seat link with nothing to fight returns its reason instead of opening',(
   const opened=openGauntletSeat();
   assert.equal(opened.ok,false);
   assert.match((opened as {text: string}).text,/draw a bracket/);
+});
+
+test('restored from a backup on a new device, a fought bout says Replay unavailable, never an AI replay',async()=>{
+  fresh();
+  assert.equal((await (await fightOut()).finish()).saved,true);
+  const file=exportArcadeBackup(globalThis.localStorage as never);
+  assert.equal(file.ok,true);
+  const map=new Map<string,string>(), empty={getItem:(k: string)=>map.get(k)??null,setItem:(k: string,v: string)=>{map.set(k,v);},removeItem:(k: string)=>{map.delete(k);}};
+  assert.equal(restoreArcadeBackup(inspectArcadeBackup((file as {text: string}).text),empty as never).ok,true);
+  assert.equal(map.has(GAUNTLET_HUMAN_KEY),false,'the controls stay on the first device');
+  let restored=loadGauntlet(empty as never);
+  assert.ok(restored.active?.lastFixture);
+  assert.equal(humanBoutReplay(null,restored).kind,'unavailable');
+  const f=nextGauntletBout(restored);
+  restored=recordGauntletBout(restored,f.id,simulateGauntlet(f));
+  assert.equal(humanBoutReplay(null,restored).kind,'none','the next simulated bout replays as simulated');
 });

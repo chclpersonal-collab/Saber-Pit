@@ -19,6 +19,7 @@ const {arenaSeatKind}=await import('../dist/arena-seat.js');
 const {openTournamentSeat}=await import('../dist/tournament-seat.js');
 const {TOURNAMENT_HUMAN_KEYS,tournamentHumanReplay,tournamentHumanGame,startTournamentHumanBout,commitTournamentHumanBout}=await import('../dist/tournament-play.js');
 const engine=await import('../dist/arcade-engine.js');
+const {exportArcadeBackup,inspectArcadeBackup,restoreArcadeBackup}=await import('../dist/arcade-backup.js');
 
 type Format='solo'|'squad';
 type Seat={game: {phase: string;time: number;endReason?: string;fighters: {alive: boolean}[]};step(i: unknown): void;leave(): void;finish(): Promise<{saved: boolean;text: string;next: boolean;title: string}>};
@@ -167,3 +168,21 @@ test('a seat link with nothing to fight returns its reason instead of opening',(
     assert.match((opened as {text: string}).text,/draw a bracket/);
   }
 });
+
+for(const format of ['solo','squad'] as const){
+  test(`${format}: restored from a backup on a new device, a fought bout says Replay unavailable, never an AI replay`,async()=>{
+    fresh(format);
+    assert.equal((await fightOut(format).finish()).saved,true);
+    assert.equal(tournamentHumanReplay(data.get(TOURNAMENT_HUMAN_KEYS[format]),F[format].load()).kind,'replay','same device: your own fight');
+    const file=exportArcadeBackup(globalThis.localStorage as never);
+    assert.equal(file.ok,true);
+    const map=new Map<string,string>(), empty={getItem:(k: string)=>map.get(k)??null,setItem:(k: string,v: string)=>{map.set(k,v);},removeItem:(k: string)=>{map.delete(k);}};
+    assert.equal(restoreArcadeBackup(inspectArcadeBackup((file as {text: string}).text),empty as never).ok,true);
+    assert.equal(map.has(TOURNAMENT_HUMAN_KEYS[format]),false,'the controls stay on the first device');
+    const restored=format==='solo'?T.loadTournament(empty as never):S.loadSquadTournament(empty as never);
+    assert.ok(restored.active?.lastReplay,'the bracket came across with its last replay');
+    assert.deepEqual(tournamentHumanReplay(null,restored as never),{kind:'unavailable'});
+    F[format].sim(restored);
+    assert.deepEqual(tournamentHumanReplay(null,restored as never),{kind:'none'},'the next simulated bout replays as simulated');
+  });
+}
