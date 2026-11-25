@@ -88,6 +88,17 @@ export function createPadSeats(){
     },
   };
 }
+/** Jump, Feint and Phase act once per press, like their keys: this turns each pad's held buttons into fresh presses. */
+export function createPadPresses(){
+  const was=new Map<number,ReadonlySet<PadAction>>();
+  return {
+    pressed(pads:readonly PadState[]):Set<PadAction> {
+      const out=new Set<PadAction>();
+      for(const p of pads){const before=was.get(p.index);for(const a of p.held)if(!before?.has(a))out.add(a);was.set(p.index,p.held);}
+      return out;
+    },
+  };
+}
 export const padHeld=(pads:readonly PadState[],name:string)=>pads.some(p=>p.held.has(name as PadAction));
 export function padStick(pads:readonly PadState[]){
   for(const p of pads)if(p.stick.x||p.stick.y)return p.stick;

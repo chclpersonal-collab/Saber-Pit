@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readPad,createPadReader,assignPads,deadZone,padAim,padHeld,padStick} from '../dist/arcade-gamepad.js';
+import {readPad,createPadReader,createPadPresses,assignPads,deadZone,padAim,padHeld,padStick} from '../dist/arcade-gamepad.js';
 
 const pad=(index:number,pressed:number[]=[],axes=[0,0,0,0],values:Record<number,number>={})=>({index,connected:true,mapping:'standard',axes,
   buttons:Array.from({length:17},(_,i)=>({pressed:pressed.includes(i),value:values[i]??(pressed.includes(i)?1:0)}))});
@@ -87,4 +87,14 @@ test('a spare pad claims an empty seat only when someone presses on it', async (
   s=seats.assign([mk(0),mk(2,[0])],true);
   assert.deepEqual(s.p2.map(p=>p.index),[2]);
   assert.deepEqual(s.p1.map(p=>p.index),[0]);
+});
+
+test('Jump, Feint and Phase fire once per press on a controller', () => {
+  const presses=createPadPresses();
+  const jump=readPad(pad(0,[3])), none=readPad(pad(0));
+  assert.ok(presses.pressed([jump]).has('jump'),'pressing A/Cross jumps');
+  assert.equal(presses.pressed([jump]).has('jump'),false,'holding it does not jump again');
+  presses.pressed([none]);
+  assert.ok(presses.pressed([jump]).has('jump'),'a fresh press jumps again');
+  assert.ok(presses.pressed([readPad(pad(0,[3,4]))]).has('feint'));
 });

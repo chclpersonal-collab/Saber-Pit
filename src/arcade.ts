@@ -55,7 +55,7 @@ import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js?v=6.0.2';
 import {mountKeysPanel} from './arcade-keys-panel.js?v=6.0.2';
 import {mountVersusTouch} from './arcade-vs-touch.js?v=6.0.2';
-import {createPadReader,createPadSeats,createPadLatch,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js?v=6.0.2';
+import {createPadReader,createPadSeats,createPadLatch,createPadPresses,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js?v=6.0.3-seat';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
@@ -130,7 +130,7 @@ hudText.addEventListener('change',()=>{
 let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
 const heldArenaKeys=createHeldArenaKeys(keys);
 // Controllers and local versus. Nothing here is saved: Two players is chosen per visit.
-const padReader=createPadReader(), padSeats=createPadSeats(), padLatch=createPadLatch();
+const padReader=createPadReader(), padSeats=createPadSeats(), padLatch=createPadLatch(), padPresses=createPadPresses();
 let pads:PadState[]=[], padStatsHeld=false, localVersus=false;
 const p2keys=new Set<string>(), p2pulse=new Set<string>(), heldP2Keys=createHeldArenaKeys(p2keys);
 const versusLive=()=>view==='game'&&game?.config.localVersus===true;
@@ -272,12 +272,12 @@ function inputs(){
   const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
   const none={held:new Set<string>(),pulse:new Set<string>(),stick:{x:0,y:0}};
   const t1=vsTouch.shown(0)?vsTouch.players[0]:none,t2=vsTouch.shown(1)?vsTouch.players[1]:none,moved=(v:{x:number;y:number})=>v.x||v.y?v:null;
-  const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name)||t1.held.has(name),pulse:new Set([...pulse,...t1.pulse]),
+  const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name)||t1.held.has(name),pulse:new Set<string>([...pulse,...t1.pulse,...padPresses.pressed(p1)]),
     fromStick:padStick(p1)??moved(t1.stick)??stick.snapshot(),aim:p,touchWalk,
     technique:()=>$('chosenTechnique').value},pendingOrder) as ArcadeInput;
   if(versusLive()){
     const pink=game.fighters.find(f=>f.control&&f.team===1);
-    const second=arenaInputFrame({held:name=>p2keys.has(name)||padHeld(p2,name)||t2.held.has(name),pulse:new Set([...p2pulse,...t2.pulse]),
+    const second=arenaInputFrame({held:name=>p2keys.has(name)||padHeld(p2,name)||t2.held.has(name),pulse:new Set<string>([...p2pulse,...t2.pulse,...padPresses.pressed(p2)]),
       fromStick:padStick(p2)??moved(t2.stick)??{x:0,y:0},aim:padAim(p2,pink),touchWalk:false,technique:()=>p2Technique??''},null);
     data.p2={...second,technique:second.technique||null,order:undefined};
   }
