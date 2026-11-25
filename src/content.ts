@@ -51,18 +51,18 @@ export const FORMS = freeze(Object.fromEntries([
     { damageMultiplier: 1.06, attackIntervalMultiplier: .94, blockChance: .44, blockCost: 13, counterMultiplier: 1.60, dashCost: 22, dashCooldown: 4, energyRegen: 8, forceCostMultiplier: 1.12, reachBonus: 1 }),
 ].map(entry => [entry.id, entry] as const)) as Record<ClassicFormId, ReturnType<typeof form>>);
 
-// Seconds, world-space pixels and energy points. Player-facing names are the short Force names (Push, Burst, Pulse); roles are 1–3 word tags.
+// Seconds, world-space pixels and energy points. Powers are gameplay adaptations.
 // magazine/reload are inert compatibility metadata; the v4 engine spends energy.
 export const FORCE_FAMILIES = freeze([
-  { id: 'force_push', name: 'Push', role: 'Knockback', color: '#99e6ff',
+  { id: 'force_push', name: 'Force push', role: 'Displacement and control', color: '#99e6ff',
     damage: 13, interval: 3.1, accuracy: .82, range: 420, optimalRange: 240,
     magazine: 1, reload: 3.1, suppression: 16, movePenalty: .04,
     energyCost: 22, windup: .45, stagger: .32, knockback: 28 },
-  { id: 'force_burst', name: 'Burst', role: 'Close Impact', color: '#e6b8ff',
+  { id: 'force_burst', name: 'Force burst', role: 'Close-range impact at high energy cost', color: '#e6b8ff',
     damage: 21, interval: 3.8, accuracy: .86, range: 270, optimalRange: 140,
     magazine: 1, reload: 3.8, suppression: 20, movePenalty: .10,
     energyCost: 30, windup: .60, stagger: .42, knockback: 16 },
-  { id: 'force_pulse', name: 'Pulse', role: 'Long Reach', color: '#aaf2cb',
+  { id: 'force_pulse', name: 'Force pulse', role: 'Longer reach with modest impact', color: '#aaf2cb',
     damage: 11, interval: 2.8, accuracy: .88, range: 480, optimalRange: 320,
     magazine: 1, reload: 2.8, suppression: 10, movePenalty: .08,
     energyCost: 18, windup: .36, stagger: .16, knockback: 8 },

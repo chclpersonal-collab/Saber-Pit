@@ -14,8 +14,10 @@ const forceDescriptions:Record<string,string> = {
   force_burst: 'Close Impact',
   force_pulse: 'Long Reach',
 };
+// Arena names only: Classic keeps content.ts names because its frozen save and replay oracle compares them.
+const forceNames:Record<string,string> = { force_push: 'Push', force_burst: 'Burst', force_pulse: 'Pulse' };
 export const ARCADE_FORCE_FAMILIES = Object.freeze(FORCE_FAMILIES.map(({ id, name }) =>
-  Object.freeze({ id, label: name, description: forceDescriptions[id] })));
+  Object.freeze({ id, label: forceNames[id] ?? name, description: forceDescriptions[id] })));
 
 const forceTuning = Object.freeze({
   force_push: Object.freeze({ damage: 1, reach: 1, arc: 1, cost: 1, windup: 1, recovery: 1, knock: 1, recoil: 1 }),
