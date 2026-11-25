@@ -422,7 +422,7 @@
 :root body.pit-v5 dialog.guide a{color:var(--v5-blue)}
 :root body.pit-v5 dialog.guide select{appearance:none;min-height:44px;padding:0 38px 0 14px;border-radius:var(--v5-r-sm);border:2px solid var(--v5-line);color:var(--v5-white);font:700 15px var(--v5-ui);background:var(--v5-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffd23f' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 14px center;box-shadow:none;outline-offset:2px}
 :root body.pit-v5 dialog.guide select:focus-visible{outline:3px solid var(--v5-gold)}
-:root body.pit-v5 dialog.guide :is(button:not(.guide-head button)){border-radius:var(--v5-r-sm);border:2px solid var(--v5-line);background:var(--v5-panel-hi);color:var(--v5-white);font-family:var(--v5-ui)}
+:root body.pit-v5 dialog.guide :is(button:not(.guide-head button,.injury-fold)){border-radius:var(--v5-r-sm);border:2px solid var(--v5-line);background:var(--v5-panel-hi);color:var(--v5-white);font-family:var(--v5-ui)}
 :root body.pit-v5 dialog.guide .fighter-damage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
 :root body.pit-v5 dialog.guide .fighter-damage>div{display:flex;flex-direction:column-reverse;gap:4px;padding:10px 14px;border:0;border-radius:var(--v5-r-sm);background:var(--v5-ink);text-align:center}
 :root body.pit-v5 dialog.guide .fighter-damage dt{color:var(--v5-muted);font:800 .72rem/1.2 var(--v5-ui);letter-spacing:.06em;text-transform:uppercase}
@@ -445,8 +445,41 @@
 @media (max-width:640px){
   :root body.pit-v5 dialog.guide[open]{padding-inline:max(12px,env(safe-area-inset-left))}
   :root body.pit-v5 dialog.guide :is(section,.injury-report){padding:14px 12px}
-  :root body.pit-v5 dialog.guide .injury-scroll{margin-inline:-4px}
+  :root body.pit-v5 dialog.guide .injury-top label{width:100%}
   :root body.pit-v5 dialog.guide table{font-size:13px}
   :root body.pit-v5 dialog.guide :is(thead th,tbody th,tbody td){padding:8px 5px}
   :root body.pit-v5 dialog.guide .match-moves,:root body.pit-v5 dialog.guide .report-layout{grid-template-columns:1fr}
+}
+/* report pages: no helper paragraphs; notes live behind a small (i) */
+:root body.pit-v5 dialog.guide .v6-title{display:flex;align-items:center;gap:10px;flex:1;min-width:0;position:relative}
+:root body.pit-v5 dialog.guide .v6-title :is(h2,h3){margin:0;flex:none}
+:root body.pit-v5 dialog.guide .v6-info{position:relative;flex:none}
+:root body.pit-v5 dialog.guide .v6-info>summary{list-style:none;display:grid;place-items:center;width:28px;height:28px;min-height:0;padding:0;border-radius:50%;border:2px solid var(--v5-line);background:var(--v5-ink);color:var(--v5-soft);font:800 15px/1 Georgia,"Times New Roman",serif;font-style:italic;cursor:pointer}
+:root body.pit-v5 dialog.guide .v6-info>summary::-webkit-details-marker{display:none}
+:root body.pit-v5 dialog.guide .v6-info>summary::marker{content:""}
+:root body.pit-v5 dialog.guide .v6-info[open]>summary{background:var(--v5-gold);border-color:var(--v5-gold);color:var(--v5-ink)}
+:root body.pit-v5 dialog.guide .v6-info>summary:focus-visible{outline:3px solid var(--v5-gold);outline-offset:2px}
+:root body.pit-v5 dialog.guide .v6-info-pop{position:absolute;z-index:5;top:calc(100% + 8px);left:-10px;width:min(340px,calc(100vw - 40px));padding:12px 14px;border-radius:var(--v5-r);border:2px solid var(--v5-line);background:var(--v5-ink);box-shadow:var(--v5-shadow);display:grid;gap:8px}
+:root body.pit-v5 dialog.guide .v6-info-pop p{margin:0;font:600 13px/1.4 var(--v5-ui);color:var(--v5-soft);text-transform:none;letter-spacing:0}
+:root body.pit-v5 dialog.guide .v6-info-pop .keys-note{display:block}
+:root body.pit-v5 dialog.guide #fighterAppearance>summary{display:none}
+:root body.pit-v5 dialog.guide #fighterAppearance{padding:0;margin:0 0 4px}
+:root body.pit-v5 dialog.guide #fighterAppearanceDetails{margin:0;font-size:.85rem;color:var(--v5-muted)}
+:root body.pit-v5 dialog.guide button.injury-fold{appearance:none;border:0;background:none;box-shadow:none;padding:0;margin:0;min-height:0;border-radius:0;font:inherit;color:inherit;text-align:left;cursor:default}
+:root body.pit-v5 dialog.guide .injury-top .v6-title{flex:1 1 auto}
+@media (max-width:640px){
+  :root body.pit-v5 dialog.guide .injury-scroll thead th:nth-child(n+3){display:none}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;border-bottom:1px solid rgb(90 71 184 / .45)}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody tr:last-child{border-bottom:0}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody :is(th,td){border:0}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody td:nth-child(n+3){display:none;grid-column:1/-1;padding:2px 8px 2px 30px;color:var(--v5-soft);font-size:13px}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody tr[data-open] td:nth-child(n+3){display:flex;justify-content:space-between}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody tr[data-open] td:last-child{padding-bottom:10px}
+  :root body.pit-v5 dialog.guide .injury-scroll tbody td[data-label]::before{content:attr(data-label);color:var(--v5-muted);font-weight:800}
+  :root body.pit-v5 dialog.guide .injury-scroll :is(table,thead,tbody){display:block;width:100%;min-width:0}
+  :root body.pit-v5 dialog.guide .injury-scroll thead tr{display:grid;grid-template-columns:minmax(0,1fr) auto}
+  :root body.pit-v5 dialog.guide button.injury-fold{cursor:pointer;display:flex;align-items:center;gap:8px;min-height:32px}
+  :root body.pit-v5 dialog.guide .injury-fold::before{content:"";width:0;height:0;border-left:6px solid var(--v5-gold);border-top:5px solid transparent;border-bottom:5px solid transparent;transition:transform .15s}
+  :root body.pit-v5 dialog.guide .injury-fold[aria-expanded=true]::before{transform:rotate(90deg)}
+  :root body.pit-v5 dialog.guide button.injury-fold:focus-visible{outline:3px solid var(--v5-gold);outline-offset:2px;border-radius:6px}
 }
