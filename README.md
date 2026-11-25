@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-Open <http://127.0.0.1:4173>. For the original mode, open [Classic](http://127.0.0.1:4173/classic.html). Set the `PORT` environment variable to use a different port.
+Open <http://127.0.0.1:4173>. Set the `PORT` environment variable to use a different port.
 
 The local server serves the generated website from `build/dist/`. Arena, tournaments, Style Lab, Idle RPG, browser-local saves and JSON backup/import work without an account or server-side service. Linked-device saves require an authenticated backend that is not included here. Leave linked saves off for local use.
 

@@ -8,9 +8,9 @@ const read=(f)=>readFileSync(new URL('../dist/'+f,import.meta.url),'utf8');
 const startup=read('loomen-boot.js').replace(/^export\s*\{\s*\};?\s*$/m,'');
 function harness({ready=true,good=true,view='menu',skin='ready'}={}){
  assert.ok(startup,'Startup controller is in the Arena document');
- const result={gate:true,inert:true,boot:{hidden:false},retry:{hidden:true},status:{textContent:'Loading…'},frame:null,timeout:null};
+ const result={gate:true,inert:true,boot:{hidden:false,dataset:{}},status:{textContent:'Loading…'},frame:null,timeout:null};
  const body={dataset:{v6:'home',view},hasAttribute:()=>result.gate,removeAttribute:()=>{result.gate=false;}};
- const elements={loomenBoot:result.boot,loomenBootStatus:result.status,loomenBootRetry:result.retry,
+ const elements={loomenBoot:result.boot,loomenBootStatus:result.status,
   app:{removeAttribute:(name)=>{if(name==='inert')result.inert=false;}},v6Home:ready?{}:null};
  let settle,fail,loaded=Promise.resolve();
  const entry=new Promise((r,j)=>{settle=r;fail=j;});
@@ -28,10 +28,15 @@ test('the first HTML frame is purple and the legacy Arena is hidden and inert, w
  assert.match(html,/<noscript><p>JavaScript Required<\/p><\/noscript>/);
  assert.match(html,/<script type="module" src="\.\/loomen-boot\.js[^"]*"><\/script><\/body>/,'startup gate runs from src, not an inline script');
 });
+test('Reload shows from HTML alone after 8s, so a missing or blocked loomen-boot.js still offers it',()=>{
+ assert.match(html,/<a id="loomenBootRetry" href="">Reload<\/a>/);
+ assert.match(html,/<style>[\s\S]*?#loomenBootRetry\{animation:loomenLate 0s 8s both\}[\s\S]*?@keyframes loomenLate\{from\{visibility:hidden\}to\{visibility:visible\}\}[\s\S]*?<\/style>/);
+ assert.match(html,/#loomenBoot\[data-failed\] #loomenBootRetry\{animation:none\}/);
+});
 test('timeout does not reveal the legacy app and a successful v6 still replaces the loader',async()=>{
  const h=harness();
  h.timeout();
- assert.equal(h.retry.hidden,false);
+ assert.equal(h.boot.dataset.failed,'true');
  assert.equal(h.gate,true);
  assert.equal(h.inert,true);
  await h.complete();
@@ -48,7 +53,7 @@ test('blocked boot and shell-not-mounted boot keep the older layout hidden and o
   h.frame?.();
   assert.equal(h.gate,true);
   assert.equal(h.inert,true);
-  assert.equal(h.retry.hidden,false);
+  assert.equal(h.boot.dataset.failed,'true');
   assert.match(h.status.textContent,/Load failed/);
  }
 });

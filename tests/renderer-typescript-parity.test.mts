@@ -1,10 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 const moduleFrom=(file: string,migrated: boolean)=>import(new URL((migrated?'../dist/':'../baseline/dist/')+file+'.js',import.meta.url));
-const [display,baseline,{createRenderFrame:render},{createRenderFrame:renderBaseline}]=await Promise.all([
-  moduleFrom('arcade-display',true),moduleFrom('arcade-display',false),
-  moduleFrom('render-interpolation',true),moduleFrom('render-interpolation',false),
-]);
+const [display,baseline]=await Promise.all([moduleFrom('arcade-display',true),moduleFrom('arcade-display',false)]);
 
 test('typed Arcade presentation preserves wrapped turning, airborne phase boundaries and fixed clock',()=>{
   const before=[{id:'A',x:31,y:78,face:3.10,action:'jump',actionTime:.12,
@@ -24,15 +21,4 @@ test('typed Arcade presentation preserves wrapped turning, airborne phase bounda
   for(const t of [0,17,29,350,364,389,418,435])
     assert.equal(display.displayDelta(c,t),baseline.displayDelta(old,t));
   assert.deepEqual(c,old);
-});
-
-test('typed Classic frame preserves interpolation, identity and disabling it',()=>{
-  const game={tick:123,alpha:.6,soldiers:[{id:5,x:80,y:25,prevX:40,progress:2}],
-    objective:{x:21,y:1,prevX:20,heldBy:5},frontLine:30,prevFrontLine:10,effects:[{id:7}]};
-  for(const interpolate of [true,false]){
-    const result=render(game,{interpolate});
-    assert.deepEqual(result,renderBaseline(game,{interpolate}));
-    assert.equal(result.soldiers[0],result.fighters.get(5));
-  }
-  assert.equal(game.soldiers[0].x,80);
 });

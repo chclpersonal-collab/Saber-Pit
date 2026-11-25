@@ -8,6 +8,7 @@ const source=new URL('src/',root), out=new URL('build/',root), inputAssets=new U
 const stagedPath=await mkdtemp(fileURLToPath(new URL('.saber-build-',root)));
 const staged=pathToFileURL(stagedPath+'/');
 const distOut=new URL('dist/',staged);
+const RETIRED=new Set(['animation-lab.js','app.js','arena-impact.js','arena-stage.js','audio.js','camera.js','choreography.js','copy.js','input.js','pose-rig.js','preferences.js','presentation-clock.js','presentation-effects.js','quick-fights.js','render-interpolation.js','ui-state.js']);
 const executable=/\.(?:[cm]?js|jsx)$/i;
 const options:ts.CompilerOptions={
   target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022,verbatimModuleSyntax:true,isolatedModules:true,
@@ -43,7 +44,6 @@ try {
     if(executable.test(name))throw new Error('Executable JavaScript in checked-in assets: '+name);
     return true;
   }});
-  await cp(new URL('animation-lab.html',source),new URL('animation-lab.html',distOut));
   for(const base of ['docs','package.json']){
     await cp(new URL(base,root),new URL(base,staged),{recursive:true});
   }
@@ -54,7 +54,9 @@ try {
   const reference=await restoreLegacyFixtures(new URL('fixtures/',root),staged);
   const names=(await readdir(source)).filter(name=>name.endsWith('.ts')&&!name.endsWith('.d.ts'));
   const ports=new Set(names.map(name=>name.replace(/\.ts$/,'.js')));
-  if(reference.some(x=>!ports.has(x)))throw new Error('Missing TS ports: '+reference.filter(x=>!ports.has(x)).join(', '));
+  // Screens retired in v6 (Classic, its renderer and the animation lab) stay only as frozen replay oracles.
+  const missing=reference.filter(x=>!ports.has(x)&&!RETIRED.has(x));
+  if(missing.length)throw new Error('Missing TS ports: '+missing.join(', '));
   for(const name of names)await transpile(new URL(name,source),new URL(name.replace(/\.ts$/,'.js'),distOut),true);
   for(const page of (await readdir(distOut)).filter(file=>file.endsWith('.html'))){
     const markup=await readFile(new URL(page,distOut),'utf8');

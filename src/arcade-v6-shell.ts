@@ -129,8 +129,6 @@ for(const id of ['autoDuelStart','formsGuide','rankSetup']){
  const item=get(id);
  if(item){item.classList.add('v6-cta','v6-cta-2');playToolRow.append(item);}
 }
-const classic=lobby?.querySelector<HTMLAnchorElement>('a[href="./classic.html"]');
-if(classic){classic.classList.add('v6-cta','v6-cta-2');classic.textContent='Legacy Classic';playToolRow.append(classic);}
 for(const [label,href] of [['Style Lab','./style-lab.html'],['Idle RPG','./idle-rpg.html']]){
  const link=el('a','v6-cta v6-cta-2',label);link.href=href;playToolRow.append(link);
 }

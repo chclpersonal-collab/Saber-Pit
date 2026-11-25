@@ -272,14 +272,3 @@ for (const scenario of LIVE_BASELINES) {
     }
   });
 }
-
-test('Phase 6 raises the presentation frame clamp while excluding rejected prototype logic', () => {
-  const app = readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8');
-  assert.match(app, /Math\.min\(\.25,\s*\(now - lastTime\)\s*\/\s*1000\)/);
-  for (const file of ['app.js', 'sim.js', 'choreography.js', 'combat-sequences.js', 'pose-rig.js']) {
-    const source = readFileSync(new URL(`../dist/${file}`, import.meta.url), 'utf8');
-    assert.doesNotMatch(source, /(?:from\s*|import\s*\()["'][^"']*(?:attack-timing|locomotion)\.js/);
-  }
-  assert.equal(existsSync(new URL('../dist/attack-timing.js', import.meta.url)), false);
-  assert.equal(existsSync(new URL('../dist/locomotion.js', import.meta.url)), false);
-});

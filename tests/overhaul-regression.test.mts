@@ -4,8 +4,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { startAirborne } from '../dist/airborne.js';
-import { sampleFighterRig } from '../dist/pose-rig.js';
-import { sampleCombatPose } from '../dist/choreography.js';
 import { getFormMoves } from '../dist/combat-forms.js';
 import { FORMS } from '../dist/content.js';
 import { createGame, step, setForm } from '../dist/sim.js';
@@ -28,47 +26,6 @@ function checkpoint(game) {
   assert.deepEqual(authoritativeState(loaded.game), authoritativeState(game));
   return loaded.game;
 }
-
-for (const dual of [false, true]) for (const reducedMotion of [false, true]) {
-  test(`overhaul every form pose is finite, repeatable and read-only (dual=${dual}, reduced=${reducedMotion})`, () => {
-    for (const form of Object.keys(FORMS)) for (const move of getFormMoves(form)) {
-      for (const kind of ['saber', 'force']) for (const tick of [0, 4, 11, 18, 20, 24, 41, 60]) {
-        const fighter = { form, x: 40, y: 60, facing: 1, comboIndex: 1, comboUntil: 70,
-          attack: tick < 20 ? { kind, startedTick: 0, resolveTick: 20, form, moveId: move.id, offhand: dual } : null };
-        const options = { fighter, tick, motion: move.motion, dual, reducedMotion, aimAngle: .37,
-          swing: tick >= 20 ? { tick: 20, outcome: 'hit', offhand: dual, form, moveId: move.id } : null };
-        const before = structuredClone(options);
-        const pose = sampleCombatPose(options);
-        finiteNumbers(pose);
-        assert.equal(typeof pose.phase, 'string');
-        assert.deepEqual(sampleCombatPose(options), pose, `${form}/${move.id}/${kind}/${tick} is repeatable`);
-        assert.deepEqual(options, before, 'render sampling cannot mutate combat state');
-        if (reducedMotion) {
-          assert.equal(pose.trail, 0);
-          assert.equal(pose.lean, 0);
-          assert.equal(pose.crouch, 0);
-        }
-      }
-    }
-  });
-}
-
-test('overhaul Ataru authored moves have distinct pose trajectories, not one repeated jump silhouette', () => {
-  const signatures = getFormMoves('ataru').map(move => JSON.stringify([2, 7, 12, 17, 19].map(tick => {
-    const pose = sampleCombatPose({ fighter: { form: 'ataru', attack: { kind: 'saber', form: 'ataru', moveId: move.id, startedTick: 0, resolveTick: 20 } }, tick, motion: move.motion });
-    return pose;
-  })));
-  assert.equal(new Set(signatures).size, getFormMoves('ataru').length, 'each authored Ataru move must remain visually distinguishable');
-});
-
-test('overhaul guard, stagger and parry remain finite without creating combat state', () => {
-  for (const fighter of [{ guard: true }, { staggerUntil: 12 }, {}]) for (const reducedMotion of [false, true]) {
-    const options = { fighter, tick: 5, block: { tick: 2 }, reducedMotion, dual: true };
-    const before = structuredClone(options);
-    finiteNumbers(sampleCombatPose(options));
-    assert.deepEqual(options, before);
-  }
-});
 
 for (const phase of ['active', 'ended']) test(`overhaul genuine v08 ${phase} save keeps career history and original bytes`, () => {
   const encoded = fs.readFileSync(new URL(`../docs/evidence/v0.9-v08-fixtures/${phase}.json`, import.meta.url), 'utf8');
@@ -101,28 +58,6 @@ for (const modifier of ['standard', 'saber_only']) test(`overhaul active multi-f
   finiteNumbers(game.soldiers);
 });
 
-
-test('overhaul every authored move produces a finite attached depth rig across facings and accessibility modes', () => {
-  for (const form of Object.keys(FORMS)) for (const move of getFormMoves(form)) {
-    for (const facing of [-1, 1]) for (const reducedMotion of [false, true]) for (const dual of [false, true]) for (const tick of [0, 7, 13, 19, 28]) {
-      const fighter = { form, facing, x: 10, y: 20, attack: tick < 20 ? { kind: 'saber', form, moveId: move.id, startedTick: 0, resolveTick: 20 } : null };
-      const swing = tick >= 20 ? { tick: 20, form, moveId: move.id, outcome: 'hit' } : null;
-      const pose = sampleCombatPose({ fighter, tick, swing, motion: move.motion, move, reducedMotion, dual });
-      const options = { fighter, tick, pose, swing, motion: move.motion, move, reducedMotion, dual };
-      const before = structuredClone(options), rig = sampleFighterRig(options);
-      finiteNumbers(rig);
-      assert.deepEqual(sampleFighterRig(options), rig);
-      assert.deepEqual(options, before);
-      assert.equal(rig.blades.length, dual ? 2 : 1);
-      for (const blade of rig.blades) {
-        assert.ok(rig.joints[blade.hand]); assert.ok(rig.projected[blade.tip]);
-        const hand = rig.joints[blade.hand], tip = rig.joints[blade.tip];
-        assert.ok(Math.abs(Math.hypot(tip.x - hand.x, tip.y - hand.y, tip.z - hand.z) - blade.length) < 1e-8, `${form}/${move.id} has a rigid attached blade`);
-        if (reducedMotion) assert.equal(blade.trailOpacity, 0);
-      }
-    }
-  }
-});
 
 test('overhaul all expanded combo indices round-trip and out-of-range indices still reject', () => {
   for (const form of Object.keys(FORMS)) {

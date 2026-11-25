@@ -1177,7 +1177,7 @@ function refreshSavedRunUI(){
   $('continueRun').hidden=!savedCareer;if(homeContinue)homeContinue.hidden=!savedCareer;
   $('autoDuelSaved').hidden=!savedCareer||!canAutoSaved(savedCareer);
   $('resumeCareer').disabled=!savedCareer;
-  $('careerStatus').textContent=imported?'Classic ranks selected':savedCareer?titleCase(savedCareer.mode)+' round '+savedCareer.round+' saved':'No saved run';
+  $('careerStatus').textContent=imported?'Imported ranks selected':savedCareer?titleCase(savedCareer.mode)+' round '+savedCareer.round+' saved':'No saved run';
  }
 function openRanks(){
   savedCareer=readCareerForUI();refreshSavedRunUI();$('rankDialog').showModal();
@@ -1190,8 +1190,8 @@ $('useClassic').addEventListener('click',async()=>{
     const result=loadCampaign();
     if(!result.game){$('careerStatus').textContent=result.error;return;}
     imported=classicCareers(result.game);
-    $('careerStatus').textContent='Classic ranks copied';
-  }catch{$('careerStatus').textContent='Classic save unreadable';}
+    $('careerStatus').textContent='Ranks imported';
+  }catch{$('careerStatus').textContent='Old save unreadable';}
   finally{button.disabled=false;}
 });
 const savedSetup=(next:Career)=>normalizeSetup(next.setup??{...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});

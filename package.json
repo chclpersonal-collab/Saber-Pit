@@ -14,7 +14,6 @@
     "audit:saber": "npm run build && node build/scripts/audit-saber.mjs",
     "audit:duels": "npm run build && node build/scripts/audit-duels.mjs",
     "audit:frontiers": "npm run build && node build/scripts/audit-frontiers.mjs",
-    "test:browser": "npm run build && node build/scripts/browser-v09.mjs",
     "audit:ranks": "npm run build && node build/scripts/audit-ranks-v09.mjs",
     "audit:v07": "npm run build && node build/scripts/audit-v07.mjs",
     "audit:v08": "npm run build && node build/scripts/audit-v08.mjs",

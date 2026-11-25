@@ -28,3 +28,9 @@ test('Home CSS covers narrow and coarse desktop-width portrait and explicitly hi
   assert.match(css,/hub-continue\[hidden\]\{display:none\}/);
   assert.match(css,/min-height:44px/);assert.match(css,/prefers-reduced-motion:reduce/);
 });
+test('Only v6 screens ship: old Classic and How to Play addresses land on the v6 home',()=>{
+  for(const old of ['classic.html','guide.html'])assert.match(read(old),/^<!doctype html><meta charset="utf-8"><title>LOOMEN<\/title><meta http-equiv="refresh" content="0;url=\.\/index\.html">/);
+  for(const page of ['index.html','gauntlet.html','tournament.html','moba.html','backup.html','idle-rpg.html','style-lab.html','credits.html'])
+    assert.doesNotMatch(read(page),/href="\.?\/?(?:classic|guide|animation-lab)\.html|style\.css/,page);
+  assert.doesNotMatch(readFileSync(new URL('../dist/arcade-v6-shell.js',import.meta.url),'utf8'),/classic\.html|guide\.html/);
+});

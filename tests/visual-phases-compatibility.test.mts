@@ -7,7 +7,6 @@ import { createHash } from 'node:crypto';
 import * as candidate from '../dist/sim.js';
 import * as persistence from '../dist/persistence.js';
 import { authoritativeState } from './helpers/presentation-state.mjs';
-import { createPresentationClock } from '../dist/presentation-clock.js';
 
 const fixture = new URL('./fixtures/phase1-reference/', import.meta.url);
 const digests = JSON.parse(readFileSync(new URL('SHA256.json', fixture), 'utf8'));
@@ -21,35 +20,6 @@ const memory = () => {
   const map = new Map();
   return { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: key => map.delete(key) };
 };
-
-for (const hz of [60, 120, 144]) {
-  test(`presentation wall-clock holds preserve the actual tick sequence at ${hz} Hz`, () => {
-    const options = { autoCommand: true, teamSizes: [2, 2], forms: [['ataru', 'makashi'], ['juyo', 'soresu']] };
-    const a = baseline.createGame(120120, options), b = candidate.createGame(120120, options);
-    const clock = createPresentationClock(); clock.reset(b);
-    let holds = 0, frozenFrames = 0, allowedSeconds = 0;
-    for (let frame = 0; frame < hz * 30 && b.status === 'playing'; frame++) {
-      const beforeTick = b.tick;
-      let remaining = 1 / hz;
-      // The app integration spends real seconds, then applies speed to each
-      // permitted simulation slice. Baseline receives only those exact slices.
-      while (remaining > 1e-12 && b.status === 'playing') {
-        remaining = clock.consume(remaining);
-        if (remaining <= 1e-12) break;
-        const dt = Math.min(1 / 60, remaining);
-        candidate.step(b, dt); baseline.step(a, dt); allowedSeconds += dt;
-        if (clock.observe(b)) holds++;
-        remaining -= dt;
-      }
-      if (beforeTick === b.tick && clock.stopped) frozenFrames++;
-      if (frame % hz === 0) assert.deepEqual(authoritativeState(b), authoritativeState(a));
-    }
-    assert.ok(holds > 0, 'real resolved saber contacts trigger stop');
-    assert.ok(frozenFrames > 0, 'at least one display frame freezes simulation');
-    assert.ok(allowedSeconds < 30, 'stopped seconds are not replayed into simulation');
-    assert.deepEqual(authoritativeState(b), authoritativeState(a));
-  });
-}
 
 for (const scenario of [
   { seed: 120120, options: { autoCommand: true, teamSizes: [2, 2], forms: [['ataru', 'ataru'], ['soresu', 'juyo']] } },

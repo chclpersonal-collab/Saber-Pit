@@ -199,17 +199,6 @@ test('v7 rejects malformed new config and mastery fields without overwriting a c
   }
 });
 
-test('v7 static DOM exposes all setup, next-round and accessible target-feedback controls', () => {
-  const html = fs.readFileSync(new URL('../dist/classic.html', import.meta.url), 'utf8'), app = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8');
-  for (const id of ['setupStartingOptions', 'setupStartingRank0', 'setupStartingRank1', 'setupStartingSaber0', 'setupStartingSaber1', 'setupStartingForce0', 'setupStartingForce1', 'setupStartingForceQuality0', 'setupStartingForceQuality1', 'startingHint0', 'startingHint1', 'setupMatchMode', 'setupRoundDuration', 'setupDoctrine', 'setupEnemyDoctrine', 'setupFormation0', 'setupFormation1', 'setupPriority0', 'setupPriority1', 'nextEnemyDoctrine', 'nextFormation0', 'nextFormation1', 'nextPriority0', 'nextPriority1', 'cycleTargetBtn', 'targetStatus', 'combatStatus', 'unitMastery', 'unitCommendations', 'resultMastery', 'resultCommendations', 'resultRules', 'matchRulesHint', 'footerRules']) {
-    assert.equal((html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length, 1, `${id} must exist once`); const dynamicId = id.replace(/[01]$/, '${team}');
-    assert.ok(app.includes(id) || app.includes(dynamicId) || (id === 'cycleTargetBtn' && app.includes('[data-player-action]')) || id === 'setupStartingOptions', `${id} must be wired`);
-  }
-  for (const field of ['matchMode', 'roundDuration', 'formations', 'targetPriorities']) assert.ok(app.includes(field));
-  assert.match(html, /data-player-action="cycle"/); assert.match(app, /visibleEnemyTargets/); assert.match(app, /document\.activeElement\s*===\s*canvas/);
-  assert.match(html, /id="combatStatus"[^>]*aria-live="polite"|aria-live="polite"[^>]*id="combatStatus"/);
-});
-
 test('v7 coordinated tampering with lifetime and report form totals is rejected against round evidence', () => {
   const g = createGame(713, { teamSizes: [1, 1], mapSize: 'small', mode: 'spectate', roundDuration: 45 }); step(g, 45);
   assert.equal(g.status, 'ended'); const mem = storage(); assert.equal(saveCampaign(g, mem).ok, true);
@@ -230,16 +219,6 @@ test('v7 manual attack windup keeps facing and credits its original form after a
   assert.equal(engine.setForm(g, 0, 'niman'), true); engine.setPlayerInput(g, { moveX: -1 }); step(g, 1 / 60); assert.equal(a.facing, 1);
   engine.setPlayerInput(g, { moveX: 0 }); step(g, .5);
   assert.ok(a.formPractice.shii_cho.damage > 0); assert.equal(a.formPractice.niman.damage, 0); assert.equal(a.lastOutcome.targetId, b.id);
-});
-
-test('v7 browser entrypoint imports only existing named runtime exports', async () => {
-  const app = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8');
-  const imports = [...app.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"]/g)];
-  assert.ok(imports.length >= 10);
-  for (const [, names, path] of imports) {
-    const namespace = await import(new URL(path, new URL('../dist/app.js', import.meta.url)));
-    for (const name of names.split(',').map(value => value.trim().split(/\s+as\s+/)[0])) assert.ok(Object.hasOwn(namespace, name), `${path} is missing ${name}`);
-  }
 });
 
 test('v7 friendly formation separation cannot move or steer the manually controlled fighter', () => {

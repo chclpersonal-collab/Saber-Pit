@@ -13,6 +13,10 @@ body[data-loomen-boot] #app{position:fixed!important;inset:0;pointer-events:none
 #loomenBoot p{margin:6px 0 16px;color:#cfc8f5}
 #loomenBoot svg{width:58px;height:58px;color:#ffd23f}
 #loomenBoot a{display:inline-block;padding:10px 16px;border-radius:10px;background:#ffd23f;color:#0c0624;text-decoration:none}
+/* Reload shows after 8s even if loomen-boot.js itself never runs; a failure the script sees shows it at once. */
+#loomenBootRetry{animation:loomenLate 0s 8s both}
+#loomenBoot[data-failed] #loomenBootRetry{animation:none}
+@keyframes loomenLate{from{visibility:hidden}to{visibility:visible}}
 body[data-seat-opening] #entry{visibility:hidden}
 </style><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=6.0.1-meta"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v6-shell.css?v=6.0.1-copy"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
 <body class="pit-v3 pit-v4 pit-v5" data-loomen-boot>
@@ -21,7 +25,7 @@ body[data-seat-opening] #entry{visibility:hidden}
     <svg viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#140b2e" stroke-width="3" fill="none"/></svg>
     <h1>LOOMEN</h1>
     <p id="loomenBootStatus" role="status">Loading…</p>
-    <a id="loomenBootRetry" href="" hidden>Reload</a>
+    <a id="loomenBootRetry" href="">Reload</a>
     <noscript><p>JavaScript Required</p></noscript>
   </div>
 </section>
@@ -121,7 +125,7 @@ body[data-seat-opening] #entry{visibility:hidden}
       </details>
       <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Elo…</p>
       <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Play</button>
-      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="AI vs AI">Auto Battle</button><button id="formsGuide" type="button">Forms</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
+      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="AI vs AI">Auto Battle</button><button id="formsGuide" type="button">Forms</button><button id="rankSetup" type="button">Saves</button></div></div>
       <output class="sr" id="setupStatus"></output>
     </form>
   </section>
@@ -243,7 +247,7 @@ body[data-seat-opening] #entry{visibility:hidden}
     <div class="guide-head"><div><p class="eyebrow">Careers</p><h2 id="rankTitle">Saves</h2></div><form method="dialog"><button type="submit">Done</button></form></div>
     
 
-    <div class="career-actions"><button type="button" id="useClassic">Classic Ranks</button><button type="button" id="resumeCareer">Continue</button></div>
+    <div class="career-actions"><button type="button" id="useClassic">Import Ranks</button><button type="button" id="resumeCareer">Continue</button></div>
     <p class="report-note" id="careerStatus" role="status"></p>
 
   </dialog>
