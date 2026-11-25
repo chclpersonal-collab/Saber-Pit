@@ -37,22 +37,28 @@ function sync(){replace.disabled=!inspected||!confirm.checked||!current().length
 function resetPreview(){
   inspected=null;preview.hidden=true;confirm.checked=false;sections.replaceChildren();sync();
 }
-function summary(k: string,entry: CareerSummary | QuestSummary | ArenaSummary){
-  if(k==='arena'){const item=entry as ArenaSummary;return 'Round '+item.round+' · '+item.fighters+' fighters · '+item.ratedFighters+' rated slots';}
-  if(k==='quest'){const item=entry as QuestSummary;return item.questStatus+(item.attempts?' · Attempt '+item.attempts:'');}
+function facts(k: string,entry: CareerSummary | QuestSummary | ArenaSummary): string[]{
+  if(k==='arena'){const item=entry as ArenaSummary;return ['Round '+item.round,item.fighters+' Fighters',item.ratedFighters+' Rated'];}
+  if(k==='quest'){const item=entry as QuestSummary;return [item.questStatus,...(item.attempts?['Attempt '+item.attempts]:[])];}
   const item=entry as CareerSummary;
-  if(k==='gauntlet')return item.seasons+' in-game weeks · '+item.records+' fighters';
-  const detail=[item.seasons+' season'+(item.seasons===1?'':'s'),item.records+(k==='duel'?' fighters':' teams'),item.peaks+' peak records'];
+  if(k==='gauntlet')return [item.seasons+' Weeks',item.records+' Fighters'];
+  const detail=[item.seasons+(item.seasons===1?' Season':' Seasons'),item.records+(k==='duel'?' Fighters':' Teams'),item.peaks+' Peaks'];
   if(k==='duel')detail.push(item.heroes+' Saved Heroes');
-  return detail.join(' · ');
+  return detail;
+}
+/** Facts in a row: separate v6-meta spans instead of a "·" chain. */
+function summary(k: string,entry: CareerSummary | QuestSummary | ArenaSummary){
+  const small=node('small');
+  facts(k,entry).forEach((text,i)=>{const span=node('span',text);span.className='v6-meta';if(i)small.append(' ');small.append(span);});
+  return small;
 }
 picker.addEventListener('change',async()=>{
   const ticket=++revision;
   resetPreview();
   const file=picker.files?.[0];
   if(!file){announce('');return;}
-  if(file.size>MAX_BACKUP_BYTES){announce('This file exceeds the 3.1 MB backup limit.','error');return;}
-  announce('Checking backup…');
+  if(file.size>MAX_BACKUP_BYTES){announce('File over 3.1 MB','error');return;}
+  announce('Checking backup');
   try{
     const result=inspectArcadeBackup(await file.text());
     if(ticket!==revision)return;
@@ -61,13 +67,13 @@ picker.addEventListener('change',async()=>{
     for(const [k,item] of Object.entries(result.summary)){
       const row=node('label'), checkbox=node('input'), label=node('span');
       checkbox.type='checkbox';checkbox.value=k;checkbox.checked=true;
-      label.append(node('strong',item.label),node('small',summary(k,item)));
+      label.append(node('strong',item.label),summary(k,item));
       row.className='section-row';row.append(checkbox,label);sections.append(row);
     }
     const date=new Date(result.bundle.createdAt??'');
-    $('backupDate').textContent=Number.isFinite(date.valueOf())?'Backup created '+date.toLocaleString():'';
-    preview.hidden=false;sync();announce('Backup checked. Review the sections before replacing saves.','success');
-  }catch{if(ticket===revision)announce('The selected file could not be opened.','error');}
+    $('backupDate').textContent=Number.isFinite(date.valueOf())?'Created '+date.toLocaleString():'';
+    preview.hidden=false;sync();announce('Backup ready to review','success');
+  }catch{if(ticket===revision)announce('File could not open','error');}
 });
 download.addEventListener('click',()=>{
   const result=exportArcadeBackup();
@@ -79,8 +85,8 @@ download.addEventListener('click',()=>{
     document.body.append(a);
     try{a.click();}finally{a.remove();}
     deferReminder(WEEK);
-    announce('Backup ready. Look in your downloads.','success');
-  }catch{announce('The browser could not start the download.','error');}
+    announce('Backup downloaded','success');
+  }catch{announce('Download failed','error');}
   finally{if(url)setTimeout(()=>URL.revokeObjectURL(url!),2000);}
 });
 confirm.addEventListener('change',sync);
@@ -90,5 +96,5 @@ replace.addEventListener('click',()=>{
   const result=restoreArcadeBackup(inspected,undefined,{sections:current()});
   if(!result.ok){announce(result.error,'error');return;}
   resetPreview();picker.value='';refreshReminder();
-  announce('Selected saves restored. Open a game mode or reload any game tabs that are already open.','success');
+  announce('Saves restored, reload game tabs','success');
 });

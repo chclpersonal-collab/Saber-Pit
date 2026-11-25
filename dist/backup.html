@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#090909">
-  <title>Manage saves · Loomen</title>
+  <title>Saves | Loomen</title>
   <link rel="stylesheet" href="./backup.css?v=5.1.0">
   <script type="module" src="./backup.js?v=5.1.0"></script>
   <script type="module" src="./cloud-sync-panel.js?v=5.1.0"></script>
@@ -13,8 +13,8 @@
 <body class="ops-shell ops-backup">
   <main class="backup-shell">
     <header class="ops-dock">
-    <a class="ops-brand" href="./index.html" aria-label="Loomen Arena">
-      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>LOOMEN</strong><small>TACTICAL COMBAT</small></span>
+    <a class="ops-brand" href="./index.html" aria-label="Home">
+      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>LOOMEN</strong><small>v6.0.1</small></span>
     </a>
     <nav class="ops-nav" aria-label="Loomen modes">
       <a href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#swords"/></svg><span>Arena</span><small aria-hidden="true">01</small></a>
@@ -29,59 +29,55 @@
       <div class="symbol ops-hero-art" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none"><path d="M50 7 85 18v48L50 92 15 66V18L50 7Z" stroke-width="1"/><path d="M50 15 78 24v37L50 82 22 61V24L50 15Z" stroke-width="2"/><path d="M37 38h26v26H37zM42 38v7h16v-7m-8 12v10m-5-5h10" stroke-width="2"/></svg>
       </div>
-      <div class="ops-hero-copy"><p class="eyebrow ops-kicker">04 / IRON ARCHIVE</p>
-      <h1 id="title">Manage saves</h1>
-      <p>Keep a copy of your tournaments, Saved Heroes, and Bell Beneath quest. Link your devices, or export a file to keep a separate copy.</p></div>
+      <div class="ops-hero-copy"><p class="eyebrow ops-kicker">Archive</p>
+      <h1 id="title">Saves</h1></div>
     </section>
     <div class="archive-layout"><section class="backup-panel archive-cloud" aria-labelledby="cloudTitle">
-      <p class="eyebrow">DEVICE SYNC</p><h2 id="cloudTitle">Cloud sync</h2>
-      <p>Turn this on here and on your other device while signed into the same account. Local saves work offline. Resetting a device won’t erase its cloud copy.</p>
-      <div class="archive-actions"><button type="button" class="primary" id="cloudEnable">Enable on this device</button>
-      <button type="button" id="cloudCheck" hidden>Sync now</button>
-      <button type="button" id="cloudDisable" hidden>Turn off on this device</button></div>
+      <p class="eyebrow">Sync</p><h2 id="cloudTitle">Cloud Sync</h2>
+      <div class="archive-actions"><button type="button" class="primary" id="cloudEnable" aria-describedby="cloudHint">Turn On</button><span id="cloudHint" hidden>Same account on each device</span>
+      <button type="button" id="cloudCheck" hidden>Sync Now</button>
+      <button type="button" id="cloudDisable" hidden>Turn Off</button></div>
       <p id="cloudStatus" class="backup-status" role="status" aria-live="polite"></p>
       <div id="cloudCompare" hidden>
-        <p><strong>This device:</strong> <span id="cloudLocalSummary"></span></p>
-        <p><strong>Cloud:</strong> <span id="cloudRemoteSummary"></span></p>
-        <p>Close open game tabs before replacing local progress. A recovery copy is kept on this device.</p>
-        <button type="button" id="cloudDevice">Use this device’s progress</button>
-        <button type="button" id="cloudPull">Load cloud progress here</button>
+        <p><strong>Device</strong> <span id="cloudLocalSummary"></span></p>
+        <p><strong>Cloud</strong> <span id="cloudRemoteSummary"></span></p>
+        <p id="cloudCompareHint" hidden>Close game tabs first; recovery copy kept</p>
+        <button type="button" id="cloudDevice" aria-describedby="cloudCompareHint">Keep Device</button>
+        <button type="button" id="cloudPull" aria-describedby="cloudCompareHint">Load Cloud</button>
       </div>
-      <div class="archive-recovery"><label for="cloudRecovery">Download a recovery copy</label>
+      <div class="archive-recovery"><label for="cloudRecovery">Recovery Copy</label>
       <select id="cloudRecovery">
-        <option value="">Choose a copy</option>
-        <option value="previous-device">Previous device save</option>
-        <option value="previous-cloud">Previous cloud save</option>
+        <option value="">Choose</option>
+        <option value="previous-device">Previous Device</option>
+        <option value="previous-cloud">Previous Cloud</option>
       </select></div>
     </section>
     <div class="backup-grid">
       <section class="backup-panel" aria-labelledby="download-title">
-        <p class="eyebrow">01 · EXPORT</p>
-        <h2 id="download-title">Download progress</h2>
-        <p>Download Arena, Tournament, Gauntlet, Saved Heroes, and quest progress in one file.</p>
-        <button class="primary" type="button" id="downloadBackup">Download backup</button>
+        <p class="eyebrow">Export</p>
+        <h2 id="download-title">Save File</h2>
+        <button class="primary" type="button" id="downloadBackup" aria-describedby="downloadHint">Download</button><span id="downloadHint" hidden>All modes and heroes in one file</span>
         <div class="backup-reminder" id="backupReminder" hidden>
-          <p>Cloud sync is off. Keep a separate copy of your saves.</p>
+          <p>Sync off, keep a copy</p>
           <button type="button" id="backupLater">Later</button>
         </div>
       </section>
       <section class="backup-panel" aria-labelledby="import-title">
-        <p class="eyebrow">02 · IMPORT</p>
-        <h2 id="import-title">Restore progress</h2>
-        <p>Choose a Loomen backup to review it first. Nothing changes until you confirm.</p>
-        <label class="file-label" for="backupFile">Backup file (JSON)</label>
+        <p class="eyebrow">Import</p>
+        <h2 id="import-title">Restore</h2>
+        <label class="file-label" for="backupFile">File</label>
         <input id="backupFile" type="file" accept=".json,application/json">
         <div id="backupPreview" hidden>
           <p class="backup-note" id="backupDate"></p>
-          <fieldset id="sectionPicker"><legend>Replace these saves</legend><div id="backupSections"></div></fieldset>
-          <p class="warning">The selected saves in this browser will be replaced. Other saves stay unchanged.</p>
-          <label class="check-line"><input id="backupConfirm" type="checkbox"> <span>I want to replace the selected saves</span></label>
-          <button class="primary" type="button" id="restoreBackup" disabled>Replace selected saves</button>
+          <fieldset id="sectionPicker"><legend>Saves to Replace</legend><div id="backupSections"></div></fieldset>
+          <p class="warning" id="restoreWarning" hidden>Only selected saves change</p>
+          <label class="check-line"><input id="backupConfirm" type="checkbox"> <span>Replace Selected</span></label>
+          <button class="primary" type="button" id="restoreBackup" aria-describedby="restoreWarning" disabled>Replace</button>
         </div>
       </section>
     </div>
     </div>
     <p class="backup-status" id="backupStatus" role="status" aria-live="polite"></p>
-  <p><a href="./credits.html">Game credits</a></p></main>
+  <p><a href="./credits.html">Credits</a></p></main>
 <script type="module" src="./arcade-v6-pages.js?v=6.0.0"></script></body>
 </html>

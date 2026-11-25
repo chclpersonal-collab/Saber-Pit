@@ -19,37 +19,43 @@ function draw(result: SyncPresentation | null){
   $('cloudPull').hidden=!result?.cloud;
   $('cloudDevice').hidden=!result?.device||status==='reset'||status==='cloud-newer';
   $('cloudPull').disabled=$('cloudDevice').disabled=false;
-  const summary=(items?: BackupSummary | null)=>!items?'No saves found.':Object.values(items).map(x=>x.label+': '+
-    (('round' in x&&'fighters' in x)?x.round+' · '+x.fighters+' slots'+('ratedFighters' in x?' · '+x.ratedFighters+' rated':''):((x as QuestSummary).questStatus??((x as CareerSummary).seasons+' seasons · '+(x as CareerSummary).records+' records'+((x as CareerSummary).heroes?' · '+(x as CareerSummary).heroes+' Heroes':''))))).join(' / ');
-  if(compare){$('cloudLocalSummary').textContent=summary(result!.device);$('cloudRemoteSummary').textContent=summary(result!.cloud);}
+  const facts=(x: NonNullable<BackupSummary[keyof BackupSummary]>)=>('round' in x&&'fighters' in x)?['Round '+x.round,x.fighters+' Slots',...('ratedFighters' in x?[x.ratedFighters+' Rated']:[])]
+    :(x as QuestSummary).questStatus?[(x as QuestSummary).questStatus]:[(x as CareerSummary).seasons+' Seasons',(x as CareerSummary).records+' Records',...((x as CareerSummary).heroes?[(x as CareerSummary).heroes+' Heroes']:[])];
+  /** Each save is a v6-meta span: "Label: facts", instead of a "·" chain. */
+  const summary=(el: HTMLElement,items?: BackupSummary | null)=>{
+    el.textContent='';
+    if(!items){el.textContent='No saves';return;}
+    Object.values(items).forEach((x,i)=>{const span=document.createElement('span');span.className='v6-meta';span.textContent=x.label+': '+facts(x).join(', ');if(i)el.append(' ');el.append(span);});
+  };
+  if(compare){summary($('cloudLocalSummary'),result!.device);summary($('cloudRemoteSummary'),result!.cloud);}
   $('cloudStatus').textContent=({
-    disabled:'Sync is off. Saves stay on this device.',
-    enabled:'Sync is on for this device.',
-    unlinked:'Device progress has not linked yet. Turn on sync to start.',
-    current:'This device is up to date.',
-    empty:'Sync is on. Play to start a save.',
-    uploaded:'Device progress saved to the cloud.',
-    downloaded:'Cloud progress loaded. Reopen game tabs to use it.',
-    'cloud-newer':'Cloud progress is available. Review it before loading.',
-    conflict:'This device and the cloud have different progress. Choose which to use.',
-    reset:'This device appears to have been reset. The cloud copy will stay unchanged.',
-    changed:'Progress changed while you were reviewing. Check again before replacing anything.',
-    'recovery-blocked':'Could not preserve a recovery copy, so no saves were replaced.',
-    busy:'Please wait for the current sync.',
+    disabled:'Sync off, saves stay here',
+    enabled:'Sync on',
+    unlinked:'Not linked yet',
+    current:'Up to date',
+    empty:'Sync on, no saves yet',
+    uploaded:'Saved to cloud',
+    downloaded:'Cloud loaded, reopen game tabs',
+    'cloud-newer':'Newer cloud save, review first',
+    conflict:'Device and cloud differ, pick one',
+    reset:'Device reset, cloud copy kept',
+    changed:'Saves changed, check again',
+    'recovery-blocked':'No recovery copy, nothing replaced',
+    busy:'Sync in progress',
     error:result?.error
   } as Partial<Record<SyncResult['status'] | 'enabled', string>>)[status]??'';
 }
 async function go(action: SyncAction){
   if(['device','cloud'].includes(action)&&!last)return;
   for(const id of controls)$(id).disabled=true;
-  $('cloudStatus').textContent='Checking saves…';
+  $('cloudStatus').textContent='Checking saves';
   try{
     const task=browserSync.sync({action,expectedRevision:last?.cloudRevision,expectedLocalDigest:last?.localDigest});
     // Enable/disable updates local preferences before the cloud request finishes.
     if(action==='enable'||action==='disable')window.dispatchEvent(new Event('saber-cloud-prefs-changed'));
     last=await task;
   }
-  catch{last={status:'error',error:'Site storage must be enabled before linking saves.'};}
+  catch{last={status:'error',error:'Turn on site storage first'};}
   if(last.status==='downloaded')announceSyncedSave();
   draw(last);
 }
@@ -60,7 +66,7 @@ $<HTMLSelectElement>('cloudRecovery').addEventListener('change',async e=>{
   if(!select.value)return;
   const copy=await readCloudRecovery(select.value);
   select.value='';
-  if(!copy){$('cloudStatus').textContent='No recovery copy of that save was found.';return;}
+  if(!copy){$('cloudStatus').textContent='No recovery copy found';return;}
   const url=URL.createObjectURL(new Blob([copy.text],{type:'application/json'}));
   const a=document.createElement('a');a.download='saber-pit-recovery-'+copy.reason+'.json';a.href=url;document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
