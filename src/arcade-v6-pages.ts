@@ -36,6 +36,20 @@ function openNamedSection(){
   if(target instanceof HTMLDetailsElement)target.open=true;
   target?.scrollIntoView({block:'start'});
 }
+/** Close a ⋯ menu after an action. Focus goes back to its ⋯ button, so the keyboard never sits on a hidden control,
+ *  unless the action opened a dialog, moved focus on purpose, or followed a link away. */
+function closeMore(more: HTMLDetailsElement,target: Element){
+  const item=target.closest('button,a');if(!item)return;
+  more.open=false;
+  if(item instanceof HTMLAnchorElement&&item.getAttribute('href'))return;
+  const from=location.href;
+  setTimeout(()=>{
+    if(location.href!==from||document.querySelector('dialog[open]'))return;
+    const now=document.activeElement;
+    if(now&&now!==document.body&&!more.contains(now))return;
+    more.querySelector('summary')?.focus({preventScroll:true});
+  },0);
+}
 /** Gauntlet: Next bout stays the one main button; the rest move, with their own listeners, into a ⋯ menu. */
 function mountGauntletMenu(){
   const play=document.getElementById('gPlay'),actions=play?.parentElement;
@@ -47,7 +61,7 @@ function mountGauntletMenu(){
   const archive=document.querySelector('.g-archive');
   if(archive){menu.append(...archive.children);archive.remove();}
   more.append(summary,menu);actions.append(more);
-  menu.addEventListener('click',e=>{if((e.target as Element).closest('button,a'))more.open=false;});
+  menu.addEventListener('click',e=>closeMore(more,e.target as Element));
   more.addEventListener('keydown',e=>{if(e.key==='Escape'&&more.open){more.open=false;summary.focus();}});
   document.addEventListener('click',e=>{if(more.open&&!more.contains(e.target as Node))more.open=false;});
 }
@@ -58,7 +72,7 @@ function mountTournamentMenu(){
   const reset=document.getElementById('resetButton');
   for(const id of ['runButton','autoSeasons','watchLast']){const b=document.getElementById(id);if(b)menu.insertBefore(b,reset);}
   const more=menu.closest('details');
-  menu.addEventListener('click',e=>{if(more&&(e.target as Element).closest('button'))more.open=false;});
+  menu.addEventListener('click',e=>{if(more instanceof HTMLDetailsElement)closeMore(more,e.target as Element);});
   document.addEventListener('click',e=>{if(more?.open&&!more.contains(e.target as Node))more.open=false;});
 }
 /** Routine "Bout recorded." lines stay for screen readers only; a line that reports a problem still shows. */
