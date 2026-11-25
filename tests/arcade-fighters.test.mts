@@ -730,3 +730,52 @@ test('live duels never teleport a drawn hand or blade, through the fastest real 
   assert.equal(carriedAtContact,0,'at and after contact the drawn blade is the engine blade');
   assert.ok(worst.tip>60&&worst.hand>20,JSON.stringify(worst));
 });
+
+test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropped frames, and contact stays exact',async()=>{
+  const {createArcade,stepArcade}=await import('../dist/arcade-engine.js');
+  const {sampleArcadeRenderRig,ARCADE_DRAWN_STEP}=await import('../dist/arcade-fighters.js');
+  const {arcadeBasis}=await import('../dist/arcade-rig-projection.js');
+  const flags={peasantMotion:true,liveEntry:true,recoveryFlow:true,stanceFlow:true,styleChoreo:true,impactPhysics:true,continuousCombat:true,anticipatingCombat:true,arenaCuts:true,activeFootwork:true,styleTravel:true,repertoireSupport:true,exchangeVariety:true,fluidFootwork:true,eloReads:true,balancePass:true,closeChoice:true,guardCounterplay:true,weaponFlow:true};
+  // The sim always steps 1/120 s; a drawn frame takes that many sim steps, so the sim is the same at every rate.
+  const cadences=[['120 Hz',[1]],['30 Hz',[4]],['dropped frames',[2,2,6,2,8]]];
+  const duels=[
+    ['air hit landing',['ataru','soresu'],['single','single'],3,4.4],
+    ['jump into slash',['niman','soresu'],['single','single'],3,7.7],
+    ['dash spin',['soresu','soresu'],['single','single'],3,6.7],
+    ['air strike, contact .087',['ataru','soresu'],['single','dual'],8,2.8],
+  ];
+  const limit={hand:ARCADE_DRAWN_STEP.hand,tip:ARCADE_DRAWN_STEP.tip};
+  for(const [rate,steps] of cadences){
+    let strikes=0,longest=0;
+    for(const [name,forms,kits,seed,seconds] of duels){
+      const game=createArcade({mode:'watch',seed,teamSizes:[1,1],teamForms:forms.map(f=>[f]),startingSaberWeapon:kits,startingRanks:['SSS+V','SSS+V'],...flags});
+      const last=new Map(),carrying=new Map();let frame=0;
+      while(game.time<seconds){
+        const before=game.time;for(let s=0;s<steps[frame++%steps.length];s++)stepArcade(game,1/120);
+        const frames=(game.time-before)*60;
+        for(const f of game.fighters){
+          const raw=pose(f,game.time),r=sampleArcadeRenderRig(f,raw,game.time);
+          const {project}=arcadeBasis({x:0,y:r.hop},r),at=p=>p&&project(p);
+          const joints={head:at(r.head),hand:at(r.hand),backHand:at(r.backHand),...(raw.orbitBlades?{}:{tip:at(r.blade),offTip:at(r.offBlade)})};
+          const side=Math.sign(Math.cos(f.face)),prior=last.get(f.id);
+          if(prior&&f.alive&&prior.side===side&&!(raw.action!==prior.action&&['clash','ko'].includes(raw.action)))
+            for(const [k,p] of Object.entries(joints))if(p&&prior.joints[k]){
+              const d=Math.hypot(p.x-prior.joints[k].x,p.y-prior.joints[k].y);
+              // Hands and blades are held to a speed: the 60 fps limit, scaled by how long the frame is. The head
+              // carries no layer of its own, so it is held to the 60 fps step, scaled only for frames over 1/60 s.
+              const most=k==='head'?ARCADE_DRAWN_STEP.hand*Math.max(1,frames):limit[k.endsWith('ip')?'tip':'hand']*frames;
+              assert.ok(d<=most+.5,`${rate}, ${name}: ${k} moved ${d.toFixed(1)} px in a ${(frames/60*1000).toFixed(1)} ms frame at ${game.time.toFixed(3)} s (${prior.action} > ${raw.action})`);
+            }
+          if(f.attack&&f.actionTime>=f.attackSpec?.contact){strikes++;
+            assert.ok(!(r.drawnCarry>0)&&!(r.held.gripHandoff>0),`${rate}, ${name}: carried at contact`);}
+          // A carry always settles: none outlasts the longest ease (120 ms) by more than a frame.
+          if(r.drawnCarry>0){if(!carrying.has(f.id))carrying.set(f.id,game.time);longest=Math.max(longest,game.time-carrying.get(f.id));}
+          else carrying.delete(f.id);
+          last.set(f.id,{joints,side,action:raw.action});
+        }
+      }
+    }
+    assert.ok(strikes>20,`${rate}: ${strikes} contact frames`);
+    assert.ok(longest<=.12+4/60,`${rate}: a carry lasted ${longest.toFixed(3)} s`);
+  }
+});
