@@ -39,6 +39,7 @@ body[data-scoreboard] .arena-shell{z-index:40}
 .sb-rank{flex:none;min-width:2.1em;text-align:center;font:800 .7rem/1 system-ui,sans-serif;padding:3px 4px;border-radius:6px;background:#ffffff1f}
 .sb-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sb-tag{flex:none;margin-left:auto;font:700 .62rem/1 system-ui,sans-serif;letter-spacing:.02em;padding:2px 5px;border-radius:999px;color:#d8cdb9;background:#ffffff14;border:1px solid #ffffff1f}
+@media (max-width:480px){.sb-tag{font-size:.52rem;padding:1px 4px;letter-spacing:0}}
 .sb-table tr.me>*{background:#ebc38733;box-shadow:inset 0 2px 0 var(--sb-gold),inset 0 -2px 0 var(--sb-gold)}
 .sb-table tr.ko>*{opacity:.55}
 .sb-note{margin:0;font-size:.76rem;color:var(--muted,#a69b89)}
