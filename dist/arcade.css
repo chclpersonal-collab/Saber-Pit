@@ -452,3 +452,42 @@ body[data-view=game] #arena{touch-action:pan-y}
 .force-card-grid button.force-card[aria-disabled=true]:not([aria-pressed=true]) { border-style:dashed; }
 .force-card-actions { display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem; }
 .force-card-actions button { min-height:44px; }
+/* v6 controller and two-player help in the Keys dialog */
+.keys-sub{margin:18px 0 8px;font:800 .82rem/1.2 inherit;text-transform:uppercase;letter-spacing:.08em;opacity:.8}
+.keys-note{margin:0 0 8px;font-size:13px;opacity:.85}
+.keys-fixed kbd{min-width:78px;min-height:32px;padding:4px 8px;display:inline-grid;place-items:center;border:1px solid currentColor;border-radius:8px;font:700 12px ui-monospace,monospace;opacity:.9;white-space:nowrap}
+/* v6 two players: Player 2's stamina sits under their name, mirrored, in Pink */
+body.pit-v5 .hud .pink progress#energy2{grid-column:1;justify-self:end;transform:scaleX(-1)}
+body.pit-v5 .hud .pink progress#energy2::-webkit-progress-value{background:linear-gradient(#ffd3e6,var(--v5-red,#ff5c8a))}
+body.pit-v5 .hud .pink progress#energy2::-moz-progress-bar{background:linear-gradient(#ffd3e6,var(--v5-red,#ff5c8a))}
+/* v6 two players on one phone */
+.vs-pad{display:none}
+body[data-view=game][data-vs-touch=true] :is(.touch-pad,#actions,#techniqueBar,#mobileTools){display:none!important}
+body[data-view=game] .vs-pad:not([hidden]){position:fixed;z-index:30;display:flex;align-items:center;gap:12px;padding:8px;
+  border-radius:22px;background:color-mix(in srgb,var(--v5-ink,#151027) 55%,transparent);touch-action:none;user-select:none;-webkit-user-select:none}
+.vs-stick{position:relative;width:112px;height:112px;flex:none;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle,#ffffff14 0 55%,#ffffff22 56% 100%);box-shadow:inset 0 0 0 3px #ffffff40;touch-action:none}
+.vs-knob{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff,#d9d2ff);box-shadow:0 4px 0 #0005;pointer-events:none}
+.vs-pad[data-player="1"] .vs-stick{box-shadow:inset 0 0 0 3px var(--v5-blue,#6fd6ff)}
+.vs-pad[data-player="2"] .vs-stick{box-shadow:inset 0 0 0 3px var(--v5-red,#ff5c8a)}
+.vs-buttons{display:grid;grid-template-columns:repeat(3,52px);grid-auto-rows:52px;gap:6px}
+.vs-buttons button{min-width:0;min-height:0;padding:0;border-radius:50%;border:0;font:800 12px/1 var(--v5-ui,system-ui);color:#fff;
+  background:var(--v5-panel,#2b1f5c);box-shadow:0 3px 0 #0006;touch-action:none}
+.vs-buttons button[data-p=strike]{background:var(--v5-gold,#ffd34d);color:#1b1230}
+.vs-pad[data-player="2"] .vs-buttons button[data-p=strike]{background:var(--v5-red,#ff5c8a);color:#fff}
+.vs-buttons button[data-held=true]{translate:0 2px;box-shadow:0 1px 0 #0006;filter:brightness(1.2)}
+/* Portrait: Player 1 at the bottom, Player 2 at the top facing them */
+@media (orientation:portrait){
+  body[data-view=game] .vs-pad[data-player="1"]:not([hidden]){left:50%;bottom:calc(env(safe-area-inset-bottom) + 12px);translate:-50% 0}
+  body[data-view=game] .vs-pad[data-player="2"]:not([hidden]){left:50%;top:calc(env(safe-area-inset-top) + 126px);translate:-50% 0;rotate:180deg}
+}
+/* Landscape: each player holds one end */
+@media (orientation:landscape){
+  body[data-view=game] .vs-pad:not([hidden]){bottom:calc(env(safe-area-inset-bottom) + 8px);gap:8px;padding:6px}
+  body[data-view=game] .vs-pad[data-player="1"]:not([hidden]){left:calc(env(safe-area-inset-left) + 8px)}
+  body[data-view=game] .vs-pad[data-player="2"]:not([hidden]){right:calc(env(safe-area-inset-right) + 8px);flex-direction:row-reverse}
+  /* Mirror Player 2's buttons so Slash sits under their left thumb, at the outside edge */
+  .vs-pad[data-player="2"] .vs-buttons{direction:rtl}
+  .vs-stick{width:104px;height:104px}
+  .vs-buttons{grid-template-columns:repeat(3,46px);grid-auto-rows:46px;gap:5px}
+}
