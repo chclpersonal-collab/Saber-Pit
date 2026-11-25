@@ -246,7 +246,6 @@ function floor(c:Ctx,stage:Stage,w:number,h:number,pal:Pal){
         const q=x+gx*p;box(c,q-9,y,18,gy,'#25282c80');line(c,q-12,y,q-12,yy,'#8b8c846c',2);line(c,q+12,y,q+12,yy,'#8b8c846c',2);
         for(let k=y+10;k<yy;k+=23)line(c,q-10,k,q+10,k,'#17191c74',2);
       }
-      stroke(c,cx-gy*.16,cy-gy*.12,gy*.32,gy*.24,'#a5a3985d',3);
     }else if(stage.id==='ember_ring'){
       // Subtle inlay on the real level floor; never a raised side-view platform.
       const wash=c.createLinearGradient(0,y,0,yy);

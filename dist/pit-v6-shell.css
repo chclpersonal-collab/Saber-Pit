@@ -341,7 +341,7 @@
 /* results: winner art over the title, as in the mock */
 :root body.pit-v5 #result .v6-result-art{display:block;width:min(220px,50vw);height:min(200px,24vh);margin:0 auto -18px}
 @media (orientation:landscape) and (max-height:520px){:root body.pit-v5 #result .v6-result-art{display:none}}
-@media (max-width:760px){
+@media (max-width:760px) and (orientation:portrait){
   :root body.pit-v5 #result .r-tiles{grid-template-columns:1fr 1fr!important;gap:10px}
   :root body.pit-v5 #result .dialog-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px}
   :root body.pit-v5 #result .dialog-actions>button{width:100%;min-height:56px}
@@ -353,8 +353,11 @@
   :root body.pit-v5 #result .r-tiles div{padding:6px 4px}
   :root body.pit-v5 #result .r-tiles dd{font-size:24px}
   :root body.pit-v5 #result .r-elo{padding:8px 12px}
-  :root body.pit-v5 #result .dialog-actions button{min-height:42px}
   :root body.pit-v5 #result .r-hits,:root body.pit-v5 #result #rankResult{margin:4px 0}
+  /* Short landscape keeps the stats on one row and the actions side by side, wrapping only when they must. */
+  :root body.pit-v5 #result .r-tiles{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px}
+  :root body.pit-v5 #result .dialog-actions{display:flex;flex-flow:row wrap;align-items:stretch;gap:8px}
+  :root body.pit-v5 #result .dialog-actions>button{flex:1 1 140px;width:auto;min-height:44px;font-size:17px}
 }
 /* Results trimmed to the mock: one line under the title, rank to next rank under the bar, no Setup link. */
 :root body.pit-v5 #result .r-top{margin:2px 0 10px;gap:10px}
@@ -398,6 +401,8 @@
 @media (orientation:landscape) and (max-height:520px){
   :root body.pit-v5 #result .result-card{max-height:calc(100dvh - 16px)}
   :root body.pit-v5 #result .r-hits{margin:9px 0 6px}
+  /* Narrow landscape: the title starts past the corner Leave button instead of under it. */
+  :root body.pit-v5 #result:has(#again:not([hidden])) #resultTitle{padding-left:max(0px,calc(var(--v6-leave-clear,104px) - (100vw - min(94vw,600px)) / 2))}
 }
 @media (min-width:761px) and (min-height:521px){
   :root body.pit-v5 #result .result-card:has(.v6-result-art[hidden]){grid-template-columns:minmax(0,1fr);width:min(94%,680px)}
