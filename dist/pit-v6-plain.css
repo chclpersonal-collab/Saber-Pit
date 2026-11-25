@@ -1,0 +1,95 @@
+/* LOOMEN v6 skin for the three pages that still wore the old look: Classic, How to Play and Credits.
+   Look only: ids, forms, handlers and the Classic battle canvas are untouched. Loaded last, after pit-v5-tokens.css.
+   Authored by CLARISSA-01. */
+:root body.v6-plain{
+  --page:var(--v5-ink);--panel:var(--v5-panel);--edge:var(--v5-line);--cream:var(--v5-white);--muted:var(--v5-muted);
+  --teal:var(--v5-blue);--coral:var(--v5-red);--sand:var(--v5-soft);--ink:var(--v5-ink);--ui-mono:var(--v5-ui);
+  --v6p-back-bg:linear-gradient(180deg,#7b62ff,#5a3fd6);
+  --v6p-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15 4 7 12l8 8' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  margin:0;min-height:100dvh;font-family:var(--v5-ui);font-weight:700;color:var(--v5-white);
+  background:repeating-conic-gradient(from 0deg at 50% -10%,#ffd23f0d 0 5deg,transparent 5deg 15deg),radial-gradient(90% 60% at 50% 0%,#5b2a9e 0%,#2a1466 45%,var(--v5-ink) 100%) fixed,var(--v5-ink);
+}
+:root body.v6-plain *{font-family:inherit}
+:root body.v6-plain h1,:root body.v6-plain h2,:root body.v6-plain h3{font-family:var(--v5-display);font-weight:400;letter-spacing:0;text-transform:none;color:var(--v5-white)}
+:root body.v6-plain a{color:var(--v5-blue)}
+:root body.v6-plain kbd{font-family:var(--v5-ui);font-weight:900;color:var(--v5-soft);border:2px solid var(--v5-line);border-bottom-width:4px;border-radius:8px;background:var(--v5-deep)}
+
+/* shared parts: back button, panel, buttons, fields, captions */
+:root body.v6-plain .v6p-back,:root body.v6-plain .back-to-field,:root body.pit-credits.v6-plain main>a:first-child{
+  display:inline-grid;place-items:center;width:46px;height:46px;flex:none;border-radius:var(--v5-r);font-size:0;color:transparent;text-decoration:none;
+  background:var(--v6p-chev) center/22px no-repeat,var(--v6p-back-bg);box-shadow:0 4px 0 #2b1a7a,0 8px 16px #0006}
+:root body.v6-plain button,:root body.v6-plain .utility,:root body.v6-plain select,:root body.v6-plain input:not([type=checkbox]):not([type=radio]){
+  font-family:var(--v5-ui);font-weight:800;color:var(--v5-white);border-radius:var(--v5-r);border:2px solid var(--v5-line);background:var(--v5-deep)}
+:root body.v6-plain button:not(:disabled):hover,:root body.v6-plain .utility:hover{background:var(--v5-panel-hi);border-color:#7b68d8}
+:root body.v6-plain button,:root body.v6-plain .utility{box-shadow:0 4px 0 var(--v5-ink)}
+:root body.v6-plain input[type=checkbox],:root body.v6-plain input[type=radio]{accent-color:var(--v5-gold)}
+:root body.v6-plain label,:root body.v6-plain legend,:root body.v6-plain .eyebrow,:root body.v6-plain .menu-kicker,:root body.v6-plain .score-label,:root body.v6-plain .round-clock>span:first-child{
+  font-family:var(--v5-ui);font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--v5-muted)}
+:root body.v6-plain label :is(select,input,span,b,small){font-size:15px;letter-spacing:0;text-transform:none}
+
+/* ---------- Classic ---------- */
+:root body.v6-classic .shell{width:min(1180px,calc(100% - 32px))}
+:root body.v6-classic .masthead{border-bottom:0;margin-bottom:18px}
+:root body.v6-classic .brand-mark{color:var(--v5-gold);filter:drop-shadow(0 3px 0 var(--v5-ink))}
+:root body.v6-classic .masthead h1{font-family:var(--v5-display);font-size:30px;letter-spacing:.02em;text-transform:uppercase;text-shadow:0 3px 0 var(--v5-ink)}
+:root body.v6-classic .brand-subtitle{display:none}
+:root body.v6-classic .menu-hero h2{font-size:clamp(44px,6vw,76px);line-height:.95;letter-spacing:0;text-shadow:0 5px 0 var(--v5-ink)}
+:root body.v6-classic .menu-hero>p:not(.menu-kicker){color:var(--v5-soft)}
+:root body.v6-classic .arena-diagram{border-radius:var(--v5-r-lg);border:3px solid var(--v5-ink);box-shadow:0 0 0 2px var(--v5-line),var(--v5-shadow);overflow:hidden}
+:root body.v6-classic :is(.setup-card,.battle-card,.details-panel,.menu-dialog,.mastery-report,.commendation-report,.unit-inspector,.event-log,.round-recap){
+  border:3px solid var(--v5-line);border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-ink),0 8px 0 #120a2a,0 16px 28px #0008;color:var(--v5-white)}
+:root body.v6-classic .setup-card::before{display:none}
+:root body.v6-classic :is(.setup-heading h2,.quick-fights h2,.setup-card h2,.menu-dialog h2){font-size:24px}
+:root body.v6-classic :is(.setup-hint,.menu-note,.roster-help,.report-help,.career-help,.direct-help,.team-order-help,.mastery-explainer){color:var(--v5-muted)}
+:root body.v6-classic :is(.quick-grid>button,.mode-choice,.form-choices>*,.doctrine-choices>*){
+  border-radius:var(--v5-r);border:2px solid var(--v5-line);background:var(--v5-deep);box-shadow:0 4px 0 var(--v5-ink)}
+:root body.v6-classic :is(.mode-choice:has(input:checked),.mode-choice[aria-checked=true],[aria-pressed=true]:not(.utility)){border-color:var(--v5-gold);box-shadow:0 0 0 2px var(--v5-gold),0 4px 0 var(--v5-ink)}
+:root body.v6-classic :is(.start-battle-btn,.small-primary,.next-round-btn){
+  font-family:var(--v5-display);font-weight:400;font-size:20px;color:var(--v5-ink);background:linear-gradient(180deg,#ffe36e,var(--v5-gold));border:0;border-radius:var(--v5-r);box-shadow:0 5px 0 var(--v5-gold-lip),0 10px 18px #0007}
+:root body.v6-classic :is(.start-battle-btn,.small-primary,.next-round-btn):hover{background:linear-gradient(180deg,#fff08f,#ffdc55)}
+:root body.v6-classic .scoreboard,:root body.v6-classic .field-caption{background:var(--v5-deep);color:var(--v5-soft)}
+:root body.v6-classic .round-clock>strong{font-family:var(--v5-display);font-weight:400;font-size:32px}
+:root body.v6-classic .team-heading strong{font-family:var(--v5-display);font-weight:400}
+:root body.v6-classic .command-btn{background:var(--v5-deep);border:2px solid var(--v5-line);color:var(--v5-white)}
+:root body.v6-classic .command-btn.is-active{background:var(--v5-panel-hi);border-color:var(--v5-gold);box-shadow:inset 0 -4px var(--v5-gold),0 4px 0 var(--v5-ink)}
+:root body.v6-classic .grenade-btn{background:linear-gradient(180deg,#b796ff,var(--v5-force));border:0;color:var(--v5-white);box-shadow:0 5px 0 var(--v5-force-lip)}
+:root body.v6-classic .grenade-label small,:root body.v6-classic .grenade-btn kbd{color:#efe6ff;border-color:#efe6ff80}
+:root body.v6-classic .result-card{background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border:3px solid var(--v5-line);color:var(--v5-white);box-shadow:0 0 0 2px var(--v5-ink),var(--v5-shadow)}
+:root body.v6-classic .result-card h2{font-size:40px;text-shadow:0 3px 0 var(--v5-ink)}
+:root body.v6-classic .result-card>#resultDescription,:root body.v6-classic .next-round-note,:root body.v6-classic .result-tally{color:var(--v5-soft);border-color:var(--v5-line)}
+:root body.v6-classic .result-tally b{color:var(--v5-white)}
+:root body.v6-classic .result-emblem{background:var(--v5-gold);color:var(--v5-ink)}
+:root body.v6-classic :is(.paused-overlay,.result-overlay){background:#0c0624c4}
+:root body.v6-classic .footer,:root body.v6-classic .footer-tag{color:var(--v5-muted)}
+:root body.v6-classic .player-sigil,:root body.v6-classic .unit-pip,:root body.v6-classic .player-dot{background:var(--v5-blue)}
+:root body.v6-classic .enemy-sigil,:root body.v6-classic .team-enemy .unit-pip,:root body.v6-classic .enemy-dot{background:var(--v5-red)}
+
+/* ---------- How to Play ---------- */
+:root body.v6-guide .guide-shell{width:min(980px,calc(100% - 32px));margin:0 auto;padding:22px 0 60px}
+:root body.v6-guide .guide-header{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+:root body.v6-guide .guide-header>span{display:none}
+:root body.v6-guide .guide-intro{display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;margin:-54px 0 18px 62px}
+:root body.v6-guide .guide-intro h1{font-size:34px;line-height:46px;margin:0;text-shadow:0 3px 0 var(--v5-ink)}
+:root body.v6-guide .guide-intro p{flex-basis:100%;margin:10px 0 0 -62px}
+:root body.v6-guide :is(.guide-intro p,.guide-section p,.guide-section li){color:var(--v5-soft);font-size:15px;line-height:1.55}
+:root body.v6-guide .guide-section{margin:0 0 16px;padding:18px 20px;border:3px solid var(--v5-line);border-top-width:3px;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-ink),0 8px 0 #120a2a}
+:root body.v6-guide .guide-section h2{font-size:24px;margin:0 0 8px}
+:root body.v6-guide .guide-section h3{font-size:19px;margin:0 0 4px}
+:root body.v6-guide .guide-section b{color:var(--v5-white)}
+:root body.v6-guide .guide-section>div>div{padding:12px 14px;border-radius:var(--v5-r);background:var(--v5-deep);border:2px solid var(--v5-line)}
+:root body.v6-guide hr{display:none}
+
+/* ---------- Credits ---------- */
+:root body.v6-credits main{width:min(760px,calc(100% - 32px));margin:0 auto;padding:22px 0 60px;display:block}
+:root body.v6-credits main>h1{display:inline-block;vertical-align:top;margin:0 0 0 16px;font-size:34px;line-height:46px;text-shadow:0 3px 0 var(--v5-ink)}
+:root body.v6-credits main>ul{list-style:none;margin:22px 0 0;padding:6px 20px;border:3px solid var(--v5-line);border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-ink),0 8px 0 #120a2a}
+:root body.v6-credits main>ul>li{padding:14px 0;color:var(--v5-soft);font-size:15px;line-height:1.5;border-bottom:2px solid #5a47b84d}
+:root body.v6-credits main>ul>li:last-child{border-bottom:0}
+
+@media (max-width:760px){
+  :root body.v6-guide .guide-intro h1,:root body.v6-credits main>h1{font-size:30px}
+  :root body.v6-classic .menu-hero h2{font-size:44px}
+}
+@media (max-height:560px) and (orientation:landscape){
+  :root body.v6-guide .guide-intro h1,:root body.v6-credits main>h1{font-size:26px}
+}
