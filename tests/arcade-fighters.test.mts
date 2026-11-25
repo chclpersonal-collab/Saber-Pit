@@ -746,7 +746,7 @@ test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropp
   ];
   const limit={hand:ARCADE_DRAWN_STEP.hand,tip:ARCADE_DRAWN_STEP.tip};
   for(const [rate,steps] of cadences){
-    let strikes=0,longest=0;
+    let strikes=0,longest=0,longestBody=0;
     for(const [name,forms,kits,seed,seconds] of duels){
       const game=createArcade({mode:'watch',seed,teamSizes:[1,1],teamForms:forms.map(f=>[f]),startingSaberWeapon:kits,startingRanks:['SSS+V','SSS+V'],...flags});
       const last=new Map(),carrying=new Map();let frame=0;
@@ -761,9 +761,8 @@ test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropp
           if(prior&&f.alive&&prior.side===side&&!(raw.action!==prior.action&&['clash','ko'].includes(raw.action)))
             for(const [k,p] of Object.entries(joints))if(p&&prior.joints[k]){
               const d=Math.hypot(p.x-prior.joints[k].x,p.y-prior.joints[k].y);
-              // Hands and blades are held to a speed: the 60 fps limit, scaled by how long the frame is. The head
-              // carries no layer of its own, so it is held to the 60 fps step, scaled only for frames over 1/60 s.
-              const most=k==='head'?ARCADE_DRAWN_STEP.hand*Math.max(1,frames):limit[k.endsWith('ip')?'tip':'hand']*frames;
+              // Held to a speed: the 60 fps limit scaled by how long the frame is, the head to the hand's.
+              const most=limit[k.endsWith('ip')?'tip':'hand']*frames;
               assert.ok(d<=most+.5,`${rate}, ${name}: ${k} moved ${d.toFixed(1)} px in a ${(frames/60*1000).toFixed(1)} ms frame at ${game.time.toFixed(3)} s (${prior.action} > ${raw.action})`);
             }
           if(f.attack&&f.actionTime>=f.attackSpec?.contact){strikes++;
@@ -771,11 +770,15 @@ test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropp
           // A carry always settles: none outlasts the longest ease (120 ms) by more than a frame.
           if(r.drawnCarry>0){if(!carrying.has(f.id))carrying.set(f.id,game.time);longest=Math.max(longest,game.time-carrying.get(f.id));}
           else carrying.delete(f.id);
+          // A body carry eases out in 80 ms; a hit that keeps throwing the figure about may chain a few.
+          if(r.bodyCarry>0){if(!carrying.has('body'+f.id))carrying.set('body'+f.id,game.time);longestBody=Math.max(longestBody,game.time-carrying.get('body'+f.id));}
+          else carrying.delete('body'+f.id);
           last.set(f.id,{joints,side,action:raw.action});
         }
       }
     }
     assert.ok(strikes>20,`${rate}: ${strikes} contact frames`);
     assert.ok(longest<=.12+4/60,`${rate}: a carry lasted ${longest.toFixed(3)} s`);
+    assert.ok(longestBody<=.3,`${rate}: a body carry lasted ${longestBody.toFixed(3)} s`);
   }
 });

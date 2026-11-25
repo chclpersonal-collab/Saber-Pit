@@ -2356,7 +2356,12 @@ function sampleArcadeGripHandoff(f:Fighter, r:PaintRig&{gripHandoff?:number}, ti
 // The most a hand (px) and a blade tip (px) may move in one 60 fps frame of the drawn fighter, measured in
 // the fighter's own frame. A plain slash from the engine grip peaks at 35.2 and 82.7; walking stays under 2.5.
 export const ARCADE_DRAWN_STEP=Object.freeze({hand:36,tip:84});
-const drawnSteps=new WeakMap<object,{time:number;side:number;drawn:Grip;bridge:GripBridge|null;turn:number;spin:{at:number;span:number;turn:number}|null}>();
+type BodyShift={at:number;span:number;by:Record<string,Point>};
+const drawnSteps=new WeakMap<object,{time:number;side:number;drawn:Grip;bridge:GripBridge|null;turn:number;spin:{at:number;span:number;turn:number}|null;
+  action:string;body:Record<string,Point>;shift:BodyShift|null;turnStep:number;origin:Point;grounded:boolean}>();
+// The head and torso (and, on a hit, the legs) of the drawn figure. A hit's flinch moves them all at once; the
+// drawn figure takes the flinch over BODY_EASE seconds instead, fast at first so the hit still lands.
+const BODY_POINTS=['head','helmet','shoulder','pelvis'] as const, LEG_POINTS=['hip','k','foot','toes'] as const, BODY_EASE=.08;
 // The fastest the whole drawn figure turns in one 60 fps frame (an Ataru flip turns about 0.4 rad a frame).
 const DRAWN_TURN_STEP=.7;
 const GRIP_POINTS=['hand','emitter','blade','backHand','offEmitter','offBlade','frontElbow','backElbow'] as const;
@@ -2458,9 +2463,48 @@ function sampleArcadeDrawnContinuity(f:Fighter, r:PaintRig&{drawnCarry?:number},
       }
     }
   }
-  drawnSteps.set(actor,{time,side,drawn:gripOf(drawn),bridge,turn:turn+extra,spin});
+  // Body: measured on the drawn figure like the grips. On the first frame of a hit, on a sudden tilt during
+  // one, or whenever the head or torso would move further in a frame than a hand may, the jump is carried and
+  // eased out over BODY_EASE (seconds, so it reads the same at any frame rate), gone by any contact.
+  const {project:toDrawn,local:fromDrawn}=arcadeBasis({x:0,y:r.hop},r), body:Record<string,Point>={};
+  for(const key of BODY_POINTS){const p=r[key] as Point|null|undefined;if(p&&isFinite(p.x)&&isFinite(p.y))body[key]=toDrawn(p);}
+  // Legs by side: a crossing step swaps which entry is which leg.
+  r.legs.forEach(leg=>{for(const key of LEG_POINTS){const p=leg[key] as Point|undefined;if(p&&isFinite(p.x)&&isFinite(p.y))body[`${leg.side}.${key}`]=toDrawn(p);}});
+  // Grounded feet are planted in the world by footwork, so there they are held where they stood in the world.
+  const origin=P(isFinite(f.x)?f.x:0,(isFinite(f.y)?f.y:0)-r.hop), grounded=r.airPhase==='grounded';
+  let shift=live&&!bind&&left>0?prior!.shift:null;
+  const eased=(q:BodyShift|null)=>q?Math.max(0,1-(time-q.at)/q.span)**2:0;
+  if(live&&!bind&&left>0){
+    const planted=grounded&&prior!.grounded, slid=P(prior!.origin.x-origin.x,prior!.origin.y-origin.y), was:Record<string,Point>={};
+    for(const [key,p] of Object.entries(prior!.body))was[key]=planted&&key.includes('.')?P(p.x+slid.x,p.y+slid.y):p;
+    const k0=eased(shift), at=(key:string)=>{const by=k0&&shift!.by[key];return by?P(body[key].x+by.x*k0,body[key].y+by.y*k0):body[key];};
+    // Legs step and tuck fast on their own, so they are only held while a hit throws the figure about.
+    const hit=r.action==='hit', legs=hit, watched=legs?Object.keys(body):BODY_POINTS as readonly string[];
+    const most=Math.max(0,...watched.map(key=>was[key]&&body[key]?far(was[key],at(key)):0));
+    // A tilt is a sudden change in how fast the figure turns (a flinch jolting over and back), not a steady tumble.
+    const turned=wrapTurn(turn+extra-prior!.turn);
+    const onset=hit&&prior!.action!=='hit', tilt=hit&&Math.abs(turned)>.12&&Math.abs(turned-prior!.turnStep)>.12;
+    // A strike's own chamber and lunge are authored body motion, already bridged by the grip handoff: left alone.
+    const striking=!hit&&Boolean(f.attack);
+    if(onset||tilt||!striking&&most>ARCADE_DRAWN_STEP.hand*dt*60*.97){
+      const by:Record<string,Point>={};
+      for(const key of Object.keys(body))if(was[key]&&(legs||!key.includes('.')||shift?.by[key]))by[key]=P(was[key].x-body[key].x,was[key].y-body[key].y);
+      shift={at:time-dt,span:Math.min(BODY_EASE,left+dt),by};
+    }
+  }
+  const kBody=eased(shift);
+  if(!kBody)shift=null;
+  const shown:Record<string,Point>={};
+  for(const [key,p] of Object.entries(body)){const by=kBody&&shift!.by[key];shown[key]=by?P(p.x+by.x*kBody,p.y+by.y*kBody):p;}
+  drawnSteps.set(actor,{time,side,drawn:gripOf(drawn),bridge,turn:turn+extra,spin,action:r.action,body:shown,shift,
+    turnStep:live?wrapTurn(turn+extra-prior!.turn):0,origin,grounded});
   const carry=Math.max(bridge?(bridge.from??1)*(1-smooth((time-bridge.at)/bridge.span)):0,extra?1-smooth((time-spin!.at)/spin!.span):0);
-  return bridge?{...gripSpace(drawn,false),drawnCarry:carry}:extra?{...r,drawnCarry:carry}:r;
+  const out:PaintRig&{drawnCarry?:number;bodyCarry?:number}=bridge?{...gripSpace(drawn,false),drawnCarry:carry}:extra?{...r,drawnCarry:carry}:r;
+  if(!kBody)return out;
+  const moved:Record<string,unknown>={...out,bodyCarry:kBody};
+  for(const key of BODY_POINTS)if(shift!.by[key])moved[key]=fromDrawn(shown[key]);
+  moved.legs=out.legs.map(leg=>{const next={...leg};for(const key of LEG_POINTS)if(shift!.by[`${leg.side}.${key}`])(next as Record<string,unknown>)[key]=fromDrawn(shown[`${leg.side}.${key}`]);return next;});
+  return moved as PaintRig&{drawnCarry?:number;bodyCarry?:number};
 }
 
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
