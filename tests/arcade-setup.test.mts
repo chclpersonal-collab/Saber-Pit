@@ -19,7 +19,7 @@ test('options survive reload and store no unrelated legacy data',()=>{
 test('the master trial is one SSS+ V against fifteen F, and custom slots extend to 24',async()=>{
   const {presets}=await import('../dist/arcade-setup.js');
   const trial=normalizeSetup(presets.master);
-  assert.equal(trial.participation,'watch');
+  assert.equal(trial.participation,'play');
   assert.deepEqual(trial.teamSizes,[1,15]);assert.deepEqual(trial.startingRanks,['SSS+V','F']);
   const large=normalizeSetup({teamSizes:[24,24],playerSlot:23,form:'ataru'});
   assert.equal(engineLineups(large)[0][23],'ataru');
@@ -83,10 +83,13 @@ test('Watch a Hero prepares an AI-only elite challenge without editing the prior
   assert.equal(lobbyHeroControl(setup,1),'ai');
   assert.equal(watchHeroSetup(setup,heroes,'missing'),null);
   assert.equal(watchHeroSetup(setup,[]),null);
-  const next=watchHeroSetup(setup,heroes);
+  const next=watchHeroSetup(setup,heroes,undefined,'watch');
   assert.deepEqual(setup,previous);
   assert.equal(setupMode(next),'watch');
   assert.equal(lobbyHeroControl(next,0),'ai');
+  const played=watchHeroSetup(setup,heroes);
+  assert.equal(played.participation,'play');
+  assert.equal(lobbyHeroControl(played,0),'manual');
   assert.equal(lobbyHeroControl(next,1),null);
   assert.deepEqual(next.teamSizes,[1,3]);
   assert.deepEqual(next.startingRanks,['SSS+V','SSS+V']);

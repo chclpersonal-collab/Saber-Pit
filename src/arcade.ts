@@ -340,7 +340,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
-  $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue':'Your side');
+  $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue':'Blue side');
   $('rivalName').textContent=rival!.displayName??(mode==='duel'?formName(rival!.form):'Pink');
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
@@ -680,7 +680,7 @@ function showEnd(){
   const me=game.fighters.find(f=>f.control), lineKeys=['kills','deaths','damage','parries','saberHits','saberSwings'] as const;
   renderRoundResult($('result'),buildRoundResult({
     mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:settled.rated,save:tracked?saveResult:'untracked',
-    who:me?null:mode==='watch'?'Blue side totals':'Your side totals',
+    who:me?null:'Blue side totals',
     line:me?me.stats:Object.fromEntries(lineKeys.map(k=>[k,game.stats?.[k]?.[0]])) as Record<typeof lineKeys[number],number>,
     elo:persisted&&settled.rated?{who:me?null:'Blue fighter 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
       floor:eloFloor(selected.after.grade),cap:selected.ratingCap}:null,
@@ -1270,7 +1270,7 @@ function heroSelects(){
   const empty=heroRoster.length===0;
   $('heroEmpty').hidden=!empty;$('heroHelp').hidden=empty;
   $('watchHero').disabled=empty;
-  $('watchHeroHelp').textContent=empty?'Save a Hero in Tournament to use Watch a Hero.':'Sets up one saved Hero vs three SSS+ V fighters. Start when ready.';
+  $('watchHeroHelp').textContent=empty?'Save a Hero in Tournament to play a Hero.':'You fight as a saved Hero against three SSS+ V fighters.';
   document.querySelector<HTMLElement>('.hero-options')!.hidden=empty;
   for(const i of [0,1] as const){
     const p=setup.heroPicks[i], other=setup.heroPicks[1-i]?.id??'';
