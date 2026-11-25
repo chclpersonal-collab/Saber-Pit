@@ -1,4 +1,10 @@
 /* LOOMEN v6 menu shell: home grid, player card, Play screen, Pause column. Matches the approved mocks. */
+/* Use the applied stylesheet as part of the startup contract. */
+:root{--loomen-v6-skin:ready}
+:root body.pit-v5 .v6-play-tools{margin:14px 0 18px;padding:8px 12px 12px;border:2px solid var(--v5-line);border-radius:var(--v5-r);background:var(--v5-panel);color:var(--v5-white)}
+:root body.pit-v5 .v6-play-tools summary{cursor:pointer;font:400 18px var(--v5-display);padding:10px 3px}
+:root body.pit-v5 .v6-play-tool-row{display:flex;flex-wrap:wrap;gap:10px;padding:5px 0 8px}
+:root body.pit-v5 .v6-play-tool-row .v6-cta{font-size:16px;min-height:44px;padding:0 14px}
 :root body.pit-v5[data-view=menu] .pit-nav{display:none}
 :root body.pit-v5:not([data-view=menu]) #v6Home,:root body.pit-v5:not([data-view=menu]) .v6-player{display:none}
 :root body.pit-v5[data-view=menu] .arena-launch,:root body.pit-v5[data-view=menu] #arenaShell{display:none}
