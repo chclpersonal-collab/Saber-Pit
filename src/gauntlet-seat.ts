@@ -2,7 +2,7 @@
  *  Same fixture, rules and clock as a simulated bout. The bout is written once, under the Gauntlet's lock,
  *  and only if the save still expects this exact fixture. Leaving early writes nothing. */
 import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,nextGauntletBout} from './gauntlet-tournament.js?v=4.01.1';
-import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,type HumanControls} from './gauntlet-play.js';
+import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,humanMarker,type HumanControls} from './gauntlet-play.js';
 import type {ArenaSeat,ArenaSeatEnd,ArenaSeatOpen} from './arena-seat.js';
 
 const BACK='./gauntlet.html';
@@ -37,14 +37,22 @@ export function openGauntletSeat(): ArenaSeatOpen{
           if(read(GAUNTLET_KEY)!==known)return 'changed';
           const result=commitHumanBout(loadGauntlet(),bout);
           if(!result.ok)return 'settled';
-          if(!saveGauntlet(result.state))return 'unsaved';
-          try{globalThis.localStorage.setItem(GAUNTLET_HUMAN_KEY,JSON.stringify(bout.log(result.state.active!.cursor)));}catch{/* Watch last bout then shows the simulated view. */}
-          return 'saved:'+result.state.active!.cursor;
+          // The fight record goes down first, so a settled human bout is never replayed as an AI fight:
+          // the full log, or if storage refuses it, a small marker that says its replay is unavailable.
+          const cursor=result.state.active!.cursor, store=globalThis.localStorage, before=read(GAUNTLET_HUMAN_KEY);
+          const put=(value: unknown)=>{try{store.setItem(GAUNTLET_HUMAN_KEY,JSON.stringify(value));return true;}catch{return false;}};
+          if(!put(bout.log(cursor))&&!put(humanMarker(bout.season,bout.fixture.id,cursor)))return 'full';
+          if(!saveGauntlet(result.state)){
+            try{if(before==null)store.removeItem(GAUNTLET_HUMAN_KEY);else store.setItem(GAUNTLET_HUMAN_KEY,before);}catch{/* the record names a bout the save never reached, so it can never match */}
+            return 'unsaved';
+          }
+          return 'saved:'+cursor;
         },'busy');
         if(outcome.startsWith('saved:'))return done('Bout '+outcome.slice(6)+' saved to the Gauntlet.',true);
         return done(outcome==='changed'?'Not saved. The Gauntlet changed in another tab.':
           outcome==='settled'?'Not saved. This bout was already settled.':
-          outcome==='busy'?'Not saved. The Gauntlet is busy in another tab.':'Not saved. The last verified save was kept.');
+          outcome==='busy'?'Not saved. The Gauntlet is busy in another tab.':
+          outcome==='full'?'Not saved. Browser storage is full.':'Not saved. The last verified save was kept.');
       })();
     },
     leave(){if(!bout.over)left=true;},

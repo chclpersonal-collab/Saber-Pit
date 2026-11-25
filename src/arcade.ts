@@ -1601,5 +1601,18 @@ if(seatKind){
     delete document.body.dataset.seatOpening;
     if(opened.ok){seed=0;setScene('game',opened.seat.mode,1,{seat:opened.seat});return;}
     $('setupStatus').textContent=opened.text;
+    showSeatProblem(opened.text,opened.back);
   });
+}
+
+/** A seat link that cannot open (no bout waiting, storage blocked) says so on the v6 screen, with the way back. */
+function showSeatProblem(text:string,back:string){
+  document.getElementById('seatProblem')?.remove();
+  const box=document.createElement('section');box.id='seatProblem';box.className='v6-notice';box.setAttribute('role','alert');
+  const msg=document.createElement('p');msg.textContent=text;
+  const link=document.createElement('a');link.className='v6-cta';link.href=back;link.textContent='Back';
+  const close=document.createElement('button');close.type='button';close.className='v6-notice-close';close.setAttribute('aria-label','Dismiss');close.textContent='✕';
+  close.addEventListener('click',()=>box.remove());
+  box.append(msg,link,close);
+  (document.getElementById('v6Home')??document.getElementById('app'))?.prepend(box);
 }

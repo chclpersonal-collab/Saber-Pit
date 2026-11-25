@@ -122,3 +122,20 @@ export function humanReplay(fixture: Fixture | NonNullable<NonNullable<State['ac
   };
   return {game,step};
 }
+
+/** Written in place of the log when the full log cannot be stored, so a fought bout is never replayed as an AI fight. */
+export function humanMarker(season: number,fixtureId: string,cursor: number){
+  return {v:1 as const,season,fixtureId,cursor,unavailable:true as const};
+}
+/** What "Watch last bout" may show for the season's last settled bout:
+ *  the person's own fight, "unavailable" when that bout was fought but its controls were not kept, or none (a simulated bout). */
+export function humanBoutReplay(raw: string | null | undefined,state: State): {kind:'none'}|{kind:'unavailable'}|{kind:'replay';log:HumanBoutLog}{
+  const log=readHumanLog(raw);
+  if(humanLogMatches(log,state))return {kind:'replay',log};
+  try{
+    const v=JSON.parse(raw??'null') as {season?: unknown;cursor?: unknown;fixtureId?: unknown} | null;
+    const a=state.active;
+    if(v&&a?.lastFixture&&v.season===state.season&&v.cursor===a.cursor&&v.fixtureId===(a.lastFixture as {id?:string}).id)return {kind:'unavailable'};
+  }catch{/* unreadable: not tied to this bout */}
+  return {kind:'none'};
+}

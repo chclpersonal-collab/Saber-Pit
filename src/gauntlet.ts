@@ -7,7 +7,7 @@ import {masteryTitle} from './arcade-mastery-title.js?v=2.33.0';
 import {combatMoveLabel} from './arcade-callouts.js?v=3.1.0';
 
 import type {startArcadeTournamentPlayback} from './tournament-replay.js';
-import {GAUNTLET_HUMAN_KEY,readHumanLog,humanLogMatches,humanReplay} from './gauntlet-play.js';
+import {GAUNTLET_HUMAN_KEY,humanBoutReplay,humanReplay} from './gauntlet-play.js';
 type SaveState = ReturnType<typeof loadGauntlet>;
 type Season = NonNullable<SaveState['active']>;
 type Fighter = SaveState['fighters'][number];
@@ -396,7 +396,10 @@ async function openReplay(){
     const rules={...await arcadeReplayRules(),stepArcade:stepGauntletBattle};
     const valid=()=>session===replayEpoch&&$('gReplay').open;
     if(!valid())return;
-    const fought=readHumanLog(raw(GAUNTLET_HUMAN_KEY)), human=humanLogMatches(fought,state)?humanReplay(fixture,fought):null;
+    const fought=humanBoutReplay(raw(GAUNTLET_HUMAN_KEY),state);
+    // A bout you fought is only ever shown as your own fight. Without its controls there is no replay.
+    if(fought.kind==='unavailable'){status.textContent='Replay unavailable for your bout';return;}
+    const human=fought.kind==='replay'?humanReplay(fixture,fought.log):null;
     replay=startArcadeTournamentPlayback($('gReplayCanvas'),human?.game??createGauntletBattle(fixture),fixture.terrain,human?{...rules,stepArcade:human.step}:rules,{
       drawOnTimeout:true,showMemberNames:true,...(human?{markedId:(human.game.fighters[0] as {id:string}).id}:{}),
       onFrame(left?: number){if(valid())status.textContent=`Replay only · ${clocks(left!<=1e-6?0:Math.ceil(left!))} remaining`;},
