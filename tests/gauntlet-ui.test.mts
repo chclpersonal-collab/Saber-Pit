@@ -53,13 +53,13 @@ test('Gauntlet desk schedules, runs seasons, safely resumes, and keeps other sav
     await import('../dist/gauntlet.js');
     assert.equal($('gPlay').disabled,true);
     assert.equal($('gSetup').hidden,false);
-    assert.equal($('gSetupTitle').textContent,'Start a season');
+    assert.equal($('gSetupTitle').textContent,'New Season');
     $('gSetup').fire('submit');await ready();
     assert.equal(real().season,1);assert.equal(real().active.limit,75);assert.equal(real().active.groups.length,4);
-    assert.match($('gSeasonBadge').textContent,/Season 1 · Week 1/);
+    assert.match(texts($('gSeasonBadge')),/Season 1 .*Week 1/);
     assert.equal($('gGroups').children.length,4);
     assert.equal($('gSetup').hidden,true);
-    assert.doesNotMatch(texts($('gGroups')),/Advances to final/);
+    assert.doesNotMatch(texts($('gGroups')),/To Final/);
     $('gRun').fire();await ready();
     assert.equal(queue[0].fixture.id,nextGauntletBout(real()).id);
     const solo=queue[0].fixture.soloId;
@@ -78,8 +78,8 @@ test('Gauntlet desk schedules, runs seasons, safely resumes, and keeps other sav
     $('gFind').value=real().fighters.find(f=>f.id===solo).name;$('gFind').fire('input');
     assert.equal($('gLedgerRows').children.length,1);
     $('gLedgerRows').children[0].children[0].children[0].fire();
-    assert.match(texts($('gRoleReports')),/1 studied/);
-    assert.match($('gFighterMeta').textContent,/Current Elo .*Peak Elo/);$('gFavorite').fire();
+    assert.match(texts($('gRoleReports')),/Bouts 1/);
+    assert.match(texts($('gFighterMeta')),/Elo .*Peak/);$('gFavorite').fire();
     $('gFind').value='';$('gFavoritesOnly').checked=true;$('gFavoritesOnly').fire('change');
     assert.equal($('gLedgerRows').children.length,1);
     $('gStageFilter').value='final';$('gStageFilter').fire('change');assert.equal($('gGroups').hidden,true);
@@ -104,21 +104,21 @@ test('Gauntlet desk schedules, runs seasons, safely resumes, and keeps other sav
     $('gRun').focus();$('gRun').fire();await ready();
     for(let i=1;i<20;i++){complete(0);await ready();if(i<19)await flushTimer();}
     assert.equal(real().active.status,'complete');assert.equal(real().active.bouts.length,20);
-    assert.match(texts($('gMedals')),/Gold · Champion/);assert.equal(maxActive,1);
+    assert.match(texts($('gMedals')),/Gold/);assert.equal(maxActive,1);
     const completed=real().active;
     assert.deepEqual($('gGroups').children.map(card=>card.children[1].children.filter(row=>row.className==='g-advances').length),[1,1,1,1]);
     assert.deepEqual(completed.standings.map((rows,i)=>texts($('gGroups').children[i].children[1].children[0]).includes(real().fighters.find(f=>f.id===rows[0].id).name)),[true,true,true,true]);
-    assert.match(texts($('gGroups').children[0]),/4 \/ 4 bouts/);
+    assert.match(texts($('gGroups').children[0]),/4\/4/);
     assert.equal($('gSetup').hidden,false);
-    assert.equal($('gSetupTitle').textContent,'Start Season 2');
-    assert.match($('gSetupHelp').textContent,/roster and career Elo carry over/);
+    assert.equal($('gSetupTitle').textContent,'Season 2');
+    assert.match($('gSetupHelp').textContent,/Roster and Elo carry over/);
     assert.equal(document.activeElement,$('gDraw'));
     $('gSetup').fire('submit');await ready();assert.equal(real().season,2);
     $('gRun').fire();await ready();
     for(let i=0;i<20;i++){complete(null);await ready();if(i<19)await flushTimer();}
     assert.equal(real().active.status,'complete');
-    assert.match($('gProgressText').textContent,/20 draws/);
-    assert.match(texts($('gMedals')),/No champion or medals awarded/);
+    assert.match(texts($('gProgressText')),/20 Draws/);
+    assert.match(texts($('gMedals')),/Final drawn, no medals/);
     $('gReset').fire();assert.equal($('gResetDialog').open,true);$('gResetDialog').returnValue='cancel';$('gResetDialog').close();
     assert.equal(real().season,2);
     $('gReset').fire();$('gResetDialog').returnValue='reset';$('gResetDialog').close();await ready();
@@ -129,7 +129,7 @@ test('Gauntlet desk schedules, runs seasons, safely resumes, and keeps other sav
     $('gAuto').fire();await ready();
     assert.equal(real().season,1);
     assert.equal(real().active.seed,987);assert.equal($('gSeed').value,'');
-    assert.equal($('gAuto').textContent,'Auto Seasons running');
+    assert.equal($('gAuto').textContent,'Auto Running');
     for(let i=0;i<20;i++){complete();await ready();if(i<19)await flushTimer();}
     assert.equal(real().season,1);assert.equal(real().active.status,'complete');assert.equal(queue.length,0);
     const roster=real().fighters;
@@ -151,8 +151,8 @@ test('Gauntlet desk schedules, runs seasons, safely resumes, and keeps other sav
     elements.clear();
     await import('../dist/gauntlet.js?remount=auto');
     assert.equal(queue.length,0,'opening the tab must not start a worker');
-    assert.equal($('gAuto').textContent,'Resume Auto Seasons');
-    assert.match($('gAutoHelp').textContent,/won’t start on its own/);
+    assert.equal($('gAuto').textContent,'Resume Auto');
+    assert.match($('gAutoHelp').textContent,/Resumes from the last saved bout/);
     assert.equal($('gLimit').value,'45');assert.equal($('gArena').value,'rotation');
     locked=true;$('gAuto').fire();await ready();
     assert.match($('gStatus').textContent,/another tab/);assert.equal(queue.length,0);locked=false;

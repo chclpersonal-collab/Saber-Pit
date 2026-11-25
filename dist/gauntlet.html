@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101519">
-<meta name="description" content="A rotating solo-versus-trio Loomen tournament with four qualifiers and a final.">
-<title>1v3 Gauntlet · Loomen</title>
+<meta name="description" content="LOOMEN Gauntlet: 1v3 saber bouts, 4 groups, 1 final.">
+<title>Gauntlet · LOOMEN</title>
 <link rel="stylesheet" href="./ops-v3-secondary.css?v=3.2.0">
 <link rel="stylesheet" href="./gauntlet.css?v=3.2.3">
 <script type="module" src="./gauntlet-sync-entry.js?v=5.1.0"></script>
@@ -22,12 +22,10 @@
       <a href="./backup.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#save"/></svg><span>Saves</span><small aria-hidden="true">04</small></a>
       <a href="./style-lab.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#flask-conical"/></svg><span>Style Lab</span><small aria-hidden="true">05</small></a>
     </nav>
-    <p class="ops-dock-foot" aria-hidden="true"><i></i> THE CIRCUIT</p>
   </header>
 
   <section class="ops-hero" aria-labelledby="gauntletTitle">
-    <div class="ops-hero-copy"><p class="ops-kicker">TOURNAMENT / TRIDENT CIRCUIT</p><h1 id="gauntletTitle">1v3 Gauntlet</h1>
-      <p>Sixteen SSS+ V fighters rotate through solo and trio roles. One fighter from each qualifying group makes the final.</p></div>
+    <div class="ops-hero-copy"><h1 id="gauntletTitle">Gauntlet</h1></div>
     <svg class="ops-hero-art g-hero-art" viewBox="0 0 262 158" aria-hidden="true">
       <circle cx="131" cy="79" r="69"/><circle cx="131" cy="79" r="53" stroke-dasharray="2 6"/>
       <path d="M10 43h54l18 19m-72 56h54l18-19m170-56h-54l-18 19m72 56h-54l-18-19M131 3v25m0 102v25"/>
@@ -37,97 +35,95 @@
   </section>
 
   <nav class="format-picker" aria-label="Tournament format">
-    <a class="format-link" href="./tournament.html"><span class="ops-format-mark" aria-hidden="true">01</span> 1v1 Duels</a>
-    <a class="format-link" href="./tournament.html#squads"><span class="ops-format-mark" aria-hidden="true">05</span> 5v5 Squads</a>
-    <a class="format-link" href="./gauntlet.html" aria-current="page"><span class="ops-format-mark" aria-hidden="true">03</span> 1v3 Gauntlet</a>
-    <a class="g-career-link" href="#gLedgerTitle">Career record ↓</a>
+    <a class="format-link" href="./tournament.html"><span class="ops-format-mark" aria-hidden="true">01</span> Tournament</a>
+    <a class="format-link" href="./tournament.html#squads"><span class="ops-format-mark" aria-hidden="true">05</span> Squad Tournament</a>
+    <a class="format-link" href="./gauntlet.html" aria-current="page"><span class="ops-format-mark" aria-hidden="true">03</span> Gauntlet</a>
+    <a class="g-career-link" href="#gLedgerTitle">Standings</a>
   </nav>
   <div class="gauntlet-grid">
     <div class="g-main">
       <section class="panel g-operations" aria-labelledby="gDeskTitle">
-        <div class="g-section-top"><div><p class="ops-kicker">BOUT DESK</p><h2 id="gDeskTitle">The bracket</h2></div><p class="g-badge" id="gSeasonBadge">No season</p></div>
-        <p class="muted g-desk-detail">One season is one in-game week.</p>
-        <div class="g-next" id="gNext"><p class="ops-kicker" id="gNextStage">READY TO DRAW</p><h3 id="gNextTitle">No bout scheduled</h3><p class="muted" id="gNextDetail">Draw a season to begin.</p></div>
+        <div class="g-section-top"><div><h2 id="gDeskTitle">Bracket</h2></div><p class="g-badge" id="gSeasonBadge">No Season</p></div>
+        <div class="g-next" id="gNext"><p class="ops-kicker" id="gNextStage">Ready</p><h3 id="gNextTitle">No Bout</h3><p class="muted" id="gNextDetail"></p></div>
         <form id="gSetup" class="g-setup" aria-labelledby="gSetupTitle" aria-describedby="gSetupHelp">
-          <div class="g-setup-intro"><h3 id="gSetupTitle">Start a season</h3><p class="muted" id="gSetupHelp">Choose a bout length and arena. Leave the seed blank for a random draw.</p></div>
+          <div class="g-setup-intro"><h3 id="gSetupTitle">New Season</h3><p class="muted" id="gSetupHelp" hidden>Blank seed draws at random</p></div>
           <label for="gSeed">Seed<input type="number" id="gSeed" min="1" max="4294967295" step="1" inputmode="numeric" placeholder="Random"></label>
-          <label for="gLimit">Bout length<select id="gLimit"><option value="45">45 sec</option><option value="75" selected>1:15</option><option value="90">1:30</option><option value="150">2:30</option></select></label>
-          <label for="gArena">Arena<select id="gArena"><option value="underpit">The Underpit</option><option value="rotation">Arena rotation</option><option value="foundry">The Foundry</option><option value="ember_ring">Ember Ring</option><option value="crossroads">Crossroads</option><option value="zigzag">Zigzag</option><option value="craterfield">Craterfield</option></select></label>
-          <button class="primary" type="submit" id="gDraw">Draw bracket</button>
+          <label for="gLimit">Clock<select id="gLimit"><option value="45">45s</option><option value="75" selected>1:15</option><option value="90">1:30</option><option value="150">2:30</option></select></label>
+          <label for="gArena">Arena<select id="gArena"><option value="underpit">The Underpit</option><option value="rotation">Rotation</option><option value="foundry">The Foundry</option><option value="ember_ring">Ember Ring</option><option value="crossroads">Crossroads</option><option value="zigzag">Zigzag</option><option value="craterfield">Craterfield</option></select></label>
+          <button class="primary" type="submit" id="gDraw">Draw Bracket</button>
         </form>
-        <div class="g-progress" id="gProgress" hidden><label for="gBar" id="gProgressText">Bouts complete</label><progress id="gBar" max="20" value="0"></progress></div>
+        <div class="g-progress" id="gProgress" hidden><label for="gBar" id="gProgressText">Bouts</label><progress id="gBar" max="20" value="0"></progress></div>
         <div class="g-actions">
-          <button class="primary" id="gFight" type="button" disabled>Fight next bout</button>
-          <button id="gPlay" type="button" disabled>Next bout</button>
-          <button id="gRun" type="button" disabled>Run bracket</button>
+          <button class="primary" id="gFight" type="button" disabled>Fight</button>
+          <button id="gPlay" type="button" disabled>Sim Bout</button>
+          <button id="gRun" type="button" disabled>Run Bracket</button>
           <button id="gAuto" class="g-auto" type="button" aria-describedby="gAutoHelp">Auto Seasons</button>
-          <button id="gStop" type="button" hidden>Stop after bout</button>
-          <button id="gWatch" type="button" hidden>Watch last bout</button>
+          <button id="gStop" type="button" hidden>Stop</button>
+          <button id="gWatch" type="button" hidden>Watch</button>
         </div>
-        <p id="gAutoHelp" class="g-auto-help muted">Runs season after season. Keep this tab open.</p>
+        <p id="gAutoHelp" class="g-auto-help muted" hidden>Runs seasons back to back</p>
         <p id="gStatus" class="g-status" role="status" aria-live="polite"></p>
-        <div class="g-archive"><a href="./backup.html">Manage saves</a><button id="gReset" type="button" class="g-quiet" disabled>Reset Gauntlet</button></div>
+        <div class="g-archive"><a href="./backup.html">Saves</a><button id="gReset" type="button" class="g-quiet" disabled>Reset</button></div>
       </section>
 
       <section class="panel g-bracket" aria-labelledby="gBracketTitle">
-        <div class="g-section-top"><div><p class="ops-kicker">ROAD TO THE FINAL</p><h2 id="gBracketTitle">Matchups</h2></div>
-          <label class="g-inline-label" for="gStageFilter">Show<select id="gStageFilter"><option value="all">All stages</option><option value="groups">Qualifiers</option><option value="final">Final only</option></select></label>
+        <div class="g-section-top"><div><h2 id="gBracketTitle">Matchups</h2></div>
+          <label class="g-inline-label" for="gStageFilter">Show<select id="gStageFilter"><option value="all">All</option><option value="groups">Groups</option><option value="final">Final</option></select></label>
         </div>
-        <p class="muted g-explain">Each competitor takes one solo turn and three trio turns in a group. A win is worth 1 point and a draw is worth ½. Standings use solo points, then total points, then the initial seed.</p>
         <div id="gGroups" class="g-groups"></div>
         <div id="gFinal" class="g-final"></div>
       </section>
 
       <details class="panel g-log" id="gLog" hidden>
-        <summary>Bout log <span class="muted" id="gLogCount"></span></summary>
+        <summary>Bout Log <span class="muted" id="gLogCount"></span></summary>
         <div id="gBoutLog"></div>
-        <button id="gCsv" type="button">Download season results (CSV)</button>
+        <button id="gCsv" type="button">Export CSV</button>
       </details>
     </div>
 
     <div class="g-aside">
       <section class="panel g-ledger" aria-labelledby="gLedgerTitle">
-        <div class="g-section-top"><div><p class="ops-kicker">CAREER RECORD</p><h2 id="gLedgerTitle" tabindex="-1">Fighter standings</h2></div><span class="g-meta">ELO</span></div>
-        <p class="muted g-explain">Current Elo changes with results. Peak Elo is the highest rating recorded across seasons. Select a fighter for separate solo and trio records.</p>
+        <div class="g-section-top"><div><h2 id="gLedgerTitle" tabindex="-1">Standings</h2></div><span class="g-meta">Elo</span></div>
         <div class="g-filters">
-          <label for="gFind">Find fighter<input type="search" id="gFind" placeholder="Name"></label>
-          <label for="gRole">Role filter<select id="gRole"><option value="all">All fighters</option><option value="solo">Played solo</option><option value="trio">Played in a trio</option></select></label>
-          <label for="gSort">Order<select id="gSort"><option value="elo">Current Elo</option><option value="peak">Peak Elo</option></select></label>
-          <label class="g-check"><input type="checkbox" id="gFavoritesOnly"> Starred only</label>
+          <label for="gFind">Search<input type="search" id="gFind" placeholder="Name"></label>
+          <label for="gRole">Role<select id="gRole"><option value="all">All</option><option value="solo">Solo</option><option value="trio">Trio</option></select></label>
+          <label for="gSort">Sort<select id="gSort"><option value="elo">Elo</option><option value="peak">Peak Elo</option></select></label>
+          <label class="g-check"><input type="checkbox" id="gFavoritesOnly"> Starred</label>
         </div>
         <div class="g-table-window" tabindex="0" role="region" aria-labelledby="gLedgerTitle"><table>
-          <thead><tr><th scope="col">Fighter</th><th scope="col">Current Elo</th><th scope="col">Peak Elo</th><th scope="col"><abbr title="Solo wins, draws, losses">Solo W–D–L</abbr></th><th scope="col"><abbr title="Trio wins, draws, losses">Trio W–D–L</abbr></th></tr></thead><tbody id="gLedgerRows"></tbody>
+          <thead><tr><th scope="col">Fighter</th><th scope="col">Elo</th><th scope="col">Peak</th><th scope="col"><abbr title="Solo wins, draws, losses">Solo W–D–L</abbr></th><th scope="col"><abbr title="Trio wins, draws, losses">Trio W–D–L</abbr></th></tr></thead><tbody id="gLedgerRows"></tbody>
         </table></div>
         <section class="g-fighter" id="gFighter" aria-labelledby="gFighterName" hidden>
           <div class="g-section-top">
             <div class="g-fighter-identity">
               <canvas id="gFighterPortrait" class="g-fighter-portrait" width="180" height="180" aria-hidden="true"></canvas>
-              <div><p class="ops-kicker">FIGHTER FILE</p><h3 id="gFighterName" tabindex="-1"></h3><p class="muted" id="gFighterMeta"></p><p class="muted" id="gFighterGear"></p></div>
+              <div><h3 id="gFighterName" tabindex="-1"></h3><p class="muted" id="gFighterMeta"></p><p class="muted" id="gFighterGear"></p></div>
             </div>
-            <button id="gFavorite" type="button" aria-pressed="false">Star fighter</button>
+            <button id="gFavorite" type="button" aria-pressed="false">Star</button>
           </div>
           <div id="gRoleReports" class="g-role-reports"></div>
         </section>
       </section>
 
       <section class="panel g-champion" aria-labelledby="gChampionTitle">
-        <p class="ops-kicker">HALL OF MEDALS</p><h2 id="gChampionTitle">Season podium</h2>
-        <div id="gMedals"><p class="muted">Finish a season to award medals.</p></div>
+        <h2 id="gChampionTitle">Podium</h2>
+        <div id="gMedals"><p class="muted">No medals yet</p></div>
       </section>
 
       <section class="panel g-report" id="gReport" aria-labelledby="gReportTitle" hidden>
-        <p class="ops-kicker">BOUT REVIEW</p><h2 id="gReportTitle">Last bout</h2>
+        <h2 id="gReportTitle">Last Bout</h2>
         <p class="muted" id="gOutcome"></p><div class="g-report-rows" id="gDeltas"></div>
       </section>
 
-      <details class="panel g-rules"><summary>How the Gauntlet works</summary>
+      <details class="panel g-rules"><summary>Rules</summary>
         <ul>
-          <li>There are four groups of four. Every member takes one turn alone against the other three. Group winners advance and rotate through one more round of roles in the final.</li>
-          <li>The solo fighter must defeat the entire trio. The trio wins by defeating the solo fighter. Clock expiry is a draw; it does not become a win based on damage or survivors.</li>
-          <li>Elo compares the solo fighter with the trio’s combined rating. Four equal-rated fighters give the solo side a 25% expected score. The solo fighter takes the full signed Elo change; the trio splits the opposite change. The 1500 floor applies to everyone.</li>
-          <li>Mastery badges follow your peak Elo after a rated bout: GM 1500, HGM 1600, SGM 1700, AGM 1800.</li>
-          <li>Final standings use solo points, then total points, then the initial seed. If all four final bouts draw, no champion or medals are awarded.</li>
-          <li>Role results train each fighter separately. The career ledger records current and peak Elo across seasons. Gauntlet progress stays in this browser; use Manage saves to move it to another device.</li>
+          <li>4 Groups ×4</li>
+          <li>Solo vs Trio</li>
+          <li>Win 1 Pt</li>
+          <li>Draw ½ Pt</li>
+          <li>Time Out: Draw</li>
+          <li>Elo Floor 1500</li>
+          <li><span class="v6-meta">GM 1500</span> <span class="v6-meta">HGM 1600</span> <span class="v6-meta">SGM 1700</span> <span class="v6-meta">AGM 1800</span></li>
         </ul>
       </details>
     </div>
@@ -135,16 +131,16 @@
 
   <dialog id="gResetDialog" aria-labelledby="gResetTitle" aria-describedby="gResetHelp">
     <form method="dialog">
-      <p class="ops-kicker">LOCAL SAVE</p><h2 id="gResetTitle">Reset the Gauntlet?</h2>
-      <p id="gResetHelp">This clears Gauntlet seasons, medals, and career Elo on this device. Your 1v1, 5v5, Saved Heroes, and quest progress stay.</p>
-      <div class="g-actions"><button value="cancel" autofocus>Cancel</button><button value="reset">Reset Gauntlet</button></div>
+      <h2 id="gResetTitle">Reset Gauntlet?</h2>
+      <p id="gResetHelp" hidden>Clears Gauntlet seasons, medals and Elo</p>
+      <div class="g-actions"><button value="cancel" autofocus>Cancel</button><button value="reset">Reset</button></div>
     </form>
   </dialog>
   <dialog id="gReplay" class="g-replay" aria-labelledby="gReplayTitle">
-    <div class="g-section-top"><div><p class="ops-kicker">READ-ONLY PLAYBACK</p><h2 id="gReplayTitle">Gauntlet replay</h2></div><form method="dialog"><button id="gCloseReplay" value="close" autofocus>Close</button></form></div>
-    <canvas id="gReplayCanvas" width="960" height="540" role="img" aria-label="Replay of the last Gauntlet bout"></canvas>
+    <div class="g-section-top"><div><h2 id="gReplayTitle">Replay</h2></div><form method="dialog"><button id="gCloseReplay" value="close" autofocus>Close</button></form></div>
+    <canvas id="gReplayCanvas" width="960" height="540" role="img" aria-label="Last bout replay"></canvas>
     <div class="g-actions"><button id="gReplayPause" type="button" disabled>Pause</button>
-      <button id="gReplaySkip" type="button" disabled>Skip to result</button>
+      <button id="gReplaySkip" type="button" disabled>Skip</button>
       <label for="gReplaySpeed" class="g-inline-label">Speed <select id="gReplaySpeed" disabled><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label></div>
     <p id="gReplayStatus" class="g-status" role="status"></p>
   </dialog>

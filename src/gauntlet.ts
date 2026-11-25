@@ -5,6 +5,7 @@ import {drawArcadeFighterPreview} from './arcade-painter.js?v=5.0.0';
 import {ARCADE_CHESS_STYLES} from './arcade-chess-styles.js?v=2.44.0';
 import {masteryTitle} from './arcade-mastery-title.js?v=2.33.0';
 import {combatMoveLabel} from './arcade-callouts.js?v=3.1.0';
+import {arcadeSaberOption} from './arcade-loadouts.js?v=3.1.0';
 
 import type {startArcadeTournamentPlayback} from './tournament-replay.js';
 import {GAUNTLET_HUMAN_KEY,humanBoutReplay,humanReplay} from './gauntlet-play.js';
@@ -37,9 +38,11 @@ interface DomMap {
 }
 const $=<ID extends string>(id: ID)=>document.getElementById(id) as ID extends keyof DomMap ? DomMap[ID] : HTMLElement;
 const formNames: Readonly<Record<string,string>>={shii_cho:'Shii-Cho',makashi:'Makashi',soresu:'Soresu',ataru:'Ataru',djem_so:'Djem So',niman:'Niman',juyo:'Juyo'};
-const maps: Readonly<Record<string,string>>={underpit:'The Underpit',foundry:'The Foundry',ember_ring:'Ember Ring',crossroads:'Crossroads',zigzag:'Zigzag',craterfield:'Craterfield',rotation:'Arena rotation'};
+const maps: Readonly<Record<string,string>>={underpit:'The Underpit',foundry:'The Foundry',ember_ring:'Ember Ring',crossroads:'Crossroads',zigzag:'Zigzag',craterfield:'Craterfield',rotation:'Rotation'};
 const groups=['A','B','C','D'], STAR_KEY='saber-pit:gauntlet:stars:1', AUTO_KEY='saber-pit:gauntlet:auto-resume:1';
 const el=<K extends keyof HTMLElementTagNameMap>(tag: K,content?: string,style?: string)=>{const node=document.createElement(tag);if(content!==undefined)node.textContent=content;if(style)node.className=style;return node;};
+/** Short facts as separate v6-meta chips instead of a dotted chain. */
+const meta=(...parts: (string | null | undefined | false)[])=>{const out: (string | HTMLSpanElement)[]=[];for(const part of parts){if(!part)continue;if(out.length)out.push(' ');out.push(el('span',part,'v6-meta'));}return out;};
 const raw=(key: string)=>{try{return globalThis.localStorage.getItem(key);}catch{return undefined;}};
 let state=loadGauntlet(), known=raw(GAUNTLET_KEY), activeJob: BoutJob | null=null, workerJob: PendingWorker | null=null, waiting: (()=>void) | null=null, claiming=false;
 let resumeDigest: string | undefined, digestSource: string | null | undefined;
@@ -65,11 +68,12 @@ function addMastery<T extends HTMLElement>(node: T,fighter?: Fighter | null): T{
   }
   return node;
 }
-const form=(id: string)=>formNames[id]??'Unknown form';
+const form=(id: string)=>formNames[id]??'Unknown';
 const heading=(text: unknown)=>typeof text==='string'&&text?text[0].toUpperCase()+text.slice(1):'Balanced';
 const notify=(text: string)=>{$('gStatus').textContent=text;};
 const busy=()=>Boolean(activeJob)||claiming;
 const resultOf=(b: Pick<SavedBout,'winner'>)=>b.winner===0?'Solo victory':b.winner===1?'Trio victory':'Draw';
+const resultLabel=(winner?: 0 | 1 | null)=>winner===0?'Solo Win':winner===1?'Trio Win':'Draw';
 const stageOf=(b: Pick<SavedBout,'phase'|'group'>)=>b.phase==='final'?'Final':'Group '+(groups[b.group!]??'—');
 
 // A revision marker outside the portable save never starts work on its own.
@@ -99,7 +103,7 @@ function syncSetup(){
 }
 function setupOptions(){
   const input=$('gSeed'), seed=input.value?Number(input.value):Math.floor(Math.random()*4294967294)+1;
-  if(!Number.isSafeInteger(seed)||seed<1||seed>4294967295){notify('Enter a seed from 1 to 4,294,967,295.');input.focus();return null;}
+  if(!Number.isSafeInteger(seed)||seed<1||seed>4294967295){notify('Seed must be 1–4,294,967,295');input.focus();return null;}
   return {seed,limit:Number($('gLimit').value),terrain:$('gArena').value};
 }
 function drawSeason(options: DrawOptions){
@@ -131,7 +135,7 @@ function reload(){
 }
 function checkSave(){
   if(raw(GAUNTLET_KEY)===known)return true;
-  reload();cancelWork();render();notify('Loaded Gauntlet progress from another tab. No pending bout was counted.');
+  reload();cancelWork();render();notify('Reloaded from another tab');
   return false;
 }
 function cancelWork(){
@@ -139,19 +143,19 @@ function cancelWork(){
 }
 function withLock(task: () => void | Promise<void>,{requireWorker=false}={}){
   if(busy()||leftPage||$('gReplay').open||$('gResetDialog').open)return;
-  if(requireWorker&&typeof Worker!=='function'){notify('This browser cannot run a sequence of bouts. Use Next bout.');return;}
+  if(requireWorker&&typeof Worker!=='function'){notify('Browser cannot run brackets');return;}
   const locks=globalThis.navigator?.locks;
-  if(requireWorker&&typeof locks?.request!=='function'){notify('This browser cannot lock tournament tabs. Use Next bout.');return;}
+  if(requireWorker&&typeof locks?.request!=='function'){notify('Browser cannot lock tabs');return;}
   const epoch=pageEpoch;claiming=true;renderControls();
   const prepare=async (available: boolean)=>{
     if(epoch!==pageEpoch)return;
     claiming=false;
     if(leftPage){renderControls();return;}
-    if(!available){renderControls();notify('The Gauntlet is busy in another tab.');return;}
+    if(!available){renderControls();notify('Busy in another tab');return;}
     if(!checkSave()){renderControls();return;}
     await task();
   };
-  const failed=(error: unknown)=>{if(epoch!==pageEpoch)return;claiming=false;cancelWork();render();console.error('Gauntlet operation stopped',error);notify('Could not continue. Already saved bouts were kept.');};
+  const failed=(error: unknown)=>{if(epoch!==pageEpoch)return;claiming=false;cancelWork();render();console.error('Gauntlet operation stopped',error);notify('Couldn’t continue, saved bouts kept');};
   try{
     const promise=typeof locks?.request==='function'?locks.request('saber-pit:progress:'+GAUNTLET_KEY,{ifAvailable:true},lock=>prepare(Boolean(lock))):prepare(true);
     Promise.resolve(promise).catch(failed);
@@ -198,33 +202,33 @@ async function run(multiple: boolean,{auto=false,firstDraw=null}: RunOptions={})
       }
       if(!fixture)break;
       job.inFlight=true;
-      notify(`${job.auto?'Auto Seasons · Season '+state.season+' · ':''}${stageOf(fixture)} · simulating bout ${state.active!.cursor+1} of 20…`);
+      notify(`${job.auto?'Auto: season '+state.season+', bout':'Simulating bout'} ${state.active!.cursor+1}/20`);
       const answer=await work(fixture);
       job.inFlight=false;
       if(activeJob!==job||!checkSave())return;
       if(!answer||![0,1,null].includes(answer.winnerIndex))throw new Error('Incomplete bout result');
       const next=recordGauntletBout(state,fixture.id,answer);
       if(next.active?.cursor!==state.active!.cursor+1)throw new Error('Unexpected fixture or duplicate result');
-      if(!saveState(next)){cancelWork();render();notify('Could not save this bout. The last verified save was kept.');return;}
+      if(!saveState(next)){cancelWork();render();notify('Not saved: last save kept');return;}
       if(auto&&!job.stop)rememberAuto();
       render();
       notify(auto&&state.active!.status==='complete'&&!job.stop
-        ?`Auto Seasons · Season ${state.season} complete. Drawing the next season…`
-        :`${resultOf(state.active!.bouts.at(-1)!)} · bout ${state.active!.cursor} saved.`);
+        ?`Season ${state.season} done, drawing next`
+        :`Bout ${state.active!.cursor} saved`);
       if(!multiple||job.stop||(!auto&&!nextGauntletBout(state)))break;
       await yieldBeforeNext();
     }while(!job.stop);
     if(activeJob!==job)return;
     activeJob=null;render();
-    if(job.stop)notify('Stopped. Completed bouts were kept.');
+    if(job.stop)notify('Stopped, bouts kept');
     else if(state.active?.status==='complete'){
-      notify('Season complete. Results and career Elo saved.');
+      notify('Season complete');
       if([document.body,$('gPlay'),$('gRun')].includes(document.activeElement as HTMLElement))$('gDraw').focus();
     }
   }catch(error){
     if(activeJob!==job)return;
     console.error('Gauntlet bout failed',error);cancelWork();render();
-    notify('Could not finish this bout. Previously saved results were kept.');
+    notify('Bout failed, saves kept');
   }
 }
 function renderControls(){
@@ -234,48 +238,49 @@ function renderControls(){
   $('gRun').disabled=disabled||!next;
   const resume=!disabled&&hasAutoResume();
   $('gAuto').disabled=disabled;
-  $('gAuto').textContent=activeJob?.auto?'Auto Seasons running':resume?'Resume Auto Seasons':'Auto Seasons';
-  $('gAutoHelp').textContent=activeJob?.auto?'Keep this tab open to keep running. Each finished bout is saved.':resume
-    ?'Resume from the last saved bout. It won’t start on its own.'
-    :'Runs season after season. Keep this tab open.';
+  $('gAuto').textContent=activeJob?.auto?'Auto Running':resume?'Resume Auto':'Auto Seasons';
+  $('gAutoHelp').textContent=activeJob?.auto?'Keep this tab open':resume
+    ?'Resumes from the last saved bout'
+    :'Runs seasons back to back';
   $('gStop').hidden=!activeJob;
   $('gStop').disabled=Boolean(activeJob?.stop);
-  $('gStop').textContent=activeJob?.stop?'Finishing current bout…':'Stop after bout';
+  $('gStop').textContent=activeJob?.stop?'Stopping…':'Stop';
   $('gWatch').hidden=!state.active?.lastFixture;
   $('gWatch').disabled=disabled;
   $('gSetup').hidden=Boolean(state.active&&state.active.status!=='complete');
-  $('gSetupTitle').textContent=state.season?'Start Season '+(state.season+1):'Start a season';
+  $('gSetupTitle').textContent=state.season?'Season '+(state.season+1):'New Season';
   $('gSetupHelp').textContent=state.season
-    ?'Your roster and career Elo carry over. Download the current bout log first if you want to keep it.'
-    :'Choose a bout length and arena. Leave the seed blank for a random draw.';
+    ?'Roster and Elo carry over'
+    :'Blank seed draws at random';
   for(const id of ['gDraw','gSeed','gLimit','gArena'] as const)$(id).disabled=disabled;
-  $('gDraw').textContent=state.season?'Draw next bracket':'Draw bracket';
+  $('gDraw').textContent=state.season?'Next Bracket':'Draw Bracket';
   $('gReset').disabled=disabled||!state.season&&!(typeof known==='string'&&known);
 }
 function renderDesk(){
   const a=state.active,next=nextGauntletBout(state);
-  $('gSeasonBadge').textContent=state.season?`Season ${state.season} · Week ${seasonWeek(state.season)}`:'No season';
-  $('gNextStage').textContent=next?stageOf(next):state.season?'SEASON COMPLETE':'READY TO DRAW';
-  $('gNextTitle').textContent=next?name(next.soloId)+' vs '+next.trioIds.map(name).join(' / '):state.season?'All bouts settled':'No bout scheduled';
-  $('gNextDetail').textContent=next?`Solo vs trio · ${maps[next.terrain]??next.terrain} · ${clocks(next.limit)}`:state.season?'Review the season podium or draw the next bracket when you’re ready.':'Draw a season to begin.';
+  if(state.season)$('gSeasonBadge').replaceChildren(...meta(`Season ${state.season}`,`Week ${seasonWeek(state.season)}`));else $('gSeasonBadge').textContent='No Season';
+  $('gNextStage').textContent=next?stageOf(next):state.season?'Season Complete':'Ready';
+  $('gNextTitle').textContent=next?name(next.soloId)+' vs '+next.trioIds.map(name).join(' / '):state.season?'All Bouts Done':'No Bout';
+  $('gNextDetail').replaceChildren(...(next?meta('1v3',maps[next.terrain]??next.terrain,clocks(next.limit)):[]));
   $('gProgress').hidden=!a;
   $('gBar').value=a?.cursor??0;
   const draws=a?.bouts.filter(x=>x.winner===null).length??0;
-  $('gProgressText').textContent=`${a?.cursor??0} of 20 bouts saved · ${draws} ${draws===1?'draw':'draws'}`;
+  $('gProgressText').replaceChildren(...meta(`${a?.cursor??0}/20 Bouts`,`${draws} ${draws===1?'Draw':'Draws'}`));
 }
 function bracketCard(title: string,rows: readonly Standing[],settled: number,qualifies=false){
   const card=el('section',undefined,'g-group'),top=el('div',undefined,'g-round-caption');
-  top.append(el('h3',title),el('span',`${settled} / 4 bouts`));
+  top.append(el('h3',title),el('span',`${settled}/4`));
   card.append(top);
-  if(!rows.length){card.append(el('p','Awaiting qualifying results.','muted'));return card;}
+  if(!rows.length){card.append(el('p','TBD','muted'));return card;}
   const list=el('ol');
   for(const [i,r] of rows.entries()){
     const advances=qualifies&&settled===4&&i===0;
     const item=el('li',undefined,advances?'g-advances':undefined);
     const identity=el('div',undefined,'g-bracket-fighter');
     identity.append(addMastery(el('span',name(r.id)),fighterFor(r.id)));
-    if(advances)identity.append(el('span','Advances to final','g-advance-tag'));
-    item.append(identity,el('span',`${points(r.soloPoints)} solo · ${points(r.points)} total`,'g-points'));
+    if(advances)identity.append(el('span','To Final','g-advance-tag'));
+    const pts=el('span',undefined,'g-points');pts.append(...meta(`${points(r.soloPoints)} Solo`,`${points(r.points)} Pts`));
+    item.append(identity,pts);
     list.append(item);
   }
   card.append(list);return card;
@@ -285,7 +290,7 @@ function renderBracket(){
   $('gGroups').hidden=filter==='final';
   $('gFinal').hidden=filter==='groups';
   if(!a){
-    $('gGroups').replaceChildren(el('p','Draw a season to see all four groups.','muted'));
+    $('gGroups').replaceChildren(el('p','No season yet','muted'));
     $('gFinal').replaceChildren(bracketCard('Final',[],0));
     return;
   }
@@ -297,14 +302,15 @@ function renderMedals(){
   const a=state.active,activeSeason=a?.status==='complete', former=state.lastChampion;
   if(activeSeason){
     const tied=!former||(former as {draw?: boolean}).draw===true||!former.id||former.season!==state.season;
-    if(tied){$('gMedals').replaceChildren(el('p','Final drawn. No champion or medals awarded.','muted'));return;}
+    if(tied){$('gMedals').replaceChildren(el('p','Final drawn, no medals','muted'));return;}
     const list=el('ol',undefined,'g-medals');
     for(const [i,row] of (a.finalStandings??[]).slice(0,3).entries()){
-      const item=el('li');item.append(addMastery(el('span',name(row.id)),fighterFor(row.id)),el('span',['Gold · Champion','Silver','Bronze'][i],'g-ordinal'));list.append(item);
+      const item=el('li');item.append(addMastery(el('span',name(row.id)),fighterFor(row.id)),el('span',['Gold','Silver','Bronze'][i],'g-ordinal'));list.append(item);
     }
     $('gMedals').replaceChildren(list);
   }else{
-    $('gMedals').replaceChildren(el('p',former?.id?`Last champion: ${former.name} · Season ${former.season}`:'Finish a season to award medals.','muted'));
+    const line=el('p',former?.id?undefined:'No medals yet','muted');if(former?.id)line.append(...meta('Last Champion',former.name,`Season ${former.season}`));
+    $('gMedals').replaceChildren(line);
   }
 }
 function renderLedger(){
@@ -313,7 +319,7 @@ function renderLedger(){
     (role==='all'||played(f[role])>0)&&(!$('gFavoritesOnly').checked||stars.has(f.id)));
   if($('gSort').value==='peak')ranked.sort((a,b)=>b.peakElo-a.peakElo||b.elo-a.elo);
   if(!ranked.length){
-    const row=el('tr'),msg=el('td',state.fighters.length?'No fighters match these filters.':'No fighters recruited yet.','muted');msg.colSpan=5;
+    const row=el('tr'),msg=el('td',state.fighters.length?'No matches':'No fighters yet','muted');msg.colSpan=5;
     row.append(msg);$('gLedgerRows').replaceChildren(row);return;
   }
   $('gLedgerRows').replaceChildren(...ranked.map(f=>{
@@ -327,44 +333,45 @@ function renderLedger(){
 }
 function roleSummary(title: string,record: RoleRecord,adaptation?: Profile | null){
   const box=el('section'),p: Partial<Profile>=adaptation??{};
-  box.append(el('h4',title),el('p',`${wdl(record)} W–D–L · ${count(p.bouts)} studied`));
+  const line=(...parts: (string | null | undefined | false)[])=>{const row=el('p');row.append(...meta(...parts));return row;};
+  box.append(el('h4',title),line(`W–D–L ${wdl(record)}`,`Bouts ${count(p.bouts)}`));
   if(count(p.bouts)){
-    box.append(el('p',`Plan: ${heading(p.doctrine??p.lastDoctrine)}`),
-      el('p',`Guard ${percent(p.guard)} · Pressure ${percent(p.pressure)} · Mobility ${percent(p.mobility)}`));
+    box.append(line(`Plan ${heading(p.doctrine??p.lastDoctrine)}`),
+      line(`Guard ${percent(p.guard)}`,`Pressure ${percent(p.pressure)}`,`Mobility ${percent(p.mobility)}`));
     const named=combatMoveLabel(p.preferredMove!);
-    if(named)box.append(el('p','Favored move: '+named));
+    if(named)box.append(line('Move '+named));
   }
   return box;
 }
 function renderFighter(){
   const f=state.fighters.find(x=>x.id===selected);$('gFighter').hidden=!f;if(!f)return;
   $('gFighterName').textContent=f.name;addMastery($('gFighterName'),f);
-  $('gFighterMeta').textContent=[form(f.form),'SSS+ V',fighterGenderLabel(f.gender),`Current Elo ${score(f.elo)}`,`Peak Elo ${score(f.peakElo)}`].join(' · ');
-  const weapon=({single:'Single saber',dual:'Dual sabers',staff:'Double-bladed saber'} as Record<string,string>)[f.gear?.weapon??f.weapon];
-  const grip=(f.gear?.grip??f.grip)==='backhand'?'Backhand':null;
+  $('gFighterMeta').replaceChildren(...meta(form(f.form),'SSS+ V',fighterGenderLabel(f.gender),`Elo ${score(f.elo)}`,`Peak ${score(f.peakElo)}`));
+  const weaponId=f.gear?.weapon??f.weapon;
+  const saber=weaponId?arcadeSaberOption({weapon:weaponId,grip:(f.gear?.grip??f.grip)==='backhand'?'backhand':'forward'}).label:null;
   const style=ARCADE_CHESS_STYLES[f.chessStyle]?.label;
-  $('gFighterGear').textContent=[weapon,grip,style?style+' style':null].filter(Boolean).join(' · ');
+  $('gFighterGear').replaceChildren(...meta(saber,style));
   const portrait=$('gFighterPortrait'),ctx=portrait.getContext?.('2d');
   portrait.hidden=!ctx;
   if(ctx){
     ctx.clearRect(0,0,portrait.width,portrait.height);
     drawArcadeFighterPreview(ctx,f,{reducedMotion:true,framing:'portrait'});
   }
-  const star=stars.has(f.id);$('gFavorite').setAttribute('aria-pressed',String(star));$('gFavorite').textContent=star?'Remove star':'Star fighter';
-  $('gRoleReports').replaceChildren(roleSummary('Solo role',f.solo,f.adaptation?.solo),roleSummary('Trio role',f.trio,f.adaptation?.trio));
+  const star=stars.has(f.id);$('gFavorite').setAttribute('aria-pressed',String(star));$('gFavorite').textContent=star?'Unstar':'Star';
+  $('gRoleReports').replaceChildren(roleSummary('Solo',f.solo,f.adaptation?.solo),roleSummary('Trio',f.trio,f.adaptation?.trio));
 }
 function renderReport(){
   const bouts=state.active?.bouts??[], last=bouts.at(-1);
   $('gReport').hidden=!last;$('gLog').hidden=!last;
   if(!last)return;
-  $('gLogCount').textContent=`· ${bouts.length} saved`;
+  $('gLogCount').textContent=String(bouts.length);
   const list=el('ol');
-  for(const b of bouts){list.append(el('li',`${stageOf(b)} · ${name(b.soloId)} vs ${b.trioIds.map(name).join(' / ')} · ${resultOf(b)}, ${tempo(b.time)}`));}
+  for(const b of bouts){const item=el('li');item.append(...meta(stageOf(b),`${name(b.soloId)} vs ${b.trioIds.map(name).join(' / ')}`,resultLabel(b.winner),tempo(b.time)));list.append(item);}
   $('gBoutLog').replaceChildren(list);
-  $('gOutcome').textContent=`${stageOf(last)} · ${resultOf(last)} · ${tempo(last.time)}. Exact Elo changes and updated role profiles:`;
+  $('gOutcome').replaceChildren(...meta(stageOf(last),resultLabel(last.winner),tempo(last.time)));
   $('gDeltas').replaceChildren(...[last.soloId,...last.trioIds].map((id,i)=>{
     const f=state.fighters.find(x=>x.id===id), role=i===0?'solo':'trio', p=f?.adaptation?.[role], div=el('div'),label=el('span',name(id));
-    label.append(el('small',`${heading(role)} · ${heading(p?.doctrine)} · guard ${percent(p?.guard)} / pressure ${percent(p?.pressure)}`));
+    const small=el('small');small.append(...meta(heading(role),heading(p?.doctrine),`Guard ${percent(p?.guard)}`,`Pressure ${percent(p?.pressure)}`));label.append(small);
     div.append(label,el('span',signed(last.eloDelta?.[i]),'g-delta'));return div;
   }));
 }
@@ -382,14 +389,14 @@ function downloadCsv(){
   const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));
   const link=el('a');link.href=url;link.download=`saber-pit-gauntlet-season-${state.season}.csv`;
   document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10_000);
-  notify('Season results downloaded as CSV.');
+  notify('CSV downloaded');
 }
 async function openReplay(){
   if(busy()||$('gReplay').open||!state.active?.lastFixture)return;
   const fixture=state.active.lastFixture, session=++replayEpoch, status=$('gReplayStatus');
   replayPaused=false;$('gReplayPause').textContent='Pause';$('gReplayPause').disabled=true;$('gReplaySkip').disabled=true;
   $('gReplaySpeed').value='1';$('gReplaySpeed').disabled=true;
-  status.textContent='Opening replay…';$('gReplay').showModal();
+  status.textContent='Loading replay…';$('gReplay').showModal();
   try{
     const [{createGauntletBattle,stepGauntletBattle},{startArcadeTournamentPlayback},{arcadeReplayRules}]=await Promise.all([
       import('./gauntlet-sim.js?v=3.2.3'),import('./tournament-replay.js?v=5.0.1'),import('./arcade-replay-rules.js?v=3.2.0')]);
@@ -402,20 +409,20 @@ async function openReplay(){
     const human=fought.kind==='replay'?humanReplay(fixture,fought.log):null;
     replay=startArcadeTournamentPlayback($('gReplayCanvas'),human?.game??createGauntletBattle(fixture),fixture.terrain,human?{...rules,stepArcade:human.step}:rules,{
       drawOnTimeout:true,showMemberNames:true,...(human?{markedId:(human.game.fighters[0] as {id:string}).id}:{}),
-      onFrame(left?: number){if(valid())status.textContent=`Replay only · ${clocks(left!<=1e-6?0:Math.ceil(left!))} remaining`;},
-      onSkipError(){if(valid()){replayPaused=false;$('gReplayPause').disabled=false;$('gReplayPause').textContent='Pause';$('gReplaySpeed').disabled=false;status.textContent='Skip could not finish. Replay resumed.';}},
-      onEnd(winner?: 0 | 1 | null){if(valid()){status.textContent=(winner===0?'Solo victory':winner===1?'Trio victory':'Draw')+' · replay only.';$('gReplayPause').disabled=true;$('gReplaySkip').disabled=true;$('gReplaySpeed').disabled=true;}}
+      onFrame(left?: number){if(valid())status.textContent=clocks(left!<=1e-6?0:Math.ceil(left!));},
+      onSkipError(){if(valid()){replayPaused=false;$('gReplayPause').disabled=false;$('gReplayPause').textContent='Pause';$('gReplaySpeed').disabled=false;status.textContent='Skip failed, replay resumed';}},
+      onEnd(winner?: 0 | 1 | null){if(valid()){status.textContent=resultLabel(winner);$('gReplayPause').disabled=true;$('gReplaySkip').disabled=true;$('gReplaySpeed').disabled=true;}}
     });
     $('gReplayPause').disabled=!replay.pause;$('gReplaySpeed').disabled=!replay.setSpeed;$('gReplaySkip').disabled=!replay.skip;
-  }catch(error){if(session===replayEpoch){console.error('Gauntlet replay failed',error);status.textContent='Could not open the replay. Your save was unchanged.';}}
+  }catch(error){if(session===replayEpoch){console.error('Gauntlet replay failed',error);status.textContent='Couldn’t open replay';}}
 }
 $('gSetup').addEventListener('submit',event=>{
   event.preventDefault();if(state.active&&state.active.status!=='complete')return;
   const options=setupOptions();if(!options)return;
   withLock(()=>{
     if(state.active&&state.active.status!=='complete')return;
-    if(!drawSeason(options)){render();notify('Could not save the new season. Check browser storage.');return;}
-    clearAuto();render();notify(`Season ${state.season} saved. Choose Next bout, Run bracket, or Auto Seasons.`);$('gPlay').focus();
+    if(!drawSeason(options)){render();notify('Season not saved: storage blocked');return;}
+    clearAuto();render();notify(`Season ${state.season} drawn`);$('gPlay').focus();
   });
 });
 $('gPlay').addEventListener('click',()=>withLock(()=>run(false)));
@@ -425,14 +432,14 @@ $('gAuto').addEventListener('click',()=>{
   const firstDraw=!resume&&canDraw?setupOptions():null;
   if(!resume&&canDraw&&!firstDraw)return;
   withLock(()=>{
-    if(resume&&!hasAutoResume()){renderControls();notify('The saved Auto Seasons session changed.');return;}
+    if(resume&&!hasAutoResume()){renderControls();notify('Auto session changed');return;}
     return run(true,{auto:true,firstDraw});
   },{requireWorker:true});
 });
 $('gStop').addEventListener('click',()=>{
   const job=activeJob;if(!job)return;
   job.stop=true;if(job.auto)clearAuto();waiting?.();renderControls();
-  notify(job.inFlight?'Stopping after this bout. Keep the tab open.':'Stopping before the next bout.');
+  notify(job.inFlight?'Stopping after this bout':'Stopping');
 });
 $('gStageFilter').addEventListener('change',renderBracket);
 for(const id of ['gFind','gRole','gSort','gFavoritesOnly'])$(id).addEventListener(id==='gFind'?'input':'change',renderLedger);
@@ -457,7 +464,7 @@ $('gReplayPause').addEventListener('click',()=>{
   if(replayPaused)replay.pause();else replay.resume();
   $('gReplayPause').textContent=replayPaused?'Resume':'Pause';
 });
-$('gReplaySkip').addEventListener('click',()=>{if(replay?.skip?.()){$('gReplaySkip').disabled=true;$('gReplayPause').disabled=true;$('gReplaySpeed').disabled=true;$('gReplayStatus').textContent='Skipping to result…';}});
+$('gReplaySkip').addEventListener('click',()=>{if(replay?.skip?.()){$('gReplaySkip').disabled=true;$('gReplayPause').disabled=true;$('gReplaySpeed').disabled=true;$('gReplayStatus').textContent='Skipping…';}});
 $('gReplaySpeed').addEventListener('change',()=>replay?.setSpeed?.(Number($('gReplaySpeed').value)));
 $('gReplay').addEventListener('close',()=>{replayEpoch++;replay?.destroy?.();replay=null;$('gWatch').focus();});
 $('gReset').addEventListener('click',()=>{if(!busy()){$('gResetDialog').returnValue='';$('gResetDialog').showModal();}});
@@ -468,7 +475,7 @@ $('gResetDialog').addEventListener('close',()=>{
     const after=raw(GAUNTLET_KEY);
     if(after===null)clearAuto();
     reload();render();
-    notify(after===null?'Gauntlet reset. Other game saves were kept.':'Could not clear this browser’s Gauntlet save.');
+    notify(after===null?'Gauntlet reset':'Couldn’t clear Gauntlet save');
     $('gDraw').focus();
   });
 });

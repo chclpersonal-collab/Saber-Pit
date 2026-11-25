@@ -14,10 +14,10 @@ function locked<T>(task: () => T, otherwise: T): Promise<T>{
 }
 export function openGauntletSeat(): ArenaSeatOpen{
   const known=read(GAUNTLET_KEY);
-  if(known===undefined)return {ok:false,text:'This browser is blocking saved data, so a Gauntlet bout cannot be saved.',back:BACK};
+  if(known===undefined)return {ok:false,text:'Saving blocked in this browser',back:BACK};
   const state=loadGauntlet();
   const bout=startHumanBout(state);
-  if(!bout||!nextGauntletBout(state))return {ok:false,text:'No Gauntlet bout is waiting. Draw a bracket first.',back:BACK};
+  if(!bout||!nextGauntletBout(state))return {ok:false,text:'No bout ready: draw a bracket',back:BACK};
   let ending: Promise<ArenaSeatEnd> | null=null, left=false;
   const game=bout.game as unknown as {terrain?: {id?: string}};
   const seat: ArenaSeat={
@@ -32,7 +32,7 @@ export function openGauntletSeat(): ArenaSeatOpen{
           const next=nextGauntletBout(loadGauntlet());
           return {title,text,saved,next:Boolean(next)};
         };
-        if(left)return done('Bout left. Nothing was saved.');
+        if(left)return done('Bout left, not saved');
         const outcome=await locked(()=>{
           if(read(GAUNTLET_KEY)!==known)return 'changed';
           const result=commitHumanBout(loadGauntlet(),bout);
@@ -48,11 +48,11 @@ export function openGauntletSeat(): ArenaSeatOpen{
           }
           return 'saved:'+cursor;
         },'busy');
-        if(outcome.startsWith('saved:'))return done('Bout '+outcome.slice(6)+' saved to the Gauntlet.',true);
-        return done(outcome==='changed'?'Not saved. The Gauntlet changed in another tab.':
-          outcome==='settled'?'Not saved. This bout was already settled.':
-          outcome==='busy'?'Not saved. The Gauntlet is busy in another tab.':
-          outcome==='full'?'Not saved. Browser storage is full.':'Not saved. The last verified save was kept.');
+        if(outcome.startsWith('saved:'))return done('Bout '+outcome.slice(6)+' saved',true);
+        return done(outcome==='changed'?'Not saved: changed in another tab':
+          outcome==='settled'?'Not saved: bout already settled':
+          outcome==='busy'?'Not saved: busy in another tab':
+          outcome==='full'?'Not saved: storage full':'Not saved: last save kept');
       })();
     },
     leave(){if(!bout.over)left=true;},

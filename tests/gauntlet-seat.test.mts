@@ -51,7 +51,7 @@ test('if storage refuses even the marker, the bout is not saved',async()=>{
   refuse=k=>k===GAUNTLET_HUMAN_KEY;
   const end=await seat.finish();
   assert.equal(end.saved,false);
-  assert.match(end.text,/storage is full/);
+  assert.match(end.text,/storage full/);
   assert.equal(data.get(GAUNTLET_KEY),before);
 });
 
