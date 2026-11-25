@@ -13,7 +13,7 @@ interface RawProfile {solo?:RawProfile;trio?:RawProfile;bouts?:unknown;guard?:un
 type RawFixture={id?:string;seed?:number;limit?:number;terrain?:string;simulationVersion?:number;fighters:readonly RawFighter[]};
 type Fighter=ReturnType<typeof normalizeFighter>;
 type Plan=ReturnType<typeof selectPlan>;
-type LiveFighter={id:string;slot:number;team:number;form:string;x:number;y:number;vx:number;vy:number;alive:boolean;attack?:unknown;
+type LiveFighter={id:string;slot:number;team:number;form:string;control?:boolean;x:number;y:number;vx:number;vy:number;alive:boolean;attack?:unknown;
   attackSerial:number;actionTime:number;contact:boolean;airPhase:string;action:string;energy:number;stats:Record<string,number>};
 type LiveGame={fighters:LiveFighter[];limit:number;config:{limit:number};phase:string;time:number;eventId:number;
   events:{id:number;kind:string;damage:number;fighterId:string;technique?:string;phase?:string}[];endReason:string;
@@ -95,7 +95,12 @@ function selectPlan(f:Fighter,opponents:Fighter[],index:number){
   return {id:f.id,doctrine,preferredMove:p.preferredMove};
 }
 
-export function createGauntletBattle(fixture:RawFixture):LiveGame{
+export interface GauntletBattleOptions {
+  /** A person steers the solo fighter. The trio, the rules and the clock are the same as a simulated bout. */
+  human?: boolean;
+}
+export type GauntletInput=Parameters<typeof stepArcade>[2];
+export function createGauntletBattle(fixture:RawFixture,{human=false}:GauntletBattleOptions={}):LiveGame{
   const {id,seed,limit,terrain,fighters,simulationVersion}=normalizeFixture(fixture);
   const plans=fighters.map((f,i)=>selectPlan(f,i===0?fighters.slice(1):fighters.slice(0,1),i));
   const halves=[fighters.slice(0,1),fighters.slice(1)];
@@ -114,6 +119,7 @@ export function createGauntletBattle(fixture:RawFixture):LiveGame{
     Object.assign(actor,{gauntletFighterId:f.id,displayName:f.name,body:f.body,gender:f.gender,appearanceSeed:f.appearanceSeed,
       gear:arcadeFighterGear(gear([f,f]),0),heroPlan:plan.doctrine,tournamentMove:plan.preferredMove,loadoutChosen:true});
   });
+  if(human)game.fighters[0].control=true;
   return game;
 }
 
@@ -139,8 +145,8 @@ export function applyGauntletBalance(game:LiveGame,dt:number){
 }
 
 /** Normalize tournament result on the actual engine tick, never from score. */
-export function stepGauntletBattle(game:LiveGame,dt=GAUNTLET_STEP){
-  (stepArcade as unknown as (match:LiveGame,tick:number)=>unknown)(game,dt);
+export function stepGauntletBattle(game:LiveGame,dt=GAUNTLET_STEP,input?:GauntletInput){
+  (stepArcade as unknown as (match:LiveGame,tick:number,controls?:GauntletInput)=>unknown)(game,dt,input);
   if(game.phase==='playing'&&game.gauntlet.simulationVersion>=2)applyGauntletBalance(game,dt);
   if(game.endReason==='timeout'&&game.phase!=='draw'){
     game.phase='draw';
@@ -150,14 +156,14 @@ export function stepGauntletBattle(game:LiveGame,dt=GAUNTLET_STEP){
   return game;
 }
 
-export function simulateGauntlet(fixture:RawFixture){
-  const game=createGauntletBattle(fixture), actors=game.fighters;
+/** Per-tick observations that feed a fighter's learned profile. Simulated and human bouts are read the same way. */
+export function createGauntletRecorder(game:LiveGame){
+  const actors=game.fighters;
   const rows=actors.map(()=>({ticks:0,guardTicks:0,closingTicks:0,distance:0,hits:{} as Record<string,number>,lastX:0,lastY:0}));
   rows.forEach((r,i)=>{r.lastX=actors[i].x;r.lastY=actors[i].y;});
   const actorIndex=new Map(actors.map((a,i)=>[a.id,i]));
   let lastEvent=0;
-  for(let n=0,max=Math.ceil(game.limit/GAUNTLET_STEP)+2;n<max&&game.phase==='playing';n++){
-    stepGauntletBattle(game);
+  function observe(){
     actors.forEach((a,i)=>{
       const row=rows[i];
       const dx=a.x-row.lastX,dy=a.y-row.lastY;
@@ -169,7 +175,7 @@ export function simulateGauntlet(fixture:RawFixture){
       // Voluntary rather than forced travel: exclude stagger, clash and KO.
       if(!['stagger','clash','ko'].includes(a.action))row.distance+=Math.hypot(dx,dy);
     });
-    if(game.eventId===lastEvent)continue;
+    if(game.eventId===lastEvent)return;
     for(const e of game.events){
       if(e.id<=lastEvent||!['hit','launch'].includes(e.kind)||!(e.damage>0)||!e.technique)continue;
       const index=actorIndex.get(e.fighterId);if(index===undefined)continue;
@@ -179,21 +185,35 @@ export function simulateGauntlet(fixture:RawFixture){
     }
     lastEvent=game.eventId;
   }
+  function result(){
+    if(game.phase==='playing')throw new Error('Gauntlet bout has not reached its deadline.');
+    const winnerIndex:0|1|null=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
+    const observations=actors.map((f,i)=>{
+      const row=rows[i],plan=game.gauntlet.plans[i],stats={...f.stats};
+      const elapsed=Math.max(.1,row.ticks*GAUNTLET_STEP);
+      const preferredMove=Object.keys(row.hits).sort((a,b)=>row.hits[b]-row.hits[a]||a.localeCompare(b))[0]??plan.preferredMove;
+      return {id:plan.id,fighterId:plan.id,arenaId:f.id,team:f.team,role:slotRole(i),alive:f.alive,form:f.form,
+        kills:stats.kills,deaths:stats.deaths,assists:stats.assists,damage:stats.damage,stats,
+        guard:unit(row.guardTicks/Math.max(1,row.ticks)*2.3+stats.blocks/elapsed*.50,0),
+        pressure:unit(stats.saberSwings/elapsed*.35+row.closingTicks/Math.max(1,row.ticks)*.41,0),
+        mobility:unit(row.distance/elapsed/180,0),
+        doctrine:plan.doctrine,appliedMove:plan.preferredMove,preferredMove,
+      };
+    });
+    return {winnerIndex,winner:winnerIndex,reason:game.endReason,time:Math.round(game.time*1e6)/1e6,
+      fighters:observations,observations,simulationVersion:game.gauntlet.simulationVersion,
+      staminaTuning:{soloRecovery:game.gauntlet.tuning.soloRecovery,trioTax:game.gauntlet.tuning.trioTax}};
+  }
+  return {observe,result};
+}
+export type GauntletBoutResult=ReturnType<ReturnType<typeof createGauntletRecorder>['result']>;
+
+export function simulateGauntlet(fixture:RawFixture):GauntletBoutResult{
+  const game=createGauntletBattle(fixture), recorder=createGauntletRecorder(game);
+  for(let n=0,max=Math.ceil(game.limit/GAUNTLET_STEP)+2;n<max&&game.phase==='playing';n++){
+    stepGauntletBattle(game);
+    recorder.observe();
+  }
   if(game.phase==='playing')throw new Error('Gauntlet simulation did not reach its deadline.');
-  const winnerIndex:0|1|null=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
-  const observations=actors.map((f,i)=>{
-    const row=rows[i],plan=game.gauntlet.plans[i],stats={...f.stats};
-    const elapsed=Math.max(.1,row.ticks*GAUNTLET_STEP);
-    const preferredMove=Object.keys(row.hits).sort((a,b)=>row.hits[b]-row.hits[a]||a.localeCompare(b))[0]??plan.preferredMove;
-    return {id:plan.id,fighterId:plan.id,arenaId:f.id,team:f.team,role:slotRole(i),alive:f.alive,form:f.form,
-      kills:stats.kills,deaths:stats.deaths,assists:stats.assists,damage:stats.damage,stats,
-      guard:unit(row.guardTicks/Math.max(1,row.ticks)*2.3+stats.blocks/elapsed*.50,0),
-      pressure:unit(stats.saberSwings/elapsed*.35+row.closingTicks/Math.max(1,row.ticks)*.41,0),
-      mobility:unit(row.distance/elapsed/180,0),
-      doctrine:plan.doctrine,appliedMove:plan.preferredMove,preferredMove,
-    };
-  });
-  return {winnerIndex,winner:winnerIndex,reason:game.endReason,time:Math.round(game.time*1e6)/1e6,
-    fighters:observations,observations,simulationVersion:game.gauntlet.simulationVersion,
-    staminaTuning:{soloRecovery:game.gauntlet.tuning.soloRecovery,trioTax:game.gauntlet.tuning.trioTax}};
+  return recorder.result();
 }
