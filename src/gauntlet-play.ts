@@ -17,24 +17,30 @@ export interface HumanControls {
   x?: number; y?: number; technique?: string | null;
   strike?: boolean; heavy?: boolean; dash?: boolean; guard?: boolean; force?: boolean;
   phase?: boolean; feint?: boolean; jump?: boolean; walk?: boolean;
+  /** Where the person aims, in arena units (mouse, touch or pad), or absent. */
+  aimX?: number; aimY?: number;
 }
-/** One logged control state: stick x and y in hundredths, a flag bitmask, and the technique (or ''). */
-export type HumanRun=[tick:number,x:number,y:number,flags:number,technique:string];
+/** One logged control state: stick x and y in hundredths, a flag bitmask, the technique (or ''), and the aim point in whole arena units (or null). */
+export type HumanRun=[tick:number,x:number,y:number,flags:number,technique:string,aimX:number|null,aimY:number|null];
 export interface HumanBoutLog { v: 1; season: number; fixtureId: string; cursor: number; ticks: number; runs: HumanRun[] }
 
 const axis=(n: unknown)=>typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(-1,Math.min(1,n))*100):0;
-const techniqueOf=(t: unknown)=>typeof t==='string'?t.replace(/[^a-z0-9_]/gi,'').slice(0,40):'';
+const techniqueOf=(t: unknown)=>typeof t==='string'?t.replace(/[^a-z0-9_:]/gi,'').slice(0,40):'';
+const AIM_LIMIT=100000;
+const aimOf=(n: unknown)=>typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(-AIM_LIMIT,Math.min(AIM_LIMIT,n))):null;
 function encode(c: HumanControls, tick: number): HumanRun{
   let flags=0;
   FLAGS.forEach((name,i)=>{if(c[name])flags|=1<<i;});
-  return [tick,axis(c.x),axis(c.y),flags,techniqueOf(c.technique)];
+  const aimX=aimOf(c.aimX), aimY=aimOf(c.aimY), aimed=aimX!==null&&aimY!==null;
+  return [tick,axis(c.x),axis(c.y),flags,techniqueOf(c.technique),aimed?aimX:null,aimed?aimY:null];
 }
 function decode(run: HumanRun): GauntletInput{
-  const [,x,y,flags,technique]=run, input: Record<string,unknown>={x:x/100,y:y/100,technique:technique||null};
+  const [,x,y,flags,technique,aimX,aimY]=run, input: Record<string,unknown>={x:x/100,y:y/100,technique:technique||null};
+  if(aimX!==null&&aimY!==null){input.aimX=aimX;input.aimY=aimY;}
   FLAGS.forEach((name,i)=>{input[name]=Boolean(flags&(1<<i));});
   return input as GauntletInput;
 }
-const same=(a: HumanRun,b: HumanRun)=>a[1]===b[1]&&a[2]===b[2]&&a[3]===b[3]&&a[4]===b[4];
+const same=(a: HumanRun,b: HumanRun)=>a[1]===b[1]&&a[2]===b[2]&&a[3]===b[3]&&a[4]===b[4]&&a[5]===b[5]&&a[6]===b[6];
 
 /** The live bout. step() advances exactly one Gauntlet tick with the person's controls. */
 export function startHumanBout(state: State){
@@ -88,7 +94,8 @@ export function readHumanLog(raw: string | null | undefined): HumanBoutLog | nul
       !Number.isSafeInteger(v.ticks)||v.ticks!<1||!Array.isArray(v.runs)||!v.runs.length||v.runs.length>MAX_RUNS)return null;
     let prev=-1;
     for(const r of v.runs){
-      if(!Array.isArray(r)||r.length!==5||!Number.isSafeInteger(r[0])||r[0]<=prev||r[0]>=v.ticks!||
+      const aim=(n: unknown)=>n===null||Number.isInteger(n)&&Math.abs(n as number)<=AIM_LIMIT;
+      if(!Array.isArray(r)||r.length!==7||!aim(r[5])||!aim(r[6])||(r[5]===null)!==(r[6]===null)||!Number.isSafeInteger(r[0])||r[0]<=prev||r[0]>=v.ticks!||
         ![r[1],r[2]].every(n=>Number.isInteger(n)&&n>=-100&&n<=100)||!Number.isInteger(r[3])||r[3]<0||r[3]>=1<<FLAGS.length||
         typeof r[4]!=='string'||techniqueOf(r[4])!==r[4])return null;
       prev=r[0];
