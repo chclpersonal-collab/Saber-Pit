@@ -584,3 +584,97 @@ test('painted saber interrupt carries each emitter without altering live strike 
     assert.equal(sampleArcadeBladeInterruption(f,bind,1.023),bind);
   }
 });
+
+test('each form stands at rest in its own stance, shared by the battle idle and every preview',async()=>{
+  const {sampleArcadeFormStance,arcadeFormStance}=await import('../dist/arcade-fighters.js');
+  const {createArcade}=await import('../dist/arcade-engine.js');
+  const forms=['shii_cho','makashi','soresu','ataru','djem_so','niman','juyo'];
+  const pitch=r=>Math.atan2(r.blade.y-r.emitter.y,r.blade.x-r.emitter.x);
+  const rest=(f,remember=false)=>sampleArcadeFormStance(f,pose(f,1.5),1.5,remember);
+  const looks=forms.map(form=>{
+    const game=createArcade({mode:'duel',seed:3,form,peasantMotion:true,liveEntry:true,recoveryFlow:true,stanceFlow:true});
+    const battle=game.fighters.find(f=>f.team===0), before=JSON.stringify(battle);
+    assert.equal(battle.form,form);assert.equal(battle.action,'idle');
+    const shown=rest(battle);
+    assert.equal(JSON.stringify(battle),before,'sampling never writes to the fighter');
+    // The preview path builds a fresh idle fighter; it must draw the very same stance.
+    const preview=rest({peasantMotion:true,id:battle.id,team:0,face:battle.face,form,action:'idle',actionTime:.28,actionDuration:.65,gear:{weapon:'single',grip:'forward'},x:0,y:0,liveEntry:true});
+    for(const k of ['hand','backHand','shoulder','head','emitter','blade'])for(const a of ['x','y']){
+      assert.ok(Number.isFinite(shown[k][a]),form+' '+k);
+      assert.ok(Math.abs(shown[k][a]-preview[k][a])<1e-9,form+' preview '+k);
+    }
+    // The engine's own grip is left exactly as it was.
+    assert.deepEqual(pose(battle,1.5).blade,pose(battle,1.5).blade);
+    assert.notDeepEqual(shown.blade,pose(battle,1.5).blade,form+' rests in its stance, not the engine grip');
+    // Pink mirrors Blue about the facing.
+    const pink=rest({...preview,team:1,face:Math.PI});
+    const turn=pitch(pink)-(Math.PI-pitch(rest({...preview,face:0})));
+    assert.ok(Math.abs(Math.atan2(Math.sin(turn),Math.cos(turn)))<1e-9,form+' mirror');
+    return {form,pitch:pitch(shown),hand:shown.hand,head:shown.head};
+  });
+  for(let i=0;i<looks.length;i++)for(let j=i+1;j<looks.length;j++){
+    const a=looks[i],b=looks[j];
+    const apart=Math.abs(Math.atan2(Math.sin(a.pitch-b.pitch),Math.cos(a.pitch-b.pitch)))+Math.hypot(a.hand.x-b.hand.x,a.hand.y-b.hand.y)/20;
+    assert.ok(apart>.3,`${a.form} and ${b.form} read as different stances`);
+  }
+  assert.equal(arcadeFormStance('Vaapad'),arcadeFormStance('juyo'));
+  assert.equal(arcadeFormStance('shien'),arcadeFormStance('djem_so'));
+  assert.equal(arcadeFormStance('unknown'),null);
+});
+
+test('the rest stance eases out into a strike and back after it, with the blade held',async()=>{
+  const {sampleArcadeFormStance}=await import('../dist/arcade-fighters.js');
+  const actor={peasantMotion:true,id:'b',team:0,face:0,form:'ataru',x:0,y:0};
+  const self={actor:{}};// one fighter across frames, as the arena's display copies are
+  const at=(time,extra)=>{const f={...actor,...extra,[Symbol.for('saber-pit.render-footwork')]:self};const p=pose(f,time);return {p,r:sampleArcadeFormStance(f,p,time)};};
+  const idle={action:'idle',actionTime:0,actionDuration:0};
+  const swing=t=>({action:'slash',actionTime:t,actionDuration:.3,combo:1});
+  const span=r=>Math.hypot(r.blade.x-r.emitter.x,r.blade.y-r.emitter.y);
+  const rest=at(0,idle).r;
+  const early=at(.02,swing(.02)), late=at(.2,swing(.2)), back=at(.36,idle), home=at(.6,idle);
+  assert.notDeepEqual(early.r.blade,early.p.blade,'still easing out of the stance');
+  assert.ok(Math.abs(span(early.r)-span(early.p))<2,'blade stays attached while blending');
+  assert.deepEqual(late.r,late.p,'the strike itself is the engine pose');
+  assert.notDeepEqual(back.r.blade,rest.blade,'easing back in');
+  assert.ok(Math.hypot(home.r.blade.x-rest.blade.x,home.r.blade.y-rest.blade.y)<1.5,'settled back in the stance');
+  const reduced=sampleArcadeFormStance({...actor,...idle,id:'c'},pose({...actor,...idle},0,{reducedMotion:true}),0);
+  assert.ok(Number.isFinite(reduced.blade.x));
+});
+
+test('stance hand-offs never teleport a hand or blade, and a strike is the engine blade before contact',async()=>{
+  const {sampleArcadeRenderRig,sampleArcadePresentation}=await import('../dist/arcade-fighters.js');
+  const {createArcade}=await import('../dist/arcade-engine.js');
+  // Limits per 60 fps frame, actor-relative. The fastest single frame of a plain slash from the engine grip
+  // (no stance) is 35.2 px at the grip and 82.7 px at the blade tip; walking moves under 2.5 px. A hand-off may
+  // never move faster than the game's own swing already does.
+  const GRIP=36, TIP=84, dt=1/60, WALK=Symbol.for('saber-pit.render-footwork');
+  const base={...createArcade({mode:'duel',seed:3,peasantMotion:true,liveEntry:true,recoveryFlow:true,stanceFlow:true,styleChoreo:true,impactPhysics:true}).fighters[0]};
+  const kits={single:{weapon:'single',grip:'forward'},staff:{weapon:'staff',grip:'forward'},dual:{weapon:'dual',grip:'forward',dualSabers:true},orbit:{weapon:'orbit',grip:'forward'}};
+  const idle={action:'idle',actionTime:0,actionDuration:0,attack:null,attackSpec:null,attackSerial:null};
+  const slash=t=>({action:'slash',actionTime:t,actionDuration:.3,attack:'slash',attackSerial:7,combo:1,attackSpec:{contact:.12}});
+  const seqs={
+    attackAndBack:i=>i<15?idle:i<33?slash((i-15)*dt):idle,
+    guard:i=>i<15?idle:i<40?{...idle,action:'guard',actionTime:(i-15)*dt}:idle,
+    dash:i=>i<15?idle:i<33?{...idle,action:'dash',actionTime:(i-15)*dt,actionDuration:.3}:idle,
+    swingIntoGuard:i=>i<15?idle:i<20?slash((i-15)*dt):i<40?{...idle,action:'guard',actionTime:(i-20)*dt}:idle,
+  };
+  for(const form of ['shii_cho','makashi','soresu','ataru','djem_so','niman','juyo'])for(const [kit,gear] of Object.entries(kits))
+  for(const face of [0,Math.PI])for(const [name,seq] of Object.entries(seqs)){
+    const actor={};let last=null;
+    for(let i=0;i<70;i++){
+      const f={...base,form,gear,face,team:face?1:0,x:400,y:300,vx:0,vy:0,poseFrom:null,...seq(i),[WALK]:{actor}};
+      const time=10+i*dt, physical=pose(f,time), r=sampleArcadeRenderRig(f,physical,time);
+      const joints={hand:r.hand,backHand:r.backHand,...(kit==='orbit'?{}:{grip:r.emitter,tip:r.blade,offGrip:r.offEmitter,offTip:r.offBlade})};
+      if(last)for(const [j,p] of Object.entries(joints))if(p&&last[j]){
+        const step=Math.hypot(p.x-last[j].x,p.y-last[j].y), cap=/tip/i.test(j)?TIP:GRIP;
+        assert.ok(step<=cap,`${form} ${kit} ${face?'pink':'blue'} ${name} frame ${i} ${j} moved ${step.toFixed(1)}px`);
+      }
+      // From 60% of the way to contact the drawn strike is exactly the engine's blade.
+      if(f.attack&&f.actionTime>=.12*.6&&f.actionTime<=.12){
+        const raw=sampleArcadePresentation(f,physical);
+        assert.ok(Math.hypot(r.blade.x-raw.blade.x,r.blade.y-raw.blade.y)<1e-6,`${form} ${kit} ${name} contact blade`);
+      }
+      last=joints;
+    }
+  }
+});

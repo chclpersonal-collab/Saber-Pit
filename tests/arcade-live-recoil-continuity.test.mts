@@ -22,7 +22,7 @@ test('contact recoil remains directional without double-rotating the last painte
   for(let i=0;i<=225;i++){
     stepArcade(game,dt);
     const physical=sampleArcadeFighter(f,game.time), rendered=sampleArcadeRenderRig(f,physical,game.time);
-    if(f.attack)assert.deepEqual(arcadeBladeWorld(f,rendered).blades,arcadeBladeWorld(f,sampleArcadePresentation(f,physical)).blades);
+    if(f.attack)assert.deepEqual(arcadeBladeWorld(f,rendered).blades,arcadeBladeWorld(f,sampleArcadePresentation(f,rendered.held)).blades);
     const pose={head:localToRoot(f,rendered,'head'),shoulder:localToRoot(f,rendered,'shoulder')};
     if(i===213){
       assert.equal(physical.action,'hit');
@@ -51,7 +51,7 @@ test('the observed Ataru wrist seam preserves the live corkscrew, both hilts, an
     stepArcade(game,dt,{...move,aimX:850,aimY:300,guard:i>=117&&i<136,
       strike:i===82||i===210||i===269,jump:i===251||i===472,dash:i===307});
     const physical=sampleArcadeFighter(f,game.time), paint=sampleArcadeRenderRig(f,physical,game.time);
-    const raw=arcadeBladeWorld(f,sampleArcadePresentation(f,physical)).blades, art=arcadeBladeWorld(f,paint).blades;
+    const raw=arcadeBladeWorld(f,sampleArcadePresentation(f,paint.held)).blades, art=arcadeBladeWorld(f,paint).blades;
     assert.equal(paint.hop,physical.hop);
     assert.equal(paint.trick,physical.trick);
     if(f.attack)assert.deepEqual(art,raw);

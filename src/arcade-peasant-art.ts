@@ -364,7 +364,7 @@ export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,t
 export function drawArcadePeasantFighterPreview(ctx:CanvasRenderingContext2D,f:InkActor={},options:FighterPreviewOptions={}){
  const width=options.width??ctx.canvas.width,height=options.height??ctx.canvas.height;
  const portrait=options.framing==='portrait', scale=Math.min(width/(portrait?83:160),height/(portrait?83:171));
- const preview={face:portrait?.43:-.04,action:portrait?'idle':'guard',actionTime:.28,actionDuration:.65,...f,
+ const preview={face:portrait?.43:-.04,action:'idle',actionTime:.28,actionDuration:.65,...f,
    x:width/(2*scale)-(portrait?2:7),y:height/(2*scale)+(portrait?78:48)};
  ctx.save();ctx.scale(scale,scale);
  const pose=drawArcadePeasantFighter(ctx,preview,options.time??0,{...options,hideSabers:portrait});

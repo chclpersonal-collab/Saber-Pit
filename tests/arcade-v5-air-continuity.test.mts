@@ -29,7 +29,7 @@ function run(form,kit,max=550,renderEvery=1){
     const painted=arcadeBladeWorld(f,r).blades;
     assert.equal(r.hop,p.hop);
     assert.deepEqual(arcadeBladeWorld(f,sampleArcadeFighter(f,fight.time)).blades,raw);
-    if(f.attack)assert.deepEqual(painted,raw);
+    if(f.attack)assert.deepEqual(painted,arcadeBladeWorld(f,r.held).blades);
     frames.push({i,phase:r.airPhase,action:r.action,x:f.x,y:f.y,hop:p.hop,
       feet:arcadeFeetWorld(f,r).sort((a,b)=>a.side-b.side),raw,painted});
   }

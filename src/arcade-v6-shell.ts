@@ -197,7 +197,7 @@ const TABS:[string,string][]=[['look','Look'],['form','Form'],['saber','Saber'],
 const tabBtns=TABS.map(([id,label],i)=>{const b=el('button','v6-tab',label);b.type='button';b.setAttribute('role','tab');b.id='v6tab-'+id;b.setAttribute('aria-controls','v6pane-'+id);
   b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){e.preventDefault();const n=(i+d+TABS.length)%TABS.length;selectTab(n);tabBtns[n]?.focus();}});tabs.append(b);return b;});
 const paneEls=TABS.map(([id])=>{const p=el('div','v6-pane');p.id='v6pane-'+id;p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','v6tab-'+id);panes.append(p);return p;});
-function selectTab(n:number){tabBtns.forEach((b,i)=>{b.setAttribute('aria-selected',String(i===n));b.tabIndex=i===n?0:-1;});paneEls.forEach((p,i)=>{p.hidden=i!==n;});}
+function selectTab(n:number){tabBtns.forEach((b,i)=>{b.setAttribute('aria-selected',String(i===n));b.tabIndex=i===n?0:-1;});paneEls.forEach((p,i)=>{p.hidden=i!==n;});if(n===0)paintLooks();}
 /** Loadout picks are tiles that fill their tab: the bare name, plus one small tag where it says something
  *  (a form's numeral, a blade count). No "· detail" tails, no "saber(s)", no repeated section heading. */
 const pickName=(t:string)=>t.replace(/^[IVX]+\s*·\s*/,'').split(' · ')[0]!.replace(/^Force (\w)/,(_,c:string)=>c.toUpperCase()).replace(/ sabers?$/i,'').trim();
@@ -221,12 +221,18 @@ function lookPane(){
     const cv=el('canvas','v6-look-art');cv.setAttribute('aria-hidden','true');b.append(cv,el('b',undefined,name));
     b.addEventListener('click',()=>{if(!sel)return;sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));lookPane();paintHero();});row.append(b);}
   pane.append(row);
-  requestAnimationFrame(()=>{row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false});});});
+  paintLooks();
 }
+function paintLooks(){const row=paneEls[0]?.querySelector<HTMLElement>('.v6-looks');if(!row)return;
+  requestAnimationFrame(()=>{if(!row.offsetParent)return;row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false,...stanceOf()});});});
+}
+/** The picked Form and Saber, so every preview stands in the stance it fights from. */
+function stanceOf(){const kit=ARCADE_SABER_OPTIONS.find(k=>k.id===get<HTMLSelectElement>('saberKit0')?.value);
+  return {form:get<HTMLSelectElement>('style')?.value,gear:kit?{weapon:kit.weapon,grip:kit.grip}:undefined};}
 function paintHero(){const body=get<HTMLSelectElement>('bodyStyle')?.value??'woman';const form=get<HTMLSelectElement>('style');
   const view=statsView(readArcadeCareer()),you=view?.you??null;heroName.replaceChildren();
   const rk=el('span','v6-loadout-rank',you?.rank?.split(' ')[0]??'—');rk.setAttribute('aria-label','Rank');heroName.append(rk,(form?.selectedOptions[0]?.text??'').replace(/^[IVX]+\s*·\s*/,''));
-  if(hero.offsetParent)paintV6Fighter(hero,body);}
+  if(hero.offsetParent)paintV6Fighter(hero,body,stanceOf());}
 const ready=el('button','v6-cta v6-ready','Ready');ready.type='button';ready.addEventListener('click',()=>showPlay());
 panel.append(tabs,panes,ready);
 loadout.append(lHead,hero,heroName,panel);
@@ -238,13 +244,14 @@ function showLoadout(){
 addEventListener('resize',()=>{if(body.dataset.v6==='loadout')paintHero();});
 
 /* ---------- results wording like the mock ---------- */
+const winnerGear=(kit?:string)=>{const [weapon,grip]=(kit??'').split('/');return weapon?{weapon,grip:grip||'forward'}:undefined;};
 const resultTitle=get('resultTitle');
 const winnerArt=el('canvas','v6-result-art');winnerArt.setAttribute('aria-hidden','true');resultTitle?.before(winnerArt);
 new MutationObserver(()=>{const o=get('result');if(!o||o.hidden||!resultTitle)return;
   // Only your own win shows your fighter; a draw, a loss or a watched round shows no winner art.
   const look=o.dataset.winnerBody;
   winnerArt.hidden=!look;
-  if(look)requestAnimationFrame(()=>{if(winnerArt.offsetParent&&o.dataset.winnerBody===look)paintV6Fighter(winnerArt,look,{stage:false,bare:true});});
+  if(look)requestAnimationFrame(()=>{if(winnerArt.offsetParent&&o.dataset.winnerBody===look)paintV6Fighter(winnerArt,look,{stage:false,bare:true,form:o.dataset.winnerForm,gear:winnerGear(o.dataset.winnerKit)});});
   trimResult(o);
 }).observe(get('result')??body,{attributes:true,attributeFilter:['hidden']});
 /** Meta pills under the title (mode, round, time, badge) and the Elo bar read as rank to next rank, as in the mock. */

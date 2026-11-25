@@ -173,7 +173,7 @@ test('live Peasant render hands real support into takeoff and landing without al
   const paint=(t)=>{
     const raw=rig(actor,t), r=sampleArcadeRenderRig(actor,raw,t);
     assert.equal(r.hop,raw.hop);
-    assert.deepEqual(arcadeBladeWorld(actor,r).blades,arcadeBladeWorld(actor,raw).blades);
+    assert.deepEqual(arcadeBladeWorld(actor,r).blades,arcadeBladeWorld(actor,r.held).blades);
     return r;
   };
   const old=paint(0),feet=arcadeFeetWorld(actor,old);

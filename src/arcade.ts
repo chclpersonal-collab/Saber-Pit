@@ -710,6 +710,7 @@ function showEnd(){
   $('resultTitle').textContent=text;
   const winningPlayer=game.phase==='won'&&mode!=='watch'&&!versus?game.fighters.find(f=>f.team===0&&f.control&&f.alive):undefined;
   $('result').dataset.winnerBody=winningPlayer?.body??'';
+  $('result').dataset.winnerForm=winningPlayer?.form??'';$('result').dataset.winnerKit=winningPlayer?`${winningPlayer.gear?.weapon??''}/${winningPlayer.gear?.grip??''}`:'';
   const obj=game.objective;
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
   const decidedByObjective=game.endReason==='control'||game.endReason==='relic'||(timedOut&&obj?.target&&Math.abs(obj.score[0]-obj.score[1])>=.001);
@@ -765,7 +766,8 @@ function showSeatEnd(owner:ArenaSeat){
   const head=game.phase==='draw'?'Draw':game.phase==='won'?'Blue Wins':'Pink Wins';
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
   $('resultTitle').textContent=head;
-  $('result').dataset.winnerBody=game.phase==='won'?game.fighters.find(f=>f.control)?.body??'':'';
+  const seatWinner=game.phase==='won'?game.fighters.find(f=>f.control):undefined;
+  $('result').dataset.winnerBody=seatWinner?.body??'';$('result').dataset.winnerForm=seatWinner?.form??'';$('result').dataset.winnerKit=seatWinner?`${seatWinner.gear?.weapon??''}/${seatWinner.gear?.grip??''}`:'';
   $('turningPoint').hidden=true;
   const me=game.fighters.find(f=>f.control);
   renderRoundResult($('result'),buildRoundResult({mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:false,save:'untracked',who:null,

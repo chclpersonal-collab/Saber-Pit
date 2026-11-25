@@ -91,15 +91,35 @@ const FIGURES:Record<string,Figure>={
 };
 // The third look shares the original body rig; ears and mantle are cosmetic.
 FIGURES.rabbit={...FIGURES.femboy,id:'rabbit'};
-const FORMS:Record<string,{angle:number;hand:number;height:number;off:number;feet:number;lean:number;bend:number;arc:number;under:boolean;two:boolean}>={
-  shii_cho:{angle:-.86,hand:16,height:-42,off:9,feet:4,lean:1,bend:1,arc:2.3,under:false,two:true},
-  makashi:{angle:-.21,hand:24,height:-52,off:-11,feet:1,lean:5,bend:-2,arc:.42,under:false,two:false},
-  soresu:{angle:-1.63,hand:18,height:-50,off:10,feet:-2,lean:-3,bend:7,arc:1.13,under:false,two:true},
-  ataru:{angle:-2.20,hand:10,height:-53,off:-11,feet:3,lean:5,bend:5,arc:2.8,under:true,two:false},
-  djem_so:{angle:-1.27,hand:18,height:-58,off:15,feet:8,lean:-2,bend:3,arc:2.48,under:false,two:true},
-  niman:{angle:-.72,hand:11,height:-39,off:22,feet:1,lean:0,bend:0,arc:1.51,under:true,two:false},
-  juyo:{angle:.14,hand:27,height:-44,off:-13,feet:6,lean:8,bend:9,arc:2.95,under:true,two:false}
+type Stance={angle:number;hand:number;height:number;off:number;feet:number;lean:number;bend:number;arc:number;under:boolean;two:boolean;offY?:number;turn?:number};
+/** One table per form. The top-level numbers are the grip the engine samples for blade geometry (frozen with the
+ *  recorded rules). `rest` is how the form stands when it is not striking: the battle idle and every menu preview
+ *  draw it, through sampleArcadeFormStance. LOOMEN's interpretation of each form's ready stance. */
+const FORMS:Record<string,Stance&{rest:Partial<Stance>}>={
+  // Relaxed, blade forward.
+  shii_cho:{angle:-.86,hand:16,height:-42,off:9,feet:4,lean:1,bend:1,arc:2.3,under:false,two:true,
+    rest:{angle:-.52,hand:19,height:-38,feet:3,lean:1,bend:2}},
+  // Side-on, one hand, blade angled low; the free hand back and up.
+  makashi:{angle:-.21,hand:24,height:-52,off:-11,feet:1,lean:5,bend:-2,arc:.42,under:false,two:false,
+    rest:{angle:.46,hand:23,height:-47,off:-15,offY:-55,feet:0,lean:-3,bend:-1,turn:-.55}},
+  // Compact, blade high and close.
+  soresu:{angle:-1.63,hand:18,height:-50,off:10,feet:-2,lean:-3,bend:7,arc:1.13,under:false,two:true,
+    rest:{angle:-1.66,hand:17,height:-56,feet:-1,lean:-2,bend:7}},
+  // Crouched, two hands, blade overhead.
+  ataru:{angle:-2.20,hand:10,height:-53,off:-11,feet:3,lean:5,bend:5,arc:2.8,under:true,two:false,
+    rest:{angle:-2.7,hand:12,height:-100,two:true,feet:7,lean:5,bend:16}},
+  // Wide, blade high over the shoulder.
+  djem_so:{angle:-1.27,hand:18,height:-58,off:15,feet:8,lean:-2,bend:3,arc:2.48,under:false,two:true,
+    rest:{angle:-1.98,hand:-3,height:-55,feet:15,lean:-3,bend:5}},
+  // Balanced and open: the free hand out in front.
+  niman:{angle:-.72,hand:11,height:-39,off:22,feet:1,lean:0,bend:0,arc:1.51,under:true,two:false,
+    rest:{angle:-.86,hand:12,height:-41,off:24,offY:-48,feet:3,lean:0,bend:2}},
+  // Aggressive, low, coiled: blade drawn back by the hip.
+  juyo:{angle:.14,hand:27,height:-44,off:-13,feet:6,lean:8,bend:9,arc:2.95,under:true,two:false,
+    rest:{angle:2.82,hand:-5,height:-37,off:17,offY:-46,feet:10,lean:11,bend:13}}
 };
+/** Variants stand like their parent form. */
+const FORM_PARENT:Record<string,string>={shien:'djem_so',vaapad:'juyo'};
 const formId=(f:Fighter)=>String(f.form||'').toLowerCase().replace(/[’']/g,'').replace(/[ -]+/g,'_');
 function figure(f:Fighter) {
   const body = String(f.body || '').toLowerCase();
@@ -128,7 +148,7 @@ function moveName(f:Fighter){
   return 'ready';
 }
 
-export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}) {
+export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false,stance:shown=null}:{reducedMotion?:boolean;stance?:Stance|null}={}) {
   const facing=val(f.face,(f.team===1?Math.PI:0)), dx=Math.cos(facing),dy=Math.sin(facing);
   const hdx=Math.abs(dx)>.08?Math.sign(dx):Math.sign(val(f.vx)) || (f.team===1?-1:1);
   const takeoffBearing=isFinite(f.airFacing)?f.airFacing:f.action==='jump'?f.jumpBearing:null;
@@ -139,7 +159,7 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
   const vel=Math.hypot(val(f.vx),val(f.vy));
   const groundSpeed=Math.min(vel,Math.max(0,val(f.groundSpeed,vel))),moving=groundSpeed>8;
   const travel=P(moving?val(f.vx)/vel:dx,moving?val(f.vy)/vel:dy);
-  const action=moveName(f), type=figure(f), form=formId(f), stance=FORMS[form];
+  const action=moveName(f), type=figure(f), form=formId(f), stance:Stance|undefined=shown??FORMS[form];
   const t=clamp(val(f.actionTime,0)/Math.max(.001,val(f.actionDuration,.32)));
   const idPhase=typeof f.id==='string'?Array.from(f.id).reduce((hash,ch)=>(hash*31+ch.charCodeAt(0))>>>0,0)%113/23:val(f.id)*.35;
   const age=val(time)+idPhase;
@@ -255,6 +275,7 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
       angle=stance.angle; extend=stance.hand; handY=stance.height; offHand=stance.off;
       lean+=stance.lean; bend+=stance.bend; wide+=stance.feet;
       if(stance.two){offHand=extend-6;offY=handY+4;}
+      else if(isFinite(stance.offY))offY=stance.offY;
     } else if(action==='guard'||action==='parry'){
       angle=mix(angle,stance.angle,.37);wide+=stance.feet*.5; bend+=stance.bend*.32;
       if(form==='soresu'){angle=-1.79;extend=16;handY=-54;offHand=12;offY=-47;}
@@ -400,6 +421,8 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
     bend+=guardLag*2.6; handY+=guardLag*5.2; offY+=guardLag*4; extend-=guardLag*3;
   }
   if(reducedMotion){if(!confirmedAir)hop*=.4;airGather*=.36;roll=0;trail=0;outline=0;torsoTurn=0;}
+  // A side-on stance is a held shape, not motion; signed by facing so both sides turn alike.
+  if(action==='ready'&&stance?.turn)torsoTurn+=stance.turn*forward;
   if(f.liveEntry&&action==='ready'&&phaseAir==='grounded'&&!reducedMotion){
     const quiet=1-smooth((groundSpeed-2)/20), inhale=Math.sin(age*2.65), shift=Math.sin(age*1.15+Math.PI*.27);
     lean+=shift*2.0*quiet;bend+=inhale*1.55*quiet;torsoTurn+=shift*.19*quiet;
@@ -2197,13 +2220,138 @@ export function sampleArcadeCrowdPose(f:Fighter,r:PaintRig,time:number){
       if(cue.kind==='victory')return shiftUpper(r,0,-3*w,-16*w,0,-1*w);
     }
   }
-  const quiet=r.action==='idle'||r.action==='walk'||r.action==='guard';
+  // 'ready' is the battle rest, drawn in the form's stance: the temperament leans on top of it.
+  const quiet=r.action==='ready'||r.action==='idle'||r.action==='walk'||r.action==='guard';
   const stance=quiet&&mind.persona?CROWD_STANCE[mind.persona]:undefined;
   return stance&&(stance[0]||stance[1]||stance[2])?shiftUpper(r,fwd*stance[0],stance[1],stance[2]):r;
 }
 
+const REST_STANCES:Record<string,Stance>=Object.fromEntries(Object.entries(FORMS).map(([id,{rest,...grip}])=>[id,{...grip,...rest}]));
+/** The stance a form shows at rest, in battle and in every preview. Variants stand like their parent form. */
+export function arcadeFormStance(form?:string|null):Readonly<Stance>|null{
+  const id=formId({form:form??''});
+  return REST_STANCES[FORM_PARENT[id]??id]??null;
+}
+const formRests=new WeakMap<object,{time:number;w:number;serial?:unknown;from?:number}>();
+const restPoints=['waist','pelvis','shoulder','head','helmet','hand','backHand','frontElbow','backElbow','emitter','offEmitter'] as const;
+const restNumbers=['lean','bend','wide','torsoTurn'] as const;
+const wrapTurn=(a:number)=>Math.atan2(Math.sin(a),Math.cos(a));
+const pitchOf=(h:Point,tip:Point)=>Math.atan2(tip.y-h.y,tip.x-h.x);
+/** Draw a fighter in its form's stance while it stands at rest. Presentation only: the physical rig the engine
+ *  samples never changes. The stance rides on top of the engine pose as an offset, so leaving it never jumps:
+ *  a strike sheds it during its own wind-up and is exactly the engine pose from 60% of the way to contact;
+ *  a guard, step, hit or jump sheds it in 180 ms; settling back takes 200 ms. Reduced motion switches at once. */
+export function sampleArcadeFormStance(f:Fighter, physical:PaintRig, time:number, remember=true):PaintRig&{formRest?:number}{
+  const stance=arcadeFormStance(f.form), actor=f[WALK_SOURCE]?.actor??f;
+  if(!stance){formRests.delete(actor);return physical;}
+  const grounded=physical.airPhase==='grounded'&&f.alive!==false&&physical.hop<1;
+  const prior=remember?formRests.get(actor):undefined, dt=prior?time-prior.time:NaN;
+  const live=Boolean(prior)&&!physical.reducedMotion&&dt>=0&&dt<.1;
+  let w=0, k=0, serial:unknown, from:number|undefined;
+  if(physical.action==='ready'&&grounded){w=live?Math.min(1,prior!.w+dt/.2):1;k=smooth(w);}
+  else if(f.attack&&grounded){
+    serial=f.attackSerial??f.attack;
+    from=live?(prior!.serial===serial?prior!.from??0:smooth(prior!.w)):0;
+    const contact=val(f.attackSpec?.contact,val(f.actionDuration,.3)*.45);
+    k=w=from*(1-smooth(val(f.actionTime)/Math.max(.05,contact*.6)));
+  }else{w=live?Math.max(0,prior!.w-dt/.18):0;k=smooth(w);}
+  if(remember&&isFinite(time))formRests.set(actor,{time,w,serial,from});
+  if(k<=0)return physical;
+  const still=physical.action==='ready'?f:{...f,action:'idle',actionTime:0,actionDuration:0,attack:null,attackSpec:undefined,
+    technique:null,poseFrom:null,clashFrom:null,airStrike:null,jumpKind:null,combo:0};
+  const shown=sampleArcadeFighter(still,time,{reducedMotion:physical.reducedMotion,stance});
+  if(k>=1&&physical.action==='ready'){
+    const out:PaintRig&{formRest?:number}={...physical,legs:shown.legs,blade:shown.blade,offBlade:shown.offBlade,formRest:1};
+    for(const key of restPoints)out[key]=shown[key];
+    for(const key of restNumbers)out[key]=shown[key];
+    return out;
+  }
+  // Away from rest the stance is an offset that shrinks to nothing on top of the moving engine pose.
+  const grip=physical.action==='ready'?physical:sampleArcadeFighter(still,time,{reducedMotion:physical.reducedMotion});
+  const add=(p:Point,a:Point,b:Point)=>P(p.x+(b.x-a.x)*k,p.y+(b.y-a.y)*k);
+  const out:PaintRig&{formRest?:number}={...physical,formRest:k};
+  for(const key of restPoints)out[key]=add(physical[key],grip[key],shown[key]);
+  for(const key of restNumbers)out[key]=physical[key]+(shown[key]-grip[key])*k;
+  out.legs=physical.legs.map(leg=>{
+    const a=grip.legs.find(l=>l.side===leg.side), b=shown.legs.find(l=>l.side===leg.side);
+    if(!a||!b)return leg;
+    return {...leg,foot:add(leg.foot,a.foot,b.foot),hip:add(leg.hip,a.hip,b.hip),k:add(leg.k,a.k,b.k),toes:add(leg.toes,a.toes,b.toes)};
+  }).sort((a,b)=>a.foot.y-b.foot.y);
+  // Blades turn rigidly with their grip, so a hand-off never bends, stretches or detaches a blade.
+  const spin=(p:Point,pivot:Point,to:Point,turn:number)=>{const x=p.x-pivot.x,y=p.y-pivot.y,c=Math.cos(turn),s=Math.sin(turn);
+    return P(to.x+x*c-y*s,to.y+x*s+y*c);};
+  const turn=wrapTurn(pitchOf(shown.emitter,shown.blade)-pitchOf(grip.emitter,grip.blade))*k;
+  if(physical.staff&&physical.offBlade){
+    for(const key of ['emitter','offEmitter','backHand'] as const)out[key]=spin(physical[key],physical.hand,out.hand,turn);
+    out.blade=spin(physical.blade,physical.hand,out.hand,turn);
+    out.offBlade=spin(physical.offBlade,physical.hand,out.hand,turn);
+  }else{
+    out.blade=spin(physical.blade,physical.emitter,out.emitter,turn);
+    if(physical.offBlade&&shown.offBlade&&grip.offBlade){
+      const offTurn=wrapTurn(pitchOf(shown.offEmitter,shown.offBlade)-pitchOf(grip.offEmitter,grip.offBlade))*k;
+      out.offBlade=spin(physical.offBlade,physical.offEmitter,out.offEmitter,offTurn);
+    }
+  }
+  return out;
+}
+
+type Grip={hand:Point;emitter:Point;blade:Point;backHand:Point;offEmitter:Point;offBlade:Point|null};
+type Rigid={dx:number;dy:number;turn:number};
+const gripHandoffs=new WeakMap<object,{time:number;key:string;drawn:Grip;bridge:{at:number;span:number;main:Rigid;off:Rigid}|null}>();
+const snapInto=new Set(['hit','ko','clash']);
+/** When a new action would put the hands or blade somewhere else in one frame, carry them there instead:
+ *  the jump becomes an offset that fades over 100 ms, or for a strike by 60% of the way to its contact, so
+ *  the contact frame is always the exact engine blade. A hit, a knockout and a bind still land at once. */
+function sampleArcadeGripHandoff(f:Fighter, r:PaintRig&{gripHandoff?:number}, time:number):PaintRig&{gripHandoff?:number}{
+  const actor=f[WALK_SOURCE]?.actor??f;
+  if(r.reducedMotion||f.alive===false||!isFinite(time)){gripHandoffs.delete(actor);return r;}
+  const key=r.action+'/'+(f.attack?f.attackSerial??f.attack:'-');
+  const prior=gripHandoffs.get(actor), dt=prior?time-prior.time:NaN;
+  const grip=(q:PaintRig):Grip=>({hand:q.hand,emitter:q.emitter,blade:q.blade,backHand:q.backHand,offEmitter:q.offEmitter,offBlade:q.offBlade??null});
+  const target=grip(r);
+  const left=f.attack?val(f.attackSpec?.contact,val(f.actionDuration,.3)*.45)-val(f.actionTime):Infinity;
+  let bridge=prior&&dt>=0&&dt<.1?prior.bridge:null;
+  if(prior&&dt>=0&&dt<.1&&key!==prior.key&&!snapInto.has(r.action)&&left>.02){
+    const was=prior.drawn, far=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
+    const gap=Math.max(far(was.hand,target.hand),far(was.backHand,target.backHand),
+      far(was.blade,target.blade)/2.5,was.offBlade&&target.offBlade?far(was.offBlade,target.offBlade)/2.5:0);
+    if(gap>8){
+      const rigid=(h0:Point,t0:Point|null,h1:Point,t1:Point|null):Rigid=>({dx:h0.x-h1.x,dy:h0.y-h1.y,
+        turn:t0&&t1?wrapTurn(pitchOf(h0,t0)-pitchOf(h1,t1)):0});
+      bridge={at:time,span:Math.min(.1,left*.6),main:r.staff?rigid(was.hand,was.blade,target.hand,target.blade):rigid(was.emitter,was.blade,target.emitter,target.blade),
+        off:rigid(was.offEmitter,was.offBlade,target.offEmitter,target.offBlade)};
+    }
+  }
+  if(bridge&&(time-bridge.at>=bridge.span||snapInto.has(r.action)))bridge=null;
+  let out=r;
+  if(bridge){
+    const k=1-smooth((time-bridge.at)/bridge.span);
+    // Each grip moves rigidly with its blade, so a carried blade never bends, stretches or detaches.
+    const move=(p:Point,pivot:Point,m:Rigid)=>{const x=p.x-pivot.x,y=p.y-pivot.y,c=Math.cos(m.turn*k),s=Math.sin(m.turn*k);
+      return P(pivot.x+m.dx*k+x*c-y*s,pivot.y+m.dy*k+x*s+y*c);};
+    const shift=(p:Point,m:Rigid,part=1)=>P(p.x+m.dx*k*part,p.y+m.dy*k*part);
+    const {main,off}=bridge;
+    if(r.staff){
+      out={...r,hand:shift(r.hand,main),emitter:move(r.emitter,r.hand,main),blade:move(r.blade,r.hand,main),
+        offEmitter:move(r.offEmitter,r.hand,main),backHand:move(r.backHand,r.hand,main),
+        offBlade:r.offBlade?move(r.offBlade,r.hand,main):r.offBlade,frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,main,.5)};
+    }else{
+      const offPivot=r.offEmitter;
+      out={...r,hand:move(r.hand,r.emitter,main),emitter:shift(r.emitter,main),blade:move(r.blade,r.emitter,main),
+        backHand:move(r.backHand,offPivot,off),offEmitter:shift(r.offEmitter,off),offBlade:r.offBlade?move(r.offBlade,offPivot,off):r.offBlade,
+        frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,off,.5)};
+    }
+    out={...out,gripHandoff:k};
+  }
+  gripHandoffs.set(actor,{time,key,drawn:grip(out),bridge});
+  return out;
+}
+
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
-  const authored=sampleArcadePresentation(f,physical);
+  // The form stance and the grip hand-off are the only layers that move a blade off the engine rig;
+  // `held` keeps their result so every later body layer can be checked against it.
+  const held=ghost?sampleArcadeFormStance(f,physical,time,false):sampleArcadeGripHandoff(f,sampleArcadeFormStance(f,physical,time),time);
+  const authored={...sampleArcadePresentation(f,held),held};
   if(ghost)return authored;
   const footwork=sampleArcadeFootwork(f,sampleArcadeStyleSpin(f,authored),time);
   const air=sampleArcadeAirHandoff(f,footwork,time);
@@ -2306,7 +2454,7 @@ export function drawArcadeFighterPreview(ctx:Canvas, f:Fighter={}, options:DrawO
   const width=options.width??ctx.canvas.width,height=options.height??ctx.canvas.height;
   const time=options.time??0, portrait=options.framing==='portrait';
   const scale=Math.min(width/(portrait?83:160),height/(portrait?83:171));
-  const preview={face:portrait?.48:-.04,action:portrait?'idle':'guard',actionTime:.28,actionDuration:.65,...f,
+  const preview={face:portrait?.48:-.04,action:'idle',actionTime:.28,actionDuration:.65,...f,
     x:width/(2*scale)-(portrait?2:7),y:height/(2*scale)+(portrait?80:48)};
   ctx.save();ctx.scale(scale,scale);
   const rig=drawArcadeFighter(ctx,preview,time,{reducedMotion:options.reducedMotion??false,hideSabers:portrait});

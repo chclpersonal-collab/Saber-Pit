@@ -12,7 +12,7 @@ const drive=(f,speed,angle=0)=>{
 };
 function boots(f,i,reducedMotion=false) {
   const raw=sampleArcadeFighter(f,i/120,{reducedMotion}), render=sampleArcadeRenderRig(f,raw,i/120);
-  assert.deepEqual(arcadeBladeWorld(f,render).blades,arcadeBladeWorld(f,raw).blades);
+  assert.deepEqual(arcadeBladeWorld(f,render).blades,arcadeBladeWorld(f,render.held).blades);
   return arcadeFeetWorld(f,render);
 }
 test('v5 braking holds a world-space sole and closes the free foot before a measured restart',()=>{
@@ -50,7 +50,8 @@ test('v5 speed changes cannot touch down a swinging boot before its current cycl
   drive(f,45);last=boots(f,firstAir+1);
   assert.equal(last.find(l=>l.side===0).planted,false);
   const reduced=sampleArcadeFighter(f,1,{reducedMotion:true});
-  assert.deepEqual(sampleArcadeRenderRig(f,reduced,1).legs,reduced.legs);
+  const still=sampleArcadeRenderRig(f,reduced,1);
+  assert.deepEqual(still.legs,still.held.legs);
 });
 
 test('stopped fighter can turn and enter an attack without discarding planted feet',()=>{

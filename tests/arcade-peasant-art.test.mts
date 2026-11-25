@@ -29,7 +29,7 @@ test('painter keeps the exact shared physical rig and preserves each real staff 
  assert.equal(c.records.filter(([style,width])=>style==='#fffefd'&&width===2.6).length,2);
  const spans=[Math.hypot(r.blade.x-r.emitter.x,r.blade.y-r.emitter.y),
   Math.hypot(r.offBlade.x-r.offEmitter.x,r.offBlade.y-r.offEmitter.y)].sort();
- assert.deepEqual(glowing.map(p=>p[2].at(-1)[1]).sort(),spans);
+ glowing.map(p=>p[2].at(-1)[1]).sort().forEach((span,i)=>assert.ok(Math.abs(span-spans[i])<1e-9));
 });
 test('blade-off and portrait keep art without illuminating a blade; ghost has no live stroke',()=>{
  for(const options of [{hideSabers:true},{ghost:true}]){

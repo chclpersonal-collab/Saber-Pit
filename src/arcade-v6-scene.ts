@@ -8,7 +8,7 @@ type PaintFighter=NonNullable<Parameters<typeof sampleArcadeFighter>[0]>;
 type Pt={x:number;y:number};
 type Look={body:string;gender:string;seed:number;hair?:'pony'|'braid'};
 export type V6Look='woman'|'woman2'|'femboy'|'femboy2'|'rabbit';
-export type V6Pose={x:number;gy:number;h:number;look:V6Look;team:0|1;act?:string;t?:number;face?:1|-1;ring?:boolean};
+export type V6Pose={x:number;gy:number;h:number;look:V6Look;team:0|1;act?:string;t?:number;face?:1|-1;ring?:boolean;form?:string;gear?:PaintFighter['gear']};
 
 export const INK='#100a1c';
 const LOOKS:Record<V6Look,Look>={
@@ -69,7 +69,7 @@ let scratchA:HTMLCanvasElement|null=null,scratchB:HTMLCanvasElement|null=null;
 /** One fighter with the ink pass. Returns blade hilt and tip in canvas space. */
 export function inkFighter(c:Ctx,o:V6Pose,dpr:number){
   const L=LOOKS[o.look],k=o.h/92,fd=o.face===-1?-1:1,team=o.team,act=o.act??'guard',t=o.t??.3;
-  const f={peasantMotion:true,body:L.body,gender:L.gender,appearanceSeed:L.seed,team,form:'djem_so',
+  const f={peasantMotion:true,body:L.body,gender:L.gender,appearanceSeed:L.seed,team,form:o.form??'djem_so',gear:o.gear,
     face:fd<0?Math.PI:0,action:act,actionTime:t,actionDuration:.65,
     attack:['slash','sweep','rush','leap'].includes(act)?{}:undefined,x:0,y:0} as unknown as PaintFighter;
   const rig=sampleArcadeFighter(f,t),rr=sampleArcadeRenderRig(f,rig as Parameters<typeof sampleArcadeRenderRig>[1],t) as unknown as {head:Pt;hand:Pt;emitter?:Pt;blade?:Pt};
@@ -130,8 +130,8 @@ export function paintV6Scene(canvas:HTMLCanvasElement,scene:V6Scene){
   }
 }
 const BODY_LOOK:Record<string,V6Look>={woman:'woman',femboy:'femboy',rabbit:'rabbit'};
-/** A single fighter on the sunset backdrop, for the Loadout screen and look cards. */
-export function paintV6Fighter(canvas:HTMLCanvasElement,body:string,{stage=true,team=0 as 0|1,bare=false}={}){
+/** A single fighter on the sunset backdrop, for the Loadout screen and look cards, standing in its form's stance. */
+export function paintV6Fighter(canvas:HTMLCanvasElement,body:string,{stage=true,team=0 as 0|1,bare=false,form,gear}:{stage?:boolean;team?:0|1;bare?:boolean;form?:string;gear?:PaintFighter['gear']}={}){
   const box=canvas.getBoundingClientRect(),dpr=Math.min(2,globalThis.devicePixelRatio||1);
   const w=Math.max(1,Math.round(box.width)),h=Math.max(1,Math.round(box.height));
   canvas.width=w*dpr;canvas.height=h*dpr;const c=canvas.getContext('2d');if(!c)return;
@@ -140,7 +140,7 @@ export function paintV6Fighter(canvas:HTMLCanvasElement,body:string,{stage=true,
   if(stage){sky(c,w,h);ridge(c,w,h,h*.62,h*.12,'#7a2f7e',11,true);temple(c,w*.2,h*.6,h*.12,'#5a2167');ridge(c,w,h,h*.72,h*.1,'#4a1a5e',21);gy=h*.74;platform(c,w,h,gy);size=h*.42;}
   else if(!bare){const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#3d2d86');g.addColorStop(1,'#22164f');c.fillStyle=g;c.fillRect(0,0,w,h);}
   else{gy=h*.92;size=h*.78;}
-  inkFighter(c,{x:stage?w*.42:w*.5,gy,h:size,look:BODY_LOOK[body]??'woman',team,act:'guard',t:.2,face:1,ring:stage},dpr);
+  inkFighter(c,{x:stage?w*.42:w*.5,gy,h:size,look:BODY_LOOK[body]??'woman',team,act:'idle',t:0,face:1,ring:stage,form,gear},dpr);
 }
 
 /* ---------- home card art: one bright scene per card, as in the approved home mock ---------- */

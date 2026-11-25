@@ -7,7 +7,7 @@ const delta=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
 const length=(p)=>Math.hypot(p.x,p.y);
 const paint=(f,t)=>{
   const raw=sampleArcadeFighter(f,t), art=sampleArcadeRenderRig(f,raw,t);
-  assert.deepEqual(arcadeBladeWorld(f,art).blades,arcadeBladeWorld(f,raw).blades);
+  assert.deepEqual(arcadeBladeWorld(f,art).blades,arcadeBladeWorld(f,art.held).blades);
   return {raw,art};
 };
 const base=()=>({id:'s',x:300,y:260,alive:true,peasantMotion:true,recoveryFlow:true,face:0,
