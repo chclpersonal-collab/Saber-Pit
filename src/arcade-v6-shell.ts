@@ -55,7 +55,7 @@ const resumeFromHome=get('homeContinue');
 if(resumeFromHome){resumeFromHome.className='v6-cta v6-cta-2';resumeFromHome.textContent='Continue';arena.row.append(resumeFromHome);}
 const grid=el('div','v6-grid');
 grid.append(arena.t,
-  tile({title:'Three Fronts',card:'fronts',cta:'Play',tag:'NEW',tagTone:'green',tone:'v6-cta-cyan',href:'./moba.html'}).t,
+  tile({title:'MOBA',card:'fronts',cta:'Play',tag:'NEW',tagTone:'green',tone:'v6-cta-cyan',href:'./moba.html'}).t,
   tile({title:'Tournament',card:'tournament',cta:'Open',href:'./tournament.html'}).t,
   tile({title:'Gauntlet',card:'gauntlet',cta:'Climb',href:'./gauntlet.html'}).t,
   tile({title:'Heroes',card:'heroes',cta:'Manage',href:'./tournament.html#heroesPanel'}).t);

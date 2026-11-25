@@ -12,7 +12,7 @@ test('Home keeps Play and Watch on the existing validatable setup form and Conti
   assert.match(hub,/<button type="button" id="homeContinue" class="hub-continue" hidden>/);
   assert.match(hub,/href="#entry">Setup/);assert.match(hub,/href="\.\/backup\.html">Saves/);
   assert.match(html,/<section id="entry"[^>]*tabindex="-1"/);
-  assert.match(html,/id="rankDialog"/);assert.match(html,/href="\.\/moba\.html">Three Fronts/);
+  assert.match(html,/id="rankDialog"/);assert.match(html,/href="\.\/moba\.html">MOBA/);
   assert.doesNotMatch(hub,/players online|status: online|season\s+\d|Customize match/i);
 });
 test('Home wiring uses the same current-save read guard and existing launch relay',()=>{

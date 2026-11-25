@@ -543,3 +543,28 @@
 :root body.pit-v5 .v6-notice p{flex:1;margin:0;font-size:15px}
 :root body.pit-v5 .v6-notice .v6-cta{min-height:42px;padding:0 18px;font-size:17px;text-decoration:none;display:inline-grid;place-items:center}
 :root body.pit-v5 .v6-notice-close{appearance:none;width:38px;height:38px;border-radius:10px;border:2px solid var(--v5-line);background:var(--v5-deep);color:var(--v5-white);font-size:16px;cursor:pointer}
+/* ---- Saber Forms codex: one card per form, numbers as meters ---- */
+:root body.pit-v5 #guideForms{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+:root body.pit-v5 .codex-card{padding:14px 16px;border-radius:var(--v5-r-lg,18px);border:3px solid var(--v5-line);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-ink),0 6px 0 #120a2a}
+:root body.pit-v5 .codex-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+:root body.pit-v5 .codex-head h3{margin:0;font-family:var(--v5-display);font-weight:400;font-size:22px;line-height:1;color:var(--v5-white)}
+:root body.pit-v5 .codex-card .codex-num{position:static;inset:auto;transform:none;display:inline-flex;min-width:34px;justify-content:center;order:-1}
+:root body.pit-v5 .codex-style{margin-left:auto;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--v5-gold)}
+:root body.pit-v5 .codex-stats{display:grid;gap:6px;margin:0}
+:root body.pit-v5 .codex-stat{display:grid;grid-template-columns:86px 1fr;align-items:center;gap:10px}
+:root body.pit-v5 .codex-stat dt{font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--v5-muted)}
+:root body.pit-v5 .codex-stat dd{margin:0}
+:root body.pit-v5 .codex-meter{width:100%;height:10px;border:0;border-radius:99px;background:var(--v5-deep);appearance:none;-webkit-appearance:none}
+:root body.pit-v5 .codex-meter::-webkit-meter-bar{background:var(--v5-deep);border:0;border-radius:99px;height:10px}
+:root body.pit-v5 .codex-meter::-webkit-meter-optimum-value,:root body.pit-v5 .codex-meter::-webkit-meter-suboptimum-value,:root body.pit-v5 .codex-meter::-webkit-meter-even-less-good-value{background:linear-gradient(90deg,var(--v5-blue),#8fe6ff);border-radius:99px}
+:root body.pit-v5 .codex-meter::-moz-meter-bar{background:linear-gradient(90deg,var(--v5-blue),#8fe6ff);border-radius:99px}
+:root body.pit-v5 .codex-sig{margin-top:4px;padding-top:8px;border-top:2px solid #5a47b84d}
+:root body.pit-v5 .codex-sig dd{font-weight:800;color:var(--v5-white)}
+/* ---- small parts from the copy pass ---- */
+:root body.pit-v5 #result .r-elo-badge,:root body.pit-v5 #result .r-save-badge{display:inline-flex;align-items:center;font:900 11px/1 var(--v5-ui);letter-spacing:.12em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:var(--v5-ink);color:var(--v5-gold);box-shadow:none}
+:root body.pit-v5 #result .r-save-badge{color:#ff9fb8;box-shadow:inset 0 0 0 2px #ff6b8a80}
+:root body.pit-v5 .force-card-stats{display:block;margin-top:2px;font-size:12px;font-weight:800;color:var(--v5-muted)}
+:root body.pit-v5 .v6-link{color:var(--v5-blue);font-weight:900;text-decoration:none;border-bottom:2px solid currentColor}
+:root body.pit-v5 .player-form-note .v6-tag{margin-left:6px;vertical-align:middle}
+@media (max-width:760px){:root body.pit-v5 #guideForms{grid-template-columns:1fr}}
+@media (max-height:560px) and (orientation:landscape){:root body.pit-v5 #guideForms{grid-template-columns:repeat(2,1fr)}}
