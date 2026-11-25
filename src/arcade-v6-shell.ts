@@ -78,7 +78,7 @@ const play=el('div','v6-play');play.id='v6Play';
 const head=el('div','v6-play-head');const back=el('button','v6-back');back.type='button';back.setAttribute('aria-label','Back to home');back.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 back.addEventListener('click',()=>showHome());head.append(back,el('h2',undefined,'Play'));
 const list=el('div','v6-modes');list.setAttribute('role','list');
-const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master trial','','solo'],['hero','Watch a Hero','','heroes']];
+const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master trial','','solo'],['hero','Play a Hero','','heroes']];
 const THUMB:Record<string,V6Card>={duel:'arena',squad:'heroes',watch:'heroes',master:'gauntlet',hero:'heroes'};
 function thumbArt(card:V6Card){const cv=el('canvas','v6-thumb');cv.setAttribute('aria-hidden','true');cards.set(cv,card);return cv;}
 const presetSource=(p:string)=>p==='hero'?get<HTMLButtonElement>('watchHero'):document.querySelector<HTMLButtonElement>(`[data-preset="${p}"]`);
@@ -148,6 +148,9 @@ new MutationObserver(()=>{const v=body.dataset.view;if(v===lastView)return;lastV
 const roundEl=get('round');if(roundEl)new MutationObserver(fillHudElo).observe(roundEl,{childList:true,characterData:true,subtree:true});
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=window.setTimeout(paintAll,120);});
 setScreen(location.hash==='#entry'?'play':'home');
+// Links from the other pages' bottom nav.
+if(location.hash==='#stats')document.querySelector<HTMLButtonElement>('[data-open-stats]')?.click();
+else if(location.hash==='#settings')get<HTMLButtonElement>('settingsOpen')?.click();
 
 /* ---------- pause column ---------- */
 const pauseActions=document.querySelector('#pauseOverlay .dialog-actions');
