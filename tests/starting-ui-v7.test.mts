@@ -14,7 +14,7 @@ test('v7 starting rank and gear choices are collapsed and have separate controls
     assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `${id} must be unique`);
     assert.match(html, new RegExp(`<label>[^<]+<select id="${id}"[^>]*aria-describedby=`));
   }
-  assert.match(html, /Starting ranks set training and combat skill; kills, form stats and awards start at zero/);
+  assert.match(html, /Whole side; kills start at zero/);
 });
 
 test('v7 starting dropdown uses the complete ladder with the exact requested entry label', () => {

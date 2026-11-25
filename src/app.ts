@@ -2,7 +2,7 @@ import { arenaPalette, drawArenaStage, drawArenaCurrent } from './arena-stage.js
 import { createArenaImpact } from './arena-impact.js?v=1.5.0';
 import { QUICK_FIGHTS } from './quick-fights.js?v=1.5.0';
 import { createGame, step, resetRenderSnapshots, duelIntent, command, commandReadiness, nextRound, setAutoCommand, setDoctrine, setFormation, setTargetPriority, visibleEnemyTargets, setForm, setControlledFighter, setPlayerInput, clearPlayerInput, getEnvironment, DOCTRINES, WEAPONS, KNIVES, COVER_NODES } from './sim.js?v=1.4.0';
-import { displayText, displayBattleText } from './copy.js?v=1.4.0';
+import { displayText as copyText, displayBattleText as copyBattleText } from './copy.js?v=1.4.0';
 import { SOLDIER_GRADES, gradeDisplayLabel, progressionSummary, combatSkillProfile } from './progression.js?v=1.4.0';
 import { FORMS, MAPS, FORCE_FAMILIES, QUALITY_LEVELS } from './content.js?v=1.4.0';
 import { MAP_SIZES } from './maps.js?v=1.4.0';
@@ -141,6 +141,40 @@ function resetPresentation() {
   presentationGame = game; presentationRound = game.round;
 }
 const rankNames = ['Recruit', 'Veteran', 'Elite', 'Ace'];
+/** v6 copy for Classic, display only: sides are Blue and Pink, Force powers are Push, Burst and Pulse,
+ *  and a line of facts is a row of v6-meta spans instead of a "·" chain. Saves and sim text are untouched. */
+const capital = (word: string) => word[0].toUpperCase() + word.slice(1);
+const V6_NAMES: readonly (readonly [RegExp, (match: string, ...groups: string[]) => string])[] = [
+  [/\b[Yy]our team\b/g, () => 'Blue'], [/\b[Ee]nemy team\b/g, () => 'Pink'], [/\b[Yy]our fighter\b/g, () => 'Blue'], [/\b[Ee]nemy fighter\b/g, () => 'Pink'],
+  [/\bForce grip and release\b/g, () => 'Grip'], [/\bForce (push|burst|pulse|pull|barrier|lightning|repulse)\b/g, (_, power) => capital(power)],
+  [/\bSaber throw\b/g, () => 'Saber Throw'], [/\bTelekinetic sweep\b/g, () => 'Sweep'], [/\blightsaber\b/g, () => 'Saber'],
+  [/ team style: /g, () => ' Style: '],
+];
+const v6Names = (text: string) => V6_NAMES.reduce((out, [pattern, name]) => out.replace(pattern, name), text);
+const displayText = (value: unknown) => v6Names(copyText(value));
+const displayBattleText = (value: unknown) => v6Names(copyBattleText(value));
+const sideName = (team: number) => team === 0 ? 'Blue' : 'Pink';
+/** Status lines and toasts: sentence case, no closing full stop. */
+const statusLine = (text: string) => text.trim().replace(/\.$/, '');
+const OBJECTIVE_LINES: Record<string, string> = {
+  'Your team won the round': 'Blue wins', 'Enemy team won the round': 'Pink wins', 'Round drawn': 'Draw', 'Defeat the enemy team': 'Last side standing',
+  'You have the relic. Return home.': 'Return the relic home', 'Relic dropped on the field': 'Relic dropped', 'Capture the center signal': 'Take the signal',
+};
+const objectiveLine = (status: string) => statusLine(v6Names(OBJECTIVE_LINES[status] ?? status));
+const V6_DOCTRINE: Record<string, string> = { balanced: 'Steady pace and aim', assault: '12% faster, less accurate', guard: '12% slower, steadier aim' };
+const V6_FORMATION: Record<string, string> = { line: 'Usual cover lanes', wedge: 'Center forward', spread: 'Wide spacing' };
+const V6_DEPLOYMENT: Record<string, string> = { standard: 'Usual rear cover', forward: 'One cover bank closer', reserve: 'Behind the usual line' };
+const V6_RULES: Record<string, string> = { control: '30 points or a wipe', elimination: 'Last side standing', relic: '3 deliveries or a wipe' };
+const environmentHint = (id: string) => { const environment = ENVIRONMENTS[id as keyof typeof ENVIRONMENTS] || ENVIRONMENTS.clear; return `Sight ${environment.sightRange}${environment.walkMultiplier < 1 ? ', slower moves' : ''}`; };
+const fighterName = (soldier: {team: number; lane?: number}) => `${sideName(soldier.team)} ${String((soldier.lane ?? 0) + 1).padStart(2, '0')}`;
+function meta(el: HTMLElement, ...parts: readonly (string | number | false | null | undefined)[]) {
+  const items = parts.filter(part => part !== false && part !== null && part !== undefined && part !== '').map(String);
+  const key = items.join('\n');
+  if (el.dataset.v6Meta === key && el.childElementCount === items.length) return;
+  el.dataset.v6Meta = key;
+  el.replaceChildren(...items.flatMap((text, i) => { const span = document.createElement('span'); span.className = 'v6-meta'; span.textContent = text; return i ? [' ', span] : [span]; }));
+}
+
 let paused = true;
 let speed: number = preferences.speed;
 let lastTime = 0;
@@ -161,8 +195,8 @@ function motionReduced() { return qaSession && qaFullMotion ? false : preference
 function clearInput() { input.clear(); clearPlayerInput(game); document.querySelectorAll('.is-held').forEach(button => button.classList.remove('is-held')); }
 function ensureFrame() { if (!animationHandle && appPhase !== 'menu') animationHandle = requestAnimationFrame(frame); }
 const commands = [...document.querySelectorAll<HTMLButtonElement>('[data-order]')];
-const orderText = { flank: 'Finding a side approach', regroup: 'Regrouping at the team rally point', advance: 'Advancing toward the enemy', hold: 'Holding position', retreat: 'Moving back to cover' };
-const orderShort = { flank: 'Team flanking', regroup: 'Team regrouping', advance: 'Team advancing →', hold: 'Holding position', retreat: '← Falling back' };
+const orderText = { flank: 'Flanking', regroup: 'Regrouping', advance: 'Advancing', hold: 'Holding', retreat: 'Falling back' };
+const orderShort = { flank: 'Blue flanking', regroup: 'Blue regrouping', advance: 'Blue advancing', hold: 'Blue holding', retreat: 'Blue falling back' };
 
 function buildPips() {
   for (const [team, name] of ['player', 'enemy'].entries()) {
@@ -185,24 +219,24 @@ function showToast(message: string) {
 }
 function issueOrder(order: string) {
   if (appPhase !== 'playing' || paused || game.status !== 'playing' || game.config?.mode === 'spectate') return;
-  if (Object.hasOwn(SQUAD_ORDERS, order) && commandIntent(game, 0)!.eligible === 0) { showToast('No AI teammates available for movement orders.'); return; }
+  if (Object.hasOwn(SQUAD_ORDERS, order) && commandIntent(game, 0)!.eligible === 0) { showToast('No AI teammates'); return; }
   const accepted = command(game, order);
   if (order === 'force') {
     if (accepted !== false) {
       cooldownMax = Math.max(1, game.forceCooldown);
-      showToast('Team Force attack started');
+      showToast('Team Force');
     }
   } else if (order === 'guard') {
-    if (accepted !== false) { smokeCooldownMax = Math.max(1, game.guardCooldown); showToast('Team guarding'); }
+    if (accepted !== false) { smokeCooldownMax = Math.max(1, game.guardCooldown); showToast('Team guard'); }
   } else {
     if (accepted !== false) { showToast(orderShort[order as keyof typeof orderShort]); announce(orderShort[order as keyof typeof orderShort]); }
   }
-  if (accepted === false) showToast(displayText(commandReadiness(game, order).reason));
+  if (accepted === false) showToast(statusLine(displayText(commandReadiness(game, order).reason)));
   updateUI();
 }
 function setPaused(next: boolean) {
   if (!sessionStarted || appPhase === 'menu' || game.status !== 'playing') return;
-  if (!next && game.config?.mode === 'play' && !game.soldiers.some(s => s.id === game.control?.soldierId && s.alive)) { showToast('Choose a living teammate or watch instead.'); return; }
+  if (!next && game.config?.mode === 'play' && !game.soldiers.some(s => s.id === game.control?.soldierId && s.alive)) { showToast('Pick a living teammate'); return; }
   paused = next; appPhase = next ? 'paused' : 'playing';
   resetRenderSnapshots(game);
   resetPresentation();
@@ -212,11 +246,11 @@ function setPaused(next: boolean) {
   lastTime = 0;
   $('pausedOverlay').hidden = !paused;
   $('pauseBtn').setAttribute('aria-pressed', String(paused));
-  $('pauseBtn').setAttribute('aria-label', paused ? 'Resume game' : 'Pause game');
+  $('pauseBtn').setAttribute('aria-label', paused ? 'Resume' : 'Pause');
   $('pauseBtn').title = paused ? 'Resume (P)' : 'Pause (P)';
   $('pauseLabel').textContent = paused ? 'Resume' : 'Pause';
   $('pauseIcon').innerHTML = paused ? '<path d="m6 3 11 7-11 7Z" fill="currentColor"/>' : '<path d="M6 4v12M14 4v12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>';
-  announce(paused ? 'Paused.' : 'Playing.');
+  announce(paused ? 'Paused' : 'Live');
   updateUI(); ensureFrame();
 }
 function restart() { openMainMenu(); $('setupSeed').value = String(seed); $('setupForm').scrollIntoView({ block: 'start', behavior: 'instant' }); }
@@ -246,7 +280,7 @@ function beginNextRound() {
   $('pausedOverlay').hidden = true;
   setPaused(false);
   showMutations();
-  announce(`Round ${game.round} started. ${DOCTRINES[game.doctrines[0]].name} team style. Ranks and stats kept. Forms and equipment updated.`);
+  announce(`Round ${game.round}`);
   updateUI();
   ensureFrame(); canvas.focus({ preventScroll: true });
 }
@@ -261,7 +295,7 @@ $('nextRoundBtn').addEventListener('click', beginNextRound);
 $('reviewNextBtn').addEventListener('click', beginNextRound);
 $('inspectResultBtn').addEventListener('click', () => {
   $('resultOverlay').hidden = true; $('roundReviewBar').hidden = false; canvas.focus({ preventScroll: true });
-  announce('Round over. Select a fighter to see their stats, or start the next round.');
+  announce('Round over');
 });
 $('reviewResultBtn').addEventListener('click', () => {
   selectUnit(null); $('roundReviewBar').hidden = true; $('resultOverlay').hidden = false; $('nextRoundBtn').focus();
@@ -270,8 +304,8 @@ $('speedBtn').addEventListener('click', () => {
   speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;
   preferences.speed = speed as typeof preferences.speed; savePreferences(preferences);
   $('speedBtn').textContent = speed + '×';
-  $('speedBtn').setAttribute('aria-label', `Game speed: ${speed} times`);
-  showToast(`Battle speed ${speed}×`);
+  $('speedBtn').setAttribute('aria-label', `Speed ${speed}×`);
+  showToast(`Speed ${speed}×`);
   updateUI();
 });
 window.addEventListener('keydown', event => {
@@ -305,7 +339,7 @@ document.addEventListener('visibilitychange', () => {
 function weaponSummary(team: number) {
   const squad = game.soldiers.filter(s => s.team === team);
   const styles = new Set(squad.map(s => s.form));
-  return `${styles.size === 1 ? FORMS[squad[0].form].name : styles.size + ' forms'} · ${permitsForceAttacks(game.config) ? 'Sabers & Force' : 'Sabers only'}`;
+  return [styles.size === 1 ? FORMS[squad[0].form].name : styles.size + ' Forms', permitsForceAttacks(game.config) ? 'Saber + Force' : 'Saber Only'] as const;
 }
 function updateUI() {
   $('debugState').dataset.phase = appPhase;
@@ -327,13 +361,13 @@ function updateUI() {
   $('timer').textContent = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
   $('roundLabel').textContent = 'ROUND ' + String(game.round).padStart(2, '0');
   $('matchScore').textContent = `${game.score[0]} — ${game.score[1]}`;
-  $('playerLoadout').textContent = weaponSummary(0);
-  $('enemyLoadout').textContent = weaponSummary(1);
-  $('playerLoadout').title = weaponSummary(0);
-  $('enemyLoadout').title = weaponSummary(1);
-  $('seedLabel').textContent = 'SEED ' + String(seed).padStart(5, '0');
-  $('fieldStatus').textContent = ended ? 'ROUND OVER' : paused ? 'PAUSED' : 'PLAYING';
-  $('commandStatus').textContent = ended ? (game.winner === 0 ? 'Your team won' : game.winner === 1 ? 'Enemy team won' : 'Draw') : paused ? 'Battle paused' : (orderText[game.playerOrder] || 'Holding position');
+  meta($('playerLoadout'), ...weaponSummary(0));
+  meta($('enemyLoadout'), ...weaponSummary(1));
+  $('playerLoadout').title = weaponSummary(0).join(', ');
+  $('enemyLoadout').title = weaponSummary(1).join(', ');
+  $('seedLabel').textContent = 'Seed ' + String(seed).padStart(5, '0');
+  $('fieldStatus').textContent = ended ? 'Round Over' : paused ? 'Paused' : 'Live';
+  $('commandStatus').textContent = ended ? (game.winner === 0 ? 'Blue wins' : game.winner === 1 ? 'Pink wins' : 'Draw') : paused ? 'Paused' : (orderText[game.playerOrder] || 'Holding');
   commands.forEach(button => {
     const active = button.dataset.order === game.playerOrder;
     button.classList.toggle('is-active', active);
@@ -345,11 +379,11 @@ function updateUI() {
   const forceReady = commandReadiness(game, 'force');
   cooldownMax = Math.max(cooldownMax, cooldown);
   $('grenadeBtn').disabled = ended || paused || !forceReady.ready;
-  $('grenadeHint').textContent = paused ? 'Resume to command' : forceReady.ready ? `${forceReady.eligible} ready to cast` : displayText(forceReady.reason);
+  $('grenadeHint').textContent = paused ? 'Paused' : forceReady.ready ? `${forceReady.eligible} Ready` : 'Not Ready';
   $('grenadeFill').style.transform = `scaleX(${cooldown > 0 ? Math.max(0, 1 - cooldown / cooldownMax) : 0})`;
-  $('grenadeBtn').setAttribute('aria-label', `Team Force attack. ${$('grenadeHint').textContent}`);
-  $('grenadeBtn').title = displayText(forceReady.reason);
-  $('battleCanvas').setAttribute('aria-label', `Round ${game.round}. Your team: ${living[0]} of ${teams[0].length} alive. Enemy team: ${living[1]} of ${teams[1].length} alive. ${paused ? 'Paused.' : ended ? 'Round ended.' : orderText[game.playerOrder] + '.'}`);
+  $('grenadeBtn').setAttribute('aria-label', `Team Force, ${$('grenadeHint').textContent}`);
+  $('grenadeBtn').title = statusLine(displayText(forceReady.reason));
+  $('battleCanvas').setAttribute('aria-label', `Round ${game.round}. Blue ${living[0]} of ${teams[0].length}. Pink ${living[1]} of ${teams[1].length}. ${paused ? 'Paused' : ended ? 'Round over' : orderText[game.playerOrder]}`);
   updateUpgradeUI();
   const debug = $('debugState');
   debug.dataset.doctrine = game.doctrines[0];
@@ -375,28 +409,28 @@ function showResult(living: readonly number[]) {
   $('orderToast').classList.remove('is-visible');
   const win = game.winner === 0;
   const draw = game.winner === null;
-  const title = draw ? 'Draw' : win ? 'Round won' : 'Round lost';
+  const title = draw ? 'Draw' : win ? 'Round Won' : 'Round Lost';
   $('resultTitle').textContent = title;
   const emblemPath = draw ? '<path d="M3 8h18M3 16h18m-4-4 4 4-4 4M7 4 3 8l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : win ? '<path d="m12 2 3 6.5 7 .9-5 5 1.3 7-6.3-3.5L5.7 21l1.3-6.6-5-5 7-.9Z" fill="currentColor"/>' : '<path d="M6 21V3m0 1h13l-3 5 3 5H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
   $('resultEmblem').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${emblemPath}</svg>`;
   $('resultEmblem').style.background = win ? '#d4dec0' : draw ? '#dddabe' : '#ead2b8';
   $('resultEmblem').style.color = win ? '#3c6755' : '#826547';
-  $('resultEyebrow').textContent = `ROUND ${String(game.round).padStart(2, '0')} OVER`;
-  $('resultDescription').textContent = game.reason ? displayText(game.reason) + '.' : draw ? 'Neither team won.' : win ? 'Your team won this round.' : 'The enemy won this round.';
+  $('resultEyebrow').textContent = `Round ${String(game.round).padStart(2, '0')}`;
+  $('resultDescription').textContent = game.reason ? statusLine(displayText(game.reason)) : draw ? 'Draw' : win ? 'Blue wins' : 'Pink wins';
   const timeout = /time|limit/i.test(game.reason || '');
-  $('resultRules').textContent = `${describeMatchRules(game.config).reportDescription} · ${getModifier(game.config.modifier).name}`;
+  meta($('resultRules'), MATCH_MODES[(game.config.matchMode || 'control') as keyof typeof MATCH_MODES]?.name, `${game.config.roundDuration || 90}s`, permitsForceAttacks(game.config) ? null : 'Saber Only');
   $('resultObjective').hidden = !describeMatchRules(game.config).objectiveEnabled;
-  $('resultObjective').textContent = `${game.config.matchMode === 'relic' ? 'Deliveries' : 'Signal points'}: your team ${Math.floor(game.objective?.points[0] || 0)} · enemy ${Math.floor(game.objective?.points[1] || 0)}`;
+  meta($('resultObjective'), game.config.matchMode === 'relic' ? 'Deliveries' : 'Points', `Blue ${Math.floor(game.objective?.points[0] || 0)}`, `Pink ${Math.floor(game.objective?.points[1] || 0)}`);
   $('resultHealth').hidden = !timeout;
   if (timeout) {
     const health = [0, 1].map(team => game.soldiers.filter(s => s.team === team && s.alive).reduce((sum, s) => sum + s.hp, 0));
     const format = (value: number) => Number(value.toFixed(3)).toLocaleString();
-    $('resultHealth').textContent = `Health left: you ${format(health[0])} · enemy ${format(health[1])}`;
+    meta($('resultHealth'), 'HP Left', `Blue ${format(health[0])}`, `Pink ${format(health[1])}`);
   }
   $('resultPlayer').textContent = String(living[0]);
   $('resultEnemy').textContent = String(living[1]);
   $('resultOverlay').hidden = false;
-  announce(`${title}. ${living[0]} of your fighters and ${living[1]} enemy fighters remain. Check the stats and choose your next-round settings.`);
+  announce(`${title}. Blue ${living[0]} left. Pink ${living[1]} left`);
   $('resultOverlay').querySelector<HTMLElement>('.result-card')!.scrollTop = 0;
   $('resultTitle').tabIndex = -1;
   $('resultTitle').focus({ preventScroll: true });
@@ -413,13 +447,13 @@ function careerPowers(career: ReturnType<typeof careerOf>) {
   const health = Number(((modifiers.healthMultiplier - 1) * 100).toFixed(1));
   const accuracy = Number((modifiers.accuracyBonus * 100).toFixed(1));
   const reload = Number(((1 - modifiers.reloadMultiplier) * 100).toFixed(1));
-  return health || accuracy || reload ? `Training bonuses: +${health}% health · +${accuracy} accuracy points · ${reload}% shorter saber recovery` : 'Training bonuses: none yet. Earn training points to improve stats.';
+  return health || accuracy || reload ? [`+${health}% HP`, `+${accuracy} Aim`, `-${reload}% Recovery`] : ['No Bonuses'];
 }
 function updateDoctrineChoices() {
   for (const button of $('doctrineChoices').children as HTMLCollectionOf<HTMLButtonElement>) {
     button.setAttribute('aria-pressed', String(button.dataset.doctrine === nextDoctrine));
   }
-  $('doctrineHint').textContent = displayText(DOCTRINES[nextDoctrine].description);
+  $('doctrineHint').textContent = V6_DOCTRINE[nextDoctrine] || '';
 }
 function buildDoctrineChoices() {
   $('doctrineChoices').replaceChildren();
@@ -431,7 +465,7 @@ function buildDoctrineChoices() {
     button.addEventListener('click', () => {
       nextDoctrine = doctrine.id;
       updateDoctrineChoices();
-      announce(`${doctrine.name} selected for next round. ${displayText(doctrine.description)}`);
+      announce(`${doctrine.name} next round`);
     });
     $('doctrineChoices').append(button);
   }
@@ -442,23 +476,23 @@ function buildFormChoices() {
   for (let lane = 0; lane < game.forms[0].length; lane++) {
     const row = document.createElement('div'); row.className = 'form-choice';
     const label = document.createElement('label'); label.htmlFor = `form-slot-${lane}`;
-    label.textContent = `Fighter ${String(lane + 1).padStart(2, '0')}`;
+    label.textContent = `Blue ${String(lane + 1).padStart(2, '0')}`;
     const select = document.createElement('select'); select.id = label.htmlFor; select.dataset.lane = String(lane);
     const groups = new Map();
     for (const form of Object.values(FORMS)) {
       const groupKey = String(form.primaryForm);
-      if (!groups.has(groupKey)) { const group = document.createElement('optgroup'); group.label = `Form ${groupKey}`; groups.set(groupKey, group); select.append(group); }
+      if (!groups.has(groupKey)) { const group = document.createElement('optgroup'); group.label = groupKey; groups.set(groupKey, group); select.append(group); }
       const option = document.createElement('option'); option.value = form.id; option.textContent = form.name;
       groups.get(groupKey).append(option);
     }
     select.value = nextForms[lane];
     const describe = (form: (typeof FORMS)[ClassicFormId]) => {
       const practice = masterySummary(game.mastery?.[0]?.[lane], form.id);
-      return `${displayText(form.trait)} Damage ×${form.damageMultiplier.toFixed(2)} · recovery ×${form.attackIntervalMultiplier.toFixed(2)} · Force cost ×${form.forceCostMultiplier.toFixed(2)}. Form stats: ${practice.rounds} rounds · ${practice.kills} kills · ${Math.round(practice.damage)} damage.`;
+      return [`DMG ×${form.damageMultiplier.toFixed(2)}`, `Recovery ×${form.attackIntervalMultiplier.toFixed(2)}`, `Force ×${form.forceCostMultiplier.toFixed(2)}`, `${practice.rounds} Rounds`, `${practice.kills} K`, `${Math.round(practice.damage)} DMG`];
     };
-    const trait = document.createElement('small'); trait.id = `form-trait-${lane}`; trait.textContent = describe(FORMS[select.value as ClassicFormId]);
+    const trait = document.createElement('small'); trait.id = `form-trait-${lane}`; meta(trait, ...describe(FORMS[select.value as ClassicFormId]));
     select.setAttribute('aria-describedby', trait.id);
-    select.addEventListener('change', () => { nextForms[lane] = select.value as ClassicFormId; trait.textContent = describe(FORMS[select.value as ClassicFormId]); });
+    select.addEventListener('change', () => { nextForms[lane] = select.value as ClassicFormId; meta(trait, ...describe(FORMS[select.value as ClassicFormId])); });
     row.append(label, select, trait); $('formChoices').append(row);
   }
 }
@@ -466,39 +500,37 @@ function updateBattleRecap() {
   const recap = buildBattleRecap(game as ClassicGame & {roundReport: NonNullable<ClassicGame['roundReport']>}, { round: game.round, limit: 5 });
   const totals = recap.totals!;
   const pair = (values: unknown) => Array.isArray(values) ? values.join(' / ') : 'unavailable';
-  const objectiveLabel = totals.mode === 'relic' ? 'Relic deliveries' : 'Signal points';
+  const objectiveLabel = totals.mode === 'relic' ? 'Deliveries' : 'Points';
   const objective = totals.mode === 'control' && Array.isArray(totals.objective) ? totals.objective.map(Math.floor) : totals.objective;
-  $('roundRecapTotals').textContent = `Your team / enemy: Kills ${pair(totals.kills)} · Casualties ${pair(totals.deaths)}${totals.mode === 'elimination' ? '' : ` · ${objectiveLabel} ${pair(objective)}`}`;
+  meta($('roundRecapTotals'), 'Blue / Pink', `K ${pair(totals.kills)}`, `D ${pair(totals.deaths)}`, totals.mode !== 'elimination' && `${objectiveLabel} ${pair(objective)}`);
   $('roundRecap').replaceChildren();
   for (const event of recap.events) {
     const item = document.createElement('li');
     const seconds = Math.max(0, Math.floor(event.time));
-    item.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} · ${displayBattleText(event.text)}`;
+    meta(item, `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, displayBattleText(event.text));
     $('roundRecap').append(item);
   }
   const coverage = recap.coverage;
-  const notes = [coverage.kind === 'unavailable' ? 'Round details unavailable.' : coverage.kind === 'summary-only' ? 'Saved summary only.' : 'Recorded events; not a full replay.'];
-  if (!coverage.complete) notes.push('Earlier events unavailable.');
-  if (coverage.truncated) notes.push('Older recorded events omitted.');
-  if (coverage.selectionOmitted) notes.push(`${coverage.selectionOmitted} more recorded events not shown.`);
-  if (!recap.events.length && coverage.kind === 'recorded') notes.push('No notable events recorded.');
-  $('roundRecapCoverage').textContent = notes.join(' ');
+  const notes = [coverage.kind === 'unavailable' ? 'No details' : coverage.kind === 'summary-only' ? 'Summary only' : null];
+  if (coverage.selectionOmitted) notes.push(`+${coverage.selectionOmitted} More`);
+  if (!recap.events.length && coverage.kind === 'recorded') notes.push('No events');
+  meta($('roundRecapCoverage'), ...notes);
 }
 function updateRoundBriefing() {
   updateBattleRecap();
   const awards = (game.roundReport?.careers || []).filter(award => award.team === 0);
   const promoted = awards.filter(award => award.promoted);
   const earned = awards.reduce((sum, award) => sum + award.earned, 0);
-  $('resultCareer').textContent = `Your team earned ${earned} training points · ${promoted.length} ${promoted.length === 1 ? 'promotion' : 'promotions'}. Ranks carry over.`;
+  meta($('resultCareer'), `+${earned} Training`, `${promoted.length} ${promoted.length === 1 ? 'Promotion' : 'Promotions'}`);
   $('resultPromotions').replaceChildren();
   for (const award of awards) {
     const item = document.createElement('li');
     item.classList.toggle('is-promoted', award.promoted);
-    item.textContent = `Fighter ${String(award.lane + 1).padStart(2, '0')} · ${award.promoted ? `${gradeDisplayLabel(award.before.grade)} → ${gradeDisplayLabel(award.after.grade)}` : `Rank ${gradeDisplayLabel(award.after.grade)}`} · +${award.earned} training points`;
+    meta(item, `Blue ${String(award.lane + 1).padStart(2, '0')}`, award.promoted ? `${gradeDisplayLabel(award.before.grade)} → ${gradeDisplayLabel(award.after.grade)}` : `Rank ${gradeDisplayLabel(award.after.grade)}`, `+${award.earned} Training`);
     $('resultPromotions').append(item);
   }
   if (!awards.length) {
-    const item = document.createElement('li'); item.textContent = 'Select a fighter to see their stats.'; $('resultPromotions').append(item);
+    const item = document.createElement('li'); item.textContent = 'No fighters'; $('resultPromotions').append(item);
   }
   updateMasteryReport();
   updateDoctrineChoices();
@@ -506,13 +538,13 @@ function updateRoundBriefing() {
 function checkpointCampaign() {
   if (!sessionStarted || appPhase === 'menu') return false;
   const result = saveCampaign(game, campaignStorage);
-  $('saveStatus').textContent = result.ok ? `Round ${game.round} saved on this device.` : `Could not save: ${result.error || 'device storage unavailable'}`;
+  $('saveStatus').textContent = result.ok ? `Round ${game.round} saved` : 'Save failed';
   $('resumeCampaignBtn').disabled = !hasSavedCampaign(campaignStorage);
   return result.ok;
 }
 function resumeSavedCampaign() {
   const result = loadCampaign(campaignStorage);
-  if (!result.game) { $('saveStatus').textContent = `Could not resume: ${result.error || 'no saved game'}`; $('menuSaveStatus').textContent = $('saveStatus').textContent; return; }
+  if (!result.game) { $('saveStatus').textContent = result.error ? 'Load failed' : 'No saved game'; $('menuSaveStatus').textContent = $('saveStatus').textContent; return; }
   // The detached save has passed persistence validation and migration.
   game = result.game as unknown as ClassicGame;
   resetPresentation();
@@ -538,9 +570,8 @@ function resumeSavedCampaign() {
   buildRoster(); drawTerrain();
   if (game.status === 'playing') setPaused(true);
   updateUI(); draw();
-  $('saveStatus').textContent = `${result.notice ? result.notice + ' ' : ''}Resumed round ${game.round}${paused ? ' paused' : ' at the round results'}.`;
-  if (result.migrated) showToast('Save updated. Ranks kept.');
-  else if (result.upgraded) showToast('Save updated and loaded.');
+  $('saveStatus').textContent = `Round ${game.round} loaded`;
+  if (result.migrated || result.upgraded) showToast('Save updated');
   announce($('saveStatus').textContent); restoreAudioFromGesture(); ensureFrame();
 }
 
@@ -548,20 +579,20 @@ buildDoctrineChoices();
 $('saveCampaignBtn').addEventListener('click', () => { if (checkpointCampaign()) campaignSavingEnabled = true; });
 $('resumeCampaignBtn').addEventListener('click', resumeSavedCampaign);
 $('resumeCampaignBtn').disabled = !hasSavedCampaign(campaignStorage);
-$('saveStatus').textContent = hasSavedCampaign(campaignStorage) ? 'A saved game is available.' : 'Save to continue later on this device.';
+$('saveStatus').textContent = hasSavedCampaign(campaignStorage) ? 'Save ready' : 'Not saved';
 function showMutations() {
   const mutations = game.mutations || [];
   if (!mutations.length) return;
   const banner = $('mutationBanner');
   banner.replaceChildren();
   const heading = document.createElement('strong');
-  heading.textContent = `ROUND ${String(game.round).padStart(2, '0')} · EQUIPMENT CHANGES`;
+  meta(heading, `Round ${String(game.round).padStart(2, '0')}`, 'Gear Changes');
   banner.append(heading);
   for (const mutation of mutations.slice(0, 3)) {
     const row = document.createElement('div');
     row.className = 'mutation-line' + (mutation.team === 1 ? ' enemy' : '');
     const label = document.createElement('b');
-    label.textContent = mutation.team === 0 ? 'YOUR TEAM' : 'ENEMY';
+    label.textContent = sideName(mutation.team);
     const value = document.createElement('span');
     const from = WEAPONS[mutation.from]?.name || mutation.from || '';
     const to = WEAPONS[mutation.to]?.name || mutation.to || '';
@@ -570,7 +601,7 @@ function showMutations() {
     banner.append(row);
   }
   if (mutations.length > 3) {
-    const note = document.createElement('p'); note.className = 'mutation-overflow'; note.textContent = `${mutations.length - 3} more changes in Stats`; banner.append(note);
+    const note = document.createElement('p'); note.className = 'mutation-overflow'; note.textContent = `+${mutations.length - 3} More`; banner.append(note);
   }
   banner.hidden = false;
   mutationUntil = performance.now() + 4300;
@@ -582,7 +613,7 @@ $('autoBtn').addEventListener('click', () => {
   if (appPhase !== 'playing' || game.status !== 'playing') return;
   if (game.config?.mode === 'spectate') return;
   setAutoCommand(game, !game.autoCommand);
-  showToast(game.autoCommand ? 'AI team control on' : 'Manual team control on');
+  showToast(game.autoCommand ? 'Auto on' : 'Auto off');
   updateUI();
 });
 $('intelBtn').addEventListener('click', () => {
@@ -600,7 +631,7 @@ $('detailsBtn').addEventListener('click', () => {
 $('closeInspectorBtn').addEventListener('click', () => { selectUnit(null); canvas.focus({ preventScroll: true }); });
 $('copySeedBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(String(seed)); showToast('Seed copied'); }
-  catch { showToast(`Match seed: ${seed}`); }
+  catch { showToast(`Seed ${seed}`); }
 });
 $('exportBtn').addEventListener('click', () => {
   const snapshot = { format: 'trenchline-field-report-v4', exportedAt: new Date().toISOString(), ui: { paused, speed, selectedUnitId, tacticalView, nextDoctrine, nextForms }, game: structuredClone(game) };
@@ -609,7 +640,7 @@ $('exportBtn').addEventListener('click', () => {
   link.href = url; link.download = `saber-pit-${seed}-round-${game.round}.json`;
   document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showToast('Save data exported');
+  showToast('Save exported');
 });
 window.addEventListener('pagehide', () => { clearInput(); resetRenderSnapshots(game); lastTime = 0; audio.silence(); });
 window.addEventListener('blur', () => { clearInput(); if (appPhase === 'playing') setPaused(true); });
@@ -629,7 +660,7 @@ canvas.addEventListener('pointerdown', event => {
   if (game.config?.mode === 'play' && appPhase === 'playing') {
     if (target?.team === 1 && target.alive) {
       if (visibleEnemyTargets(game, game.control?.soldierId).some(enemy => enemy.id === target.id)) lockTarget(target);
-      else showToast('Target is out of sight');
+      else showToast('Out of sight');
     }
     return;
   }
@@ -649,7 +680,7 @@ function cycleInspection(direction: number) {
 function updateInspectionControls() {
   $('inspectionControls').hidden = game.config?.mode === 'play' && !paused && game.status === 'playing';
   const selected = game.soldiers.find(soldier => soldier.id === selectedUnitId);
-  $('inspectionStatus').textContent = selected ? `${selected.team === 0 ? 'Your' : 'Enemy'} fighter ${String(selected.lane + 1).padStart(2, '0')} · ${soldierStatus(selected)}` : 'Select a fighter to inspect';
+  if (selected) meta($('inspectionStatus'), fighterName(selected), soldierStatus(selected)); else $('inspectionStatus').textContent = 'Tap a fighter';
   const any = nextInspectionId(game.soldiers, null, 1, $('inspectTeam').value, game.status === 'ended');
   $('previousFighterBtn').disabled = $('nextFighterBtn').disabled = !any;
   $('inspectCarrierBtn').hidden = game.config?.matchMode !== 'relic';
@@ -661,31 +692,31 @@ function selectUnit(id: string | null) {
   updateUI(); draw();
   if (id) {
     const soldier = game.soldiers.find(s => s.id === id);
-    if (soldier) announce(`${soldier.team === 0 ? 'Your' : 'Enemy'} fighter ${(soldier.lane ?? 0) + 1}. Rank ${gradeDisplayLabel(careerOf(soldier).grade)}. ${Math.round(soldier.hp)} health. ${soldierStatus(soldier)}.`);
+    if (soldier) announce(`${fighterName(soldier)}. Rank ${gradeDisplayLabel(careerOf(soldier).grade)}. ${Math.round(soldier.hp)} HP. ${soldierStatus(soldier)}`);
   }
 }
 function activeMove(soldier: ClassicSoldier) { return soldier.attack?.kind === 'saber' && soldier.attack.moveId ? selectFormMove(soldier.attack.form || soldier.form, soldier.attack.comboIndex || 0) : null; }
-function forceRepertoireLabel(soldier: ClassicSoldier) { return forceRepertoire(soldier).map(id => id === 'force_push' ? WEAPONS[soldier.weapon]?.name || 'Force push' : forceAbilityById(id)?.name || id).join(', '); }
+function forceRepertoireLabel(soldier: ClassicSoldier) { return displayText(forceRepertoire(soldier).map(id => id === 'force_push' ? WEAPONS[soldier.weapon]?.name || 'Force push' : forceAbilityById(id)?.name || id).join(', ')); }
 function soldierStatus(soldier: ClassicSoldier) {
   if (!soldier.alive) return 'Dead';
-  if (soldier.airborne) return `Airborne · ${Math.round(airborneHeight(soldier, game.tick))} height`;
-  if (soldier.landingRecoveryUntil > game.tick) return 'Landing recovery';
-  if (game.config?.matchMode === 'relic' && game.objective?.carrierId === soldier.id) return 'Carrying relic';
+  if (soldier.airborne) return `Airborne ${Math.round(airborneHeight(soldier, game.tick))}`;
+  if (soldier.landingRecoveryUntil > game.tick) return 'Landing';
+  if (game.config?.matchMode === 'relic' && game.objective?.carrierId === soldier.id) return 'Carrier';
   if (soldier.combatState === 'stagger') return 'Staggered';
-  if (soldier.combatState === 'counter') return 'Counter window';
-  if (soldier.attack?.kind === 'force') return soldier.attack.abilityId === 'force_push' ? WEAPONS[soldier.attack.weapon]?.name || 'Using Force' : forceAbilityById(soldier.attack.abilityId)?.name || 'Using Force';
-  if (soldier.attack?.kind === 'saber') return activeMove(soldier)?.name || 'Saber windup';
+  if (soldier.combatState === 'counter') return 'Counter';
+  if (soldier.attack?.kind === 'force') return displayText(soldier.attack.abilityId === 'force_push' ? WEAPONS[soldier.attack.weapon]?.name || 'Force' : forceAbilityById(soldier.attack.abilityId)?.name || 'Force');
+  if (soldier.attack?.kind === 'saber') return activeMove(soldier)?.name || 'Windup';
   if (soldier.combatState === 'recover') return 'Recovering';
   if (soldier.guard && soldier.guardUntil > game.tick) return 'Guarding';
-  if (soldier.guard) return 'Ready to block';
-  if (soldier.forceRequestedUntil > game.tick) return 'Looking for a Force target';
-  if (soldier.energy < 20) return 'Recovering energy';
+  if (soldier.guard) return 'Block Ready';
+  if (soldier.forceRequestedUntil > game.tick) return 'Force Target';
+  if (soldier.energy < 20) return 'Low Energy';
   if (soldier.pinned) return 'Pinned';
   if (soldier.rallying) return 'Regrouping';
-  if (soldier.melee) return 'Close combat';
+  if (soldier.melee) return 'Melee';
   if (soldier.stance === 'duck') return 'Ducking';
   if (soldier.moving) return 'Moving';
-  return soldier.cover ? 'In cover' : 'Exposed';
+  return soldier.cover ? 'In Cover' : 'Exposed';
 }
 function updateInspector() {
   const soldier = game.soldiers.find(s => s.id === selectedUnitId);
@@ -693,12 +724,12 @@ function updateInspector() {
   $('takeControlBtn').hidden = !soldier || soldier.team !== 0 || !soldier.alive || !paused || game.status !== 'playing';
   $('battlefield').classList.toggle('inspection-active', Boolean(soldier));
   if (!soldier) return;
-  $('unitName').textContent = `${soldier.team === 0 ? 'YOUR' : 'ENEMY'} FIGHTER ${String((soldier.lane ?? 0) + 1).padStart(2, '0')}`;
-  $('unitRank').textContent = (rankNames[soldier.rank || 0] || 'Veteran').toUpperCase();
+  $('unitName').textContent = fighterName(soldier);
+  $('unitRank').textContent = rankNames[soldier.rank || 0] || 'Veteran';
   const career = careerOf(soldier);
   $('unitGrade').textContent = gradeDisplayLabel(career.grade);
-  $('unitMerit').textContent = career.nextGrade ? `${career.merit} training points · ${Math.max(0, career.nextThreshold - career.merit)} to ${gradeDisplayLabel(career.nextGrade)}` : `${career.merit} training points · Top rank`;
-  $('unitPower').textContent = careerPowers(career) + (game.status === 'ended' ? ' Applied next round.' : '');
+  meta($('unitMerit'), `${career.merit} XP`, career.nextGrade ? `${Math.max(0, career.nextThreshold - career.merit)} to ${gradeDisplayLabel(career.nextGrade)}` : 'Top Rank');
+  meta($('unitPower'), ...careerPowers(career), game.status === 'ended' && 'Next Round');
   $('unitHealth').textContent = `${Math.max(0, Math.round(soldier.hp))} / ${Math.round(soldier.maxHp)} HP`;
   $('unitState').textContent = soldierStatus(soldier);
   $('unitHealthBar').style.width = `${Math.max(0, 100 * soldier.hp / soldier.maxHp)}%`;
@@ -707,22 +738,22 @@ function updateInspector() {
   const saber = KNIVES[soldier.meleeWeapon];
   const form = FORMS[soldier.form];
   const record = (game.records?.soldiers || []).find(record => record.team === soldier.team && record.lane === soldier.lane);
-  $('unitWeapons').textContent = `${usesDualSabers(game.config, soldier) ? 'Jar’Kai dual sabers · ' : ''}${saber?.name || soldier.meleeWeapon} · ${power?.name || soldier.weapon}${forceAllowed ? '' : ' (Force off)'}`;
-  $('unitForm').textContent = `Form ${form.primaryForm} · ${form.name} · ${displayText(form.trait)}`;
+  meta($('unitWeapons'), usesDualSabers(game.config, soldier) ? 'Dual' : 'Single', saber?.quality === 1 ? null : displayText(saber?.name || soldier.meleeWeapon), forceAllowed ? displayText(power?.name || soldier.weapon) : 'Force Off');
+  meta($('unitForm'), form.primaryForm, form.name);
   const practice = masterySummary(game.mastery?.[soldier.team]?.[soldier.lane], soldier.form);
-  $('unitMastery').textContent = `Stats with this form · ${practice.rounds} rounds with ${form.name} · ${practice.kills} kills · ${Math.round(practice.damage)} damage · ${practice.blocks} blocks · ${practice.objectiveSeconds.toFixed(1)}s on objectives`;
-  $('unitCommendations').textContent = `Awards · Most damage: ${practice.commendations.mvp} · Most blocks: ${practice.commendations.defender} · Most objective time: ${practice.commendations.objective}. Awards don’t change stats.`;
-  $('unitEnergy').textContent = `Energy ${Math.round(soldier.energy)} / ${soldier.maxEnergy} · ${soldier.guard ? soldier.guardUntil > game.tick ? 'Guarding' : 'Ready to block' : 'Not guarding'} · Saber ${Math.max(0, soldier.attackCooldown || 0).toFixed(1)}s · ${forceAllowed ? `Force ${Math.max(0, soldier.forceCooldown || 0).toFixed(1)}s` : 'Force off'}`;
-  $('unitRecords').textContent = `All rounds: ${record?.kills || 0} kills · ${record?.deaths || 0} deaths · ${record?.assists || 0} assists (${record?.environmentDeaths || 0} hazard deaths). This round: ${soldier.kills || 0} kills · ${soldier.deaths || 0} deaths · ${soldier.assists || 0} assists.`;
-  $('unitMood').textContent = `Morale ${Math.round(soldier.morale ?? 100)}% · Pressure ${Math.round(soldier.suppression || 0)}% · ${Math.floor(soldier.xp || 0)} combat XP`;
-  $('unitRole').textContent = `Blade sequence (game adaptation; up to ${combatSkillProfile(soldier.career).comboLength} linked moves): ${moveSummary(soldier.form)}. Force repertoire: ${forceAllowed ? forceRepertoireLabel(soldier) : 'disabled by match rules'}.`;
-  $('unitRole').title = `${combatFormProfile(soldier.form).identity}. ${form.lore.note}`;
+  meta($('unitMastery'), `${form.name} Stats`, `${practice.rounds} Rounds`, `${practice.kills} K`, `${Math.round(practice.damage)} DMG`, `${practice.blocks} Blocks`, `${practice.objectiveSeconds.toFixed(1)}s Objective`);
+  meta($('unitCommendations'), 'Awards', `${practice.commendations.mvp} Top DMG`, `${practice.commendations.defender} Top Blocks`, `${practice.commendations.objective} Top Objective`);
+  meta($('unitEnergy'), `${Math.round(soldier.energy)} / ${soldier.maxEnergy} STA`, soldier.guard ? soldier.guardUntil > game.tick ? 'Guarding' : 'Block Ready' : null, `Saber ${Math.max(0, soldier.attackCooldown || 0).toFixed(1)}s CD`, forceAllowed ? `Force ${Math.max(0, soldier.forceCooldown || 0).toFixed(1)}s CD` : 'Force Off');
+  meta($('unitRecords'), `Total ${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`, `Round ${soldier.kills || 0} / ${soldier.deaths || 0} / ${soldier.assists || 0}`, `${record?.environmentDeaths || 0} Hazard`);
+  meta($('unitMood'), `Morale ${Math.round(soldier.morale ?? 100)}%`, `Pressure ${Math.round(soldier.suppression || 0)}%`, `${Math.floor(soldier.xp || 0)} Combat XP`);
+  meta($('unitRole'), `Combo ${combatSkillProfile(soldier.career).comboLength}`, forceAllowed ? forceRepertoireLabel(soldier) : 'Force Off');
+  $('unitRole').title = moveSummary(soldier.form);
   const target = game.soldiers.find(other => other.id === (soldier.attack?.target || soldier.target));
   const targetDistance = target ? Math.hypot(target.x - soldier.x, target.y - soldier.y) : Infinity;
-  const reach = targetDistance <= saber.range + form.reachBonus ? 'in saber reach' : forceAllowed && targetDistance <= power.range ? 'in Force range' : 'out of range';
-  $('unitIntent').textContent = `Action: ${displayText(soldier.tacticalReason || soldierStatus(soldier))}${target?.alive ? ` · ${target.team === 0 ? 'your' : 'enemy'} fighter ${target.lane + 1}, ${reach}` : ''}`;
+  const reach = targetDistance <= saber.range + form.reachBonus ? 'Saber Range' : forceAllowed && targetDistance <= power.range ? 'Force Range' : 'Out of Range';
+  meta($('unitIntent'), displayText(soldier.tacticalReason || soldierStatus(soldier)), target?.alive && `→ ${fighterName(target)}`, target?.alive && reach);
   const outcome = soldier.lastOutcome;
-  $('unitOutcome').textContent = outcome ? `Last action: ${outcomeText(outcome)}${outcome.kind ? ` · ${outcome.kind === 'force' ? 'Force' : 'saber'}` : ''}` : 'Last action: no attacks yet.';
+  if (outcome) meta($('unitOutcome'), 'Last', outcomeText(outcome), outcome.kind === 'force' ? 'Force' : outcome.kind ? 'Saber' : null); else meta($('unitOutcome'), 'No attacks yet');
   $('unitInspector').dataset.combatState = soldier.combatState;
   $('unitInspector').dataset.lastOutcome = outcome?.outcome || '';
   $('unitInspector').dataset.form = soldier.form;
@@ -737,10 +768,10 @@ function updateInspector() {
   $('unitInspector').dataset.forceRepertoire = forceRepertoire(soldier).join(',');
 }
 const reportMetrics = [
-  ['saberSwings', 'Saber swings'], ['saberHits', 'Saber hits'], ['damage', 'Damage dealt'],
-  ['blocks', 'Blocks'], ['counters', 'Counter hits'], ['forceCasts', 'Force casts'],
-  ['forceHits', 'Force hits'], ['kills', 'Round kills'], ['deaths', 'Round deaths'],
-  ['assists', 'Round assists'], ['environmentDeaths', 'Round hazard deaths'], ['points', 'Signal points']
+  ['saberSwings', 'Swings'], ['saberHits', 'Saber Hits'], ['damage', 'DMG'],
+  ['blocks', 'Blocks'], ['counters', 'Counters'], ['forceCasts', 'Force Casts'],
+  ['forceHits', 'Force Hits'], ['kills', 'Kills'], ['deaths', 'Deaths'],
+  ['assists', 'Assists'], ['environmentDeaths', 'Hazard'], ['points', 'Points']
 ];
 function buildReport() {
   for (const [key, label] of reportMetrics) {
@@ -778,9 +809,9 @@ function updateReport() {
   $('campaignEnemyEnvironmentDeaths').textContent = String(totals[1].environmentDeaths || 0);
   for (const [key] of reportMetrics) {
     const values = key === 'points' ? (game.objective?.points || [0, 0]) : (game.stats?.[key] || [0, 0]);
-    $('metric-' + key).innerHTML = `${Math.round(values[0])} <i>· ${Math.round(values[1])}</i>`;
+    $('metric-' + key).innerHTML = `${Math.round(values[0])} <i>/ ${Math.round(values[1])}</i>`;
   }
-  $('tacticSummary').textContent = [0, 1].map(team => `${team === 0 ? 'Your team' : 'Enemy'}: ${DOCTRINES[game.doctrines[team]].name} · ${FORMATIONS[game.config?.formations?.[team] || 'line'].name} · ${priorityName(game.config?.targetPriorities?.[team] || 'balanced')}`).join(' / ');
+  meta($('tacticSummary'), ...[0, 1].map(team => `${sideName(team)} ${DOCTRINES[game.doctrines[team]].name}, ${FORMATIONS[game.config?.formations?.[team] || 'line'].name}, ${priorityName(game.config?.targetPriorities?.[team] || 'balanced')}`));
   for (const button of $('unitRoster').children as HTMLCollectionOf<HTMLButtonElement>) {
     const soldier = game.soldiers.find(s => s.id === button.dataset.unitId);
     if (!soldier) continue;
@@ -791,8 +822,8 @@ function updateReport() {
     button.querySelector('.roster-grade')!.textContent = gradeDisplayLabel(career.grade);
     const record = (game.records?.soldiers || []).find(record => record.team === soldier.team && record.lane === soldier.lane);
     button.querySelector('.roster-record')!.textContent = `${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`;
-    button.title = `${FORMS[soldier.form].name} · All rounds: ${record?.kills || 0} kills, ${record?.deaths || 0} deaths, ${record?.assists || 0} assists; ${record?.environmentDeaths || 0} hazard deaths`;
-    button.setAttribute('aria-label', `${soldier.team === 0 ? 'Your' : 'Enemy'} fighter ${(soldier.lane ?? 0) + 1}, rank ${gradeDisplayLabel(career.grade)}, ${career.merit} training points, ${Math.round(soldier.hp)} health, ${soldierStatus(soldier)}. All rounds: ${record?.kills || 0} kills, ${record?.deaths || 0} deaths, ${record?.assists || 0} assists; ${record?.environmentDeaths || 0} hazard deaths.`);
+    button.title = `${FORMS[soldier.form].name}, K/D/A ${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`;
+    button.setAttribute('aria-label', `${fighterName(soldier)}, rank ${gradeDisplayLabel(career.grade)}, ${Math.round(soldier.hp)} HP, ${soldierStatus(soldier)}, K/D/A ${record?.kills || 0} / ${record?.deaths || 0} / ${record?.assists || 0}`);
   }
   const events = (game.events || []).slice(-7).reverse();
   const signature = `${game.round}:` + events.map(e => e.id).join(',');
@@ -800,7 +831,7 @@ function updateReport() {
     lastEventSignature = signature;
     $('eventLog').replaceChildren();
     if (!events.length) {
-      const item = document.createElement('li'); item.textContent = 'The teams are getting into position.'; $('eventLog').append(item);
+      const item = document.createElement('li'); item.textContent = 'No events yet'; $('eventLog').append(item);
     }
     for (const event of events) {
       const item = document.createElement('li'); if (event.team === 1) item.className = 'enemy-event';
@@ -809,7 +840,7 @@ function updateReport() {
       item.append(time, text); $('eventLog').append(item);
     }
   }
-  $('reportSeed').textContent = `SEED ${seed} · ROUND ${game.round}`;
+  meta($('reportSeed'), `Seed ${seed}`, `Round ${game.round}`);
   const mutations = game.mutations || [];
   $('mutationDetails').hidden = !mutations.length;
   if ($('mutationDetails').dataset.round !== String(game.round)) {
@@ -827,45 +858,45 @@ function updateUpgradeUI() {
   const guardReady = commandReadiness(game, 'guard');
   smokeCooldownMax = Math.max(smokeCooldownMax, smoke);
   $('smokeBtn').disabled = paused || game.status !== 'playing' || !guardReady.ready;
-  $('smokeHint').textContent = paused ? 'Resume to command' : guardReady.ready ? `${guardReady.eligible} ready to guard` : displayText(guardReady.reason);
+  $('smokeHint').textContent = paused ? 'Paused' : guardReady.ready ? `${guardReady.eligible} Ready` : 'Not Ready';
   $('smokeFill').style.transform = `scaleX(${smoke > 0 ? Math.max(0, 1 - smoke / smokeCooldownMax) : 0})`;
-  $('smokeBtn').setAttribute('aria-label', `Team guard. ${$('smokeHint').textContent}`);
-  $('smokeBtn').title = displayText(guardReady.reason);
+  $('smokeBtn').setAttribute('aria-label', `Team Guard, ${$('smokeHint').textContent}`);
+  $('smokeBtn').title = statusLine(displayText(guardReady.reason));
   $('autoBtn').disabled = game.status !== 'playing';
   $('autoBtn').setAttribute('aria-pressed', String(Boolean(game.autoCommand)));
-  $('autoLabel').textContent = game.autoCommand ? 'Auto on' : 'Auto off';
-  if (game.autoCommand && game.status === 'playing' && !paused) $('commandStatus').textContent = `Auto · ${game.playerTactic || game.playerOrder}`;
+  $('autoLabel').textContent = game.autoCommand ? 'Auto On' : 'Auto Off';
+  if (game.autoCommand && game.status === 'playing' && !paused) meta($('commandStatus'), 'Auto', capital(String(game.playerTactic || game.playerOrder)));
   const objective = game.objective;
   const rules = describeMatchRules(game.config);
   const captureEnabled = rules.objectiveEnabled && Boolean(objective);
   $('objectiveHud').hidden = false;
   $('objectiveHud').dataset.mode = game.config?.matchMode || 'control';
-  $('objectiveRule').textContent = rules.objectiveLabel;
-  $('objectiveHud').title = displayText(rules.summary);
+  $('objectiveRule').textContent = game.config?.matchMode === 'relic' ? `Relic ${game.config?.targetScore ?? 3}` : rules.objectiveEnabled ? `Signal ${game.config?.targetScore ?? 30}` : 'Fighters Left';
+  $('objectiveHud').title = $('objectiveRule').textContent;
   $('captureLeft').parentElement!.hidden = !captureEnabled || game.config?.matchMode === 'relic';
   if (captureEnabled) {
     $('objectiveScore').textContent = `${Math.floor(objective.points[0])} : ${Math.floor(objective.points[1])}`;
-    $('objectiveHud').setAttribute('aria-label', `${game.config?.matchMode === 'relic' ? 'Relic deliveries' : 'Signal control'}: your team ${Math.floor(objective.points[0])}, enemy ${Math.floor(objective.points[1])}. Target ${objective.targetScore}.`);
+    $('objectiveHud').setAttribute('aria-label', `${game.config?.matchMode === 'relic' ? 'Deliveries' : 'Points'}: Blue ${Math.floor(objective.points[0])}, Pink ${Math.floor(objective.points[1])}, target ${objective.targetScore}`);
     $('captureLeft').style.width = `${Math.max(0, objective.capture) / 2}%`;
     $('captureRight').style.width = `${Math.max(0, -objective.capture) / 2}%`;
   } else {
     const survivors = [0, 1].map(team => game.soldiers.filter(soldier => soldier.team === team && soldier.alive).length);
     $('objectiveScore').textContent = `${survivors[0]} : ${survivors[1]}`;
-    $('objectiveHud').setAttribute('aria-label', `Elimination survivors: your team ${survivors[0]}, enemy ${survivors[1]}. Timeout: survivors, then health.`);
+    $('objectiveHud').setAttribute('aria-label', `Fighters left: Blue ${survivors[0]}, Pink ${survivors[1]}`);
   }
   const feedback = objectiveFeedback(game);
-  $('objectiveStatus').textContent = feedback.status;
-  $('objectiveDetail').textContent = feedback.detail;
-  $('ruleModifier').textContent = getModifier(game.config.modifier).name;
-  $('ruleModifier').title = getModifier(game.config.modifier).description;
+  $('objectiveStatus').textContent = objectiveLine(feedback.status);
+  $('objectiveDetail').textContent = '';
+  $('ruleModifier').textContent = permitsForceAttacks(game.config) ? 'Standard' : 'Saber Only';
+  $('ruleModifier').title = $('ruleModifier').textContent;
   if (lastObjectiveSignature && feedback.signature !== lastObjectiveSignature && game.config?.matchMode === 'relic' && appPhase === 'playing') {
-    showToast(feedback.status);
+    showToast(objectiveLine(feedback.status));
   }
   lastObjectiveSignature = feedback.signature;
   $('metric-points').parentElement!.hidden = !rules.objectiveEnabled;
-  $('metric-points').previousElementSibling!.textContent = game.config?.matchMode === 'relic' ? 'Relic deliveries' : 'Signal points';
-  $('footerRules').textContent = `${rules.title}: ${game.config?.matchMode === 'relic' ? 'deliver 3 relics home or defeat the enemy.' : rules.objectiveEnabled ? 'reach 30 signal points or defeat the enemy.' : 'defeat the enemy. At time limit: survivors, then health.'}`;
-  $('mapName').textContent = (game.terrain?.name || 'THE CROSSING').toUpperCase();
+  $('metric-points').previousElementSibling!.textContent = game.config?.matchMode === 'relic' ? 'Deliveries' : 'Points';
+  $('footerRules').textContent = `${rules.title}: ${game.config?.matchMode === 'relic' ? '3 deliveries' : rules.objectiveEnabled ? '30 points' : 'last side standing'}`;
+  $('mapName').textContent = game.terrain?.name || 'Crossroads';
   updateInspector();
   updateInspectionControls();
   updateReport();
@@ -1127,9 +1158,9 @@ function drawEffects() {
 
 function outcomeText(outcome: Pick<Effect, 'damage' | 'outcome' | 'isCounter'>) {
   const damage = Math.round((outcome.damage || 0) * 10) / 10;
-  if (outcome.outcome === 'blocked') return `Blocked · ${damage} damage through guard`;
-  if (outcome.outcome === 'hit') return `${outcome.isCounter ? 'Counter hit' : 'Hit'} · ${damage} damage`;
-  return { miss: 'Missed', 'out-of-range': 'Out of range', 'target-lost': 'Target lost', interrupted: 'Interrupted' }[outcome.outcome!] || 'Attack in progress';
+  if (outcome.outcome === 'blocked') return `Blocked, ${damage} DMG`;
+  if (outcome.outcome === 'hit') return `${outcome.isCounter ? 'Counter' : 'Hit'}, ${damage} DMG`;
+  return { miss: 'Missed', 'out-of-range': 'Out of range', 'target-lost': 'Target lost', interrupted: 'Interrupted' }[outcome.outcome!] || 'Attacking';
 }
 function feedbackStyle(outcome: CombatFeedback) {
   if (outcome.outcome === 'blocked') return { label: 'BLOCK', color: '#bdeaff', shape: 'shield' };
@@ -1244,7 +1275,7 @@ function drawRelicField(objective: ClassicGame['objective']) {
     line(ctx, zone.x - direction * 10, zone.y, zone.x + direction * 10, zone.y, ctx.strokeStyle, 2);
     line(ctx, zone.x + direction * 10, zone.y, zone.x + direction * 3, zone.y - 7, ctx.strokeStyle, 2);
     line(ctx, zone.x + direction * 10, zone.y, zone.x + direction * 3, zone.y + 7, ctx.strokeStyle, 2);
-    screenLabel(zone.x, zone.y + zone.radius + 14, zone.team === 0 ? 'YOUR HOME' : 'ENEMY HOME', '#e0dfee', view.width < 600 ? 7 : 8);
+    screenLabel(zone.x, zone.y + zone.radius + 14, zone.team === 0 ? 'BLUE HOME' : 'PINK HOME', '#e0dfee', view.width < 600 ? 7 : 8);
   }
   if (!objective.carrierId) {
     ctx.beginPath(); ctx.arc(objective.x, objective.y, objective.radius || 22, 0, Math.PI * 2);
@@ -1279,7 +1310,7 @@ function drawTacticalField() {
     const flag = objective.owner === 0 ? colors.player : objective.owner === 1 ? colors.enemy : '#ece2b8';
     ctx.beginPath(); ctx.moveTo(objective.x + 1, objective.y - 35); ctx.lineTo(objective.x + 26, objective.y - 32); ctx.lineTo(objective.x + 22, objective.y - 17); ctx.lineTo(objective.x + 1, objective.y - 20); ctx.closePath(); ctx.fillStyle = flag; ctx.fill();
     line(ctx, objective.x + 1, objective.y - 35, objective.x + 26, objective.y - 32, '#f0e9ba75', 1);
-    screenLabel(objective.x, objective.y + r + 15, objective.contested ? 'CONTESTED' : objective.owner === 0 ? 'YOUR SIGNAL' : objective.owner === 1 ? 'ENEMY SIGNAL' : 'CAPTURE SIGNAL', '#c5c7dd', view.width < 600 ? 6 : 7);
+    screenLabel(objective.x, objective.y + r + 15, objective.contested ? 'CONTESTED' : objective.owner === 0 ? 'BLUE SIGNAL' : objective.owner === 1 ? 'PINK SIGNAL' : 'SIGNAL', '#c5c7dd', view.width < 600 ? 6 : 7);
   }
   if (tacticalView) {
     for (const node of game.terrain?.coverNodes || COVER_NODES) {
@@ -1373,13 +1404,13 @@ function fillSelect(id: SelectId, entries: Iterable<readonly string[]>) {
   for (const [value, label] of entries) { const option = document.createElement('option'); option.value = value; option.textContent = label; select.append(option); }
 }
 function priorityName(id: string, mode: string = game.config?.matchMode) {
-  return id === 'objective' ? mode === 'elimination' ? 'Near center' : mode === 'relic' ? 'Near relic' : TARGET_PRIORITIES[id]?.name || 'Balanced' : TARGET_PRIORITIES[id]?.name || 'Balanced';
+  return id === 'objective' ? mode === 'elimination' ? 'Near Center' : mode === 'relic' ? 'Near Relic' : 'Near Post' : TARGET_PRIORITIES[id]?.name || 'Balanced';
 }
 function updateMatchRulesHint() {
   const config = { matchMode: $('setupMatchMode').value, roundDuration: Number($('setupRoundDuration').value) };
-  $('matchRulesHint').textContent = displayText(describeMatchRules(config).summary);
+  $('matchRulesHint').textContent = V6_RULES[config.matchMode] || '';
   const modifier = getModifier($('setupModifier').value);
-  $('modifierHint').textContent = modifier.description;
+  $('modifierHint').textContent = modifier.forceAttacks ? 'Sabers and Force' : 'No Force';
   for (const team of [0, 1]) for (const id of [`setupStartingForce${team}`, `setupStartingForceQuality${team}`] as const) $(id).disabled = !modifier.forceAttacks;
   for (const team of [0, 1]) {
     for (const option of $(`setupPriority${team}`).options) option.textContent = priorityName(option.value, config.matchMode);
@@ -1391,11 +1422,11 @@ function updateSetupTacticsHints() {
     const doctrine = DOCTRINES[$(team ? 'setupEnemyDoctrine' : 'setupDoctrine').value as keyof typeof DOCTRINES];
     const formation = FORMATIONS[$(`setupFormation${team}`).value];
     const deployment = DEPLOYMENTS[$(`setupDeployment${team}`).value];
-    $(`setupDeploymentHint${team}`).textContent = displayText(deployment?.description || '');
+    $(`setupDeploymentHint${team}`).textContent = V6_DEPLOYMENT[deployment?.id] || '';
     const priority = TARGET_PRIORITIES[$(`setupPriority${team}`).value];
     const mode = $('setupMatchMode').value;
-    const targeting = priority.id === 'objective' ? mode === 'elimination' ? 'Target enemies near the middle. The signal is off in Elimination.' : mode === 'relic' ? 'Favor enemies near the relic. AI teammates retrieve, escort and intercept carriers.' : priority.description : priority.description;
-    $(team ? 'enemyTacticsHint' : 'friendlyTacticsHint').textContent = `${displayText(doctrine.description)} ${displayText(formation.description)} ${displayText(targeting)}`;
+    $(team ? 'enemyTacticsHint' : 'friendlyTacticsHint').textContent = `${V6_DOCTRINE[doctrine.id] || ''}, ${V6_FORMATION[formation.id] || ''}`;
+    void priority; void mode;
   }
 }
 function initializeTacticalOptions() {
@@ -1438,32 +1469,32 @@ function updateMasteryReport() {
     const rows = awards.filter(award => award.team === team);
     if (!rows.length) continue;
     const group = document.createElement('details'); group.open = team === 0;
-    const summary = document.createElement('summary'); summary.textContent = `${team === 0 ? 'Your team' : 'Enemy team'} · ${rows.length} fighter records`;
+    const summary = document.createElement('summary'); meta(summary, sideName(team), `${rows.length} Fighters`);
     const list = document.createElement('ul');
     for (const award of rows) {
       const formId = game.soldiers.find(soldier => soldier.id === award.soldierId)?.form || game.forms[team][award.lane];
       const before = masterySummary(award.before, formId), after = masterySummary(award.after, formId);
       const item = document.createElement('li');
-      const label = document.createElement('strong'); label.textContent = `Fighter ${String(award.lane + 1).padStart(2, '0')} · ${after.formName}`;
-      const gain = document.createElement('span'); gain.textContent = `This round: ${after.kills - before.kills} kills · ${Math.round(after.damage - before.damage)} damage · ${after.blocks - before.blocks} blocks${game.config?.matchMode !== 'elimination' ? ` · ${(after.objectiveSeconds - before.objectiveSeconds).toFixed(1)}s on objectives` : ''}`;
-      const total = document.createElement('small'); total.textContent = `Form total: ${after.rounds} rounds · ${after.kills} kills · ${Math.round(after.damage)} damage · ${after.blocks} blocks`;
+      const label = document.createElement('strong'); meta(label, `${sideName(team)} ${String(award.lane + 1).padStart(2, '0')}`, after.formName);
+      const gain = document.createElement('span'); meta(gain, 'Round', `${after.kills - before.kills} K`, `${Math.round(after.damage - before.damage)} DMG`, `${after.blocks - before.blocks} Blocks`, game.config?.matchMode !== 'elimination' && `${(after.objectiveSeconds - before.objectiveSeconds).toFixed(1)}s Objective`);
+      const total = document.createElement('small'); meta(total, 'Total', `${after.rounds} Rounds`, `${after.kills} K`, `${Math.round(after.damage)} DMG`, `${after.blocks} Blocks`);
       item.append(label, gain, total); list.append(item);
     }
     group.append(summary, list); $('resultMastery').append(group);
   }
-  if (!awards.length) $('resultMastery').textContent = 'Form stats are recorded from v0.7 onward. Older rounds have no form stats.';
+  if (!awards.length) $('resultMastery').textContent = 'No form stats';
   $('resultCommendations').replaceChildren();
   for (const award of game.roundReport?.commendations || []) {
     const card = document.createElement('article');
     const heading = document.createElement('strong'); heading.textContent = displayText(award.label);
-    const winners = document.createElement('span'); winners.textContent = award.soldierIds.map(id => {
+    const winners = document.createElement('span'); meta(winners, ...award.soldierIds.map(id => {
       const soldier = game.soldiers.find(item => item.id === id);
-      return soldier ? `${soldier.team === 0 ? 'Your' : 'Enemy'} fighter ${String(soldier.lane + 1).padStart(2, '0')}` : id;
-    }).join(' · ') + (award.soldierIds.length > 1 ? ' · tied' : '');
-    const description = document.createElement('small'); description.textContent = `${displayText(award.description)} ${Number(award.value.toFixed(1))}${award.id === 'objective' ? ' seconds' : award.id === 'defender' ? ' blocks' : ' damage'}. No stat bonus.`;
+      return soldier ? fighterName(soldier) : id;
+    }), award.soldierIds.length > 1 && 'Tied');
+    const description = document.createElement('small'); description.textContent = `${Number(award.value.toFixed(1))}${award.id === 'objective' ? 's' : award.id === 'defender' ? ' Blocks' : ' DMG'}`;
     card.append(heading, winners, description); $('resultCommendations').append(card);
   }
-  if (!$('resultCommendations').children.length) $('resultCommendations').textContent = 'No awards this round.';
+  if (!$('resultCommendations').children.length) $('resultCommendations').textContent = 'No awards';
 }
 function lockedTarget() {
   if (game.config?.mode !== 'play') return null;
@@ -1472,13 +1503,13 @@ function lockedTarget() {
 }
 function lockTarget(target: ClassicSoldier) {
   input.aim(target.id);
-  const message = `Target: enemy fighter ${String(target.lane + 1).padStart(2, '0')}`;
+  const message = `Target ${fighterName(target)}`;
   showToast(message); announce(message); updateDirectUI(); draw();
 }
 function cycleTarget() {
   if (appPhase !== 'playing' || paused || game.status !== 'playing' || game.config?.mode !== 'play') return;
   const targets = visibleEnemyTargets(game, game.control?.soldierId);
-  if (!targets.length) { input.aim(null); showToast('No enemies in sight'); announce('No enemies in sight.'); return; }
+  if (!targets.length) { input.aim(null); showToast('No one in sight'); announce('No one in sight'); return; }
   const current = targets.findIndex(enemy => enemy.id === input.snapshot().targetId);
   lockTarget(targets[(current + 1) % targets.length]);
 }
@@ -1507,13 +1538,14 @@ function updateStartingHint(team: number) {
   const health = Number(((modifiers.healthMultiplier - 1) * 100).toFixed(1));
   const accuracy = Number((modifiers.accuracyBonus * 100).toFixed(1));
   const recovery = Number(((1 - modifiers.reloadMultiplier) * 100).toFixed(1));
-  const bonuses = rank.index === 0 ? 'Base stats.' : `+${health}% health, +${accuracy} accuracy points, ${recovery}% shorter saber recovery.`;
-  $(`startingHint${team}`).textContent = `${gradeDisplayLabel(rank.label)} starts at ${rank.threshold} training points. ${bonuses} ${displayText(force?.role || '')}`;
+  const bonuses = rank.index === 0 ? 'base stats' : `+${health}% HP, +${accuracy} Aim, -${recovery}% Recovery`;
+  $(`startingHint${team}`).textContent = `${gradeDisplayLabel(rank.label)}: ${bonuses}`;
+  void force;
 }
 function initializeStartingOptions() {
   const ranks = SOLDIER_GRADES.map(grade => [grade.label, gradeDisplayLabel(grade.label)]);
   const qualities = QUALITY_LEVELS.map(quality => [quality.id, quality.label || 'Standard']);
-  const powers = FORCE_FAMILIES.map(power => [power.id, power.name]);
+  const powers = FORCE_FAMILIES.map(power => [power.id, displayText(power.name)]);
   for (const team of [0, 1]) {
     fillSelect(`setupStartingRank${team}`, ranks);
     fillSelect(`setupStartingSaber${team}`, qualities); $(`setupStartingSaber${team}`).value = 'standard';
@@ -1529,11 +1561,11 @@ function setupForms() {
   if (!Number.isInteger(count) || count < 1 || count > 15) return;
   const previous = [...$('setupFormChoices').querySelectorAll('select')].map(select => select.value);
   const slot = $('setupPlayerSlot').value;
-  fillSelect('setupPlayerSlot', Array.from({ length: count }, (_, i) => [String(i), `Fighter ${String(i + 1).padStart(2, '0')}`]));
+  fillSelect('setupPlayerSlot', Array.from({ length: count }, (_, i) => [String(i), `Blue ${String(i + 1).padStart(2, '0')}`]));
   $('setupPlayerSlot').value = String(Math.min(Number(slot || 0), count - 1));
   $('setupFormChoices').replaceChildren();
   for (let i = 0; i < count; i++) {
-    const label = document.createElement('label'); label.textContent = `Fighter ${String(i + 1).padStart(2, '0')}`;
+    const label = document.createElement('label'); label.textContent = `Blue ${String(i + 1).padStart(2, '0')}`;
     const select = document.createElement('select'); select.dataset.setupSlot = String(i); select.id = `setup-form-${i}`;
     for (const form of Object.values(FORMS)) { const option = document.createElement('option'); option.value = form.id; option.textContent = form.name; select.append(option); }
     select.value = previous[i] || 'shii_cho'; label.append(select); $('setupFormChoices').append(label);
@@ -1561,10 +1593,10 @@ function applyMasterTrial() {
   setupForms();
   for (const select of $('setupFormChoices').querySelectorAll('select')) select.value = 'makashi';
   updateSetupMode(); updateMatchRulesHint();
-  $('environmentHint').textContent = displayText(ENVIRONMENTS.clear.description);
-  $('opponentHint').textContent = 'Every enemy uses Shii-Cho for the whole game.';
-  $('setupPresetStatus').textContent = 'Master trial ready: 1 SSS+ V Makashi vs 5 F Shii-Cho. Equal standard gear, current seed. Edit any setting, then press Start.';
-  announce('Master trial setup applied. Edit any setting, then press Start.');
+  $('environmentHint').textContent = environmentHint('clear');
+  $('opponentHint').textContent = 'Same form all game';
+  $('setupPresetStatus').textContent = 'Master Trial set';
+  announce('Master Trial set');
 }
 
 function startQuickFight(id: string) {
@@ -1605,10 +1637,10 @@ function updateSetupMode() {
 function refreshMenu() {
   const saved = hasSavedCampaign(campaignStorage);
   $('continueSessionBtn').disabled = !sessionStarted && !saved;
-  $('continueSessionBtn').textContent = sessionStarted ? `Continue · round ${game.round}` : 'Continue';
+  $('continueSessionBtn').textContent = sessionStarted ? `Continue R${game.round}` : 'Continue';
   $('loadCheckpointBtn').disabled = !saved;
   $('loadCheckpointBtn').hidden = !sessionStarted;
-  $('menuSaveStatus').textContent = sessionStarted ? `Game paused. ${saved ? 'A saved game is also available.' : 'Save from Stats to continue after closing this page.'}` : saved ? 'Your saved game will load paused.' : 'No saved game. Press Start to begin.';
+  $('menuSaveStatus').textContent = sessionStarted ? 'Game paused' : saved ? 'Save ready' : 'No saved game';
 }
 function openMainMenu() {
   if (appPhase === 'menu') return;
@@ -1621,7 +1653,7 @@ function continueSession() {
   if (!sessionStarted) { resumeSavedCampaign(); return; }
   $('startMenu').hidden = true; $('battleSurface').hidden = false; $('battleUtilities').hidden = false;
   appPhase = game.status === 'ended' ? 'results' : 'paused'; resultShown = false; lastTime = 0;
-  $('pauseReason').textContent = 'Select a fighter to see their stats.';
+  $('pauseReason').textContent = 'Tap a fighter';
   if (game.status === 'playing') setPaused(true);
   resize(); updateUI(); restoreAudioFromGesture(); ensureFrame();
 }
@@ -1645,7 +1677,7 @@ function startNewCampaign(event: SubmitEvent) {
     forms: [[...$('setupFormChoices').querySelectorAll('select')].map(select => select.value)],
   };
   const nextSeed = Number($('setupSeed').value);
-  if (!Number.isInteger(nextSeed) || nextSeed < 1 || nextSeed > 0xffffffff) { $('setupError').textContent = 'Choose a whole-number seed from 1 to 4294967295.'; return; }
+  if (!Number.isInteger(nextSeed) || nextSeed < 1 || nextSeed > 0xffffffff) { $('setupError').textContent = 'Seed must be 1 to 4294967295'; return; }
   let next;
   try { next = createGame(nextSeed, options); } catch (error) { $('setupError').textContent = (error as Error).message; return; }
   clearInput(); game = next; seed = nextSeed; sessionStarted = true; appPhase = 'playing'; paused = false;
@@ -1658,11 +1690,11 @@ function startNewCampaign(event: SubmitEvent) {
   $('startMenu').hidden = true; $('battleSurface').hidden = false; $('battleUtilities').hidden = false;
   for (const id of ['resultOverlay', 'roundReviewBar', 'pausedOverlay', 'mutationBanner']) $(id).hidden = true;
   $('orderToast').classList.remove('is-visible'); $('setupError').textContent = '';
-  $('pauseReason').textContent = 'Select a fighter to see their stats.';
-  $('saveStatus').textContent = 'New game started. Your old save is kept until you save or start the next round.';
+  $('pauseReason').textContent = 'Tap a fighter';
+  $('saveStatus').textContent = 'New game, old save kept';
   syncWorld(); buildPips(); buildRoster(); buildFormChoices(); drawTerrain(); resize(); setPaused(false); applyPresentation();
 
-  announce(options.mode === 'play' ? `Battle started. You control fighter ${options.playerSlot + 1}.` : options.mode === 'command' ? 'Command mode. Give orders to your AI team.' : 'Watching. Both teams play automatically.');
+  announce(options.mode === 'play' ? `Fight. You are Blue ${options.playerSlot + 1}` : options.mode === 'command' ? 'Command' : 'Watch');
   canvas.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); ensureFrame();
 }
 function updateTeamOrders() {
@@ -1674,11 +1706,9 @@ function updateTeamOrders() {
   for (const id of ['grenadeBtn', 'smokeBtn'] as const) $(id).disabled ||= !enabled;
   const intent = enabled ? commandIntent(game, 0) : null;
   currentOrderMarker = intent && intent.eligible > 0 && game.status === 'playing' && Number.isFinite(intent.anchor?.x) && Number.isFinite(intent.anchor?.y)
-    ? { x: intent.anchor!.x, y: intent.anchor!.y, label: intent.order === 'regroup' ? 'Regroup assembly' : `${intent.label} reference point` } : null;
-  $('teamOrderStatus').textContent = intent ? `Your team · ${intent.auto ? 'Auto' : 'Your orders'} · ${intent.label} · ${intent.eligible === 0 ? 'No AI teammates available for movement orders.' : intent.reason}${paused ? ' · Paused' : ''}` : '';
-  $('teamOrderHelp').textContent = game.config?.mode === 'play'
-    ? 'Orders guide your AI teammates; you keep control of your fighter. Dashed markers show a reference point, or the assembly point for Regroup. Flank uses the public objective as its reference. Auto returns team decisions to AI.'
-    : 'Choose an order for your AI team. Dashed markers show a reference point, or the assembly point for Regroup. Flank uses the public objective as its reference. Auto returns team decisions to AI.';
+    ? { x: intent.anchor!.x, y: intent.anchor!.y, label: intent.label } : null;
+  if (intent) meta($('teamOrderStatus'), 'Blue', intent.auto ? 'Auto' : 'Manual', intent.label, intent.eligible === 0 ? 'No AI teammates' : null, paused && 'Paused'); else $('teamOrderStatus').textContent = '';
+  $('teamOrderHelp').textContent = 'Dashed marker shows the order point';
   for (const button of commands) {
     const active = enabled && intent?.order === button.dataset.order;
     button.title = SQUAD_ORDERS[button.dataset.order!]?.description || '';
@@ -1696,7 +1726,7 @@ function drawOrderMarker() {
   ctx.save(); ctx.strokeStyle = colors.player; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
   ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.stroke();
   ctx.setLineDash([]); ctx.restore();
-  screenLabel(x, y - 25, `TEAM ${String(label).toUpperCase()}`, '#244c40', 8);
+  screenLabel(x, y - 25, `BLUE ${String(label).toUpperCase()}`, '#244c40', 8);
 }
 function updateDirectUI() {
   updateTeamOrders();
@@ -1704,48 +1734,48 @@ function updateDirectUI() {
   const inspected = game.soldiers.find(s => s.id === selectedUnitId && s.alive);
   const position = game.status === 'playing' && inspected ? squadIntent(game, inspected) : null;
   $('squadPosition').hidden = !position;
-  $('squadPosition').textContent = position ? `Fighter ${inspected!.lane + 1} · ${position.role} · ${position.reason}` : '';
+  if (position) meta($('squadPosition'), fighterName(inspected!), position.role, position.reason); else $('squadPosition').textContent = '';
   $('battleSurface').classList.toggle('direct-play', manual && game.status === 'playing');
   const fighter = game.soldiers.find(s => s.id === game.control?.soldierId);
   $('directControls').hidden = !manual;
   $('spectateBtn').hidden = !paused || (!manual && game.autoCommand);
-  $('spectateBtn').textContent = manual ? 'Watch instead' : 'Let both teams play';
+  $('spectateBtn').textContent = manual ? 'Watch' : 'Auto Both';
   $('resumeBtn').disabled = manual && !fighter?.alive;
-  $('controlledStatus').textContent = fighter ? `Fighter ${fighter.lane + 1} · ${FORMS[fighter.form].name}${usesDualSabers(game.config, fighter) ? ' · Jar’Kai' : ''} · ${Math.max(0, Math.ceil(fighter.hp))} HP · ${Math.floor(fighter.energy)} energy${fighter.alive ? '' : ' · Dead'}` : 'Pause and choose a living teammate';
+  if (fighter) meta($('controlledStatus'), fighterName(fighter), FORMS[fighter.form].name, usesDualSabers(game.config, fighter) && 'Dual', `${Math.max(0, Math.ceil(fighter.hp))} HP`, `${Math.floor(fighter.energy)} STA`, !fighter.alive && 'Dead'); else $('controlledStatus').textContent = 'Pick a living teammate';
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-player-action], [data-move-x]')) button.disabled = !manual || paused || game.status !== 'playing' || !fighter?.alive;
   const forceButton = document.querySelector<HTMLButtonElement>('[data-player-action=force]')!;
   const dashButton = document.querySelector<HTMLButtonElement>('[data-player-action=dash]')!;
-  forceButton.title = fighter ? `Force repertoire: ${forceRepertoireLabel(fighter)} · K` : 'Force · K';
+  forceButton.title = fighter ? `${forceRepertoireLabel(fighter)} (K)` : 'Force (K)';
   const forceAllowed = permitsForceAttacks(game.config);
   const carrying = game.config?.matchMode === 'relic' && game.objective?.carrierId === fighter?.id;
   forceButton.disabled ||= !forceAllowed;
   dashButton.disabled ||= carrying;
-  if (fighter?.form === 'ataru' && !carrying) dashButton.setAttribute('aria-label', 'Acrobatic vault, Shift');
+  if (fighter?.form === 'ataru' && !carrying) dashButton.setAttribute('aria-label', 'Vault, Shift');
   else dashButton.setAttribute('aria-label', 'Dash, Shift');
   forceButton.querySelector('small')!.textContent = forceAllowed ? 'K' : 'Off';
   dashButton.querySelector('small')!.textContent = carrying ? 'Carrying' : 'Shift';
-  dashButton.title = carrying ? 'Cannot dash while carrying the relic' : 'Dash · Shift';
+  dashButton.title = carrying ? 'No dash with the relic' : 'Dash (Shift)';
   const target = lockedTarget();
-  $('targetStatus').textContent = target ? `Locked · enemy fighter ${String(target.lane + 1).padStart(2, '0')} · ${Math.ceil(target.hp)} HP` : 'Auto aim · nearest enemy in sight';
+  if (target) meta($('targetStatus'), 'Locked', fighterName(target), `${Math.ceil(target.hp)} HP`); else meta($('targetStatus'), 'Auto Aim');
   $('targetStatus').classList.toggle('is-locked', Boolean(target));
   const outcome = fighter?.lastOutcome;
-  const statusText = outcome ? `Last action: ${outcomeText(outcome)} · ${outcome.kind === 'force' ? 'Force' : 'saber'}` : 'No attacks yet';
+  const statusText = outcome ? `${outcome.kind === 'force' ? 'Force' : 'Saber'} ${outcomeText(outcome).replace(/^./, c => c.toLowerCase())}` : 'No attacks yet';
   if ($('combatStatus').textContent !== statusText) $('combatStatus').textContent = statusText;
   $('cycleTargetBtn').disabled ||= visibleEnemyTargets(game, game.control?.soldierId).length === 0;
-  $('canvasHelp').textContent = manual ? 'Click to lock · Tab switches targets · Shift+Tab leaves map' : 'Select a fighter · arrows change selection';
+  $('canvasHelp').textContent = manual ? 'Tap to Lock' : 'Tap a Fighter';
   const environment = getEnvironment(game);
-  $('environmentStatus').textContent = `${environment.name}${environment.phase === 'gust' ? ' · GUST' : environment.warning ? ' · Gust approaching' : ''} · Sight ${environment.sightRange}`;
-  $('environmentStatus').title = displayText(environment.description);
+  meta($('environmentStatus'), environment.name, environment.phase === 'gust' ? 'Gust' : environment.warning ? 'Gust Soon' : null, `Sight ${environment.sightRange}`);
+  $('environmentStatus').title = environmentHint(environment.id);
   if (fighter) {
     const skill = combatSkillProfile(fighter.career);
     const nextMove = selectFormMove(fighter.form, fighter.comboUntil > game.tick ? (fighter.comboIndex || 0) % skill.comboLength : 0);
-    document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = fighter.attackCooldown > 0 ? `Saber ready in ${fighter.attackCooldown.toFixed(1)}s` : `${nextMove.name} · ${(nextMove.energyCost * skill.energyEfficiency * saberWieldProfile(game.config, fighter).energyMultiplier).toFixed(1)} energy`;
-    forceButton.title = !forceAllowed ? 'Force attacks are off for both teams' : `${fighter.forceCooldown > 0 ? `Ready in ${fighter.forceCooldown.toFixed(1)}s. ` : ''}Repertoire: ${forceRepertoireLabel(fighter)}. Selects an available power for the target.`;
-    if (fighter.form === 'ataru' && !carrying) dashButton.title = 'Acrobatic vault · Shift · energy cost and landing recovery';
+    document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = fighter.attackCooldown > 0 ? `Saber ${fighter.attackCooldown.toFixed(1)}s CD` : `${nextMove.name}, ${(nextMove.energyCost * skill.energyEfficiency * saberWieldProfile(game.config, fighter).energyMultiplier).toFixed(1)} STA`;
+    forceButton.title = !forceAllowed ? 'Force Off' : `${fighter.forceCooldown > 0 ? `${fighter.forceCooldown.toFixed(1)}s CD, ` : ''}${forceRepertoireLabel(fighter)}`;
+    if (fighter.form === 'ataru' && !carrying) dashButton.title = 'Vault (Shift)';
     updateCombatReadiness(fighter, forceAllowed, carrying);
   }
-  if (appPhase === 'playing') $('commandStatus').textContent = manual ? `Controlling fighter ${(fighter?.lane ?? 0) + 1} · AI teammates` : game.config?.mode === 'command' ? 'Commanding your team · AI fighters' : 'Watching · both teams play automatically';
-  $('speedBtn').textContent = speed + '×'; $('speedBtn').setAttribute('aria-label', `Game speed: ${speed} times`);
+  if (appPhase === 'playing') $('commandStatus').textContent = manual ? `Playing Blue ${(fighter?.lane ?? 0) + 1}` : game.config?.mode === 'command' ? 'Commanding Blue' : 'Watching';
+  $('speedBtn').textContent = speed + '×'; $('speedBtn').setAttribute('aria-label', `Speed ${speed}×`);
 }
 function updateCombatReadiness(fighter: ClassicSoldier, forceAllowed: boolean, carrying: boolean) {
   const skill = combatSkillProfile(fighter.career), form = FORMS[fighter.form], wield = saberWieldProfile(game.config, fighter);
@@ -1758,7 +1788,7 @@ function updateCombatReadiness(fighter: ClassicSoldier, forceAllowed: boolean, c
   const ability = forceAbilityById(intent.abilityId), force = forceAbilityWeapon(WEAPONS[fighter.weapon], ability?.id);
   const distance = target ? Math.hypot(target.x - fighter.x, target.y - fighter.y) : Infinity;
   const saberCost = move.energyCost * skill.energyEfficiency * wield.energyMultiplier;
-  document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = moveKnown ? `${move.name} · ${saberCost.toFixed(1)} energy` : 'Next technique is selected after recovery';
+  document.querySelector<HTMLElement>('[data-player-action=attack]')!.title = moveKnown ? `${move.name}, ${saberCost.toFixed(1)} STA` : 'Recovering';
   const forceCost = force.energyCost * form.forceCostMultiplier * skill.energyEfficiency;
   const blocked = (kind: string) => !!target && game.config.mapSize !== 'legacy' && !lineOfSight(game.terrain, fighter, target, kind);
   const readiness = (readyTick: number, cost: number, kind?: string, range?: number) => {
@@ -1768,9 +1798,9 @@ function updateCombatReadiness(fighter: ClassicSoldier, forceAllowed: boolean, c
     if (fighter.attack) return 'Committed';
     if (fighter.energy < cost) return 'Energy';
     if (readyTick > game.tick) return `${((readyTick - game.tick) / 60).toFixed(1)}s`;
-    if (kind && !target) return 'No target';
+    if (kind && !target) return 'No Target';
     if (kind && blocked(kind)) return 'Blocked';
-    if (kind && distance > range!) return 'Close in';
+    if (kind && distance > range!) return 'Too Far';
     return 'Ready';
   };
   const states = {
@@ -1783,17 +1813,17 @@ function updateCombatReadiness(fighter: ClassicSoldier, forceAllowed: boolean, c
   for (const [action, key] of [['attack', 'J'], ['force', 'K'], ['guard', 'Space'], ['dash', 'Shift']] as const) {
     const button = document.querySelector<HTMLButtonElement>(`[data-player-action=${action}]`)!;
     const pending = action !== 'guard' && queued[action] === true && !paused && fighter.alive;
-    button.querySelector('small')!.textContent = `${key} · ${pending ? 'Queued · ' : ''}${states[action]}`;
+    meta(button.querySelector('small')!, key, pending && 'Queued', states[action]);
     button.dataset.queued = String(pending);
     button.dataset.ready = String(states[action] === 'Ready');
   }
   const counter = fighter.counterUntil > game.tick;
-  $('comboStatus').textContent = fighter.attack?.offhand ? 'Jar’Kai · offhand contact follows' :
-    `${counter ? 'Counter opening · ' : ''}${moveKnown ? moveIndex! + 1 : combo + 1}/${skill.comboLength} · ${move.name}${wield.bladeCount === 2 ? ' · dual sabers' : ''}`;
-  if (!moveKnown) $('comboStatus').textContent = 'Recovering · next technique not selected';
+  if (fighter.attack?.offhand) meta($('comboStatus'), 'Dual', 'Offhand');
+  else if (!moveKnown) meta($('comboStatus'), 'Recovering');
+  else meta($('comboStatus'), counter && 'Counter', `${moveIndex! + 1}/${skill.comboLength}`, move.name, wield.bladeCount === 2 && 'Dual');
   $('comboStatus').classList.toggle('is-counter', counter && moveKnown);
-  $('combatReadiness').textContent = `${ability?.name || force.name} · ${Math.ceil(forceCost)} energy${forceAllowed ? '' : ' · disabled'} · Strike ${Math.ceil(saberCost)} energy`;
-  if (!moveKnown) $('combatReadiness').textContent = 'Technique and cost update after recovery';
+  if (!moveKnown) meta($('combatReadiness'), 'Recovering');
+  else meta($('combatReadiness'), forceAllowed ? `${displayText(ability?.name || force.name)} ${Math.ceil(forceCost)} STA` : 'Force Off', `Strike ${Math.ceil(saberCost)} STA`);
 }
 
 function applyPresentation() {
@@ -1801,7 +1831,7 @@ function applyPresentation() {
   document.documentElement.style.setProperty('--teal', colors.player); document.documentElement.style.setProperty('--coral', colors.enemy);
   document.documentElement.dataset.reducedMotion = String(motionReduced());
   $('intelBtn').setAttribute('aria-pressed', String(tacticalView));
-  $('soundBtn').setAttribute('aria-pressed', String(audio.enabled)); $('soundLabel').textContent = audio.enabled ? 'Sound on' : 'Sound off';
+  $('soundBtn').setAttribute('aria-pressed', String(audio.enabled)); $('soundLabel').textContent = audio.enabled ? 'Sound On' : 'Sound Off';
   if (sessionStarted) { drawTerrain(); updateUI(); draw(); }
 }
 async function requestAudioEnabled(wanted: boolean) {
@@ -1812,8 +1842,8 @@ async function requestAudioEnabled(wanted: boolean) {
   if (request !== soundRequest) return null;
   audio.setEnabled(Boolean(wanted && available)); preferences.sound = audio.enabled;
   savePreferences(preferences); $('optionSound').checked = audio.enabled;
-  $('soundBtn').setAttribute('aria-pressed', String(audio.enabled)); $('soundLabel').textContent = audio.enabled ? 'Sound on' : 'Sound off';
-  if (wanted && !available) { $('preferencesStatus').textContent = 'Sound is unavailable in this browser.'; if (appPhase !== 'menu') showToast('Sound is unavailable in this browser'); }
+  $('soundBtn').setAttribute('aria-pressed', String(audio.enabled)); $('soundLabel').textContent = audio.enabled ? 'Sound On' : 'Sound Off';
+  if (wanted && !available) { $('preferencesStatus').textContent = 'No sound in this browser'; if (appPhase !== 'menu') showToast('No sound in this browser'); }
   return available;
 }
 function restoreAudioFromGesture() { if (preferences.sound) void requestAudioEnabled(true); }
@@ -1827,23 +1857,23 @@ function openOptions() {
 }
 function initializeMenu() {
   fillSelect('setupTerrain', MAPS.map(map => [map.id, map.name]));
-  fillSelect('setupMapSize', Object.values(MAP_SIZES).map(size => [size.id, `${size.name} · ${size.width} × ${size.height}`])); $('setupMapSize').value = 'medium';
+  fillSelect('setupMapSize', Object.values(MAP_SIZES).map(size => [size.id, size.name])); $('setupMapSize').value = 'medium';
   fillSelect('setupEnvironment', Object.values(ENVIRONMENTS).map(environment => [environment.id, environment.name]));
   initializeTacticalOptions();
   initializeStartingOptions();
   fillSelect('setupMatchMode', Object.values(MATCH_MODES).map(mode => [mode.id, mode.name]));
-  fillSelect('setupModifier', Object.values(MODIFIERS).map(modifier => [modifier.id, modifier.name]));
-  fillSelect('setupRoundDuration', ROUND_DURATIONS.map(seconds => [String(seconds), `${seconds} seconds`]));
+  fillSelect('setupModifier', Object.values(MODIFIERS).map(modifier => [modifier.id, modifier.forceAttacks ? 'Standard' : 'Saber Only']));
+  fillSelect('setupRoundDuration', ROUND_DURATIONS.map(seconds => [String(seconds), `${seconds}s`]));
   $('setupRoundDuration').value = '90';
   updateMatchRulesHint();
   for (const id of ['setupMatchMode', 'setupRoundDuration', 'setupModifier']) $(id).addEventListener('change', updateMatchRulesHint);
   const formOptions = Object.values(FORMS).map(form => [form.id, form.name]);
-  fillSelect('setupOpponentForm', [['mixed', 'Mixed · changes each round'], ...formOptions]); fillSelect('setupAllForms', formOptions);
+  fillSelect('setupOpponentForm', [['mixed', 'Mixed'], ...formOptions]); fillSelect('setupAllForms', formOptions);
   fillSelect('optionColors', Object.entries(COLOR_SCHEMES).map(([id, scheme]) => [id, scheme.name]));
   $('setupSeed').value = String(seed); $('setupSpeed').value = String(preferences.speed); setupForms(); updateSetupMode();
-  $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value as keyof typeof ENVIRONMENTS].description);
-  $('setupEnvironment').addEventListener('change', () => { $('environmentHint').textContent = displayText(ENVIRONMENTS[$('setupEnvironment').value as keyof typeof ENVIRONMENTS].description); });
-  $('setupOpponentForm').addEventListener('change', () => { $('opponentHint').textContent = $('setupOpponentForm').value === 'mixed' ? 'Mixed forms change each round, using the game’s seed.' : 'Every enemy uses this form for the whole game.'; });
+  $('environmentHint').textContent = environmentHint($('setupEnvironment').value);
+  $('setupEnvironment').addEventListener('change', () => { $('environmentHint').textContent = environmentHint($('setupEnvironment').value); });
+  $('setupOpponentForm').addEventListener('change', () => { $('opponentHint').textContent = $('setupOpponentForm').value === 'mixed' ? 'New form each round' : 'Same form all game'; });
   $('setupTeam0').addEventListener('input', setupForms);
   $('setupForm').querySelectorAll<HTMLInputElement>('[name=playMode]').forEach(radio => radio.addEventListener('change', updateSetupMode));
   $('applyAllFormsBtn').addEventListener('click', () => { for (const select of $('setupFormChoices').querySelectorAll('select')) select.value = $('setupAllForms').value; });
@@ -1860,7 +1890,7 @@ function initializeMenu() {
     const wantsSound = $('optionSound').checked;
     const audioResult = id === 'optionSound' ? await requestAudioEnabled(wantsSound) : null;
     const saved = savePreferences(preferences);
-    if (!(id === 'optionSound' && wantsSound && audioResult === false)) $('preferencesStatus').textContent = saved ? 'Settings saved.' : 'Settings apply for now. This browser can’t save them.';
+    if (!(id === 'optionSound' && wantsSound && audioResult === false)) $('preferencesStatus').textContent = saved ? 'Settings saved' : 'Settings not saved';
     applyPresentation();
   });
   for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('close', clearInput);
@@ -1871,12 +1901,12 @@ function initializeMenu() {
   $('inspectCarrierBtn').addEventListener('click', () => { if (game.objective?.carrierId) selectUnit(game.objective.carrierId); });
   $('takeControlBtn').addEventListener('click', () => {
     if (!paused || !setControlledFighter(game, selectedUnitId)) return;
-    clearInput(); manualDeathHandled = false; $('pauseReason').textContent = 'Resume to play as this fighter.';
-    updateUI(); draw(); announce('Fighter selected. Resume to play.');
+    clearInput(); manualDeathHandled = false; $('pauseReason').textContent = 'Resume to play';
+    updateUI(); draw(); announce('Fighter picked. Resume to play');
   });
   $('spectateBtn').addEventListener('click', () => {
     if (!paused || !setControlledFighter(game, null)) return;
-    clearInput(); manualDeathHandled = false; $('pauseReason').textContent = 'Watch mode selected. Resume to continue.'; updateUI(); draw();
+    clearInput(); manualDeathHandled = false; $('pauseReason').textContent = 'Watching. Resume to continue'; updateUI(); draw();
   });
   reducedMotion.addEventListener('change', applyPresentation);
   applyPresentation(); refreshMenu();
@@ -1932,7 +1962,7 @@ function updateFightCallout(now: number) {
   }
   if (next && (box.hidden || now >= calloutUntil - 350 || priority === 3)) {
     const type = priority === 3 ? 'knockout' : priority === 2 ? 'counter' : 'clash';
-    box.textContent = priority === 3 ? (next.team === 0 ? 'ALLY DOWN' : 'ENEMY DOWN') : type.toUpperCase();
+    box.textContent = priority === 3 ? (next.team === 0 ? 'BLUE DOWN' : 'PINK DOWN') : type.toUpperCase();
     box.dataset.kind = type; box.hidden = false; calloutUntil = now + 1120;
   }
   if (now >= calloutUntil) box.hidden = true;
@@ -1975,7 +2005,7 @@ function frame(now: number) {
     }
     if (game.config?.mode === 'play' && game.status === 'playing' && !manualDeathHandled && !game.soldiers.some(s => s.id === game.control?.soldierId && s.alive)) {
       manualDeathHandled = true; setPaused(true);
-      $('pauseReason').textContent = 'Your fighter died. Select a living teammate or watch the rest of the round.';
+      $('pauseReason').textContent = 'You fell. Pick a teammate';
       announce($('pauseReason').textContent);
     }
   }
