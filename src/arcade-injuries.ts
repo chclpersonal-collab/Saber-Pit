@@ -2,7 +2,7 @@ type Region=keyof typeof zoneProfiles;
 export type ArcadeLimb = 'leftArm'|'rightArm'|'leftLeg'|'rightLeg';
 export const ARCADE_LIMB_DISABLE_PCT = 74;
 type Ledger=Partial<Record<Region,{front?:number;rear?:number}>>|null|undefined;
-type Strike={amount?:number;quality?:number;rank?:number;attackerRank?:number;defenderRank?:number;direction?:string;blocked?:boolean;region?:string;roll?:number};
+type Strike={amount?:number;quality?:number;rank?:number;attackerRank?:number;defenderRank?:number;direction?:string;blocked?:boolean;region?:string;roll?:number;freshTorso?:boolean};
 type Equip={weaponHand?:string;dual?:boolean};
 /** Fictional Saber Pit balance. Zone values and percentages have no real-world meaning. */
 const clamp=(n:number,lo=0,hi=1)=>Math.max(lo,Math.min(hi,n));
@@ -64,12 +64,14 @@ export function arcadeInjuryLabel(injuries:Ledger,region?:string,direction?:stri
   return labels[conditionTier(direction?localSurface(injuries,region,direction):localRegion(injuries,region))];
 }
 
-function strike({amount,quality,rank,attackerRank=rank,defenderRank,direction,blocked}:Strike={}){
+function strike({amount,quality,rank,attackerRank=rank,defenderRank,direction,blocked,freshTorso}:Strike={}){
   const a=clamp(finite(amount),0,140);
   return {amount:a,quality:clamp(finite(quality,.50+a/120)),
     attackerRank:boundedRank(attackerRank),defenderRank:boundedRank(defenderRank),
-    direction:surface(direction),blocked:blocked===true};
+    direction:surface(direction),blocked:blocked===true,freshTorso:freshTorso===true};
 }
+/** Fictional ceiling on the fatal chance of the first hit to an untouched torso between equal ranks (0: it cannot end the round). */
+export const ARCADE_FRESH_TORSO_CAP=0;
 function fatalChance(injuries:Ledger,region:string|undefined,hit:ReturnType<typeof strike>){
   if(!hasRegion(region)||hit.blocked||hit.amount<=4)return 0;
   const profile=zoneProfiles[region];
@@ -82,7 +84,10 @@ function fatalChance(injuries:Ledger,region:string|undefined,hit:ReturnType<type
   const injuryRisk=injury*profile.local*clamp((hit.amount-4)/21);
   const rankFactor=1+(hit.attackerRank-hit.defenderRank)*.009;
   const directionFactor=hit.direction==='rear'?1.10:1;
-  return clamp((direct+heavy+injuryRisk)*clean*rankFactor*directionFactor,0,profile.max);
+  // Regional-injury play only (freshTorso): a fresh torso at equal rank cannot be ended by the first hit;
+  // later hits keep the full risk. Classic modes and old replays keep the old roll.
+  const cap=hit.freshTorso&&region==='torso'&&current<=0&&hit.attackerRank===hit.defenderRank?ARCADE_FRESH_TORSO_CAP:profile.max;
+  return clamp((direct+heavy+injuryRisk)*clean*rankFactor*directionFactor,0,cap);
 }
 
 /** Exact probability used by applyArcadeInjury, without consuming a roll. */
@@ -162,12 +167,12 @@ export function arcadeInjuryEffects(injuries:Ledger,options:Equip={}){
 export const arcadeInjuryModifiers=arcadeInjuryEffects;
 
 /** Safe UI labels; condition is local injury severity, not remaining health. */
-export function arcadeInjuryReport(injuries:Ledger,{direction='front',attackerRank=0,defenderRank=attackerRank}:Strike={}){
+export function arcadeInjuryReport(injuries:Ledger,{direction='front',attackerRank=0,defenderRank=attackerRank,freshTorso}:Strike={}){
   direction=surface(direction);
   return ARCADE_BODY_REGIONS.map(({id,label})=>{
     const condition=localSurface(injuries,id,direction);
     const tier=conditionTier(condition);
-    const chance=arcadeFatalChance(injuries,{region:id,direction,attackerRank,defenderRank,
+    const chance=arcadeFatalChance(injuries,{region:id,direction,attackerRank,defenderRank,freshTorso,
       amount:ARCADE_INJURY_REFERENCE.amount,quality:ARCADE_INJURY_REFERENCE.quality});
     return {id,label,direction,condition,tier,severityLabel:labels[tier],fatalChance:chance,fatalPct:round(100*chance,1)};
   });

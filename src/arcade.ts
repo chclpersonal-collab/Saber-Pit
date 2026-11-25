@@ -1141,7 +1141,7 @@ function reportCell<K extends keyof HTMLElementTagNameMap>(tag:K,value:unknown,c
 const defenseNames:Record<string,string>={perfect_parry:'Perfect parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Hero crossfire exit',advanced_parry:'Parry follow-up',advanced_whiff:'Changed attack line',advanced_travel:'Footwork follow-up',jump:'Jump',wheel:'Wheel hop',crossflip:'Crossflip',compact:'Compact hop',line:'Line jump',bound:'Bounding jump',drift:'Drift step',pounce:'Pounce',corkscrew:'Corkscrew jump',feint:'Feint',read:'Directional read',guard_read:'Directional read',directional_parry:'Directional parry',force_ward_block:'Force ward block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash evade',vault_step:'Vault evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing defense',pressure_recover:'Stagger recovery'};
 function showInjuryReport(f:ArcadeFighter|undefined){
   const rank=f?.career?.gradeIndex??0;
-  const opts={attackerRank:rank,defenderRank:rank};
+  const opts={attackerRank:rank,defenderRank:rank,freshTorso:f?.regionalInjuries===true};
   const front=arcadeInjuryReport(f?.injuries,{...opts,direction:'front'}), rear=arcadeInjuryReport(f?.injuries,{...opts,direction:'rear'});
   const local=arcadeRegionalCondition(f?.injuries);
   $('bodyRows').replaceChildren(...front.map((a,i)=>{
