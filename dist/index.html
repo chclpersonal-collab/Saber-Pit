@@ -248,35 +248,4 @@ body[data-loomen-boot] #app{position:fixed!important;inset:0;pointer-events:none
   </dialog>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
-<script>
-(() => {
-  const body = document.body;
-  const boot = document.getElementById('loomenBoot');
-  const status = document.getElementById('loomenBootStatus');
-  const retry = document.getElementById('loomenBootRetry');
-  const showProblem = (message) => {
-    if (!body.hasAttribute('data-loomen-boot')) return;
-    status.textContent = message;
-    retry.hidden = false;
-  };
-  const timeout = setTimeout(() => showProblem('Taking longer than expected. You can reload.'), 8000);
-  import('./arcade-sync-entry.js?v=6.0.1-boot').then(() => {
-    requestAnimationFrame(() => {
-      if (!document.getElementById('v6Home') || !body.dataset.v6 || body.dataset.view !== 'menu') {
-        clearTimeout(timeout);
-        showProblem('LOOMEN couldn’t finish loading.');
-        return;
-      }
-      clearTimeout(timeout);
-      boot.hidden = true;
-      const app = document.getElementById('app');
-      app.removeAttribute('inert');
-      app.removeAttribute('aria-hidden');
-      body.removeAttribute('data-loomen-boot');
-    });
-  }).catch(() => {
-    clearTimeout(timeout);
-    showProblem('LOOMEN couldn’t finish loading.');
-  });
-})();
-</script></body></html>
+<script type="module" src="./loomen-boot.js?v=6.0.1-boot"></script></body></html>

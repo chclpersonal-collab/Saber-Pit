@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 
 const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
 const read=(f)=>readFileSync(new URL('../dist/'+f,import.meta.url),'utf8');
-const startup=html.match(/<script>\s*\(\(\) => \{[\s\S]*?<\/script>/)?.[0]?.replace(/^<script>|<\/script>$/g,'');
+const startup=read('loomen-boot.js').replace(/^export\s*\{\s*\};?\s*$/m,'');
 function harness({ready=true,good=true,view='menu'}={}){
  assert.ok(startup,'Startup controller is in the Arena document');
  const result={gate:true,inert:true,boot:{hidden:false},retry:{hidden:true},status:{textContent:'Loading arena…'},frame:null,timeout:null};
@@ -25,6 +25,7 @@ test('the first HTML frame is purple and the legacy Arena is hidden and inert, w
  assert.match(html,/<body[^>]+data-loomen-boot[^>]*>[\s\S]*?<section id="loomenBoot"[\s\S]*?<main id="app" inert aria-hidden="true">/);
  assert.match(html,/<style>[\s\S]*?body\[data-loomen-boot\] #app[\s\S]*?visibility:hidden!important[\s\S]*?<\/style>[\s\S]*?<link rel="stylesheet"/);
  assert.match(html,/Enable JavaScript to open the arena/);
+ assert.match(html,/<script type="module" src="\.\/loomen-boot\.js[^"]*"><\/script><\/body>/,'startup gate runs from src, not an inline script');
 });
 test('timeout does not reveal the legacy app and a successful v6 still replaces the loader',async()=>{
  const h=harness();
