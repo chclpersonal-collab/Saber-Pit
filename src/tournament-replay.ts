@@ -19,7 +19,9 @@ type ReplayRules={
   drawArcadeFighter:(ctx:CanvasRenderingContext2D,pose:ReplayFighter,time:number,options:{rig:unknown;reducedMotion:boolean;outline:boolean})=>unknown;
 };
 type PlaybackOptions={onFrame?:(second:number,game:ReplayGame)=>void;onEnd?:(winner:0|1|null)=>void;
-  onSkipError?:()=>void;showMemberNames?:boolean;drawOnTimeout?:boolean;followAction?:boolean;speed?:number};
+  onSkipError?:()=>void;showMemberNames?:boolean;drawOnTimeout?:boolean;followAction?:boolean;speed?:number;
+  /** A fighter the viewer controls: drawn with a blue floor ring. */ markedId?:string;
+  /** Floating move and style callouts (on by default). */ captions?:boolean};
 type SavedReplay={ruleset:number;terrain?:string;plans?:object[];[key:string]:unknown};
 /** Read-only playback. It cannot settle a bracket, add K/D, or modify a save. */
 export async function startTournamentPlayback(canvas:HTMLCanvasElement,replay:SavedReplay,options:PlaybackOptions={}){
@@ -27,7 +29,7 @@ export async function startTournamentPlayback(canvas:HTMLCanvasElement,replay:Sa
   const rules=await arcadeReplayRules(({2:219,3:220,4:221,5:222,6:223,7:226,8:226} as Record<number,number>)[replay.ruleset]);
   return startArcadeTournamentPlayback(canvas,createTournamentReplay(replay,replay.plans,rules.createArcade),replay.terrain,rules,{...options,drawOnTimeout:replay.ruleset>=8});
 }
-export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput:unknown,terrain:string|undefined,rulesInput:unknown,{onFrame=()=>{},onEnd=()=>{},onSkipError=()=>{},showMemberNames=false,drawOnTimeout=false,followAction=false,speed=1}:PlaybackOptions={}){
+export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput:unknown,terrain:string|undefined,rulesInput:unknown,{onFrame=()=>{},onEnd=()=>{},onSkipError=()=>{},showMemberNames=false,drawOnTimeout=false,followAction=false,speed=1,markedId,captions:showCaptions=true}:PlaybackOptions={}){
   const {stepArcade,drawArcadeFighter,sampleArcadeFighter,arcadeBladeWorld}=rulesInput as ReplayRules;
   const game=gameInput as ReplayGame;
   const {width:W,height:H}=game;
@@ -55,6 +57,11 @@ export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput
       ctx.setTransform(zoom,0,0,zoom,w*.5-focus.x*zoom,h*.5-focus.y*zoom);
     }else ctx.setTransform(scale,0,0,scale,(w-W*scale)*.5,(h-H*scale)*.5);
     drawArcadeStage(ctx,stage,W,H,time,reduced);fx.drawGround(ctx);
+    const marked=markedId?fighters.find(f=>f.id===markedId&&f.alive):undefined;
+    if(marked){
+      ctx.save();ctx.lineWidth=4;ctx.strokeStyle='#4fc3ff';ctx.fillStyle='#4fc3ff22';
+      ctx.beginPath();ctx.ellipse(marked.x,marked.y+2,30,11,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    }
     const paint:Array<{pose?:ReplayFighter;rig?:unknown;wall?:Parameters<typeof drawArcadeObstacle>[2];depth:number}>=[];
     for(const f of fighters){
       const pose=f.action==='ko'&&finishAt!==null?{...f,actionTime:f.actionTime+Math.min(.8,time-finishAt)}:f;
@@ -74,7 +81,7 @@ export function startArcadeTournamentPlayback(canvas:HTMLCanvasElement,gameInput
       else drawArcadeFighter(ctx,pose!,time,{rig,reducedMotion:reduced,outline:pose!.alive});
     }
     fx.drawAir(ctx);
-    captions.draw(ctx,{reducedMotion:reduced});
+    if(showCaptions)captions.draw(ctx,{reducedMotion:reduced});
     if(showMemberNames){
       ctx.save();ctx.textAlign='center';ctx.textBaseline='bottom';
       ctx.font='600 14px system-ui,sans-serif';ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeStyle='#171513';
