@@ -4,13 +4,13 @@ import {arcadeBasis} from './arcade-rig-projection.js';
  * shoes and all blade tips come from the same motion/contact calculation. */
 import type {FighterPaintIdentity,FighterPaintOptions,FighterPreviewOptions} from './arcade-painter.js?v=5.0.0';
 interface PaintPoint{x:number;y:number}
-interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;side?:number}
+interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;hip?:PaintPoint;side?:number}
 interface InkActor extends FighterPaintIdentity{action?:string;attack?:unknown;vx?:number;vy?:number}
 interface HairRig{reducedMotion?:boolean;styleSpin?:{face:number;cloth?:number;clothSide?:number};torsoTurn?:number}
 interface RobeRig extends HairRig{shoulder:PaintPoint;waist:PaintPoint;pelvis?:PaintPoint;legs:readonly PaintLeg[];forward?:number;airPhase?:string}
 interface PaintRig extends RobeRig{
  hand?:PaintPoint;backHand?:PaintPoint;blade?:PaintPoint;offBlade?:PaintPoint|null;head?:PaintPoint;
- chest?:PaintPoint;roll:number;trick?:{angle?:number}|null;flightSide?:number;hdx:number;
+ chest?:PaintPoint;frontElbow?:PaintPoint;backElbow?:PaintPoint;roll:number;trick?:{angle?:number}|null;flightSide?:number;hdx:number;
  regionalFall?:{progress:number;side:number;angle:number};primaryUnusable?:boolean;offhandUnusable?:boolean;
  action?:string;t:number;emitter?:PaintPoint;offEmitter?:PaintPoint;staff?:boolean;freeHandAction:boolean;freeHandExtension:number;
 }
@@ -192,6 +192,23 @@ function glove(c:CanvasRenderingContext2D,p:PaintPoint,back:boolean,aim:number,c
  if(open)for(const [i,y] of [-4,-1.7,.7,3.1].entries())stroke(c,pale,1.85,4.7,y,9.85+Math.sin(i)*1.8,y-.47);
  c.restore();
 }
+// Ink the continuous garment underneath the glove and boot sprites. The
+// endpoints are sampled joints, so this follows the same swing, idle and fall.
+function clothLimb(c:CanvasRenderingContext2D,start:PaintPoint,bend:PaintPoint,end:PaintPoint,color:string,width:number,tint?:string){
+ c.beginPath();c.moveTo(start.x,start.y);
+ c.quadraticCurveTo(bend.x,bend.y,(bend.x+end.x)*.5,(bend.y+end.y)*.5);c.lineTo(end.x,end.y);
+ if(!tint){c.strokeStyle=ink;c.lineWidth=width+2.8;c.stroke();}
+ c.strokeStyle=tint??color;c.lineWidth=width;c.stroke();
+}
+function inkLeg(c:CanvasRenderingContext2D,leg:PaintLeg,pelvis:PaintPoint,kit:readonly string[],tint?:string){
+ const start=pt(leg.hip,pelvis.x,pelvis.y),k=pt(leg.k,(start.x+leg.foot.x)*.5,(start.y+leg.foot.y)*.5);
+ clothLimb(c,start,k,leg.foot,leg.side===1?kit[2]:'#24212d',leg.side===1?8.8:7.7,tint);
+}
+function inkSleeve(c:CanvasRenderingContext2D,r:PaintRig,end:PaintPoint,front:boolean,kit:readonly string[],tint?:string){
+ const start={x:r.shoulder.x+(front?1:-1)*r.hdx*7.5,y:r.shoulder.y+5};
+ const k=pt(front?r.frontElbow:r.backElbow,(start.x+end.x)*.5,(start.y+end.y)*.5+4);
+ clothLimb(c,start,k,end,front?kit[0]:kit[2],front?9.4:8.2,tint);
+}
 function robe(c:CanvasRenderingContext2D,r:RobeRig,kit:readonly string[],seed:number,team:string,outlined:boolean,body?:string,tint?:string,opponent=false){
  const high=r.shoulder, belt=r.waist, pelvic=r.pelvis??{x:belt.x,y:belt.y+10};
  const spin=r.styleSpin, drift=clamp(r.torsoTurn??0,-1.45,1.45)*4.4+(spin?.cloth??0)*(spin?.clothSide??1)*.78;
@@ -289,9 +306,11 @@ export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,t
   c.globalAlpha*=.81-.29*fall;c.translate((impact?.side??-r.hdx)*fall*14,1-fall*3);c.rotate(impact?.angle??-r.hdx*fall*1.43);
  }
  const b=rib;
+ const hip=r.pelvis??{x:r.waist.x,y:r.waist.y+10};
  if(ghost){
   const tint=typeof ghost==='string'?ghost:team;
-  for(const leg of boots)boot(c,leg,kit,tint);
+  for(const leg of boots){inkLeg(c,leg,hip,kit,tint);boot(c,leg,kit,tint);}
+  inkSleeve(c,r,rear,false,kit,tint);inkSleeve(c,r,hand,true,kit,tint);
   robe(c,r,kit,seed,team,false,f.body,tint);
   cap(c,headPt.x,headPt.y,16.2,16.1,0,tint,null);
   for(const p of [hand,rear])cap(c,p.x,p.y,8.5,7.7,0,tint,null);
@@ -301,12 +320,14 @@ export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,t
  // Lengthen the cuff along the existing shin, leaving the sole and gait anchored.
  const restCuff=r.airPhase==='grounded'&&(r.action==='idle'||r.action==='guard')?
    clamp((32-Math.hypot(f.vx??0,f.vy??0))/16,0,1):0;
- const hip=r.pelvis??{x:r.waist.x,y:r.waist.y+10};
  for(const leg of boots){
+  inkLeg(c,leg,hip,kit);
   const over=restCuff*clamp((leg.foot.y-hip.y-35)*.53,0,8);
   boot(c,leg,kit,undefined,over);
  }
+ inkSleeve(c,r,rear,false,kit);
  robe(c,r,kit,seed,edge,outline,f.body,undefined,f.team===1);
+ inkSleeve(c,r,hand,true,kit);
  head(c,r,f,headPt,seed,tilt,edge);
  const liveBlade=f.saberOff!==true&&live;
  const orbit=physical.orbitBlades;
