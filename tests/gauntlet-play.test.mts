@@ -12,7 +12,7 @@ function player(seed){
   let s=seed>>>0;const r=()=>((s=Math.imul(s^s>>>15,2246822507)+0x9e3779b9>>>0)/4294967296);
   let hold=0,c={};
   return ()=>{
-    if(hold--<=0){hold=Math.floor(r()*40);c={x:r()*2-1,y:r()*2-1,strike:r()<.35,guard:r()<.25,dash:r()<.08,heavy:r()<.06,walk:r()<.1};}
+    if(hold--<=0){hold=Math.floor(r()*40);c={x:r()*2-1,y:r()*2-1,strike:r()<.35,guard:r()<.25,dash:r()<.08,heavy:r()<.06,walk:r()<.1,jump:r()<.04,...(r()<.5?{aimX:r()*1200,aimY:r()*700}:{})};}
     return c;
   };
 }
@@ -104,10 +104,12 @@ test('the save round-trips and Watch last bout replays the fight that was fought
 });
 
 test('a damaged human log is ignored, never replayed',()=>{
-  const ok={v:1,season:1,fixtureId:'x',cursor:1,ticks:10,runs:[[0,0,0,0,''],[4,100,-100,3,'lunge']]};
+  const ok={v:1,season:1,fixtureId:'x',cursor:1,ticks:10,runs:[[0,0,0,0,'',null,null],[4,100,-100,3,'lunge',512,-40]]};
   assert.ok(readHumanLog(JSON.stringify(ok)));
-  for(const bad of [null,'{',{...ok,v:2},{...ok,runs:[]},{...ok,runs:[[1,0,0,0,'']]},{...ok,runs:[[0,0,0,0,''],[0,1,1,1,'']]},
-    {...ok,runs:[[0,101,0,0,'']]},{...ok,runs:[[0,0,0,1<<9,'']]},{...ok,runs:[[0,0,0,0,'<b>']]},{...ok,runs:[[0,0,0,0,''],[10,0,0,0,'']]}])
+  const z=(t,...rest)=>[t,0,0,0,'',null,null].map((v,i)=>i===0?t:rest[i-1]??v);
+  for(const bad of [null,'{',{...ok,v:2},{...ok,runs:[]},{...ok,runs:[z(1)]},{...ok,runs:[z(0),z(0)]},
+    {...ok,runs:[z(0,101)]},{...ok,runs:[z(0,0,0,1<<9)]},{...ok,runs:[z(0,0,0,0,'<b>')]},{...ok,runs:[z(0),z(10)]},
+    {...ok,runs:[[0,0,0,0,'']]},{...ok,runs:[z(0,0,0,0,'',5,null)]},{...ok,runs:[z(0,0,0,0,'',1.5,2)]}])
     assert.equal(readHumanLog(typeof bad==='string'?bad:JSON.stringify(bad)),null,JSON.stringify(bad));
 });
 
