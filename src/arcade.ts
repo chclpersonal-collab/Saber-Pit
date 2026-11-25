@@ -388,7 +388,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
   const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
   p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
-  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Blue · P1';$('rivalName').textContent='Pink · P2';}
+  if(view==='game'&&game.config.localVersus){$('blueName').textContent='Blue · P1';$('rivalName').textContent='Pink · P2';}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
@@ -1348,6 +1348,7 @@ function heroSelects(){
 }
 /** The name the player picked (Showdown, Master trial, Play a Hero), not just the engine mode. */
 function matchLabel(){
+  if(view==='game'&&game.config.localVersus)return 'Two players';
   if(autoDuel.active)return 'Auto battle';
   if(mode==='watch')return 'Showdown';
   if(mode!=='duel'){
