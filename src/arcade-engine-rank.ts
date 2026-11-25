@@ -21,6 +21,11 @@ export const rankStrikeScale=(source: Ranked,target: Ranked)=>{
   if(gap===0)return 1;
   return gap>0?1+.055+4.145*masteryRatio(gap)**1.53:1-.975*masteryRatio(-gap)**.83;
 };
+/** v6: rank still matters, but a higher rank can't erase a fighter in two swings. Max x1.6 / x0.62 at a 14-grade gap. */
+export const smartRankScale=(source: Ranked,target: Ranked)=>{
+  const gap=rankGap(source,target);
+  return gap===0?1:gap>0?1+.6*masteryRatio(gap)**1.25:1-.38*masteryRatio(-gap)**1.1;
+};
 export const elitePair=(a: Ranked,b: Ranked)=>a.career.gradeIndex>=12&&b.career.gradeIndex>=12&&Math.abs(a.career.gradeIndex-b.career.gradeIndex)<=2;
 export function pacingLift(s: PacingArena) {
   if(!s.elitePacing)return 1;

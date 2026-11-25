@@ -26,6 +26,8 @@ export type MobaHero=MobaUnit&{
   kind:'hero'; name:string;control:boolean;form:MobaForm;dashRemaining:number;face:number;vx:number;vy:number;action:'idle'|'run'|'guard'|'slash'|'rush'|'ko';
   actionTime:number;guardHeld?:boolean;energy:number;level:number;xp:number;credits:number;upgrade:number;kills:number;deaths:number;
   respawnAt:number; cooldown:number; lungeCooldown:number; spawnProtectUntil:number;upgradingUntil:number;
+  /** v6 smart AI: last time this hero cut an enemy hero (minions and towers turn on it). */
+  aggroAt?:number; smart?:{retreating:boolean;side:number};
 };
 export type MobaMinion=MobaUnit&{kind:'minion';face:number;cooldown:number;ranged:boolean;rallied?:true};
 export type MobaStructure=MobaUnit&{kind:'tower'|'core';cooldown:number;shielded:boolean};
@@ -35,6 +37,8 @@ export type MobaState={
   heroes:MobaHero[]; minions:MobaMinion[]; towers:MobaStructure[]; cores:MobaStructure[];
   player:MobaHero;events:MobaEvent[];nextWaveAt:number;wave:number;remainder:number;eventId:number;
   pendingAttack:boolean;pendingLunge:boolean;pendingUpgrade:boolean;bellRally?:BellRally;
+  /** v6: smarter heroes, minions and towers for Blue and Pink alike. Off keeps the 5.x sim for old tests. */
+  smartAI?:boolean; smartTeams?:readonly boolean[];
 };
 const clamp=(n:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,n));
 const gap=(a:MobaPoint,b:MobaPoint)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -62,7 +66,7 @@ function structure(team:MobaTeam,lane:MobaLane,kind:MobaStructure['kind']):MobaS
     ...(core?MOBA_BATTLEFIELD.cores[team]:MOBA_BATTLEFIELD.lanes[lane].towerNodes[team]),
     hp:maxHp,maxHp,alive:true,radius:core?30:22,shielded:core,cooldown:0};
 }
-export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho',{bellRally=false}:{bellRally?:boolean}={}):MobaState {
+export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shii_cho',{bellRally=false,smartAI=false}:{bellRally?:boolean;smartAI?:boolean}={}):MobaState {
   const lane=lanes.includes(playerLane)?playerLane:1;
   const towers=sides.flatMap(team=>lanes.map(l=>structure(team,l,'tower')));
   const cores=sides.map(team=>structure(team,1,'core'));
@@ -80,7 +84,7 @@ export function createMoba(seed=1,playerLane:MobaLane=1,playerForm:MobaForm='shi
   if(MOBA_FORM_IDS.includes(playerForm)){player.form=playerForm;player.maxHp=MOBA_FORMS[playerForm].hp;player.hp=player.maxHp;}
   return {seed:seed>>>0,tick:0,time:0,phase:'playing',winner:null,endReason:null,heroes,minions:[],towers,cores,player,
     events:[],nextWaveAt:.5,wave:0,remainder:0,eventId:0,pendingAttack:false,pendingLunge:false,pendingUpgrade:false,
-    ...(bellRally?{bellRally:createBellRally()}:{}),};
+    ...(bellRally?{bellRally:createBellRally()}:{}),...(smartAI?{smartAI:true}:{}),};
 }
 function wave(s:MobaState){
   ++s.wave;
@@ -123,6 +127,7 @@ function damage(s:MobaState,actor:MobaUnit,target:MobaUnit,raw:number){
   const guarded=hero?.action==='guard'&&hero.energy>=5&&
     Math.abs(positiveAngle(Math.atan2(actor.y-target.y,actor.x-target.x)-hero.face))<1.16;
   if(guarded)hero.energy=Math.max(0,hero.energy-8);
+  if(actor.kind==='hero'&&hero)(actor as MobaHero).aggroAt=s.time;
   const amount=Math.min(target.hp,guarded?raw*MOBA_FORMS[hero.form].guard:raw);
   target.hp=Math.max(0,target.hp-amount);
   // Keep a combat ribbon for meaningful hero actions and structure damage,
@@ -263,6 +268,8 @@ function heroStep(s:MobaState,h:MobaHero,units:readonly MobaUnit[],input:MobaInp
     if(s.pendingUpgrade)build(h,s);
     if(!guarding&&(s.pendingLunge||s.pendingAttack))strike(s,h,units,s.pendingLunge,input.aimX,input.aimY);
     s.pendingAttack=false;s.pendingLunge=false;s.pendingUpgrade=false;
+  }else if(smartOn(s,h)&&smartHero(s,h,units)){
+    // handled by the v6 AI below
   }else{
     const faction=direction(h.team), foe=enemyTeam(h.team), laneY=MOBA_LANES[h.lane], fountain={x:homeX(h.team),y:360};
     const tower=s.towers.find(t=>t.team===foe&&t.lane===h.lane&&t.alive);
@@ -295,8 +302,9 @@ function minionStep(s:MobaState,m:MobaMinion,units:readonly MobaUnit[]){
   if(!m.alive)return;
   m.cooldown=Math.max(0,m.cooldown-DT);
   const foe=enemyTeam(m.team), laneY=MOBA_LANES[m.lane], tower=s.towers.find(t=>t.team===foe&&t.lane===m.lane&&t.alive), core=s.cores[foe];
-  const enemy=nearest(m,units,e=>e.team!==m.team&&vulnerable(s,e)&&(e.kind==='hero'?Math.abs(e.y-laneY)<100:e.kind==='core'||e.lane===m.lane)&&
-    gap(m,e)<(m.ranged?107:72)&&mobaClearPath(m,e));
+  const sees=(e:MobaUnit)=>e.team!==m.team&&vulnerable(s,e)&&(e.kind==='hero'?Math.abs(e.y-laneY)<100:e.kind==='core'||e.lane===m.lane)&&
+    gap(m,e)<(m.ranged?107:72)&&mobaClearPath(m,e);
+  const enemy=smartOn(s,m)?smartPick(s,m,units,sees):nearest(m,units,sees);
   const desired=tower??(core.shielded?{x:core.x,y:laneY}:core);
   const goal=enemy??(tower||core.shielded?mobaLaneWaypoint(m.lane,m.team,m,desired):mobaNavPoint(m,desired,m.radius));
   const d=gap(m,goal);
@@ -313,8 +321,134 @@ function structureStep(s:MobaState,t:MobaStructure,units:readonly MobaUnit[]){
   t.cooldown=Math.max(0,t.cooldown-DT);
   if(t.cooldown>0)return;
   const query=(u:MobaUnit)=>u.team!==t.team&&vulnerable(s,u)&&mobaClearPath(t,u)&&gap(t,u)<(t.kind==='tower'?135:113);
-  const target=nearest(t,units,e=>e.kind==='minion'&&query(e))??nearest(t,units,e=>e.kind==='hero'&&query(e));
+  const aggro=smartOn(s,t)?nearest(t,s.heroes,e=>query(e)&&(e.aggroAt??-9)>s.time-2):undefined;
+  const target=aggro??nearest(t,units,e=>e.kind==='minion'&&query(e))??nearest(t,units,e=>e.kind==='hero'&&query(e));
   if(target){damage(s,t,target,t.kind==='tower'?23:18);t.cooldown=t.kind==='tower'?.84:1.1;}
+}
+
+/* ---------- LOOMEN v6 Three Fronts AI (CLARISSA-01) ----------
+   Same brain for Blue and Pink. Heroes: retreat and buy on time, never tank an unscreened tower,
+   last-hit minions, focus the weakest hero, finish kills with the dash, guard between their own swings,
+   sidestep dashes, keep spacing, and join an ally's fight. Minions and towers turn on any hero that
+   cuts one of their heroes. Deterministic: no Math.random, so seeds still replay. */
+function smartOn(s:MobaState,u:MobaUnit){
+  return s.smartAI===true&&!(u.kind==='hero'&&(u as MobaHero).control)&&s.smartTeams?.[u.team]!==false;
+}
+function mobaDraw(s:MobaState,u:MobaUnit,salt:number){
+  let h=(Math.imul(s.tick^0x9e3779b9,0x85ebca6b)^Math.imul(u.id.length*31+u.id.charCodeAt(u.id.length-1),0xc2b2ae35)^Math.imul(salt+u.team*977,0x27d4eb2f))>>>0;
+  h=Math.imul(h^(h>>>15),0x2c1b3c6d)>>>0;h=Math.imul(h^(h>>>12),0x297a2d39)>>>0;
+  return ((h^(h>>>15))>>>0)/4294967296;
+}
+const slashOf=(h:MobaHero)=>MOBA_FORMS[h.form].slash+(h.level-1)*3+h.upgrade*5;
+const reachOf=(t:MobaStructure)=>t.kind==='tower'?135:113;
+function smartPick(s:MobaState,m:MobaMinion,units:readonly MobaUnit[],sees:(e:MobaUnit)=>boolean){
+  let best:MobaUnit|undefined,score=-Infinity;
+  for(const e of units)if(sees(e)){
+    const hero=e.kind==='hero'?e as MobaHero:null;
+    const v=(hero&&(hero.aggroAt??-9)>s.time-2?300:0)+(e.kind==='minion'?120-e.hp:hero?20:60)-gap(m,e)*.4;
+    if(v>score){score=v;best=e;}
+  }
+  return best;
+}
+function smartHero(s:MobaState,h:MobaHero,units:readonly MobaUnit[]):boolean{
+  const form=MOBA_FORMS[h.form], foe=enemyTeam(h.team);
+  const fountain={x:homeX(h.team),y:360}, speed=form.speed*.96, mem=h.smart??={retreating:false,side:mobaDraw(s,h,7)<.5?1:-1};
+  const dmg=slashOf(h), hpR=h.hp/h.maxHp;
+  const foes=s.heroes.filter(e=>e.team===foe&&vulnerable(s,e)&&gap(h,e)<260);
+  const near=foes.filter(e=>gap(h,e)<175), friends=s.heroes.filter(a=>a!==h&&a.team===h.team&&a.alive&&gap(a,h)<175);
+  const run=(dx:number,dy:number,sp=speed,aim?:number)=>{const moving=move(h,dx,dy,sp,aim);if(h.action!=='slash'&&h.action!=='rush')setAction(h,moving?'run':'idle');return true;};
+  const goTo=(p:MobaPoint,sp=speed,aim?:number)=>{const moving=moveToward(h,p,sp,aim);if(h.action!=='slash'&&h.action!=='rush')setAction(h,moving?'run':'idle');return true;};
+
+  // 1. A dash coming straight at us: step off its line.
+  for(const e of foes)if(e.dashRemaining>1e-6){
+    const bearing=Math.atan2(h.y-e.y,h.x-e.x), off=positiveAngle(bearing-e.face), d=gap(h,e);
+    if(Math.abs(off)<.7&&d<MOBA_FORMS[e.form].lungeSpeed*e.dashRemaining+h.radius+e.radius+18&&mobaDraw(s,h,31)<.9){
+      const side=e.face+Math.PI/2*(off>=0?1:-1);
+      return run(Math.cos(side),Math.sin(side),speed*1.05);
+    }
+  }
+
+  // 2. Retreat to heal and buy: low, outnumbered, or rich and the lane is quiet.
+  const cost=mobaUpgradeCost(h), mine=h.hp+friends.reduce((a,b)=>a+b.hp,0), theirs=near.reduce((a,b)=>a+b.hp,0);
+  if(mem.retreating&&hpR>.93&&(cost===null||h.credits<cost))mem.retreating=false;
+  if(hpR<.27||hpR<.5&&theirs>mine*1.1||near.length===0&&cost!==null&&h.credits>=cost+20&&hpR<.75)mem.retreating=true;
+  if(mem.retreating){
+    build(h,s);
+    const finisher=near.find(e=>e.hp<=dmg&&gap(h,e)<=form.reach+e.radius);
+    if(finisher&&h.cooldown<=0&&h.energy>=8){strike(s,h,units,false,finisher.x,finisher.y);return true;}
+    return goTo(fountain,speed);
+  }
+
+  // 3. Never stand in an enemy tower's reach without our minions in front to soak it.
+  const defenses=[...s.towers.filter(t=>t.team===foe&&t.alive),...(s.cores[foe].alive?[s.cores[foe]]:[])];
+  const screened=(t:MobaStructure)=>s.minions.some(m=>m.alive&&m.team===h.team&&gap(m,t)<reachOf(t)-6);
+  const danger=defenses.find(t=>gap(t,h)<reachOf(t)+h.radius+4&&mobaClearPath(t,h)&&!screened(t));
+  const killable=(e:MobaUnit)=>e.kind==='hero'&&e.hp<=dmg*1.05&&gap(h,e)<=form.reach+e.radius;
+  if(danger){
+    const finisher=near.find(killable);
+    if(finisher&&h.cooldown<=0&&h.energy>=8){strike(s,h,units,false,finisher.x,finisher.y);return true;}
+    const away=Math.atan2(h.y-danger.y,h.x-danger.x);
+    return goTo({x:danger.x+Math.cos(away)*(reachOf(danger)+40),y:danger.y+Math.sin(away)*(reachOf(danger)+40)},speed);
+  }
+  const unsafe=(p:MobaPoint)=>defenses.some(t=>gap(t,p)<reachOf(t)+6&&!screened(t));
+
+  // 4. Defend: a tower or the open core taking hits pulls back whoever is close enough to matter.
+  const ours=[...s.towers.filter(t=>t.team===h.team&&t.alive),...(s.cores[h.team].alive&&!s.cores[h.team].shielded?[s.cores[h.team]]:[])];
+  const sieged=ours.filter(t=>units.some(u=>u.team===foe&&u.alive&&u.kind!=='tower'&&u.kind!=='core'&&gap(u,t)<reachOf(t)+20)&&
+    gap(h,t)<(t.kind==='core'?560:t.lane===h.lane?380:240)&&gap(h,t)>150).sort((x,y)=>(x.kind==='core'?0:1)-(y.kind==='core'?0:1)||gap(h,x)-gap(h,y));
+  if(sieged[0]&&!near.some(e=>gap(h,e)<form.reach+e.radius+20))return goTo(sieged[0],speed);
+
+  // 5. Pick the target worth the swing.
+  let target:MobaUnit|undefined,best=-Infinity;
+  for(const e of units){
+    if(e.team===h.team||!vulnerable(s,e)||!mobaClearPath(h,e))continue;
+    const d=gap(h,e);let v:number;
+    if(e.kind==='hero'){
+      if(d>150||unsafe(e)&&!killable(e))continue;
+      const allies=friends.filter(a=>gap(a,e)<90).length;
+      v=(e.hp<=dmg*1.05?140:e.hp<=form.lungeDamage+dmg?95:70)-45*(e.hp/e.maxHp)+12*allies;
+    }else if(e.kind==='minion'){
+      if(e.lane!==h.lane||d>95)continue;
+      v=e.hp<=dmg?80:22-e.hp*.15;
+    }else{
+      if(d>110||e.kind==='tower'&&!screened(e as MobaStructure)||e.kind==='core'&&(e as MobaStructure).shielded)continue;
+      v=e.kind==='core'?75:50;
+    }
+    v-=d*.12;
+    if(v>best){best=v;target=e;}
+  }
+
+  if(!target){
+    // Help a nearby ally who is fighting, else push the lane with the wave.
+    const ally=s.heroes.find(a=>a!==h&&a.team===h.team&&a.alive&&gap(a,h)<300&&hpR>.55&&foes.some(e=>gap(e,a)<110&&!unsafe(e)));
+    if(ally)return goTo(ally,speed);
+    return false;
+  }
+  const d=gap(h,target), reach=form.reach+target.radius, aim=Math.atan2(target.y-h.y,target.x-h.x);
+  if(target.kind!=='hero'){
+    if(d<=reach&&h.cooldown<=0&&h.energy>=8){strike(s,h,units,false,target.x,target.y);return true;}
+    // Last-hitting: wait just outside a minion that isn't low enough yet, rather than shoving it for the enemy.
+    if(target.kind==='minion'&&target.hp>dmg&&d<=reach+4)return run(0,0,0,aim);
+    return goTo(d>reach-4?target:h,speed,aim);
+  }
+  const e=target as MobaHero, eForm=MOBA_FORMS[e.form], eReach=eForm.reach+h.radius;
+  const facingUs=Math.abs(positiveAngle(Math.atan2(h.y-e.y,h.x-e.x)-e.face))<1.1;
+  // Dash to finish or to open when fresh.
+  const lungeReach=form.lungeSpeed*form.lungeTime+h.radius;
+  if(d>reach&&d<=lungeReach+e.radius&&h.lungeCooldown<=0&&h.cooldown<=0&&h.energy>=form.lungeCost+8&&
+     (e.hp<=form.lungeDamage+dmg*.5||h.energy>72&&hpR>.6)&&!unsafe(e)){strike(s,h,units,true,e.x,e.y);return true;}
+  if(d<=reach&&h.cooldown<=0&&h.energy>=8){strike(s,h,units,false,e.x,e.y);return true;}
+  // Their blade is ready and ours isn't: guard, facing them, and give ground half a step.
+  if(h.cooldown>.1&&e.cooldown<.12&&facingUs&&d<eReach+20&&h.energy>16&&mobaDraw(s,h,53)<.9){
+    setAction(h,'guard');move(h,-Math.cos(aim)*.6,-Math.sin(aim)*.6,form.speed*.5,aim);return true;
+  }
+  // Spacing while we recover: a longer blade holds its own edge, a shorter one circles in close.
+  if(h.cooldown>.12){
+    const want=form.reach>eForm.reach+4?reach-3:Math.max(eReach+10,reach+8);
+    const radial=d<want?-1:d>want+8?1:0, circle=aim+Math.PI/2*mem.side;
+    return run(Math.cos(aim)*radial*.9+Math.cos(circle)*.5,Math.sin(aim)*radial*.9+Math.sin(circle)*.5,speed,aim);
+  }
+  return goTo(e,speed,aim);
 }
 function timeout(s:MobaState){
   const score=(team:MobaTeam)=>s.cores[team].hp+s.towers.filter(t=>t.team===team).reduce((acc,t)=>acc+t.hp*.5,0);
