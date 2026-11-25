@@ -740,7 +740,7 @@ function injure(s: SimGame,attacker: SimFighter,victim: SimFighter,spec: SimMove
   else if(action==='rush')region=stableLine?'torso':arm;
   else if(action==='slash')region=stableLine?(attacker.combo>=3||punish?'head':'torso'):arm;
   const result=applyArcadeInjury(victim.injuries,{region,amount,quality,attackerRank:attacker.career.gradeIndex,
-    defenderRank:victim.career.gradeIndex,blocked,roll:injuryRoll(s,attacker,victim),direction});
+    defenderRank:victim.career.gradeIndex,blocked,roll:injuryRoll(s,attacker,victim),direction,freshTorso:victim.regionalInjuries===true});
   updateInjury(victim,result);
   if(victim.regionalInjuries&&result.changed&&(result.fatal||result.delta>=8)){
     victim.injuryReaction={at:s.time,bearing:from+Math.PI,region,strength:result.fatal?1:clamp(result.delta/39,.19,.85)};
