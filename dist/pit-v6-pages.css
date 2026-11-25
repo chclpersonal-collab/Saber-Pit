@@ -146,3 +146,52 @@
 /* Routine status lines are read aloud, not shown; problems still show in red. */
 .v6p-quiet:not([data-v6-problem]){position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0;padding:0}
 .v6p-quiet[data-v6-problem]{color:#ff8fa3!important}
+
+/* ============ v6 consistency kit (Nov 25) ============
+   One look for the same thing on every screen, matching the Arena (index):
+   back button = purple rounded square with a white chevron; page title sits beside it at 34px;
+   main action = gold display-font button; other buttons = violet; ⋯ = rounded square;
+   badges = one pill; field captions and table headers = small caps; panels = one card. */
+:root{--v6-back-bg:linear-gradient(180deg,#6d5ae0,#4a37b5);--v6-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12l7 7'/%3E%3C/svg%3E")}
+/* Back button */
+:root body.ops-shell .ops-brand,:root body.ops-shell .intro>a.back{width:46px;height:46px;border-radius:var(--v5-r);background:var(--v6-back-bg);box-shadow:0 var(--v5-lip) 0 var(--v5-ink);display:inline-grid;place-items:center;padding:0;font-size:0;color:var(--v5-white);text-decoration:none;flex:none}
+:root body.ops-shell .ops-brand .ops-mark,:root body.ops-shell .ops-brand .ops-mark::before{color:var(--v5-white)}
+:root body.ops-shell .intro>a.back::before{content:'';width:22px;height:22px;background:var(--v5-white);-webkit-mask:var(--v6-chev) center/contain no-repeat;mask:var(--v6-chev) center/contain no-repeat}
+/* Page head: back + title on one row, title the same size as Play / Loadout */
+:root body.ops-shell{position:relative}
+:root body.ops-shell .ops-dock{position:absolute;top:16px;left:max(16px,calc((100% - 1180px)/2));padding:0;margin:0;z-index:5}
+:root body.ops-shell .ops-hero{padding:16px 0 18px 62px;min-height:46px;display:flex;align-items:center}
+:root body.ops-shell :is(.ops-hero h1,.rpg-header h1,.intro h1){font-family:var(--v5-display);font-weight:400;font-size:34px;line-height:46px;margin:0;color:var(--v5-white);-webkit-text-stroke:0;text-shadow:none;letter-spacing:0}
+:root body.ops-shell .intro{display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:center;gap:16px;padding:16px 0 18px;margin:0;border:0;background:none}
+:root body.ops-shell .intro .eyebrow{display:none}
+/* Main action and the rest */
+:root body.ops-shell :is(button.primary,.button.primary,button.strong,#gPlay,#nextButton,#newButton){font-family:var(--v5-display);font-weight:400;font-size:20px;letter-spacing:.01em;color:var(--v5-ink);background:linear-gradient(180deg,#ffe36e,var(--v5-gold));box-shadow:0 var(--v5-lip) 0 var(--v5-gold-lip);border-radius:var(--v5-r)}
+:root body.ops-shell :is(button,.button){border-radius:var(--v5-r)}
+/* ⋯ menus: one rounded square */
+:root body.ops-shell :is(.v6p-more>summary,summary.v5-tool){width:52px;height:52px;min-height:52px;border-radius:var(--v5-r);display:grid;place-items:center;padding:0;font-size:0;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);list-style:none;cursor:pointer}
+:root body.ops-shell :is(.v6p-more>summary,summary.v5-tool)::after{content:'⋯';font:900 24px/1 var(--v5-ui)}
+:root body.ops-shell summary.v5-tool::-webkit-details-marker{display:none}
+:root body.ops-shell summary.v5-tool::before{display:none}
+/* Badges: one pill everywhere */
+:root body.ops-shell :is(.badge,.g-meta,#leaderTag,.rpg-tag,.rpg-state){display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;border:0;background:var(--v5-ink);box-shadow:0 0 0 2px var(--v5-line);color:var(--v5-gold);font:900 11px/1.2 var(--v5-ui);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+/* Field captions and table headers: small caps, like RULES / MAP on Play */
+:root body.ops-shell :is(label,legend,dt){font:900 11px/1.3 var(--v5-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--v5-muted)}
+:root body.ops-shell :is(label,legend) :is(select,input,textarea,button){letter-spacing:0;text-transform:none;font-size:15px}
+:root body.ops-shell label:has(>input[type=checkbox]),:root body.ops-shell label.switch-setting{font-size:13px;letter-spacing:.04em}
+:root body.ops-shell th{font:900 11px/1.3 var(--v5-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--v5-muted)}
+/* Panel titles: one size */
+:root body.ops-shell :is(.panel,.backup-panel,.rpg-panel,.rpg-battle,.board-window) :is(h2,h3):first-of-type{font-size:24px;line-height:1.1}
+/* Empty states: muted, never shouting */
+:root body.ops-shell :is(.empty,.muted,td[colspan]){color:var(--v5-muted)}
+/* Phones */
+@media (max-width:760px){
+  :root body.ops-shell .ops-dock{top:12px;left:12px}
+  :root body.ops-shell .ops-hero{padding:12px 0 12px 58px}
+  :root body.ops-shell :is(.ops-hero h1,.rpg-header h1,.intro h1){font-size:30px;line-height:46px}
+}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.ops-shell .ops-dock{top:10px;left:16px}
+  :root body.ops-shell .ops-hero{padding:10px 0 8px 58px}
+  :root body.ops-shell :is(.ops-hero h1,.rpg-header h1,.intro h1){font-size:26px;line-height:42px}
+  :root body.ops-shell .ops-brand{width:42px;height:42px}
+}

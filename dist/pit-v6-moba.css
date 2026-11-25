@@ -23,3 +23,6 @@
 :root body.v6-moba .team b{font-family:var(--v5-display);font-weight:400;letter-spacing:.02em}
 :root body.v6-moba .field-tools{background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border-top:2px solid var(--v5-line)}
 :root body.v6-moba .controls button{border-radius:var(--v5-r)}
+/* Same back button as every other screen (consistency kit, Nov 25). */
+:root body.v6-moba .brand{border-radius:var(--v5-r);background:linear-gradient(180deg,#6d5ae0,#4a37b5);box-shadow:0 var(--v5-lip) 0 var(--v5-ink)}
+:root body.v6-moba .brand span{background:var(--v5-white)}
