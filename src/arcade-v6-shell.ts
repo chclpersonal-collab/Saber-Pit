@@ -24,7 +24,7 @@ function playerCard(){
     const av=el('span','v6-avatar');av.setAttribute('aria-hidden','true');
     const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'You'));
     const bodyTxt=get<HTMLSelectElement>('bodyStyle')?.selectedOptions[0]?.text,formTxt=get<HTMLSelectElement>('style')?.selectedOptions[0]?.text?.replace(/^[IVX]+\s*·\s*/,'');
-    const line=[bodyTxt,formTxt].filter(Boolean).join(' · ');if(line)who.append(el('small',undefined,line));
+    const parts=[bodyTxt,formTxt].filter((t):t is string=>!!t);if(parts.length){const line=el('small');for(const t of parts)line.append(el('span','v6-meta',t));who.append(line);}
     const stat=(v:string,k:string,cls='')=>{const s=el('span','v6-stat '+cls);s.append(el('b',undefined,v),el('small',undefined,k));return s;};
     // K/D and Win stay blank until the round record travels with Saves across devices.
     card.append(av,who,stat(you?.rank?.split(' ')[0]??'—','Rank','v6-rank'),stat(you?.elo!=null?String(Math.round(you.elo)):'—','Elo'),stat('—','K/D'),stat('—','Win'));
@@ -48,7 +48,7 @@ function tile(opts:{title:string;card:V6Card;cta:string;href?:string;onPlay?:()=
   }else{const b=el('button','v6-cta v6-play-main',opts.cta);b.type='button';b.addEventListener('click',()=>opts.onPlay?.());row.append(b);}
   txt.append(row);t.append(txt);return {t,row};
 }
-const arena=tile({title:'Arena',card:'arena',cta:'Play',tag:'RANKED',big:true,onPlay:()=>showPlay()});
+const arena=tile({title:'Arena',card:'arena',cta:'Play',tag:'Ranked',big:true,onPlay:()=>showPlay()});
 const modesBtn=el('button','v6-cta v6-cta-2','Modes');modesBtn.type='button';modesBtn.addEventListener('click',()=>showPlay());arena.row.append(modesBtn);
 // Move the existing resume control; the career module still owns visibility and click handling.
 const resumeFromHome=get('homeContinue');
@@ -79,10 +79,10 @@ get('frameRate')?.before(more,homeCard);
 /* ---------- Play screen (restyled setup) ---------- */
 const lobby=get<HTMLFormElement>('lobby');
 const play=el('div','v6-play');play.id='v6Play';
-const head=el('div','v6-play-head');const back=el('button','v6-back');back.type='button';back.setAttribute('aria-label','Back to home');back.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const head=el('div','v6-play-head');const back=el('button','v6-back');back.type='button';back.setAttribute('aria-label','Home');back.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 back.addEventListener('click',()=>showHome());head.append(back,el('h2',undefined,'Play'));
 const list=el('div','v6-modes');list.setAttribute('role','group');list.setAttribute('aria-label','Match modes');
-const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master trial','','solo'],['hero','Play a Hero','','heroes']];
+const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master Trial','','solo'],['hero','Hero','','heroes']];
 const THUMB:Record<string,V6Card>={duel:'arena',squad:'heroes',watch:'heroes',master:'gauntlet',hero:'heroes'};
 function thumbArt(card:V6Card){const cv=el('canvas','v6-thumb');cv.setAttribute('aria-hidden','true');cards.set(cv,card);return cv;}
 const presetSource=(p:string)=>p==='hero'?get<HTMLButtonElement>('watchHero'):document.querySelector<HTMLButtonElement>(`[data-preset="${p}"]`);
@@ -94,7 +94,7 @@ for(const [preset,name,sub,scene] of MODE_ROWS){
   const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));
   b.append(thumbArt(THUMB[preset]??'arena'),tx);b.addEventListener('click',()=>{src.click();syncModes();});
   modeButtons.push(b);list.append(b);
-  if(preset==='squad')for(const [name,href,card] of [['Three Fronts','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Duel tournament','./tournament.html','tournament'],['Squad tournament','./tournament.html#squads','tournament']] as const){
+  if(preset==='squad')for(const [name,href,card] of [['MOBA','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Tournament','./tournament.html','tournament'],['Squad Tournament','./tournament.html#squads','tournament']] as const){
     const a=el('a','v6-mode v6-mode-link');a.href=href;const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));a.append(thumbArt(card),tx);list.append(a);
   }
 }
@@ -110,8 +110,8 @@ function chipRow(label:string,selectId:string,options:[string,string][]){
 const chipSyncs:(()=>void)[]=[];const syncChips=()=>{for(const f of chipSyncs)f();};
 chipRow('Rules','rule',[['elimination','Elimination'],['control','Control'],['relic','Relic']]);
 chipRow('Map','mapSize',[['small','Small'],['medium','Medium'],['large','Large']]);
-chipRow('Play as','participation',[['play','Fighter'],['command','Commander'],['watch','Watch']]);
-chipRow('Round','duration',[['45','45'],['90','90'],['150','150']]);
+chipRow('Play As','participation',[['play','Fighter'],['command','Commander'],['watch','Watch']]);
+chipRow('Round','duration',[['45','45s'],['90','90s'],['150','150s']]);
 const go=el('div','v6-go');
 const playBtn=el('button','v6-cta v6-play-btn','Play');playBtn.type='submit';playBtn.setAttribute('form','lobby');playBtn.setAttribute('aria-describedby','arenaRatingStatus');
 const loadoutBtn=el('button','v6-cta v6-cta-2','Loadout');loadoutBtn.type='button';
@@ -123,25 +123,25 @@ play.append(head,list,stage);
 lobby?.prepend(play);
 // Keep the actual controls, so the existing start/save handlers and state remain authoritative.
 const playTools=el('details','v6-play-tools');
-const playToolsSummary=el('summary',undefined,'More modes and tools');
+const playToolsSummary=el('summary',undefined,'More Modes');
 const playToolRow=el('div','v6-play-tool-row');
 for(const id of ['autoDuelStart','formsGuide','rankSetup']){
  const item=get(id);
  if(item){item.classList.add('v6-cta','v6-cta-2');playToolRow.append(item);}
 }
 const classic=lobby?.querySelector<HTMLAnchorElement>('a[href="./classic.html"]');
-if(classic){classic.classList.add('v6-cta','v6-cta-2');classic.textContent='Classic (legacy)';playToolRow.append(classic);}
+if(classic){classic.classList.add('v6-cta','v6-cta-2');classic.textContent='Legacy Classic';playToolRow.append(classic);}
 for(const [label,href] of [['Style Lab','./style-lab.html'],['Idle RPG','./idle-rpg.html']]){
  const link=el('a','v6-cta v6-cta-2',label);link.href=href;playToolRow.append(link);
 }
 playTools.append(playToolsSummary,playToolRow);
 play.after(playTools);
-const custom=get<HTMLDetailsElement>('customizeMatch');const customSum=custom?.querySelector('summary');if(customSum)customSum.textContent='More options';
+const custom=get<HTMLDetailsElement>('customizeMatch');const customSum=custom?.querySelector('summary');if(customSum)customSum.textContent='More Options';
 function syncModes(){
   let active:HTMLButtonElement|undefined;
   for(const b of modeButtons){const src=presetSource(b.dataset.v6Preset??'');const on=src?.getAttribute('aria-pressed')==='true';b.setAttribute('aria-current',String(on));b.setAttribute('aria-pressed',String(on));b.disabled=!!src?.disabled;if(on)active=b;}
   const row=MODE_ROWS.find(r=>r[0]===active?.dataset.v6Preset);
-  stageTitle.textContent=row?row[1]:'Custom match';
+  stageTitle.textContent=row?row[1]:'Custom Match';
   if(matchMedia('(max-width:760px)').matches){if(active&&active.nextSibling!==chips)active.after(chips);}else if(chips.parentElement!==stageText)stageText.insertBefore(chips,go);
   const scene=row?row[3]:'squad';if(canvases.get(stageArt)!==scene){canvases.set(stageArt,scene);if(stageArt.offsetParent)paintV6Scene(stageArt,scene);}
   syncChips();

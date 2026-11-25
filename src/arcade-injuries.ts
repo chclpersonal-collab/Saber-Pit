@@ -11,8 +11,8 @@ const round=(n:number,digits=3)=>Number(n.toFixed(digits));
 
 export const ARCADE_BODY_REGIONS=Object.freeze([
   {id:'head',label:'Head'}, {id:'torso',label:'Torso'},
-  {id:'leftArm',label:'Left arm'}, {id:'rightArm',label:'Right arm'},
-  {id:'leftLeg',label:'Left leg'}, {id:'rightLeg',label:'Right leg'},
+  {id:'leftArm',label:'Left Arm'}, {id:'rightArm',label:'Right Arm'},
+  {id:'leftLeg',label:'Left Leg'}, {id:'rightLeg',label:'Right Leg'},
 ].map(row=>Object.freeze(row as {id:Region;label:string})));
 
 export const ARCADE_INJURY_REFERENCE=Object.freeze({

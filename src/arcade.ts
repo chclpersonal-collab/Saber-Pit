@@ -19,7 +19,7 @@ import {paintArcadeStageMatte} from './arcade-stage-matte.js';
 import {createArcadeStage,drawArcadeStage,createArcadeTerrain,drawArcadeObstacle,resolveArcadeMap} from './arcade-stage.js?v=4.0.0';
 import {FRAME_STEP,advanceSim,displayDelta,displayFighters,fighterSamples,newDisplayClock,resetDisplayClock} from './arcade-display.js?v=2.44.0';
 import {ARCADE_CAREER_KEY,classicCareers,readArcadeCareer,arenaCareerBytes,commitArenaRound,settleArcadeCareer} from './arcade-career.js?v=4.01.1';
-import {ARCADE_BODY_REGIONS,arcadeInjuryReport,arcadeRegionalCondition,ARCADE_LIMB_DISABLE_PCT,ARCADE_INJURY_REFERENCE} from './arcade-injuries.js?v=2.9.0';
+import {ARCADE_BODY_REGIONS,arcadeInjuryReport,arcadeRegionalCondition,ARCADE_LIMB_DISABLE_PCT} from './arcade-injuries.js?v=2.9.0';
 import {crowdedFighters,sharesSilhouette} from './arcade-layout.js?v=2.9.0';
 import {ARCADE_RANK_FOOTWORK,arcadeRankFootworkFor} from './arcade-rank-footwork.js?v=2.27.0';
 import {ARCADE_TECHNIQUES} from './arcade-repertoire.js?v=3.1.0';
@@ -164,6 +164,11 @@ const scoreboard=mountArenaScoreboard({
 const punishLabels:Record<string,string>={whiff:'Whiff',parried:'Parry',guard_break:'Guard Break'};
 const callouts=createArcadeFloatingText();
 const announce=(text:string)=>{$('announce').textContent=text;};
+/** Short labels as separate .v6-meta pills instead of a "·" chain. Empty parts are dropped. */
+function setPills(target:HTMLElement,parts:readonly (string|null|undefined|false)[]){
+  const list=parts.filter((t):t is string=>!!t),key=list.join('|');if(target.dataset.pills===key)return;target.dataset.pills=key;
+  target.replaceChildren(...list.map(t=>{const n=document.createElement('span');n.className='v6-meta';n.textContent=t;return n;}));
+}
 function resize(){
   const {width,height}=canvas.getBoundingClientRect();
   const dpr=Math.min(devicePixelRatio||1,2,Math.sqrt((crowdedLOD?530000:2300000)/Math.max(1,width*height)));
@@ -191,10 +196,10 @@ function syncCamera(){
   button.disabled=view!=='game'||(portrait||causeways?reduced:!game||game.config.rule!=='elimination'||game.fighters.length>6);
   const action=(causeways?causewayFocus:followAction)&&!reduced&&!button.disabled;
   document.body.dataset.portraitAction=String(portrait&&action);
-  button.textContent=portrait?(action?'Full arena':'Close view'):causeways?(action?'Overview':'Focus fighter'):'Camera: '+(action?'Action':'Wide');
-  button.setAttribute('aria-label',portrait||causeways?button.textContent:'Action camera');
+  button.textContent=portrait?(action?'Full Arena':'Close View'):causeways?(action?'Overview':'Focus Fighter'):(action?'Action Cam':'Wide Cam');
+  button.setAttribute('aria-label',portrait||causeways?button.textContent:'Action Cam');
   if(portrait)button.removeAttribute('aria-pressed');else button.setAttribute('aria-pressed',String(action));
-  button.title=reduced?'Reduced motion uses the wide frame':button.disabled?'The full arena stays visible in this match':portrait?'Switch camera view':causeways?'Follow your fighter or the fighter selected in Stats.':'Follow nearby fighters, or switch to a fixed wide view';
+  button.title=reduced?'Reduced Motion':button.disabled?'Fixed View':'';
   syncPauseCamera();
 }
 portraitUI.addEventListener('change',()=>{syncCamera();resize();if(game)draw(0);});
@@ -216,7 +221,7 @@ $('sound').addEventListener('click',async()=>{
   const running=await combatAudio.setEnabled(requested);
   if(request!==soundRequest)return;
   soundRequested=running;
-  $('sound').textContent=running?'Sound on':'Sound off';$('sound').setAttribute('aria-pressed',String(running));
+  $('sound').textContent=running?'On':'Off';$('sound').setAttribute('aria-pressed',String(running));
 });
 function syncTouchPrefs(){
   document.body.dataset.touch=touchPrefs.layout;
@@ -335,7 +340,8 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});
   const shownMap=resolveArcadeMap(config.mapId,round);
   $('mapCaptionName').textContent=field(ARCADE_MAPS,shownMap)?.[0]??'Arena';
-  $('mapCaptionDesc').textContent=field(ARCADE_MAPS,config.mapId)?.[1]??field(ARCADE_MAPS,shownMap)?.[1]??'';
+  // Map blurbs stay off screen; the caption is the map name only.
+  $('mapCaptionDesc').textContent='';
   $('mapCaption').hidden=!isMenu;
   $('objectiveHUD').hidden=isMenu||!game.objective||game.objective.rule==='elimination';
   $('commandBar').hidden=isMenu||mode!=='command';
@@ -369,7 +375,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
   canvas.setAttribute('aria-label',['Loomen arena',...deployedHeroes].join('. '));
-  $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':game.config.novicePractice?'Practice · 0.75× · ':laneDrill?(spreadDeployed?'Spread deployment · ':'Standard starts · '):'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
+  setPills($('profileText'),[isMenu?'':roundRated?'Rated':game.config.novicePractice?'Practice 0.75×':laneDrill?(spreadDeployed?'Spread Deploy':'Standard Starts'):'Unrated',mode==='watch'?'AI vs AI':arcadeSaberOption(primary!.gear).label]);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form Footwork';
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy Attack';
@@ -378,10 +384,10 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
   const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
   p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
-  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';}
-  if(seat){$('profileText').textContent='Saves to '+seat.label+' · '+arcadeSaberOption(primary!.gear).label;}
+  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two Players';}
+  if(seat){setPills($('profileText'),[seat.label,arcadeSaberOption(primary!.gear).label]);}
   updateHUD();
-  if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
+  if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started':titleCase(mode)+' round '+round);}
 }
 
 const FORM_AIR_NAMES={
@@ -394,20 +400,15 @@ const FORM_AIR_NAMES={
   juyo:'Scissor Pounce',
 };
 function syncHelp(){
-  $('helpText').textContent=mode==='watch'?'Open Stats to inspect any fighter.':mode==='command'?'Choose an order for Blue. The team fights automatically.':
-    mobileUI.matches?'Jump, then tap Slash in the air. Move while jumping for directional footwork.':arenaKeyboardHint();
+  setPills($('helpText'),mode==='watch'?['Stats: Inspect']:mode==='command'?['Pick an Order']:mobileUI.matches?['Jump + Slash: Air Strike']:arenaKeyboardHint());
 }
 mobileUI.addEventListener('change',syncHelp);
 
-const tacticalHint={slip_counter:'Step off their line and answer. Strongest after a parry.',feint_redirect:'Fake one line, then commit on another.',moving_guard:'Move while covering an incoming blade.'};
-const footworkHelp={
-  check:'Short retreat to reset distance.',side:'Step outside the incoming line.',slip:'Slip diagonally off the attack line.',
-  arc:'Curve around the attack line.',switch:'Change lanes in two steps.',wheel:'Wheel around the opponent’s lead.',
-  return:'Draw back, then curve into a new angle.'
-};
+const tacticalHint={slip_counter:'Slip Counter',feint_redirect:'Feint Redirect',moving_guard:'Moving Guard'};
+const footworkHelp={check:'Retreat',side:'Side Step',slip:'Slip',arc:'Arc',switch:'Lane Switch',wheel:'Wheel',return:'Draw Back'};
 const footworkByTechnique=Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>['footwork:'+m.id,m]));
 const heroTechnique={id:ARCADE_TRAKATA_ID,name:"Tràkata"};
-const techniqueHint={counter:'Best after a parry or block.',crowd:'Broad attack for multiple opponents.',force:'Uses Force.',acrobatics:'Uses aerial movement.',defense:'Uses defensive footwork.'};
+const techniqueHint={counter:'Counter',crowd:'Crowd',force:'Force',acrobatics:'Aerial',defense:'Defense'};
 function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
   document.getElementById('techFold')?.removeAttribute('open');
   const select=$('chosenTechnique'), previous=select.value;
@@ -421,7 +422,7 @@ function setupTechnique(f:ArcadeFighter|undefined,saberOnly:boolean){
   if(!list.length)return;
   const original=new Set(arcadeMovesFor(f!.form,f!.career.gradeIndex).map(m=>m.id));
   const core=list.filter(m=>original.has(m.id)), tactical=list.filter(m=>m.tactical), cuts=list.filter(m=>m.opening&&!m.circuitCut&&!m.arenaCut&&!m.minorMove),circuit=list.filter(m=>m.circuitCut),newCuts=list.filter(m=>m.arenaCut&&!m.tactical),minorCuts=list.filter(m=>m.minorMove&&!m.tactical);
-  const groups=([['Form techniques',core],['Tactical techniques',tactical],['Ranked cuts',cuts],['Circuit cuts',circuit],['Arena cuts',newCuts],['New form moves',minorCuts],['Footwork',steps],['Force powers',expanded.filter(m=>m.kind==='force')],['Free hand',expanded.filter(m=>m.kind==='free_hand')],['Hero technique',list.filter(m=>m.id===ARCADE_TRAKATA_ID)]] satisfies [string,readonly TechniqueRow[]][]).filter(([,items])=>items.length).map(([label,items])=>{
+  const groups=([['Form',core],['Tactical',tactical],['Ranked Cuts',cuts],['Circuit Cuts',circuit],['Arena Cuts',newCuts],['Form Moves',minorCuts],['Footwork',steps],['Force',expanded.filter(m=>m.kind==='force')],['Free Hand',expanded.filter(m=>m.kind==='free_hand')],['Hero',list.filter(m=>m.id===ARCADE_TRAKATA_ID)]] satisfies [string,readonly TechniqueRow[]][]).filter(([,items])=>items.length).map(([label,items])=>{
     const group=document.createElement('optgroup');group.label=label;
     group.append(...items.map(m=>new Option(m.name,m.id)));return group;
   });
@@ -434,20 +435,22 @@ function setTechniqueHint(){
   if(foldName)foldName.textContent=pick?.text??'Technique';
   if($('chosenTechnique').value===ARCADE_TRAKATA_ID){
     $('quickTechnique').title=heroTechnique.name;
-    $('techniqueHelp').textContent='Douse the saber, then reignite into a strike. No guard while dark.';
+    setPills($('techniqueHelp'),['Relight Strike','No Guard']);
     return;
   }
   const selected=$('chosenTechnique').value, step=footworkByTechnique[selected];
   if(step){
     $('quickTechnique').title=step.label;
-    $('techniqueHelp').textContent=field(footworkHelp,step.path)+' Costs '+step.cost+' stamina.';
+    setPills($('techniqueHelp'),[field(footworkHelp,step.path)??'Footwork',step.cost+' STA']);
     return;
   }
   const expanded=arcadeExpandedMoveById(selected,{forceVariants:game.config.forceVariants===true});
-  if(expanded){$('quickTechnique').title=expanded.label;$('techniqueHelp').textContent=expanded.description+' Costs '+expanded.cost+' stamina.';return;}
+  if(expanded){$('quickTechnique').title=expanded.label;setPills($('techniqueHelp'),[expanded.kind==='force'?'Force':'Free Hand',expanded.cost+' STA']);return;}
   const m=ARCADE_TECHNIQUES[selected];
-  $('quickTechnique').title=m?.name??'Selected technique';
-  $('techniqueHelp').textContent=field(MINOR_MOVE_HINTS,selected)??field(CIRCUIT_CUT_HINTS,selected)??(m?.air?'Aerial technique.':field(tacticalHint,m?.tactical)??field(techniqueHint,m?.role)??'');
+  $('quickTechnique').title=m?.name??'Technique';
+  // Tags and cost only; the long move hints stay out of the fight screen.
+  const tag=field(MINOR_MOVE_HINTS,selected)?'Form Move':field(CIRCUIT_CUT_HINTS,selected)?'Circuit Cut':m?.air?'Aerial':field(tacticalHint,m?.tactical)??field(techniqueHint,m?.role)??'';
+  setPills($('techniqueHelp'),[tag,m?.cost?m.cost+' STA':'']);
 }
 $('chosenTechnique').addEventListener('change',()=>{setTechniqueHint();document.getElementById('techFold')?.removeAttribute('open');canvas.focus({preventScroll:true});});
 
@@ -464,7 +467,7 @@ function stopAutoDuel(){
   autoDuel.stop();syncAutoDuel();
   $('modeLabel').textContent='Showdown';
   if($('result').hidden)canvas.focus({preventScroll:true});else $('again').focus({preventScroll:true});
-  announce('Auto battle stopped.');
+  announce('Auto battle stopped');
 }
 for(const id of ['stopAutoDuel','stopAutoDuelResult'] as const)$(id).addEventListener('click',stopAutoDuel);
 function launch(automatic=false){
@@ -515,11 +518,11 @@ function pause(value:boolean,{focus=true}={}){
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
-function arenaKeyboardHint(){return keyLabel(arenaBindings.jump)+' to jump · '+keyLabel(arenaBindings.strike)+' in the air to strike · '+keyLabel(arenaBindings.guard)+' to parry';}
+function arenaKeyboardHint(){return [keyLabel(arenaBindings.jump)+' Jump',keyLabel(arenaBindings.strike)+' Air Strike',keyLabel(arenaBindings.guard)+' Parry'];}
 function syncKeyLabels(bindings=arenaBindings){
   for(const [action,key] of Object.entries(bindings))document.querySelectorAll<HTMLElement>(`[data-action="${action}"] kbd,[data-key-action="${action}"] kbd`).forEach(k=>{k.textContent=keyLabel(key);});
 }
-const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=bindings;clearInput(false);syncKeyLabels(bindings);if(view==='game'&&mode!=='watch'&&mode!=='command'&&!mobileUI.matches)$('helpText').textContent=arenaKeyboardHint();});
+const keysPanel=mountKeysPanel((map,bindings)=>{keyMap=map;arenaBindings=bindings;clearInput(false);syncKeyLabels(bindings);if(view==='game'&&mode!=='watch'&&mode!=='command'&&!mobileUI.matches)setPills($('helpText'),arenaKeyboardHint());});
 syncKeyLabels(keysPanel.bindings());
 $('keysOpen').addEventListener('click',()=>{if(paused){clearInput(false);keysPanel.open();}});
 $('keysDialog').addEventListener('close',()=>{clearInput(false);if(paused&&!settingsDialog?.open)$('keysOpen').focus({preventScroll:true});});
@@ -621,7 +624,7 @@ function syncFullscreen(){
   document.body.dataset.fullscreen=String(fullscreen);
   button.hidden=view!=='game'||!document.fullscreenEnabled||typeof $('app').requestFullscreen!=='function';
   $('mobileTools').hidden=view!=='game'||button.hidden&&(mode==='watch'||mode==='command');
-  button.textContent=fullscreen?'Exit full screen':'Full screen';
+  button.textContent=fullscreen?'Exit Full Screen':'Full Screen';
   button.setAttribute('aria-pressed',String(fullscreen));
 }
 document.addEventListener('fullscreenchange',()=>{clearInput(false);syncFullscreen();});
@@ -631,7 +634,7 @@ $('gameFullscreen').addEventListener('click',async()=>{
     else await $('app').requestFullscreen();
   }catch{
     const button=$('gameFullscreen');
-    button.textContent='Full screen unavailable';announce('Full screen is not available in this browser.');
+    button.textContent='Unavailable';announce('Full screen unavailable');
   }
 });
 stickButton.addEventListener('pointerdown',e=>{
@@ -798,13 +801,13 @@ function renderRibbon(id:"blueInjuries"|"redInjuries",f:ArcadeFighter){
   parent.dataset.key=key;
   parent.dataset.fighter=f.id;
   const name=(f.team?'Pink ':'Blue ')+(f.slot+1);
-  parent.setAttribute('aria-label','Inspect '+name+' injuries');
-  parent.title=rows.filter(part=>part.pct>0).map(part=>part.label+' '+part.pct+'%').join(' · ')||name+' · No injuries';
+  parent.setAttribute('aria-label',name+' Injuries');
+  parent.title=rows.filter(part=>part.pct>0).map(part=>part.label+' '+part.pct+'%').join(', ')||name+': No Injuries';
   parent.replaceChildren(...rows.map(part=>{
     const label=f.fatalRegion===part.id?'Fatal':part.labelCondition;
     const el=reportCell('span',shortRegion[part.id]??part.label);
     el.dataset.level=severityLevel(label);el.dataset.compact=compactRegion[part.id]??'·';
-    el.title=part.label+' · '+part.pct+'% injured · '+label;
+    el.title=part.label+' '+part.pct+'%: '+label;
     el.setAttribute('aria-hidden','true');return el;
   }));
 }
@@ -837,15 +840,15 @@ function updateHeroWatch(){
   const stamp=JSON.stringify([hero.id,style,habit,hero.heroPlan,hero.alive,events?.last,events?.time,hero.moves?.trakata,events?.relights,reduced,heroWatchFocus]);
   if(stamp===heroWatchKey)return;
   heroWatchKey=stamp;
-  $('heroWatchPlan').textContent=hero.alive?'AI · '+titleCase(hero.heroPlan??hero.heroDoctrine??'balanced')+' plan'+(style?' · '+style:'')+(habit?' · '+habit:''):'Knocked out';
-  $('heroWatchMove').textContent=events?.last??'No major moves yet';
-  $('heroWatchTrakata').textContent='Tràkata: '+(hero.moves?.trakata??0)+' attempts · '+(events?.relights??0)+' relights';
+  setPills($('heroWatchPlan'),hero.alive?['AI',titleCase(hero.heroPlan??hero.heroDoctrine??'balanced'),style,habit]:['Knocked Out']);
+  $('heroWatchMove').textContent=events?.last??'No Moves Yet';
+  setPills($('heroWatchTrakata'),['Tràkata '+(hero.moves?.trakata??0),'Relights '+(events?.relights??0)]);
   const toggle=$('heroWatchFocus');
   const follow=hero.alive&&heroWatchFocus&&!reduced;
   toggle.disabled=!hero.alive||reduced;
-  toggle.textContent=follow?'Stop following':'Follow Hero';
+  toggle.textContent=follow?'Unfollow':'Follow Hero';
   toggle.setAttribute('aria-pressed',String(follow));
-  toggle.title=reduced?'Reduced motion keeps a fixed camera':'Keep this Hero and nearby rivals in frame';
+  toggle.title=reduced?'Reduced Motion':'';
 }
 watchChoice.addEventListener('change',()=>{watchedHeroIdentity=activeWatchHero()?.heroId??'';updateHeroWatch();});
 $('heroWatchFocus').addEventListener('click',()=>{heroWatchFocus=!heroWatchFocus;updateHeroWatch();});
@@ -855,7 +858,7 @@ $('heroWatchStats').addEventListener('click',()=>{
 });
 function arenaRatingDetail(id:string, gradeIndex:number, compact=false){
   if(!roundRated)return 'Unrated';
-  if(ratingUnrecorded)return 'Elo not recorded';
+  if(ratingUnrecorded)return 'Not Saved';
   const result=ratingReport.find(r=>r.id===id);
   const rating=result?.ratingAfter??arenaNormalRating(roundRatings[id]);
   const cap=result?.ratingCap===null?null:result?.ratingCap??arenaNormalCap(gradeIndex);
@@ -863,7 +866,7 @@ function arenaRatingDetail(id:string, gradeIndex:number, compact=false){
   if(compact)return head;
   const delta=result?.ratingDelta;
   return head+(typeof delta==='number'?' ('+(delta>0?'+':'')+delta+')':'')+
-    (cap===null?' · no rank cap':rating>=cap?' · '+ratingText(cap)+' cap · rank up':' · rank cap '+ratingText(cap));
+    (cap===null?'':rating>=cap?', Cap '+ratingText(cap)+' Reached':', Cap '+ratingText(cap));
 }
 /** One bar per fighter on each side (up to 8): full when unhurt, shrinking with the worst injured region, empty when out. */
 function renderTeamHealth(side:'blue'|'red',roster:ArcadeFighter[]){
@@ -889,7 +892,7 @@ function updateHUD(){
     const elo=lead&&roundRated?arenaRatingDetail(lead.id,lead.career.gradeIndex,true):'';
     if(side==='blue'){const name=$('blueName'), badge=own&&!ratingUnrecorded?elo:'';if(name.dataset.ownElo!==badge)name.dataset.ownElo=badge;}
     $(`${side}Rank`).textContent=rank+(elo&&(!own||ratingUnrecorded)?' · '+elo:'');
-    $(`${side}Rank`).title=lead?arenaRatingDetail(lead.id,lead.career.gradeIndex):'Displayed fighter rank';
+    $(`${side}Rank`).title=lead?arenaRatingDetail(lead.id,lead.career.gradeIndex):'Rank';
     $(`${side}Count`).textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
     renderTeamHealth(side,roster);
     if(lead)renderRibbon(`${side}Injuries`,lead);
@@ -898,10 +901,10 @@ function updateHUD(){
   if(stamina2){stamina2.hidden=!second;if(second)stamina2.value=clamp(second.energy/100,0,1);}
   const player=game.fighters.find(f=>f.control);$('quickTechnique').disabled=$('useTechnique').disabled=player?.alive===false;$('energy').hidden=!player;$('energy').value=clamp((player?.energy??0)/100,0,1);
   const low=Boolean(player?.alive&&player.energy<=30);
-  const guardHint=low?'Low stamina · weak guard':'Aim · tap to parry';
+  const guardHint=low?'Low STA':'Tap to Parry';
   if($('guardHint').textContent!==guardHint){
     $('guardHint').textContent=guardHint;
-    $('energy').setAttribute('aria-label',low?'Stamina. Low stamina weakens held guard.':'Stamina');
+    $('energy').setAttribute('aria-label',low?'Stamina Low':'Stamina');
   }
   const phaseButton=$('phaseAction'), extended=player?.saberPhase==='long';
   $('feintAction').disabled=!player?.alive;
@@ -909,16 +912,16 @@ function updateHUD(){
   phaseButton.disabled=!player?.alive;
   if(!phaseButton.hidden&&phaseButton.getAttribute('aria-pressed')!==String(extended)){
     phaseButton.setAttribute('aria-pressed',String(extended));
-    phaseButton.setAttribute('aria-label',extended?'Retract blade':'Extend blade');
+    phaseButton.setAttribute('aria-label',extended?'Retract Blade':'Extend Blade');
     $('phaseLabel').textContent=extended?'Retract':'Extend';
-    $('phaseHint').textContent=extended?'Extended reach':'Short reach';
+    $('phaseHint').textContent=extended?'Long Reach':'Short Reach';
   }
   const obj=game.objective;
   if(!$('objectiveHUD').hidden&&obj){
     $('objectiveBlue').textContent=Math.floor(obj.score[0]+1e-8) as unknown as string;
     $('objectivePink').textContent=Math.floor(obj.score[1]+1e-8) as unknown as string;
     $('objectiveLabel').textContent=obj.rule==='control'?(obj.contested?'Contested':'Signal · '+obj.target)
-      :obj.relic?.carrierId?(obj.relic.carrierTeam?'Pink carries':'Blue carries'):'Relic · '+obj.target;
+      :obj.relic?.carrierId?(obj.relic.carrierTeam?'Pink Carries':'Blue Carries'):'Relic · '+obj.target;
   }
   const remaining=Math.max(0,Math.ceil(game.limit-game.time));
   $('clock').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
@@ -1174,7 +1177,7 @@ function refreshSavedRunUI(){
   $('continueRun').hidden=!savedCareer;if(homeContinue)homeContinue.hidden=!savedCareer;
   $('autoDuelSaved').hidden=!savedCareer||!canAutoSaved(savedCareer);
   $('resumeCareer').disabled=!savedCareer;
-  $('careerStatus').textContent=imported?'Classic ranks selected for new runs. The original save is unchanged.':savedCareer?'Saved run: '+titleCase(savedCareer.mode)+', round '+savedCareer.round+'.':'Completed rounds save on this device. Existing Classic saves stay separate.';
+  $('careerStatus').textContent=imported?'Classic ranks selected':savedCareer?titleCase(savedCareer.mode)+' round '+savedCareer.round+' saved':'No saved run';
  }
 function openRanks(){
   savedCareer=readCareerForUI();refreshSavedRunUI();$('rankDialog').showModal();
@@ -1187,8 +1190,8 @@ $('useClassic').addEventListener('click',async()=>{
     const result=loadCampaign();
     if(!result.game){$('careerStatus').textContent=result.error;return;}
     imported=classicCareers(result.game);
-    $('careerStatus').textContent='Classic ranks copied for matching slots in new runs. Your Classic save is unchanged.';
-  }catch{$('careerStatus').textContent='Could not read the Classic save.';}
+    $('careerStatus').textContent='Classic ranks copied';
+  }catch{$('careerStatus').textContent='Classic save unreadable';}
   finally{button.disabled=false;}
 });
 const savedSetup=(next:Career)=>normalizeSetup(next.setup??{...field(presets,next.mode),teamSizes:next.mode==='duel'?[1,1]:[3,3],duration:75,form:next.form,body:next.body});
@@ -1219,13 +1222,13 @@ window.addEventListener('storage',e=>{
   if(view==='menu')refreshSavedRunUI();
 });
 window.addEventListener('pagehide',()=>{seat?.leave();if(autoDuel.active){autoDuel.stop();syncAutoDuel();$('modeLabel').textContent='Showdown';}});
-const reportRows=[['Saber swings','saberSwings'],['Saber hits','saberHits'],
-  ['Blocks','blocks'],['Parries','parries'],['Directional reads','guardReads'],['Feints','feints'],['Ripostes','ripostes'],['Blade clashes','clashes'],['Ally-blocked swings','allyBlocks'],['Punishes','punishes'],['Counter hits','counters'],['Force casts','forceCasts'],
-  ['Force hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard deaths','environmentDeaths']] as const;
+const reportRows=[['Swings','saberSwings'],['Saber Hits','saberHits'],
+  ['Blocks','blocks'],['Parries','parries'],['Reads','guardReads'],['Feints','feints'],['Ripostes','ripostes'],['Clashes','clashes'],['Ally Blocks','allyBlocks'],['Punishes','punishes'],['Counters','counters'],['Force Casts','forceCasts'],
+  ['Force Hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard Deaths','environmentDeaths']] as const;
 function reportCell<K extends keyof HTMLElementTagNameMap>(tag:K,value:unknown,cl?:string){
   const el=document.createElement(tag);el.textContent=value as string;if(cl)el.className=cl;return el;
 }
-const defenseNames:Record<string,string>={perfect_parry:'Perfect parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Hero crossfire exit',advanced_parry:'Parry follow-up',advanced_whiff:'Changed attack line',advanced_travel:'Footwork follow-up',jump:'Jump',wheel:'Wheel hop',crossflip:'Crossflip',compact:'Compact hop',line:'Line jump',bound:'Bounding jump',drift:'Drift step',pounce:'Pounce',corkscrew:'Corkscrew jump',feint:'Feint',read:'Directional read',guard_read:'Directional read',directional_parry:'Directional parry',force_ward_block:'Force ward block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash evade',vault_step:'Vault evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing defense',pressure_recover:'Stagger recovery'};
+const defenseNames:Record<string,string>={perfect_parry:'Perfect Parry',...Object.fromEntries(ARCADE_RANK_FOOTWORK.map(m=>[m.id,m.label])),trakata:'Tràkata',hero_reposition:'Crossfire Exit',advanced_parry:'Parry Follow-Up',advanced_whiff:'Line Change',advanced_travel:'Footwork Follow-Up',jump:'Jump',wheel:'Wheel Hop',crossflip:'Crossflip',compact:'Compact Hop',line:'Line Jump',bound:'Bounding Jump',drift:'Drift Step',pounce:'Pounce',corkscrew:'Corkscrew Jump',feint:'Feint',read:'Read',guard_read:'Read',directional_parry:'Directional Parry',force_ward_block:'Lattice Block',guard:'Guard',block:'Block',parry:'Parry',dash:'Dash Evade',vault_step:'Vault Evade',evade:'Evade',sidestep:'Sidestep',backstep:'Backstep',clash:'Blade Bind',rank_deflect:'Deflection',rank_composure:'Composure',rankDeflect:'Deflection',rankComposure:'Composure',pressure_graze:'Glancing Defense',pressure_recover:'Stagger Recovery'};
 $('bodyRows').addEventListener('click',event=>{
   const fold=(event.target as Element|null)?.closest?.('.injury-fold');
   if(!fold)return;
@@ -1249,15 +1252,14 @@ function showInjuryReport(f:ArcadeFighter|undefined){
     const fold=document.createElement('button');fold.type='button';fold.className='injury-fold';fold.textContent=a.label;fold.setAttribute('aria-expanded','false');
     h.replaceChildren(fold);
     const risk=reportCell('td',f?.alive===false?'—':a.fatalPct+'% / '+(b?.fatalPct??0)+'%');
-    ac.dataset.label='Front';bc.dataset.label='Rear';risk.dataset.label='Fatal risk';
+    ac.dataset.label='Front';bc.dataset.label='Rear';risk.dataset.label='Fatal Risk';
     row.append(h,value,ac,bc,risk);return row;
   }));
-  const grip=String(f?.gear.weapon)==='orbit'?'Floating blades do not use either grip.':'Right arm: hand-held blade and guard. Left arm: offhand blade and free-hand moves.';
-  $('injuryReference').textContent='Combined local injury, not HP. 18% strains, 43% impairs; at '+ARCADE_LIMB_DISABLE_PCT+
-    '% the limb is disabled. '+grip+' A disabled leg limits movement and stops jumps and dashes. Head and torso condition reduces combat ability.';
-  document.getElementById('fatalReference')!.textContent=ARCADE_INJURY_REFERENCE.description;
+  // Thresholds as short pills; the rules essay stays out of the stats dialog.
+  setPills($('injuryReference'),['18% Strain','43% Impair',ARCADE_LIMB_DISABLE_PCT+'% Disabled',...(String(f?.gear.weapon)==='orbit'?['Orbit: No Grip']:['R Arm Blade','L Arm Offhand'])]);
+  document.getElementById('fatalReference')!.textContent='Guarded Hits Never Fatal';
 }
-const baseAttackNames:Record<string,string>={stamina_hit:'Stamina from clean hits',...Object.fromEntries(Object.values(ARCADE_AIR_STRIKES).map(move=>[move.id,move.label])),chain_follow:'Linked follow-up',staff_primary_hit:'Staff primary-tip hits',staff_rear_hit:'Staff reverse-tip hits',landed_riposte:'Confirmed riposte',slash:'Opening cut',slash2:'Reverse cut',slash3:'Finishing cut',slash4:'Fourth cut',thrust:'Linear thrust',wide_cut:'Wide sweep',deflect:'Guard riposte',vault:'Acrobatic vault',riposte:'Power counter',force:'Force cast',force_push:'Force push',force_burst:'Force burst',force_pulse:'Force pulse',frenzy:'Ferocity chain',sweep:'Sweep',rush:'Rush',uppercut:'Rising cut',offhand:'Offhand cut',guard_break:'Guard break'};
+const baseAttackNames:Record<string,string>={stamina_hit:'STA Gain',...Object.fromEntries(Object.values(ARCADE_AIR_STRIKES).map(move=>[move.id,move.label])),chain_follow:'Linked Follow-Up',staff_primary_hit:'Front Tip Hits',staff_rear_hit:'Rear Tip Hits',landed_riposte:'Riposte Hit',slash:'Opening Cut',slash2:'Reverse Cut',slash3:'Finishing Cut',slash4:'Fourth Cut',thrust:'Linear Thrust',wide_cut:'Wide Sweep',deflect:'Guard Riposte',vault:'Acrobatic Vault',riposte:'Power Counter',force:'Force Cast',force_push:'Push',force_burst:'Burst',force_pulse:'Pulse',frenzy:'Ferocity Chain',sweep:'Sweep',rush:'Rush',uppercut:'Rising Cut',offhand:'Offhand Cut',guard_break:'Guard Break'};
 const words=(id:string)=>id.replaceAll('_',' ').replace(/(^| )([a-z])/g,(_,space,c)=>space+c.toUpperCase());
 function showMoveStats(){
   const f=game?.fighters.find(x=>x.id===$('moveFighter').value);
@@ -1266,13 +1268,13 @@ function showMoveStats(){
   $('fighterDamageDealt').textContent=damage(f?.stats?.damage);
   $('fighterDamageTaken').textContent=damage(f?.stats?.damageTaken);
   const grade=f?.career?.grade??'F';
-  const rating=f&&roundRated?arenaRatingDetail(f.id,f.career.gradeIndex):f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo as number)+' Elo · floor '+ratingText(eloFloor(f.heroEloFloorGrade))+' · '+(f.control?'Your control':titleCase(f.heroPlan??'balanced')):'Unrated';
+  const rating=f&&roundRated?arenaRatingDetail(f.id,f.career.gradeIndex):f?.heroId&&Number.isFinite(f.heroElo)?ratingText(f.heroElo as number)+' Elo':'Unrated';
   const chess=chessReadout(f);
-  $('moveRank').textContent=f?gradeDisplayLabel(grade)+' · '+formName(f.form)+(chess?' · '+chess+' style':'')+(f.heroId?' · '+fighterGenderLabel(f.gender):'')+' · '+rating+(habitName(f)?' · '+habitName(f):''):'';
+  setPills($('moveRank'),f?[gradeDisplayLabel(grade),formName(f.form),chess,f.heroId?fighterGenderLabel(f.gender):'',rating,
+    f.heroId&&Number.isFinite(f.heroElo)?'Floor '+ratingText(eloFloor(f.heroEloFloorGrade)):'',f.heroId?(f.control?'You':titleCase(f.heroPlan??'balanced')):'',habitName(f)]:[]);
   const appearance=f?arenaFighterAppearance(f):null;
   $('fighterAppearance').hidden=!appearance;
-  $('fighterAppearanceDetails').textContent=appearance?
-    'Gender: '+appearance.gender+' · Look: '+appearance.appearance+' · '+appearance.source:'';
+  setPills($('fighterAppearanceDetails'),appearance?[appearance.gender,appearance.appearance,appearance.source]:[]);
   const moves=Object.entries(f?.moves??{}).filter(([id,n])=>n>0&&typeof id==='string').sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
   const movesUsed=document.getElementById('movesUsed');if(movesUsed)movesUsed.hidden=!moves.length;
   for(const [id,defense] of [['attackMoves',false],['defenseMoves',true]] as const){
@@ -1280,7 +1282,7 @@ function showMoveStats(){
       const row=document.createElement('div');
       row.append(reportCell('dt',defenseNames[key]??combatMoveLabel(key)??baseAttackNames[key]??arcadeForcePoolEntry(key)?.label??words(key)),reportCell('dd',n));return row;
     });
-    if(!rows.length){const row=document.createElement('div');row.append(reportCell('dt','None yet'),reportCell('dd','0'));rows.push(row);}
+    if(!rows.length){const row=document.createElement('div');row.append(reportCell('dt','None'),reportCell('dd','0'));rows.push(row);}
     $(id).replaceChildren(...rows);
   }
 }
@@ -1291,30 +1293,30 @@ $('moveFighter').addEventListener('change',()=>{
 function openStats(){
   if(view!=='game')return;
   clearInput();sim.remainder=0;sim.previous=null;
-  $('statsRound').textContent='ROUND '+round+(game.phase==='playing'?' · PAUSED':' · COMPLETE')+(roundRated?' · RATED':' · UNRATED');
+  setPills($('statsRound'),['Round '+round,game.phase==='playing'?'Paused':'Complete',roundRated?'Rated':'Unrated']);
   $('roundStats').replaceChildren(...reportRows.map(([label,key])=>{
     const row=document.createElement('tr'), head=reportCell('th',label);head.scope='row';
     row.append(head,reportCell('td',game.stats?.[key]?.[0]??0,'blue'),reportCell('td',game.stats?.[key]?.[1]??0,'pink'));return row;
   }));
   const obj=game.objective;
   if(obj?.target){
-    const row=document.createElement('tr'),h=reportCell('th',obj.rule==='control'?'Signal points':'Relic deliveries');
+    const row=document.createElement('tr'),h=reportCell('th',obj.rule==='control'?'Signal Points':'Relic Deliveries');
     h.scope='row';row.append(h,...obj.score.map((n,i)=>reportCell('td',Math.floor(n+1e-8),i?'pink':'blue')));$('roundStats').append(row);
   }
-  $('reportSeed').textContent='Seed '+seed;$('copySeed').textContent='Copy seed';
-  const eventsBy:Record<string,string>={stamina_hit:'Stamina earned',expanded_release:'Technique released',force_pool_release:'AI Force released',hero_plan:'Hero changed tactics',advanced_route:'Tactical follow-up',hero_reposition:'Hero escaped a crossfire',trakata_off:'Tràkata: blade doused',trakata_on:'Tràkata: blade relit',feint:'Feint',read:'Directional read',riposte:'Riposte',ally_blocked:'Ally blocked strike lane',clash:'Blade clash',parry:'Parry',break:'Guard break',ko:'Knockout',hazard:'Hazard hit',capture:'Point captured',deliver:'Relic delivered',pickup:'Relic picked up',drop:'Relic dropped'};
+  $('reportSeed').textContent='Seed '+seed;$('copySeed').textContent='Copy Seed';
+  const eventsBy:Record<string,string>={stamina_hit:'STA Gain',expanded_release:'Technique',force_pool_release:'AI Force',hero_plan:'Hero Tactic',advanced_route:'Follow-Up',hero_reposition:'Crossfire Exit',trakata_off:'Tràkata Off',trakata_on:'Tràkata Relit',feint:'Feint',read:'Read',riposte:'Riposte',ally_blocked:'Ally Blocked',clash:'Clash',parry:'Parry',break:'Guard Break',ko:'Knockout',hazard:'Hazard Hit',capture:'Point Captured',deliver:'Relic Delivered',pickup:'Relic Pickup',drop:'Relic Dropped'};
   const namedCommit=(e:ArcadeEvent)=>(e.contact as number)>0&&!e.offhand&&combatMoveLabel(e.moveId??e.technique,e);
   const visible=game.events.filter(e=>e.punish||e.region||eventsBy[e.kind]||namedCommit(e)).slice(-8).reverse();
   const eventLabel=(e:ArcadeEvent)=>{
-    if(e.kind==='stamina_hit')return 'Stamina +'+Math.round((e.staminaGain as number)*10)/10+' · '+regionName(e.region as string);
-    if(e.kind==='parry'&&e.perfect)return 'Perfect parry';
-    if(e.kind==='force_pool_release')return (arcadeForcePoolEntry(typeof e.poolAbility==='string'?e.poolAbility:undefined)?.label??'Force')+' released';
+    if(e.kind==='stamina_hit')return '+'+Math.round((e.staminaGain as number)*10)/10+' STA '+regionName(e.region as string);
+    if(e.kind==='parry'&&e.perfect)return 'Perfect Parry';
+    if(e.kind==='force_pool_release')return (arcadeForcePoolEntry(typeof e.poolAbility==='string'?e.poolAbility:undefined)?.label??'Force');
     const expanded=e.kind==='expanded_release'&&arcadeExpandedMoveById(e.moveId as string,{forceVariants:true});
     if(expanded)return expanded.label;
-    if(e.region)return (e.fatal||e.kind==='ko'?'Fatal hit':e.punish?'Punish':'Injury')+' · '+regionName(e.region)+(e.direction==='rear'?' (rear)':'');
+    if(e.region)return (e.fatal||e.kind==='ko'?'Fatal Hit':e.punish?'Punish':'Injury')+' '+regionName(e.region)+(e.direction==='rear'?' (Rear)':'');
     return namedCommit(e)||eventsBy[e.kind]||'Punish';
   };
-  $('recentEvents').replaceChildren(...(visible.length?visible.map(e=>reportCell('li',Math.floor(e.time??0)+'s · '+eventLabel(e))):[reportCell('li','No major events yet')]));
+  $('recentEvents').replaceChildren(...(visible.length?visible.map(e=>reportCell('li',Math.floor(e.time??0)+'s '+eventLabel(e))):[reportCell('li','No Events')]));
   const prior=$('moveFighter').value;
   fillOptions($('moveFighter'),game.fighters.map(f=>[f.id,(f.displayName??((f.team?'Pink ':'Blue ')+(f.slot+1)))+' · '+formName(f.form)]));
   $('moveFighter').value=game.fighters.some(f=>f.id===prior)?prior:game.fighters.find(f=>f.control)?.id??game.fighters[0].id;
@@ -1322,21 +1324,21 @@ function openStats(){
   const awards=settleArcadeCareer(game,roundRatings);
   $('fighterStats').replaceChildren(...game.fighters.map(f=>{
     const side=f.team?'Pink':'Blue', row=document.createElement('tr'), label=reportCell('th',f.displayName??side+' '+(f.slot+1),f.team?'pink':'blue');
-    label.scope='row';if(f.displayName)label.append(reportCell('small',side+' '+(f.slot+1)+' · Hero'));label.append(reportCell('small',formName(f.form)),reportCell('small',arcadeSaberOption(f.gear).label));
-    const chess=chessReadout(f),habit=habitName(f);if(chess)label.append(reportCell('small',chess+' style'));
+    label.scope='row';if(f.displayName)label.append(reportCell('small',side+' '+(f.slot+1)),reportCell('small','Hero'));label.append(reportCell('small',formName(f.form)),reportCell('small',arcadeSaberOption(f.gear).label));
+    const chess=chessReadout(f),habit=habitName(f);if(chess)label.append(reportCell('small',chess));
     if(habit)label.append(reportCell('small',habit));
-    if(f.gear?.dualPhase)label.append(reportCell('small',f.saberPhase==='long'?'Extended phase':'Short phase'));
+    if(f.gear?.dualPhase)label.append(reportCell('small',f.saberPhase==='long'?'Long Blade':'Short Blade'));
     const earned=awards?.report.find(a=>a.id===f.id), summary=earned?.after??f.career;
     const rank=reportCell('td',''), record=game.records?.soldiers.find(r=>r.id===f.id);
-    rank.append(reportCell('b',gradeDisplayLabel(summary?.grade??'F')),reportCell('small',(summary?.merit??0).toLocaleString()+' pts'+(earned?.reward?' / +'+earned.reward:'')+(earned?.promoted?' · Up':'')));
+    rank.append(reportCell('b',gradeDisplayLabel(summary?.grade??'F')),reportCell('small',(summary?.merit??0).toLocaleString()+' XP'+(earned?.reward?' +'+earned.reward:'')+(earned?.promoted?' Up':'')));
     if(roundRated)rank.append(reportCell('small',arenaRatingDetail(f.id,f.career.gradeIndex)));
-    row.append(label,rank,reportCell('td',[record?.kills??0,record?.deaths??0,record?.assists??0].join(' / ')));return row;
+    row.append(label,rank,reportCell('td',[record?.kills??0,record?.deaths??0,record?.assists??0].join('/')));return row;
   }));
   $('statsDialog').showModal();
 }
 $('copySeed').addEventListener('click',async()=>{
   try{await navigator.clipboard.writeText(String(seed));$('copySeed').textContent='Copied';}
-  catch{$('copySeed').textContent='Copy unavailable';}
+  catch{$('copySeed').textContent='Copy Failed';}
 });
 $('resultStats').addEventListener('click',openStats);
 $('statsDialog').addEventListener('close',()=>{if(!paused&&game.phase==='playing')canvas.focus({preventScroll:true});});

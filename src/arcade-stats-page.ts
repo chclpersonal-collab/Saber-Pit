@@ -41,33 +41,34 @@ export function renderStats(root:HTMLElement,view:StatsView){
   root.replaceChildren();
   if(!view){
     const empty=el('div','st-empty');
-    empty.append(el('b',undefined,'No saved run yet'),el('span',undefined,'Complete a round to save Arena ranks. Elo appears after a rated round.'));
+    empty.append(el('b',undefined,'No Saved Run'));
     root.append(empty);return;
   }
-  const head=el('section','st-card st-hero');head.setAttribute('aria-label','Your run');
+  const head=el('section','st-card st-hero');head.setAttribute('aria-label','Your Run');
   const who=el('div','st-who');
-  who.append(el('b',undefined,view.you?'You · '+label(view.you):view.mode),el('span',undefined,view.you?`${view.mode} · Next round ${view.round}`:`Next round ${view.round}`));
+  const meta=el('span');for(const part of view.you?[view.mode,'Round '+view.round]:['Round '+view.round])meta.append(el('span','v6-meta',part));
+  who.append(el('b',undefined,view.you?label(view.you):view.mode),meta);
   const tiles=el('dl','st-tiles');
   const tile=(name:string,value:string,cls='')=>{const d=el('div','st-tile '+cls);d.append(el('dt',undefined,name),el('dd',undefined,value));tiles.append(d);};
   const main=view.you??view.best;
-  if(main){tile(view.you?'Rank':'Top rank',main.rank??'—','st-rank');tile(view.you?'Elo':'Top Elo',fmt(main.elo));}
-  tile('Rated fighters',String(view.ratedCount));
-  if(view.best&&view.best!==main)tile('Highest saved Elo',fmt(view.best.elo)+' · '+label(view.best));
+  if(main){tile(view.you?'Rank':'Top Rank',main.rank??'—','st-rank');tile(view.you?'Elo':'Top Elo',fmt(main.elo));}
+  tile('Rated',String(view.ratedCount));
+  if(view.best&&view.best!==main)tile('Best Elo',fmt(view.best.elo));
   head.append(who,tiles);root.append(head);
 
   const board=el('div','st-teams');
   view.teams.forEach((team,i)=>{
     if(!team.length)return;
     const card=el('section','st-card st-team st-team-'+(i?'pink':'blue'));
-    const h=el('h3',undefined,i?'Pink team':'Blue team');const id='stTeam'+i;h.id=id;card.setAttribute('aria-labelledby',id);
+    const h=el('h3',undefined,i?'Pink':'Blue');const id='stTeam'+i;h.id=id;card.setAttribute('aria-labelledby',id);
     const list=el('ol','st-list');
     for(const f of team){
       const row=el('li','st-row'+(view.you?.id===f.id?' st-you':''));
-      const name=el('span','st-name',label(f)+(view.you?.id===f.id?' (you)':''));
+      const name=el('span','st-name',label(f)+(view.you?.id===f.id?' (You)':''));
       const rank=el('span','st-badge',f.rank??'—');
-      rank.setAttribute('aria-label',f.rank?'Rank '+f.rank:'No saved rank');
+      rank.setAttribute('aria-label',f.rank?'Rank '+f.rank:'No Rank');
       const elo=el('span','st-elo',fmt(f.elo));
-      elo.setAttribute('aria-label',f.rated?'Elo '+fmt(f.elo):'No saved Elo');
+      elo.setAttribute('aria-label',f.rated?'Elo '+fmt(f.elo):'No Elo');
       row.append(name,rank,elo);list.append(row);
     }
     card.append(h,list);board.append(card);

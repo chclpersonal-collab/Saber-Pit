@@ -70,7 +70,7 @@ export function createArcadeFloatingText(){
        let cue:Cue|null=combatCallout(event,f,focus);
        if(f?.chessStyle==='pawn'&&f.chessPawn?.promoted&&!promoted.has(actor)&&['hit','launch'].includes(event.kind)){
          promoted.add(actor);
-         cue={label:'PAWN PROMOTED',style:'QUEEN RANGE',priority:4,tone:'promotion',life:1.05,key:'promotion:'+actor};
+         cue={label:'PAWN PROMOTED',style:'PAWN → QUEEN',priority:4,tone:'promotion',life:1.05,key:'promotion:'+actor};
        }
        if(!cue||crowd&&!focus&&cue.priority<4)continue;
        const family=arcadeCalloutFamily(cue.label);

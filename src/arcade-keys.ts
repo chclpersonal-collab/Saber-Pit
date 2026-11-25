@@ -3,10 +3,10 @@ import type {SaveStorage, StorageReader} from './arcade-save-types.js';
 /** Keyboard bindings for the Arena. Stored on this device only, never in a save or a backup. */
 export const KEY_BINDINGS_KEY='saber-pit-keys-v1';
 export const KEY_ACTIONS=[
-  ['up','Move up'],['down','Move down'],['left','Move left'],['right','Move right'],
+  ['up','Move Up'],['down','Move Down'],['left','Move Left'],['right','Move Right'],
   ['strike','Slash'],['heavy','Signature'],['guard','Guard'],['dash','Dash'],['jump','Jump'],
-  ['feint','Feint'],['force','Force'],['technique','Technique'],['phase','Extend blade'],['walk','Walk'],
-  ['stats','Scoreboard (hold)'],
+  ['feint','Feint'],['force','Force'],['technique','Technique'],['phase','Extend Blade'],['walk','Walk'],
+  ['stats','Scoreboard (Hold)'],
 ] as const;
 export type KeyAction = typeof KEY_ACTIONS[number][0];
 export type KeyBindings = Record<KeyAction,string>;

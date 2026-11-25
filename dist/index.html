@@ -129,11 +129,11 @@ body[data-seat-opening] #entry{visibility:hidden}
     <canvas id="arena" width="1120" height="640" tabindex="0" aria-label="Loomen arena"></canvas>
     <div class="grain" aria-hidden="true"></div>
     <section id="hud" class="hud" aria-label="Match status" hidden>
-      <div class="health blue"><div class="hud-label"><strong id="blueName">Blue side</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><button id="blueInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina" title="At 30% stamina or lower, holding guard is weaker. Perfect parries and clean saber hits restore stamina."></progress></div>
+      <div class="health blue"><div class="hud-label"><strong id="blueName">Blue</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><button id="blueInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina"></progress></div>
       <div class="clock"><span id="round">Round 1</span><strong id="clock">0:45</strong></div>
-      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink side</strong></div><button id="redInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 stamina" hidden></progress></div>
+      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink</strong></div><button id="redInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 Stamina" hidden></progress></div>
     </section>
-    <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
+    <div id="mapCaption" class="map-caption"><p class="eyebrow">Map Preview</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc" hidden></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
     <dialog id="scoreboard" class="scoreboard" aria-labelledby="scoreboardTitle" hidden>
       <div class="sb-head"><h2 id="scoreboardTitle" class="sr">Scoreboard</h2><p class="sb-score"><b id="scoreboardBlue" class="blue">0</b> – <b id="scoreboardPink" class="pink">0</b></p><p class="sb-meta"><span id="scoreboardRound" class="v6-meta">Round 1</span><span id="scoreboardMeta"></span></p><span id="scoreboardBadge" class="sb-badge">UNRATED</span><span class="sb-actions"><button type="button" id="scoreboardDetails">Details</button><button type="button" id="scoreboardClose" aria-label="Close scoreboard">Close</button></span></div>
@@ -141,59 +141,59 @@ body[data-seat-opening] #entry{visibility:hidden}
       <p id="scoreboardNote" class="sb-note" hidden></p>
     </dialog>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
-      <div class="dialog"><p class="eyebrow">LOOMEN</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" id="pauseSettings">Settings</button><button type="button" data-home>Setup</button></div></div>
+      <div class="dialog"><p class="eyebrow">Loomen</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Controls</button><button type="button" id="pauseSettings">Settings</button><button type="button" data-home>Leave</button></div></div>
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
       <div class="dialog result-card"><p class="r-top"><span class="eyebrow" id="resultRound"></span><span id="resultBadge" class="r-badge">UNRATED</span></p><h2 id="resultTitle"></h2><p id="resultText"></p>
       <p id="resultWho" class="r-who" hidden></p><dl id="resultTiles" class="r-tiles" aria-label="Round stats"></dl><p id="resultHits" class="r-hits"></p>
       <section id="resultElo" class="r-elo" aria-label="Elo"></section>
       <p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><p id="autoDuelCountdown" class="promotion" hidden></p><div class="dialog-actions">
-      <button type="button" id="again" class="primary">Next round</button><button type="button" id="resultStats">Stats</button><button type="button" id="resultSettings">Settings</button><button type="button" id="stopAutoDuelResult" hidden>Stop auto</button><button type="button" data-home>Setup</button></div></div>
+      <button type="button" id="again" class="primary">Next Round</button><button type="button" id="resultStats">Stats</button><button type="button" id="resultSettings">Settings</button><button type="button" id="stopAutoDuelResult" hidden>Stop Auto</button><button type="button" data-home>Leave</button></div></div>
     </section>
   </div>
   <div class="floor-ui" id="floorUI" hidden>
     <div class="loadout"><span id="profileText">Duelist</span><strong id="modeLabel">Duel</strong></div><div id="commandBar" hidden aria-label="Team orders"><button type="button" data-order="push">Push</button><button type="button" data-order="hold">Hold</button><button type="button" data-order="regroup">Regroup</button><button type="button" data-order="flank">Flank</button></div>
     <section id="heroWatch" class="hero-watch" aria-label="Hero watch" hidden>
-      <div class="hero-watch-profile"><p class="eyebrow">HERO WATCH</p>
+      <div class="hero-watch-profile"><p class="eyebrow">Hero Watch</p>
         <label for="heroWatchChoice" class="sr">Watched Hero</label><select id="heroWatchChoice"></select>
         <span id="heroWatchPlan"></span></div>
       <div class="hero-watch-activity"><strong id="heroWatchMove"></strong><span id="heroWatchTrakata"></span></div>
-      <div class="hero-watch-actions"><button id="heroWatchFocus" type="button" aria-pressed="false">Follow Hero</button><button id="heroWatchStats" type="button">Hero stats</button></div>
+      <div class="hero-watch-actions"><button id="heroWatchFocus" type="button" aria-pressed="false">Follow Hero</button><button id="heroWatchStats" type="button">Hero Stats</button></div>
     </section>
     <div class="touch-pad" aria-label="Movement controls">
-      <button type="button" id="touchStick" class="touch-stick" aria-label="Movement stick" title="Drag to move. Keyboard and screen readers can switch to arrow controls."><span class="stick-thumb" aria-hidden="true"></span></button>
-      <button type="button" id="walkTouch" aria-pressed="false" aria-label="Toggle walking">Walk</button>
+      <button type="button" id="touchStick" class="touch-stick" aria-label="Movement Stick"><span class="stick-thumb" aria-hidden="true"></span></button>
+      <button type="button" id="walkTouch" aria-pressed="false" aria-label="Walk">Walk</button>
       <button type="button" data-move="up" aria-label="Move up">↑</button><button type="button" data-move="left" aria-label="Move left">←</button><button type="button" data-move="down" aria-label="Move down">↓</button><button type="button" data-move="right" aria-label="Move right">→</button>
     </div>
     <div class="actions" id="actions" aria-label="Combat controls">
-      <button type="button" data-action="strike"><kbd>J</kbd><b>Slash</b><small>Chain slashes</small></button>
-      <button type="button" data-action="heavy" aria-label="Signature attack"><kbd>K</kbd><b class="action-full">Signature</b><b class="action-compact" aria-hidden="true">Heavy</b><small id="signatureHint">Heavy attack</small></button>
+      <button type="button" data-action="strike"><kbd>J</kbd><b>Slash</b><small>Chain</small></button>
+      <button type="button" data-action="heavy" aria-label="Signature attack"><kbd>K</kbd><b class="action-full">Signature</b><b class="action-compact" aria-hidden="true">Heavy</b><small id="signatureHint">Heavy Attack</small></button>
       <button type="button" id="forceAction" data-action="force"><kbd>F</kbd><b>Force</b><small id="forceHint">Force</small></button>
-      <button type="button" data-action="jump" title="A form-specific jump"><kbd>Q</kbd><b>Jump</b><small id="airControlHint">Form footwork</small></button>
-      <button type="button" data-action="dash"><kbd>Shift</kbd><b>Dash</b><small>Dash + slash</small></button>
-      <button type="button" data-action="guard" title="Aim at the threat and tap as the strike lands. Perfect parries restore stamina. Holding guard is weaker at 30% stamina or lower."><kbd>Space</kbd><b>Guard</b><small id="guardHint">Aim · tap to parry</small></button>
-      <button type="button" id="feintAction" data-action="feint" title="Bait a guard, or cancel an early windup. Follow with Slash, Signature, or a Technique."><kbd>X</kbd><b>Feint</b><small>Bait their guard</small></button>
+      <button type="button" data-action="jump"><kbd>Q</kbd><b>Jump</b><small id="airControlHint">Form Footwork</small></button>
+      <button type="button" data-action="dash"><kbd>Shift</kbd><b>Dash</b><small>Dash + Slash</small></button>
+      <button type="button" data-action="guard"><kbd>Space</kbd><b>Guard</b><small id="guardHint">Tap to Parry</small></button>
+      <button type="button" id="feintAction" data-action="feint"><kbd>X</kbd><b>Feint</b><small>Bait Guard</small></button>
       <button type="button" id="quickTechnique" class="quick-technique" data-action="technique" aria-label="Use selected technique" hidden><b>Tech.</b></button>
-      <button type="button" id="phaseAction" data-action="phase" aria-label="Extend blade" aria-pressed="false" hidden><kbd>V</kbd><b id="phaseLabel">Extend</b><small id="phaseHint">Short reach</small></button>
+      <button type="button" id="phaseAction" data-action="phase" aria-label="Extend Blade" aria-pressed="false" hidden><kbd>V</kbd><b id="phaseLabel">Extend</b><small id="phaseHint">Short Reach</small></button>
     </div>
   </div>
   <div id="mobileTools" class="mobile-tools" aria-label="Phone controls" hidden>
-    <button type="button" id="touchLayout" aria-label="Switch movement controls">Move: Stick</button>
-    <button type="button" id="touchSide" aria-label="Switch attack hand">Hand: Right</button>
-    <button type="button" id="resetAim" aria-label="Reset to automatic aim" title="Tap a fighter to lock aim. Tap here to clear.">Aim: Auto</button>
-    <button type="button" id="gameFullscreen" aria-label="Toggle full screen" hidden>Full screen</button>
+    <button type="button" id="touchLayout" aria-label="Movement Controls">Move: Stick</button>
+    <button type="button" id="touchSide" aria-label="Attack Hand">Hand: Right</button>
+    <button type="button" id="resetAim" aria-label="Auto Aim">Aim: Auto</button>
+    <button type="button" id="gameFullscreen" aria-label="Full Screen" hidden>Full Screen</button>
   </div>
   <div id="techniqueBar" class="technique-bar" hidden><details id="techFold" class="tech-fold"><summary><span class="tech-fold-k">Tech</span> <b id="techFoldName">Technique</b></summary><div class="tech-fold-body"><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div></details></div>
-  <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
+  <footer id="help"><span id="helpText"></span><button type="button" data-home hidden>Setup</button></footer>
   <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">Saber Forms</h2><details class="v6-info"><summary aria-label="Forms info">i</summary><div class="v6-info-pop"><a class="guide-source" href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">Source</a></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
-    <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="About two players">i</summary><div class="v6-info-pop"><p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. A seat stays yours for the round, even if the controller drops. Pink's Technique uses their style's top technique. Pink on the keyboard:</p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
+    <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="Two Players info">i</summary><div class="v6-info-pop"><p class="keys-note"><span class="v6-meta">2 Pads: One Each</span><span class="v6-meta">1 Pad: Pink</span></p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
     <h3 class="keys-sub">Controller</h3>
-    <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
-    <h3 class="keys-sub">Two players</h3>
+    <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (Hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend Blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (Hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
+    <h3 class="keys-sub">Two Players</h3>
     
-    <ul class="keys-list keys-fixed" id="p2List"><li><span>Move</span><kbd>Arrows</kbd></li><li><span>Slash</span><kbd>.</kbd></li><li><span>Signature</span><kbd>/</kbd></li><li><span>Guard (hold)</span><kbd>,</kbd></li><li><span>Dash</span><kbd>;</kbd></li><li><span>Jump</span><kbd>L</kbd></li><li><span>Feint</span><kbd>M</kbd></li><li><span>Force</span><kbd>N</kbd></li><li><span>Technique</span><kbd>'</kbd></li></ul>
+    <ul class="keys-list keys-fixed" id="p2List"><li><span>Move</span><kbd>Arrows</kbd></li><li><span>Slash</span><kbd>.</kbd></li><li><span>Signature</span><kbd>/</kbd></li><li><span>Guard (Hold)</span><kbd>,</kbd></li><li><span>Dash</span><kbd>;</kbd></li><li><span>Jump</span><kbd>L</kbd></li><li><span>Feint</span><kbd>M</kbd></li><li><span>Force</span><kbd>N</kbd></li><li><span>Technique</span><kbd>'</kbd></li></ul>
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
   </dialog>
   <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
@@ -204,16 +204,16 @@ body[data-seat-opening] #entry{visibility:hidden}
       </div>
       <div class="set-panels">
         <section role="tabpanel" id="setPanelControls" aria-labelledby="setTabControls">
-          <div class="set-row"><div class="set-text"><b>Keys</b><span>Rebind moves and attacks</span></div><button type="button" id="settingsKeys" class="set-action">Edit keys</button></div>
-          <div class="set-row"><div class="set-text"><b>Phone movement</b><span>Stick or arrow pad</span></div><div class="set-seg" role="group" aria-label="Phone movement"><button type="button" data-touch-layout="stick" aria-pressed="false">Stick</button><button type="button" data-touch-layout="arrows" aria-pressed="false">Arrows</button></div></div>
-          <div class="set-row"><div class="set-text"><b>Attack hand</b><span>Side for the attack buttons</span></div><div class="set-seg" role="group" aria-label="Attack hand"><button type="button" data-touch-side="left" aria-pressed="false">Left</button><button type="button" data-touch-side="right" aria-pressed="false">Right</button></div></div>
+          <div class="set-row"><div class="set-text"><b>Keys</b></div><button type="button" id="settingsKeys" class="set-action">Edit Keys</button></div>
+          <div class="set-row"><div class="set-text"><b>Phone Movement</b></div><div class="set-seg" role="group" aria-label="Phone Movement"><button type="button" data-touch-layout="stick" aria-pressed="false">Stick</button><button type="button" data-touch-layout="arrows" aria-pressed="false">Arrows</button></div></div>
+          <div class="set-row"><div class="set-text"><b>Attack Hand</b></div><div class="set-seg" role="group" aria-label="Attack Hand"><button type="button" data-touch-side="left" aria-pressed="false">Left</button><button type="button" data-touch-side="right" aria-pressed="false">Right</button></div></div>
         </section>
         <section role="tabpanel" id="setPanelAudio" aria-labelledby="setTabAudio" hidden>
-          <div class="set-row"><div class="set-text"><b>Sound</b><span>Blade, impact and movement sounds</span></div><button type="button" id="sound" class="set-switch" aria-label="Sound" aria-pressed="false">Sound off</button></div>
+          <div class="set-row"><div class="set-text"><b>Sound</b></div><button type="button" id="sound" class="set-switch" aria-label="Sound" aria-pressed="false">Off</button></div>
         </section>
         <section role="tabpanel" id="setPanelAccess" aria-labelledby="setTabAccess" hidden>
-          <div class="set-row"><div class="set-text"><b>Text size</b><span>Arena scores, clock and objective text</span></div><div class="set-seg" role="group" aria-label="Text size"><button type="button" data-hud-text="100" aria-pressed="false">100%</button><button type="button" data-hud-text="125" aria-pressed="false">125%</button><button type="button" data-hud-text="150" aria-pressed="false">150%</button></div><select id="arenaHudText" hidden tabindex="-1" aria-hidden="true"><option value="100">100% (standard)</option><option value="125">125% (large)</option><option value="150">150% (extra large)</option></select></div>
-          <div class="set-row"><div class="set-text"><b>Reduced motion</b><span>Wide camera, fewer effects</span></div><button type="button" id="motion" class="set-switch" aria-pressed="false">Reduced motion</button></div>
+          <div class="set-row"><div class="set-text"><b>Text Size</b></div><div class="set-seg" role="group" aria-label="Text Size"><button type="button" data-hud-text="100" aria-pressed="false">100%</button><button type="button" data-hud-text="125" aria-pressed="false">125%</button><button type="button" data-hud-text="150" aria-pressed="false">150%</button></div><select id="arenaHudText" hidden tabindex="-1" aria-hidden="true"><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select></div>
+          <div class="set-row"><div class="set-text"><b>Reduced Motion</b></div><button type="button" id="motion" class="set-switch" aria-pressed="false">Reduced Motion</button></div>
         </section>
       </div>
     </div>
@@ -223,27 +223,27 @@ body[data-seat-opening] #entry{visibility:hidden}
     <div id="statsPageBody" class="st-body"></div>
   </dialog>
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
-    <div class="guide-head"><div><p class="eyebrow" id="statsRound">ROUND REPORT</p><h2 id="statsTitle">Match stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
+    <div class="guide-head"><div><p class="eyebrow" id="statsRound">Round Report</p><h2 id="statsTitle">Match Stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
     <section class="injury-report moves-used" aria-labelledby="injuryHeading">
-      <div class="injury-top"><div class="v6-title"><h3 id="injuryHeading">Body condition</h3><details class="v6-info"><summary aria-label="About body condition">i</summary><div class="v6-info-pop"><p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p></div></details></div><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
-      <details id="fighterAppearance" class="fighter-appearance-detail" open hidden><summary>Gender &amp; appearance</summary><p id="fighterAppearanceDetails"></p></details>
-      <dl class="fighter-damage" aria-label="Selected fighter damage this round"><div><dt>Damage dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>Damage taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
-      <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
+      <div class="injury-top"><div class="v6-title"><h3 id="injuryHeading">Body</h3><details class="v6-info"><summary aria-label="Body info">i</summary><div class="v6-info-pop"><p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p></div></details></div><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
+      <details id="fighterAppearance" class="fighter-appearance-detail" open hidden><summary>Look</summary><p id="fighterAppearanceDetails"></p></details>
+      <dl class="fighter-damage" aria-label="Fighter Damage"><div><dt>DMG Dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>DMG Taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
+      <div class="injury-scroll"><table aria-label="Injuries"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal Risk</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
       
-      <details class="recent-events" id="movesUsed" open><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
+      <details class="recent-events" id="movesUsed" open><summary>Moves Used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense &amp; Movement</h4><dl id="defenseMoves"></dl></section></div></details>
     </section>
     <div class="report-layout">
-      <section><h3>This round</h3><table aria-label="This round totals"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
-      <section><div class="v6-title"><h3>Fighter careers</h3><details class="v6-info"><summary aria-label="About fighter careers">i</summary><div class="v6-info-pop"><p class="report-note">K / D / A are totals across rounds. Training points are awarded when a round ends.</p></div></details></div><table aria-label="Fighter ranks and all-round kills, deaths and assists"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank / training</th><th scope="col">K / D / A</th></tr></thead><tbody id="fighterStats"></tbody></table></section>
+      <section><h3>This Round</h3><table aria-label="This Round"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
+      <section><div class="v6-title"><h3>Careers</h3><details class="v6-info"><summary aria-label="Careers info">i</summary><div class="v6-info-pop"><p class="report-note"><span class="v6-meta">K/D/A: All Rounds</span><span class="v6-meta">XP: Round End</span></p></div></details></div><table aria-label="Careers"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank</th><th scope="col">K/D/A</th></tr></thead><tbody id="fighterStats"></tbody></table></section>
     </div>
 
-    <details class="recent-events"><summary>Recent events</summary><ol id="recentEvents"></ol></details><div class="seed-tools"><span id="reportSeed"></span><button type="button" id="copySeed">Copy seed</button></div>
+    <details class="recent-events"><summary>Recent Events</summary><ol id="recentEvents"></ol></details><div class="seed-tools"><span id="reportSeed"></span><button type="button" id="copySeed">Copy Seed</button></div>
   </dialog>
   <dialog id="rankDialog" class="guide reports" aria-labelledby="rankTitle">
-    <div class="guide-head"><div><p class="eyebrow">FIGHTER CAREERS</p><h2 id="rankTitle">Saves</h2></div><form method="dialog"><button type="submit">Done</button></form></div>
+    <div class="guide-head"><div><p class="eyebrow">Careers</p><h2 id="rankTitle">Saves</h2></div><form method="dialog"><button type="submit">Done</button></form></div>
     
 
-    <div class="career-actions"><button type="button" id="useClassic">Use Classic ranks</button><button type="button" id="resumeCareer">Continue saved run</button></div>
+    <div class="career-actions"><button type="button" id="useClassic">Classic Ranks</button><button type="button" id="resumeCareer">Continue</button></div>
     <p class="report-note" id="careerStatus" role="status"></p>
 
   </dialog>

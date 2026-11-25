@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createArcadeFloatingText} from '../dist/arcade-floating-text.js';
-const f=(id,x=220,y=330)=>({id,x,y,airHeight:15,chessStyle:'rook'});
+// Only a promoted Pawn carries a subtitle; other chess styles show none.
+const f=(id,x=220,y=330)=>({id,x,y,airHeight:15,chessStyle:'pawn',chessPawn:{promoted:true}});
 const event=(id,fighterId,kind,extra={})=>({id,fighterId,kind,x:880,y:620,...extra});
 function canvas(){
  const fills=[],strokes=[];
@@ -15,7 +16,7 @@ test('move and chess subtitle emit at the performing fighter, then rise and fade
  const all=[hit],roster=[fighter],before=structuredClone([all,roster]);
  fx.update(0,all,roster);
  const a=canvas();fx.draw(a.ctx);
- assert.deepEqual(a.fills.map(t=>t.text),['LINEAR THRUST','ROOK STYLE']);
+ assert.deepEqual(a.fills.map(t=>t.text),['LINEAR THRUST','PAWN → QUEEN']);
  assert.equal(a.fills[0].x,220);assert.equal(a.fills[0].y,330-15-83);assert.ok(a.fills[0].color.startsWith('#ff'));
  assert.equal(a.strokes.length,2);
  fx.update(.25,all,roster);fx.update(.25,all,roster);
@@ -51,7 +52,7 @@ test('ordinary close-duel subtitles sit beside heads, but focus parry still name
  const fx=createArcadeFloatingText(),roster=[f('blue',560,430),f('pink',572,350)];
  fx.update(0,[event(1,'blue','rush',{technique:'thrust',contact:.19}),event(2,'pink','slash',{technique:'slash',contact:.19})],roster,{focusId:'blue'});
  const rendered=canvas();fx.draw(rendered.ctx,{reducedMotion:true});
- const subtitles=rendered.fills.filter(row=>row.text==='ROOK STYLE');
+ const subtitles=rendered.fills.filter(row=>row.text==='PAWN → QUEEN');
  assert.equal(subtitles.length,2);
  assert(subtitles.some(row=>row.x+row.width*.5<roster[0].x-30));
  assert(subtitles.some(row=>row.x-row.width*.5>roster[1].x+30));

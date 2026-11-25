@@ -15,8 +15,8 @@ import {ARCADE_BODY_REGIONS} from './arcade-injuries.js?v=2.9.0';
 const attacks={slash:'Opening Cut',slash2:'Reverse Cut',slash3:'Finishing Cut',slash4:'Fourth Cut',
  rush:'Rush Cut',sweep:'Sweep',uppercut:'Rising Cut',thrust:'Linear Thrust',wide_cut:'Wide Sweep',
  deflect:'Guard Riposte',vault:'Acrobatic Vault',riposte:'Power Counter',force:'Force Cast',frenzy:'Ferocity Chain',offhand:'Offhand Cut',guard_break:'Guard Break'};
-const powers={force_push:'Force Push',force_pull:'Force Pull',force_burst:'Force Burst',force_pulse:'Force Pulse',
- force_stasis:'Force Stasis',force_ward:'Force Ward',push:'Force Push',pull:'Force Pull',stasis:'Force Stasis',ward:'Force Ward'};
+const powers={force_push:'Push',force_pull:'Pull',force_burst:'Burst',force_pulse:'Pulse',
+ force_stasis:'Anchor',force_ward:'Lattice',push:'Push',pull:'Pull',stasis:'Anchor',ward:'Lattice'};
 const jumpNames={wheel:'Wheel Jump',line:'Line Jump',compact:'Compact Jump',corkscrew:'Corkscrew',
  crossflip:'Crossflip',bound:'Bound',drift:'Drift Jump',pounce:'Pounce'};
 const actions=new Set(['slash','rush','sweep','uppercut','force','free_hand']);
@@ -39,11 +39,12 @@ export function combatMoveLabel(id:string|null|undefined,{airStrike,forceAbility
    return (attackVariant==='inside'?'Inside ':'Outside ')+base;
  return base;
 }
+/** Only the Pawn promotion earns a subline; other chess styles stay off the fight screen. */
 function styleFor(event:CalloutEvent,f?:Fighter|null){
  const recorded=Object.hasOwn(event,'chessStyle')&&typeof event.chessStyle==='string';
  const style=ARCADE_CHESS_STYLES[recorded?event.chessStyle!:(f?.chessStyle??"")];
  const promoted=recorded?event.chessPromoted===true:f?.chessPawn?.promoted===true;
- return style?.id==='pawn'&&promoted?'PAWN → QUEEN':style&&!['none','mixed'].includes(style.id)?upper(style.label)+' STYLE':'';
+ return style?.id==='pawn'&&promoted?'PAWN → QUEEN':'';
 }
 export function combatCallout(event:CalloutEvent,f?:Fighter|null,focus=false):Cue|null{
  const kind=event.kind;
@@ -57,7 +58,7 @@ export function combatCallout(event:CalloutEvent,f?:Fighter|null,focus=false):Cu
  if(kind==='stamina_hit')return null; // the same blade already has an impact cue
  if(kind==='parry'){
    const amount=event.perfect&&event.staminaRestored!>0?Math.round(event.staminaRestored!*10)/10:0;
-   return cue(event.perfect?'Perfect Parry'+(amount?' · +'+amount+' stamina':''):'Parry',4);
+   return cue(event.perfect?'Perfect Parry'+(amount?' +'+amount+' STA':''):'Parry',4);
  }
  if(kind==='clash')return cue('Blade Clash',4);
  if(kind==='break')return cue('Guard Break',4);
@@ -80,7 +81,7 @@ export function combatCallout(event:CalloutEvent,f?:Fighter|null,focus=false):Cu
    const movement={sidestep:'Sidestep',backstep:'Backstep',vault_step:'Vault Step'};
    return cue(get(movement,event.technique)??'Dash',1,'move');
  }
- if(kind==='opponent_read')return cue('Guard read',3,'move','FEINT');
+ if(kind==='opponent_read')return cue('Guard Read',3,'move','FEINT');
  if(kind==='feint')return cue('Feint',1,'move');
  if(kind==='block')return focus?cue('Block',2):null;
  // Positive engine contact identifies a committed windup; offhand release
@@ -117,7 +118,7 @@ export function createCombatCallouts(){
        if(cue&&(!crowd||cue.priority>=4||focus))options.push({cue,focus});
        if(f?.chessStyle==='pawn'&&f.chessPawn?.promoted&&!promoted.has(f.id)&&['hit','launch'].includes(e.kind)){
          promoted.add(f.id);
-         if(!crowd||focus)options.push({cue:{label:'PAWN PROMOTED',style:'QUEEN RANGE',priority:4,tone:'promotion',
+         if(!crowd||focus)options.push({cue:{label:'PAWN PROMOTED',style:'PAWN → QUEEN',priority:4,tone:'promotion',
           life:.88,key:'promotion:'+f.id},focus});
        }
      }
