@@ -133,6 +133,9 @@ const wrap=<Tag extends keyof HTMLElementTagNameMap>(tag: Tag,style?: string | n
   if(text!=null)el.textContent=String(text);
   return el;
 };
+type MetaPart = string | number | null | undefined | false;
+/** Short facts as separate v6-meta chips instead of a dotted chain. */
+const meta=(...parts: MetaPart[])=>{const out: (string | HTMLSpanElement)[]=[];for(const part of parts){if(part===null||part===undefined||part===false||part==='')continue;if(out.length)out.push(' ');out.push(wrap('span','v6-meta',part));}return out;};
 let state=(loadTournament as unknown as Loader<SoloSave>)(),squadState=(loadSquadTournament as unknown as Loader<SquadSave>)();
 let format: TournamentFormat=location.hash==='#squads'?'squad':'solo',selectedTeamId: string | null | undefined=null;
 const isSquad=()=>format==='squad';
@@ -157,7 +160,7 @@ const friendly=(value: unknown)=>String(value??'').replace(/[_-]/g,' ').replace(
 const chessName=(f?: Pick<Fighter,'chessStyle'> | null)=>ARCADE_CHESS_STYLES[f?.chessStyle!]?.label;
 const formName=(id?: string)=>(({shii_cho:'Shii-Cho',makashi:'Makashi',soresu:'Soresu',ataru:'Ataru',djem_so:'Djem So',niman:'Niman',juyo:'Juyo'} as Record<string,string>)[id!]??friendly(id));
 const arenaName=(id?: string)=>(({underpit:'The Underpit',foundry:'The Foundry',ember_ring:'Ember Ring'} as Record<string,string>)[id!]??friendly(id));
-const roundNames=['Opening round','Quarterfinals','Semifinals','Final'];
+const roundNames=['Round 1','Quarterfinals','Semifinals','Final'];
 const chooseName=(id?: string | null)=>(isSquad()?squadState.teams?.[id!]?.name:getRecord(id)?.name)??'Undecided';
 const bracket=()=>currentState().active;
 const heroes=()=>flatten((tournamentHeroes as unknown as HeroLibrary)(state));
@@ -244,7 +247,7 @@ function syncTournamentSave(key: SaveKey){
 }
 function persist(message: string,key: SaveKey=saveKey()){
   if(syncTournamentSave(key)){
-    stop('Reloaded the latest save from another tab. This action was not saved.');return false;
+    stop('Not saved: reloaded from another tab');return false;
   }
   let written: string | undefined;
   const storage={setItem(name: string,value: string){localStorage.setItem(name,value);written=value;}};
@@ -254,24 +257,25 @@ function persist(message: string,key: SaveKey=saveKey()){
     // might have replaced it with before the following localStorage read.
     knownRaw[key]=written;
     if(syncTournamentSave(key)){
-      stop('Loaded tournament progress from another tab or device.');return false;
+      stop('Reloaded from another tab');return false;
     }
   }
-  status(result===false?message+' This browser blocked storage. Changes last until you leave this page.':message);
+  status(result===false?'Not saved: storage blocked':message);
   return result!==false;
 }
 function phaseText(result?: BoutEnd | null){
   if(!result?.reason)return '';
-  return (({'timeout':'Time decision (legacy)','draw-advance':'Draw · seed advances',decision:'Decision',ko:'Knockout',elimination:'Knockout',draw:'Draw',tiebreak:'Bracket tiebreak','runoff-score':'Tiebreak on bout activity','runoff-seed':'Seeded tiebreak','score-tiebreak':'Tiebreak on bout activity','seed-tiebreak':'Seeded tiebreak','survivors':'Survivors decision','aggregate':'Aggregate tiebreak'} as Record<string,string>))[result.reason]??friendly(result.reason);
+  return (({'timeout':'Time Decision','draw-advance':'Draw, Seed Advances',decision:'Decision',ko:'Knockout',elimination:'Knockout',draw:'Draw',tiebreak:'Tiebreak','runoff-score':'Activity Tiebreak','runoff-seed':'Seed Tiebreak','score-tiebreak':'Activity Tiebreak','seed-tiebreak':'Seed Tiebreak','survivors':'Survivors','aggregate':'Aggregate'} as Record<string,string>))[result.reason]??friendly(result.reason);
 }
 function same(id?: string | null,winner?: string | null){return id!=null&&id===winner;}
-function profileButton(record: Fighter,detail: string | null = null,source: Source='live'){
+function profileButton(record: Fighter,detail: string | MetaPart[] | null = null,source: Source='live'){
   const control=wrap('button','fighter-button');control.type='button';control.dataset.fighterId=record.id;control.dataset.source=source;
   control.setAttribute('aria-pressed',String(selectedId===record.id&&selectedSource===source));
   const name=wrap('b',null,record.name);
   appendMastery(name,earnedMasteryTitle(state,record.id));
   control.append(name);
-  if(detail)control.append(wrap('small','result',detail));
+  if(Array.isArray(detail)){const parts=meta(...detail);if(parts.length){const small=wrap('small','result');small.append(...parts);control.append(small);}}
+  else if(detail)control.append(wrap('small','result',detail));
   return control;
 }
 function appendMastery(node: HTMLElement,tag?: string | null){
@@ -300,19 +304,19 @@ function renderLeaderForms(leaders: Fighter[]){
   }
   const sorted=[...counts].sort(([a,n],[b,m])=>m-n||a.localeCompare(b));
   summary.hidden=!sorted.length;
-  summary.textContent=sorted.length?'Top 10 forms: '+sorted.map(([label,n])=>label+' '+n).join(' · '):'';
+  summary.replaceChildren(...(sorted.length?meta('Top Forms',...sorted.map(([label,n])=>label+' '+n)):[]));
 }
 function renderLeaders(){
   const leaders=flatten((tournamentLeaderboard as unknown as (state: TournamentSave, limit: number)=>Fighter[])(state,10)).slice(0,10).map(entryFor);
   renderLeaderForms(leaders);
   leaderRows.replaceChildren();
   if(!leaders.length){
-    const row=wrap('tr'),cell=wrap('td','empty','No bouts recorded.');cell.colSpan=9;row.append(cell);leaderRows.append(row);return;
+    const row=wrap('tr'),cell=wrap('td','empty','No bouts yet');cell.colSpan=9;row.append(cell);leaderRows.append(row);return;
   }
   leaders.forEach((entry,index)=>{
     const kills=count(entry.kills),deaths=count(entry.deaths),row=wrap('tr');
     const place=wrap('td',null,index+1),name=wrap('td');
-    name.append(profileButton(entry,[fighterGenderLabel(entry.gender),chessName(entry),headlineTitle(entry)].filter(Boolean).join(' · ')));
+    name.append(profileButton(entry,[fighterGenderLabel(entry.gender),chessName(entry),headlineTitle(entry)]));
     if(entry.id===selectedId&&selectedSource==='live')row.classList.add('selected');
     row.append(place,name,wrap('td',null,entry.elo.toLocaleString()),wrap('td',null,kills),wrap('td',null,deaths),
       wrap('td',null,formatter(kills,deaths)),wrap('td','wdl',wdl(entry)),...rateCells(entry));
@@ -321,16 +325,18 @@ function renderLeaders(){
 }
 const squadElo=(team?: Pick<Squad,'elo'> | null)=>Number.isFinite(team?.elo)?team!.elo:SQUAD_ELO_START;
 const eloText=(team: Squad)=>squadElo(team).toLocaleString()+' Elo';
-const squadIdentity=(team: Squad)=>[squadGenderLabel(team),eloText(team)].filter(Boolean).join(' · ');
-function teamButton(team: Squad,detail?: string | null,showElo=true){
+const squadIdentity=(team: Squad)=>meta(squadGenderLabel(team),eloText(team));
+function teamButton(team: Squad,detail?: string | MetaPart[] | null,showElo=true){
   const button=wrap('button','fighter-button');button.type='button';button.dataset.teamId=team.id;
   button.setAttribute('aria-pressed',String(team.id===selectedTeamId));
   const identity=wrap('span','squad-identity');
   const name=wrap('b',null,team.name);
   appendMastery(name,earnedMasteryTitle(squadState,team.id));
-  identity.append(name,wrap('span','squad-composition',showElo?squadIdentity(team):squadGenderLabel(team)));
+  const composition=wrap('span','squad-composition');composition.append(...(showElo?squadIdentity(team):meta(squadGenderLabel(team))));
+  identity.append(name,composition);
   button.append(identity);
-  if(detail)button.append(wrap('small','result',detail));
+  if(Array.isArray(detail)){const parts=meta(...detail);if(parts.length){const small=wrap('small','result');small.append(...parts);button.append(small);}}
+  else if(detail)button.append(wrap('small','result',detail));
   return button;
 }
 function renderSquadLeaders(){
@@ -338,7 +344,7 @@ function renderSquadLeaders(){
   renderLeaderForms([]);
   leaderRows.replaceChildren();
   if(!rows.length){
-    const row=wrap('tr'),cell=wrap('td','empty','No bouts recorded.');cell.colSpan=9;row.append(cell);leaderRows.append(row);return;
+    const row=wrap('tr'),cell=wrap('td','empty','No bouts yet');cell.colSpan=9;row.append(cell);leaderRows.append(row);return;
   }
   for(const [index,team] of rows.entries()){
     const row=wrap('tr'),name=wrap('td'),kills=count(team.kills),deaths=count(team.deaths);
@@ -350,17 +356,17 @@ function renderSquadLeaders(){
 }
 function renderCareerSearch(){
   const squad=isSquad(), input=$('careerSearch'), results=$('careerSearchRows');
-  $('careerSearchTitle').textContent=squad?'Find a squad':'Find a fighter';
-  $('careerSearchLabel').textContent=squad?'Search squad or member name':'Search fighter name';
+  $('careerSearchTitle').textContent='Search';
+  $('careerSearchLabel').textContent=squad?'Squad or Fighter':'Fighter';
   const q=String(input.value??'').trim().toLocaleLowerCase();
   results.replaceChildren();
-  if(q.length<2){$('careerSearchNote').textContent='Type at least two letters.';return;}
+  if(q.length<2){$('careerSearchNote').textContent='2+ letters';return;}
   const roster=Object.values(squad?squadState.teams:state.records);
   const matches=roster.filter(row=>row.name.toLocaleLowerCase().includes(q)||
     (squad&&(row as Squad).fighters.some(member=>member.name.toLocaleLowerCase().includes(q))))
     .sort((a,b)=>b.elo-a.elo||a.name.localeCompare(b.name));
-  $('careerSearchNote').textContent=matches.length===0?'No matches in retained records.':
-    matches.length>12?'Showing 12 of '+matches.length+' matches.':matches.length+' '+(matches.length===1?'match':'matches')+'.';
+  $('careerSearchNote').textContent=matches.length===0?'No matches':
+    matches.length>12?'12 of '+matches.length+' matches':matches.length+' '+(matches.length===1?'match':'matches');
   for(const row of matches.slice(0,12)){
     const item=wrap('li');
     const detail=squad?(row as Squad).fighters.filter(member=>member.name.toLocaleLowerCase().includes(q)).map(m=>m.name).join(', '):formName((row as Fighter).form);
@@ -372,27 +378,26 @@ function renderSeasonArchive(){
   const squad=isSquad(), current=currentState(), rows=$('seasonArchiveRows');
   rows.replaceChildren();
   for(const entry of current.history.slice(-10).reverse()){
-    const champion=entry.titleByDraw?'Drawn final · No champion':
-      (squad?current.teams![entry.championId!]?.name:entry.championName??current.records![entry.championId!]?.name)??'Champion record unavailable';
+    const champion=entry.titleByDraw?'Final Drawn':
+      (squad?current.teams![entry.championId!]?.name:entry.championName??current.records![entry.championId!]?.name)??'Unknown';
     const row=wrap('li');row.append(wrap('strong',null,champion),wrap('small','muted',`Week ${entry.season}`));rows.append(row);
   }
-  if(!rows.children.length)rows.append(wrap('li','muted','No completed seasons yet.'));
+  if(!rows.children.length)rows.append(wrap('li','muted','No champions yet'));
 }
 $('copyActiveSeed').addEventListener('click',async()=>{
   const seed=bracket()?.seed;
   if(!Number.isSafeInteger(seed))return;
-  try{await navigator.clipboard.writeText(String(seed));status('Copied bracket seed '+seed+'.');}
-  catch{status('Bracket seed: '+seed+'.');}
+  try{await navigator.clipboard.writeText(String(seed));status('Seed '+seed+' copied');}
+  catch{status('Seed: '+seed);}
 });
 function renderPeaks(){
   const squad=isSquad(), rows=(squad?squadPeakLeaderboard:tournamentPeakLeaderboard) as unknown as (state: TournamentSave)=>PeakRow[];
   const peaks=rows(squad?squadState:state);
   const body=$('peakRows');body.replaceChildren();
   $('peakSubject').textContent=squad?'Squad':'Fighter';
-  $('peakDetail').textContent=squad?'Highest recorded team Elo. Later rating drops do not erase a peak.':'Highest recorded fighter Elo. Later rating drops do not erase a peak.';
   $('peakHistory').hidden=!peaks.some(entry=>entry.peakSeason===null);
   if(!peaks.length){
-    const row=wrap('tr'),cell=wrap('td','empty','No peak ratings recorded yet.');
+    const row=wrap('tr'),cell=wrap('td','empty','No peaks yet');
     cell.colSpan=4;row.append(cell);body.append(row);return;
   }
   for(const [i,entry] of peaks.entries()){
@@ -400,7 +405,7 @@ function renderPeaks(){
     const name=wrap('td','peak-name',entry.name);appendMastery(name,masteryTitle(entry.peakElo));
     const week=seasonWeek(entry.peakSeason);
     row.append(wrap('td',null,entry.place??i+1),name,
-      wrap('td','peak-score',entry.peakElo.toLocaleString()),wrap('td',null,week===null?'Unknown':`${entry.peakSeason} / ${week}`));
+      wrap('td','peak-score',entry.peakElo.toLocaleString()),wrap('td',null,week===null?'—':`${entry.peakSeason} / ${week}`));
     body.append(row);
   }
 }
@@ -414,10 +419,11 @@ function renderTeam(){
   $('teamProfile').hidden=!team;
   if(!team)return;
   $('teamName').textContent=team.name;appendMastery($('teamName'),earnedMasteryTitle(squadState,team.id));
-  $('teamMeta').textContent=`${squadIdentity(team)} · SSS+ V · ${wdl(team)} W–D–L · ${count(team.kills)}/${count(team.deaths)} K/D`;
+  $('teamMeta').replaceChildren(...squadIdentity(team),' ',...meta('SSS+ V',`W–D–L ${wdl(team)}`,`K/D ${count(team.kills)}/${count(team.deaths)}`));
   $('teamMembers').replaceChildren(...team.fighters.map(f=>{
     const el=wrap('li'),identity=wrap('div','squad-member-identity');
-    identity.append(wrap('strong',null,f.name),wrap('small',null,[fighterGenderLabel(f.gender),formName(f.form),chessName(f)].filter(Boolean).join(' · ')));
+    const facts=wrap('small');facts.append(...meta(fighterGenderLabel(f.gender),formName(f.form),chessName(f)));
+    identity.append(wrap('strong',null,f.name),facts);
     const heroId=squadTournamentHeroId(team.id,f.id), saved=getHero(heroId);
     const action=wrap('button',null,saved?'View Hero':'Save Hero');
     action.type='button';
@@ -431,14 +437,14 @@ function renderTeam(){
 function renderBracket(active: Bracket | null,next: Fixture | null){
   bracketRows.replaceChildren();
   const rounds=Array.isArray(active?.rounds)?active.rounds:[];
-  if(!rounds.length){$('bracketCount').textContent='';bracketRows.append(wrap('p','empty','No draw yet.'));return [0,0];}
+  if(!rounds.length){$('bracketCount').textContent='';bracketRows.append(wrap('p','empty','No bracket yet'));return [0,0];}
   let done=0,total=0;
   const qualifiers=active?.qualifiers??[],opening=active?.opening??[];
   const direct=new Set(active?.directEntrants??active?.directSeeds??[]);
   function phase(fixtures: Fixture[],label: string,isQualifier: boolean,roundIndex: number){
     const group=wrap('section',isQualifier?'round-block qualifier-phase':'round-block'),list=wrap('ul','fixtures');
     group.append(wrap('h3','round-title',label));
-    if(isQualifier)group.append(wrap('p','muted phase-note',active!.fieldSize===32?'Eight qualifier paths. '+direct.size+' fighters skip qualifiers.':qualifiers.length+' advance. '+direct.size+' direct seeds start in the main draw.'));
+    if(isQualifier){const note=wrap('p','muted phase-note');note.append(...meta(active!.fieldSize===32?'8 Paths':qualifiers.length+' Advance',direct.size+' Seeded'));group.append(note);}
     group.append(list);bracketRows.append(group);
     for(const fixture of fixtures){
       total++;const result=fixture.result,winner=fixture.winnerId??result?.winnerId,move=fixture.id===next?.id;
@@ -446,32 +452,33 @@ function renderBracket(active: Bracket | null,next: Fixture | null){
       const li=wrap('li',`fixture${move?' is-next':''}`);
       for(const id of (isSquad()?fixture.teamIds:fixture.fighterIds)??[null,null]){
         const record=id?(isSquad()?squadState.teams?.[id!]:getRecord(id)):null;
-        if(!record){li.append(wrap('small','muted',roundIndex===-2||qualifiers.length&&roundIndex===0&&!isQualifier?'Advancer pending':'Winner advances'));continue;}
-        const note=same(id,winner)?(result?.reason==='draw-advance'?'Seed advanced':'Won'):(roundIndex===0||roundIndex===-2)&&!isQualifier&&direct.has(id!)?'Direct seed':null;
-        li.append(isSquad()?teamButton(record as Squad,note):profileButton(record as Fighter,[note,chessName(record as Fighter)].filter(Boolean).join(' · ')));
+        if(!record){li.append(wrap('small','muted','TBD'));continue;}
+        const note=same(id,winner)?(result?.reason==='draw-advance'?'Advanced':'Won'):(roundIndex===0||roundIndex===-2)&&!isQualifier&&direct.has(id!)?'Seeded':null;
+        li.append(isSquad()?teamButton(record as Squad,note):profileButton(record as Fighter,[note,chessName(record as Fighter)]));
       }
       const rematches=Array.isArray(fixture.attempts)?fixture.attempts.length:0;
-      const score=isSquad()&&result?.kills?.length===2?` · ${result.kills.join('–')} KOs`:'';
-      const note=winner?(phaseText(result)||'Complete')+score:move?(rematches?'Rematch pending':'Up next'):'Pending';
-      li.append(wrap('small',null,active?.terrain==='rotation'?note+' · '+arenaName(tournamentFixtureTerrain(active,fixture)):note));list.append(li);
+      const score=isSquad()&&result?.kills?.length===2?`${result.kills.join('–')} KOs`:null;
+      const note=winner?(phaseText(result)||'Done'):move?(rematches?'Rematch':'Up Next'):'Pending';
+      const facts=wrap('small');facts.append(...meta(note,winner?score:null,active?.terrain==='rotation'?arenaName(tournamentFixtureTerrain(active,fixture)):null));
+      li.append(facts);list.append(li);
     }
   }
-  if(qualifiers.length)phase(qualifiers,'Last-chance qualifiers',true,-1);
-  if(opening.length)phase(opening,'Main draw play-in',false,-2);
+  if(qualifiers.length)phase(qualifiers,'Qualifiers',true,-1);
+  if(opening.length)phase(opening,'Play-In',false,-2);
   rounds.forEach((fixtures,ix)=>{if(Array.isArray(fixtures))phase(fixtures,roundNames[ix]??`Round ${ix+1}`,false,ix);});
-  $('bracketCount').textContent=`${done} / ${total} settled`;
+  $('bracketCount').textContent=`${done}/${total}`;
   return [done,total];
 }
 function renderHeroes(){
   const list=heroes();heroRows.replaceChildren();
-  if(!list.length){heroRows.append(wrap('li','empty','Save a fighter from either tournament format.'));return;}
+  if(!list.length){heroRows.append(wrap('li','empty','No Heroes yet'));return;}
   for(const hero of list){
     const id=hero.fighterId??hero.id,li=wrap('li');
     const source=getRecord(id)??hero;
-    const recruit=wrap('a','deploy-hero','Watch in Arena');
+    const recruit=wrap('a','deploy-hero','Watch');
     recruit.href='./index.html?hero='+encodeURIComponent(id);
     recruit.setAttribute('aria-label','Watch '+(hero.name??source.name??'this Hero')+' in Arena');
-    li.append(profileButton({...source,id,name:hero.name??source.name??'Hero'},[fighterGenderLabel(hero.gender),formName(hero.form??source.form)].filter(Boolean).join(' · '),'saved'),recruit);
+    li.append(profileButton({...source,id,name:hero.name??source.name??'Hero'},[fighterGenderLabel(hero.gender),formName(hero.form??source.form)],'saved'),recruit);
     heroRows.append(li);
   }
 }
@@ -505,43 +512,43 @@ function renderProfile(){
   }
   const player: TournamentProfile=record.profile??record.adaptation?.profile??record.adaptation??{};
   const title=headlineTitle(record);
-  $('profileSource').textContent=selectedSource==='saved'?'SAVED HERO SNAPSHOT':'FIGHTER FILE';
+  $('profileSource').textContent=selectedSource==='saved'?'Saved Hero':'Fighter';
   $('fighterName').textContent=record.name;appendMastery($('fighterName'),earnedMasteryTitle(state,record.id));
   const form=formName(record.form),rank=String(record.rank??record.grade??'');
-  $('fighterTitle').textContent=[rank,form,chessName(record),fighterGenderLabel(record.gender),title].filter(Boolean).join(' · ');
+  $('fighterTitle').replaceChildren(...meta(rank,form,chessName(record),fighterGenderLabel(record.gender),title));
   const squadHero=record.sourceKind==='squad';
   const save=$('saveHero'),current=heroCurrent(live??record,saved),canSave=!squadHero&&tournamentHeroEligible(live??record);
   save.hidden=squadHero;
   save.disabled=busy||!canSave||Boolean(current);
-  save.textContent=!canSave?(played(live??record)?'SSS+ V required':'Bout required'):current?'Saved':saved?'Update Hero':'Save Hero';
+  save.textContent=!canSave?(played(live??record)?'Needs SSS+ V':'Needs 1 Bout'):current?'Saved':saved?'Update Hero':'Save Hero';
   const learned=$('learnedList');learned.replaceChildren();
   const matches=count(player.bouts,count(record.wins)+count(record.losses));
   if(squadHero){
-    learned.append(metric('Arena Elo',record.elo.toLocaleString()),metric('Source','5v5 squad · Team Elo stays separate'));
+    learned.append(metric('Arena Elo',record.elo.toLocaleString()),metric('Source','Squad'));
     return;
   }
   learned.append(metric('Elo',record.elo.toLocaleString()));
-  learned.append(metric('Win–Draw–Loss',wdl(record)));
-  learned.append(metric('Bouts studied',matches));
-  learned.append(metric('Last plan',player.lastDoctrine?friendly(player.lastDoctrine):'Balanced'));
+  learned.append(metric('W–D–L',wdl(record)));
+  learned.append(metric('Bouts',matches));
+  learned.append(metric('Plan',player.lastDoctrine?friendly(player.lastDoctrine):'Balanced'));
   const adaptive=player.loadouts;
   if(adaptive?.last){
-    const kit={single:'Single saber',reverse:'Reverse-grip single',dual:'Dual sabers',reverseDual:'Reverse-grip dual',staff:'Double-bladed saber'};
-    const reason={starter:'Starting kit',matchup:'Opponent matchup',results:'Past results',practice:'Testing an option'};
-    learned.append(metric('Last weapon',(kit as Record<string,string>)[adaptive.last.kit!]??'Single saber'));
-    if(ARCADE_TECHNIQUES[adaptive.last.move!])learned.append(metric('Prioritized move',ARCADE_TECHNIQUES[adaptive.last.move!].name));
-    if((reason as Record<string,string>)[adaptive.last.reason!])learned.append(metric('Loadout choice',(reason as Record<string,string>)[adaptive.last.reason!]));
+    const kit={single:'Single',reverse:'Backhand',dual:'Dual',reverseDual:'Backhand Dual',staff:'Double-Blade'};
+    const reason={starter:'Starter',matchup:'Matchup',results:'Results',practice:'Testing'};
+    learned.append(metric('Saber',(kit as Record<string,string>)[adaptive.last.kit!]??'Single'));
+    if(ARCADE_TECHNIQUES[adaptive.last.move!])learned.append(metric('Move',ARCADE_TECHNIQUES[adaptive.last.move!].name));
+    if((reason as Record<string,string>)[adaptive.last.reason!])learned.append(metric('Pick',(reason as Record<string,string>)[adaptive.last.reason!]));
   }
   const observed=player.observed??{};
   if(matches>0){
     if(Number.isFinite(observed.accuracy))learned.append(metric('Accuracy',pct(observed.accuracy)));
-    if(Number.isFinite(observed.guardRate))learned.append(metric('Guard reads',pct(observed.guardRate)));
-    if(Number.isFinite(observed.whiffRate))learned.append(metric('Miss rate',pct(observed.whiffRate)));
-    if(Number.isFinite(observed.counterRate))learned.append(metric('Counter rate',pct(observed.counterRate)));
+    if(Number.isFinite(observed.guardRate))learned.append(metric('Guard',pct(observed.guardRate)));
+    if(Number.isFinite(observed.whiffRate))learned.append(metric('Miss',pct(observed.whiffRate)));
+    if(Number.isFinite(observed.counterRate))learned.append(metric('Counter',pct(observed.counterRate)));
     for(const [plan,data] of Object.entries(player.variants??{})){
-      if(count(data?.bouts))learned.append(metric(friendly(plan),`${count(data.wins)} / ${count(data.bouts)} wins`));
+      if(count(data?.bouts))learned.append(metric(friendly(plan),`${count(data.wins)}/${count(data.bouts)} W`));
     }
-  }else learned.append(metric('Learning','Starts after first bout'));
+  }
 }
 function markSelected(){
   document.querySelectorAll<HTMLElement>('[data-fighter-id]').forEach(button=>{
@@ -551,8 +558,8 @@ function markSelected(){
   });
 }
 const matchPlanReasons: Readonly<Record<string,string>>={
-  'outnumbered':'Outnumbered','injury-risk':'Injury pressure','rating-risk':'Risky matchup',
-  'clock-risk':'Preserve the draw','counter-opening':'Saw a counter opening','seek-decisive':'Pushed for a decisive result'
+  'outnumbered':'Outnumbered','injury-risk':'Injury Risk','rating-risk':'Risky Matchup',
+  'clock-risk':'Hold Draw','counter-opening':'Counter Opening','seek-decisive':'Go Decisive'
 };
 const goalName=(key?: unknown)=>key==='win'?'Win':key==='draw'?'Draw':'Unknown';
 let displayedMatchReport: MatchReport | undefined;
@@ -563,17 +570,17 @@ function renderMatchReport(replay?: ReplaySpec | null){
   if(report===displayedMatchReport)return;
   displayedMatchReport=report;
   const winner=(replay!.teams??replay!.fighters)?.[report.result.winnerIndex!]?.name;
-  const result=winner?winner+' won':report.result.reason==='timeout'?'Draw at the time limit':'Draw';
-  $('planOutcome').textContent='Result: '+result+' · '+Math.round(report.elapsed)+'s of '+report.limit+'s. Plans never decide the result.';
+  const result=winner?winner+' Wins':report.result.reason==='timeout'?'Time Out Draw':'Draw';
+  $('planOutcome').replaceChildren(...meta(result,Math.round(report.elapsed)+'s/'+report.limit+'s'));
   $('planParticipants').replaceChildren(...report.sides.map(side=>{
     const item=wrap('section','plan-fighter');
-    item.append(wrap('h3',null,side.name),wrap('p','muted','Started: '+goalName(side.initialIntent)));
+    item.append(wrap('h3',null,side.name),wrap('p','muted','Start: '+goalName(side.initialIntent)));
     if(side.changes.length){
       const list=wrap('ol','plan-changes');
-      list.append(...side.changes.map(change=>wrap('li',null,Math.floor(change.time)+'s · '+goalName(change.previous)+' → '+goalName(change.intention)+(matchPlanReasons[change.reason]?' · '+matchPlanReasons[change.reason]:''))));
+      list.append(...side.changes.map(change=>{const row=wrap('li');row.append(...meta(Math.floor(change.time)+'s',goalName(change.previous)+' → '+goalName(change.intention),matchPlanReasons[change.reason]));return row;}));
       item.append(list);
-      if(side.truncated)item.append(wrap('p','muted',side.truncated+' earlier changes omitted'));
-    }else item.append(wrap('p','muted','No plan change recorded.'));
+      if(side.truncated)item.append(wrap('p','muted','+'+side.truncated+' Earlier'));
+    }else item.append(wrap('p','muted','No changes'));
     return item;
   }));
 }
@@ -582,43 +589,41 @@ function render(){
   $('soloFormat').setAttribute('aria-pressed',String(!squad));
   $('squadFormat').setAttribute('aria-pressed',String(squad));
   $('soloFormat').disabled=$('squadFormat').disabled=busy;
-  $('formatDescription').textContent=squad?'Five fighters per side, each with a chess style and a saber form.':'Every duelist uses a chess style alongside their saber form. Save fighters as Heroes for custom matches.';
   $('soloGuide').hidden=squad;
   $('squadGuide').hidden=!squad;
   $('leaderSubject').textContent=squad?'Squad':'Fighter';
   $('leaderRating').textContent='Elo';
-  $('leaderTag').textContent=squad?'TEAM ELO':'ELO';
-  $('leaderDetail').textContent=(squad?'Career team Elo. ':'Career fighter Elo. ')+'Rates count wins, draws, and losses across seasons.';
+  $('leaderTag').textContent=squad?'Team Elo':'Elo';
   renderSetup();
-  $('squadRatingRule').textContent=`Team Elo starts at ${SQUAD_ELO_START.toLocaleString()} and cannot fall below ${SQUAD_ELO_FLOOR.toLocaleString()}. Losing to a lower-rated opponent costs more Elo unless the floor stops the loss.`;
+  $('squadRatingRule').textContent=SQUAD_ELO_START===SQUAD_ELO_FLOOR?`Team Elo Floor ${SQUAD_ELO_FLOOR.toLocaleString()}`:`Team Elo Start ${SQUAD_ELO_START.toLocaleString()}, Floor ${SQUAD_ELO_FLOOR.toLocaleString()}`;
   $('resetButton').disabled=busy||!currentState().season;
-  $('seasonBadge').textContent=active?`Season ${active.season??currentState().season}`+(!squad&&active!.fieldSize===32?' · 32 fighters':''):'No season';
   const week=seasonWeek(currentState().season);
-  $('seasonWeek').textContent=week===null?'One season is one in-game week.':`In-game Week ${week} · One week per season`;
+  if(active)$('seasonBadge').replaceChildren(...meta(`Season ${active.season??currentState().season}`,week===null?null:`Week ${week}`,!squad&&active!.fieldSize===32?'32 Fighters':null));
+  else $('seasonBadge').textContent='No Season';
   const seed=active?.seed;
   $('activeSeed').hidden=!Number.isSafeInteger(seed);
   $('activeSeedValue').textContent=Number.isSafeInteger(seed)?String(seed):'';
   $('nextBout').dataset.tone=next?'active':active?.championId?'win':'empty';
-  $('nextLabel').textContent=next?(next.stage==='qualifier'?'Last-chance qualifier':next.stage==='opening'?'Main draw play-in':(roundNames[next.round-1]??`Round ${next.round}`)):active?.titleByDraw?'SEASON COMPLETE':active?.championId?'CHAMPION':'FIRST BOUT';
+  $('nextLabel').textContent=next?(next.stage==='qualifier'?'Qualifier':next.stage==='opening'?'Play-In':(roundNames[next.round-1]??`Round ${next.round}`)):active?.titleByDraw?'Season Complete':active?.championId?'Champion':'First Bout';
   if(next){
     const fighters=squad?next.teams!:next.fighters??[next.left,next.right];
     $('matchup').textContent=fighters.map(f=>f?(squad?`${f.name} (${squadGenderLabel(f as Squad)})`:f.name):'Undecided').join(' vs ');
-    $('matchMeta').textContent=[arenaName(next.terrain??active!.terrain),boutClock(count(next.limit??active!.limit)),active?.terrain==='rotation'?'Arena rotation':null,next.attempt>0?`Rematch ${next.attempt}`:null].filter(Boolean).join(' · ');
+    $('matchMeta').replaceChildren(...meta(arenaName(next.terrain??active!.terrain),boutClock(count(next.limit??active!.limit)),active?.terrain==='rotation'?'Rotation':null,next.attempt>0?`Rematch ${next.attempt}`:null));
   }else if(active?.titleByDraw){
-    $('matchup').textContent='Final drawn';
-    $('matchMeta').textContent='No title awarded. The draw is on both records.';
+    $('matchup').textContent='Final Drawn';
+    $('matchMeta').replaceChildren(...meta('No Title'));
   }else if(active?.championId){
     $('matchup').textContent=chooseName(active.championId);
-    const composition=squad?squadIdentity(squadState.teams[active.championId]):'';
-    $('matchMeta').textContent=(composition?composition+' · ':'')+'Title secured. The champion is invited to the next main draw.';
+    const composition=squad?squadIdentity(squadState.teams[active.championId]):[];
+    $('matchMeta').replaceChildren(...composition,...(composition.length?[' ']:[]),...meta('Champion'));
   }else{
-    $('matchup').textContent='The ring is empty';
-    $('matchMeta').textContent='Start a season to draw the bracket.';
+    $('matchup').textContent='No Bout';
+    $('matchMeta').replaceChildren();
   }
   const [done,total]=renderBracket(active,next);
   $('progressBar').hidden=!total;
   $('boutProgress').max=total||1;$('boutProgress').value=done;
-  $('progressLabel').textContent=`${done} of ${total} matchups settled`;
+  $('progressLabel').textContent=`${done}/${total} Bouts`;
   nextButton.disabled=busy||!next;
   runButton.disabled=busy||!next;
   cancelButton.hidden=!busy||Boolean(autoRun);
@@ -628,7 +633,7 @@ function render(){
   watchLast.hidden=!replay||previousRules;watchLast.disabled=busy;
   $('replayNotice').hidden=!previousRules;
   newButton.disabled=busy||active?.status==='running';
-  newButton.title=active?.status==='running'?'Finish this bracket first.':'';
+  newButton.title=active?.status==='running'?'Finish this bracket first':'';
   renderPeaks();renderCareerSearch();renderSeasonArchive();
   if(squad){renderSquadLeaders();renderTeam();}
   else {renderLeaders();$('teamProfile').hidden=true;}
@@ -639,11 +644,11 @@ function render(){
 function renderAutoControl(){
   const resume=!busy&&resumableRun(), hint=$('autoResumeHint');
   autoButton.disabled=Boolean(autoRun?.stopping)||busy&&!autoRun;
-  autoButton.textContent=autoRun?.stopping?'Stopping after bout…':autoRun?'Stop Auto Seasons':resume?'Resume Auto Seasons':'Auto Seasons';
+  autoButton.textContent=autoRun?.stopping?'Stopping…':autoRun?'Stop Auto':resume?'Resume Auto':'Auto Seasons';
   autoButton.setAttribute('aria-pressed',String(Boolean(autoRun)));
-  autoButton.title=autoRun?'Finish the current bout, then stop.':'Finish this bracket and draw the next one. Keep this tab open.';
-  hint.hidden=!resume;
-  hint.textContent=resume?`Saved Auto Seasons progress for Season ${resume.season}. This tab won’t run bouts until you choose Resume.`:'';
+  autoButton.title=autoRun?'Stops after this bout':'Runs seasons back to back';
+  hint.hidden=true;
+  hint.textContent=resume?`Resumes Season ${resume.season} from the last bout`:'';
 }
 function simulateInWorker(fixture: Fixture,workerPath: string): Promise<WorkerResult | null | undefined>{
   return new Promise<WorkerResult | null | undefined>((resolve,reject)=>{
@@ -661,22 +666,21 @@ function simulateInWorker(fixture: Fixture,workerPath: string): Promise<WorkerRe
 }
 async function settle(epoch: number){
   const key=saveKey();
-  if(syncTournamentSave(key)){stop('Loaded tournament progress from another tab or device.');return false;}
+  if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
   const before=nextBout();
   if(!before)return false;
   const squad=isSquad();
   let result: Settlement | false | null | undefined;
-  const ratingsBefore=isSquad()?before.teams!.map(squadElo):null;
   if(squad){
     const bout=await simulateInWorker(before,'./squad-tournament-worker.js?v=3.2.4');
     if(epoch!==runEpoch)return false;
-    if(syncTournamentSave(key)){stop('Loaded tournament progress from another tab or device.');return false;}
+    if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No squad fight result returned.');
     result=await (runSquadStep as unknown as SettleSquad)(squadState,()=>bout);
   }else if(before.limit===360||autoRun){
     const bout=await simulateInWorker(before,'./solo-tournament-worker.js?v=3.0.0');
     if(epoch!==runEpoch)return false;
-    if(syncTournamentSave(key)){stop('Loaded tournament progress from another tab or device.');return false;}
+    if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No duel result returned.');
     result=(runTournamentStep as unknown as Settle)(state,()=>bout);
   }else result=(runTournamentStep as unknown as Settle)(state,playTournamentBout as unknown as (fixture: Fixture)=>WorkerResult);
@@ -685,24 +689,20 @@ async function settle(epoch: number){
   if(result==null||result===false)throw new Error('No result returned.');
   const name=finished?chooseName(bracket()?.championId):null;
   const advance=result.result?.reason==='draw-advance'||result.reason==='draw-advance';
-  const message=finished?(bracket()?.titleByDraw?'Final drawn. No title awarded.':`${name} won the season.`):
-    before.id===after?.id?(squad&&result.attempt?.reason==='timeout'?'Clock expired. Draw recorded; rematch queued.':'Draw recorded. Rematch queued.'):
-    advance?'Draw recorded. The seed advances without a win.':
-    before.stage==='qualifier'&&after?.stage!=='qualifier'?'Qualifiers complete. The main bracket is ready.':'Bout recorded.';
-  const change=ratingsBefore?before.teams!.map((team,i)=>{
-    const afterRating=squadElo(squadState.teams[team.id]),delta=afterRating-ratingsBefore[i];
-    return `${team.name} ${afterRating.toLocaleString()} (${delta>0?'+':''}${delta})`;
-  }).join(' · '):'';
-  const saved=persist(change?`${message} Elo: ${change}.`:message);
+  const message=finished?(bracket()?.titleByDraw?'Final drawn, no title':`${name} wins the season`):
+    before.id===after?.id?(squad&&result.attempt?.reason==='timeout'?'Time out: draw, rematch queued':'Draw, rematch queued'):
+    advance?'Draw, seed advances':
+    before.stage==='qualifier'&&after?.stage!=='qualifier'?'Qualifiers done, main draw ready':'Bout saved';
+  const saved=persist(message);
   if(epoch!==runEpoch)return false;
-  if(autoRun&&!saved){autoSaveFailed('latest bout');return false;}
+  if(autoRun&&!saved){autoSaveFailed('bout');return false;}
   rememberAuto();
   render();
   return Boolean(after);
 }
 function autoSaveFailed(what: string){
   restorePersistedTournament(saveKey());
-  stop(`Auto Seasons stopped because this browser could not save the ${what}. Saved progress was kept.`,{keepResume:true});
+  stop(`Auto stopped: could not save ${what}`,{keepResume:true});
 }
 function stop(message?: string | null,{paint=true,keepResume=false}={}){
   if(autoRun&&!keepResume)discardResume(saveKey(),autoRun.owner);
@@ -716,11 +716,11 @@ function startProgress(begin: () => void | Promise<void>,{requireLock=false}={})
   const key=saveKey(), intent=runEpoch;
   function ready(){
     if(runEpoch!==intent||saveKey()!==key||replayDialog.open)return;
-    if(syncTournamentSave(key)){stop('Loaded tournament progress from another tab or device. Try again to continue.');return;}
+    if(syncTournamentSave(key)){stop('Reloaded from another tab, try again');return;}
     begin();
   }
   if(requireLock&&(typeof navigator.locks?.request!=='function'||typeof Worker!=='function')){
-    status('Auto Seasons needs browser support for workers and tab locking. You can still run one bracket at a time.');return;
+    status('Auto cannot run: no tab locking');return;
   }
   if(typeof navigator.locks?.request!=='function'){ready();return;}
   claiming=true;
@@ -728,7 +728,7 @@ function startProgress(begin: () => void | Promise<void>,{requireLock=false}={})
     navigator.locks.request('saber-pit:progress:'+key,{ifAvailable:true},lock=>{
       claiming=false;
       if(runEpoch!==intent||saveKey()!==key)return;
-      if(!lock){status('This tournament is already running in another tab. Stop it there or wait for it to finish.');return;}
+      if(!lock){status('Running in another tab');return;}
       const retained=new Promise<void>(resolve=>{releaseRunLock=resolve;});
       ready();
       if(!busy){releaseRunLock?.();releaseRunLock=null;}
@@ -736,15 +736,15 @@ function startProgress(begin: () => void | Promise<void>,{requireLock=false}={})
     }).catch(error=>{
       claiming=false;
       console.error('Tournament lock failed',error);
-      stop('Couldn’t secure this tournament tab. Existing progress was kept.');
+      stop('Couldn’t lock this tab, progress kept');
     });
   }catch(error){
     claiming=false;
     console.error('Tournament lock failed',error);
-    stop('Couldn’t secure this tournament tab. Existing progress was kept.');
+    stop('Couldn’t lock this tab, progress kept');
   }
 }
-const autoStatus=()=>`Auto Seasons · Season ${currentState().season} · Keep this tab open.`;
+const autoStatus=()=>`Auto: season ${currentState().season}`;
 function scheduleTick(epoch: number,delay: number){timer=setTimeout(()=>tick(epoch),delay);}
 function drawSeason(options: SeasonOptions){
   if(isSquad())return (startSquadTournament as unknown as Open)(squadState,options);
@@ -761,30 +761,30 @@ async function tick(epoch: number){
   if(!busy||epoch!==runEpoch)return;
   try{
     if(autoRun&&(!nextBout())){
-      if(autoRun.stopping){stop('Auto Seasons stopped. Completed bouts were kept.');return;}
-      if(syncTournamentSave(saveKey())){stop('Loaded tournament progress from another tab or device.');return;}
+      if(autoRun.stopping){stop('Auto stopped, bouts kept');return;}
+      if(syncTournamentSave(saveKey())){stop('Reloaded from another tab');return;}
       if(bracket()?.status==='running')throw new Error('Running bracket has no available matchup');
       const config=autoRun, number=currentState().season;
       drawSeason({...config.options,seed:nextAutoSeed(config)});
       if(currentState().season<=number||!nextBout())throw new Error('No next season was drawn');
       steps=0;
-      if(!persist(autoStatus())){if(epoch===runEpoch)autoSaveFailed('new bracket');return;}
+      if(!persist(autoStatus())){if(epoch===runEpoch)autoSaveFailed('bracket');return;}
       rememberAuto();
       render();
     }
-    if(steps++>=100){stop('Simulation limit reached. Finished bouts are saved.',{keepResume:true});return;}
+    if(steps++>=100){stop('Sim limit reached, bouts saved',{keepResume:true});return;}
     processingBout=true;
     const more=await settle(epoch);
     if(epoch!==runEpoch)return;
     processingBout=false;
-    if(autoRun?.stopping){stop('Auto Seasons stopped. The last bout was saved.');return;}
+    if(autoRun?.stopping){stop('Auto stopped, last bout saved');return;}
     if(!more&&!autoRun){stop();return;}
     if(autoRun)status(autoStatus());
     scheduleTick(epoch,autoRun?(more?60:300):24);
   }catch(error){
     if(epoch!==runEpoch)return;
     console.error('Tournament simulation stopped',error);
-    stop('Couldn’t continue the tournament. Completed results were kept.',{keepResume:true});
+    stop('Couldn’t continue, results kept',{keepResume:true});
   }
 }
 nextButton.addEventListener('click',()=>{
@@ -793,7 +793,7 @@ nextButton.addEventListener('click',()=>{
     if(!nextBout())return;
     discardResume(saveKey());
     const epoch=++runEpoch;
-    busy=true;render();status(isSquad()?'Simulating this squad bout…':'Simulating this bout…');
+    busy=true;render();status('Simulating bout…');
     try{
       await settle(epoch);
       if(epoch!==runEpoch)return;
@@ -802,7 +802,7 @@ nextButton.addEventListener('click',()=>{
     }catch(error){
       if(epoch!==runEpoch)return;
       console.error('Tournament bout failed',error);
-      stop('Couldn’t simulate this bout. Completed results were kept.');
+      stop('Couldn’t simulate bout, results kept');
     }
   });
 });
@@ -817,41 +817,36 @@ runButton.addEventListener('click',()=>{
   });
 });
 cancelButton.addEventListener('click',()=>{
-  stop('Stopped. Completed bouts were kept.');if(!runButton.disabled)runButton.focus();
+  stop('Stopped, bouts kept');if(!runButton.disabled)runButton.focus();
 });
 const soloField=$('fieldInput'),clockSelect=$('limitInput'),longClock=$('longClock');
 const clocks: {solo: Record<string,string>; squad: string}={solo:{32:'360',24:'75'},squad:'150'};
 function renderSetup(){
   const squad=isSquad(),veteran=!squad&&soloField.value==='32';
   $('fieldSetting').hidden=squad;soloField.disabled=squad;
-  $('squadClockHelp').hidden=!squad;
   longClock.hidden=longClock.disabled=!veteran;
   clockSelect.value=squad?clocks.squad:clocks.solo[soloField.value];
-  $('newNote').textContent=veteran?
-    '32 fighters. Career #1–8 and last season’s quarterfinalists skip qualifiers. Rated veterans fill qualifiers first, with at least 4 recruit places.':
-    squad?'24 squads. Last season’s quarterfinalists and career #1–8 skip qualifiers. Career #9–10 get a qualifier spot if needed.':
-    '24 fighters. Last season’s quarterfinalists and career #1–8 skip qualifiers. #9–10 and other rated veterans fill qualifiers first; at least 4 places go to recruits.';
+  $('newNote').textContent=veteran?'32 fighters, top 8 seeded':squad?'24 squads, top 8 seeded':'24 fighters, top 8 seeded';
 }
 soloField.addEventListener('change',renderSetup);
 clockSelect.addEventListener('change',()=>{
   if(isSquad())clocks.squad=clockSelect.value;
   else clocks.solo[soloField.value]=clockSelect.value;
 });
-$('terrainInput').addEventListener('change',()=>{$('terrainHelp').hidden=$('terrainInput').value!=='rotation';});
 function randomSeasonSeed(){return Math.floor(Math.random()*4294967294)+1;}
 function readSeasonSetup(): SeasonSetup | null{
   const input=$('seedInput'), seed=input.value?Number(input.value):null;
   if(input.validity?.badInput||seed!==null&&(!Number.isSafeInteger(seed)||seed<1||seed>4294967295)){
-    status('Use a seed from 1 to 4,294,967,295.');input.focus();return null;
+    status('Seed must be 1–4,294,967,295');input.focus();return null;
   }
   return {seed,options:{limit:Number(clockSelect.value),terrain:$('terrainInput').value,
     ...(isSquad()?{}:{fieldSize:Number(soloField.value)})}};
 }
 autoButton.addEventListener('click',()=>{
   if(autoRun){
-    if(!processingBout){stop('Auto Seasons stopped. Completed bouts were kept.');return;}
+    if(!processingBout){stop('Auto stopped, bouts kept');return;}
     autoRun.stopping=true;discardResume(saveKey(),autoRun.owner);
-    render();status('Stopping Auto Seasons after this bout. Keep this tab open.');
+    render();status('Stopping after this bout');
     return;
   }
   if(busy||claiming)return;
@@ -863,14 +858,14 @@ autoButton.addEventListener('click',()=>{
   if(!config)return;
   startProgress(()=>{
     if(resume&&resumableRun()?.owner!==resume.owner){
-      renderAutoControl();status('That resume point changed. Check the latest bracket before continuing.');return;
+      renderAutoControl();status('Resume point changed');return;
     }
     const owner=globalThis.crypto?.randomUUID?.()??`auto-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     autoRun={seed:config.seed,options:config.options,stopping:false,draws:config.draws??0,owner};
     rememberAuto();
     const epoch=++runEpoch;
     busy=true;steps=0;newSetup.hidden=true;render();
-    status(nextBout()?autoStatus():'Auto Seasons · Preparing the next season. Keep this tab open.');
+    status(nextBout()?autoStatus():'Auto: drawing next season');
     scheduleTick(epoch,40);
   },{requireLock:true});
 });
@@ -889,8 +884,8 @@ newSetup.addEventListener('submit',event=>{
     try{
       discardResume(saveKey());
       drawSeason({...config.options,seed:config.seed??randomSeasonSeed()});
-      newSetup.hidden=true;persist('Season drawn. Choose Next bout, Run bracket, or Auto Seasons.');render();nextButton.focus();
-    }catch(error){console.error('Tournament setup failed',error);status('Couldn’t draw the bracket.');}
+      newSetup.hidden=true;persist('Season drawn');render();nextButton.focus();
+    }catch(error){console.error('Tournament setup failed',error);status('Couldn’t draw bracket');}
   });
 });
 $('tournamentApp').addEventListener('click',event=>{
@@ -907,11 +902,11 @@ $('tournamentApp').addEventListener('click',event=>{
   const member=(event.target as Element).closest<HTMLButtonElement>('[data-squad-member]');
   if(member&&isSquad()){
     if(busy||claiming||member.disabled)return;
-    if(syncTournamentSave(SQUAD_TOURNAMENT_KEY)){render();status('Squad progress changed. Select the fighter again.');return;}
+    if(syncTournamentSave(SQUAD_TOURNAMENT_KEY)){render();status('Squad changed, select again');return;}
     syncTournamentSave(TOURNAMENT_KEY);
     const result=(saveSquadTournamentHero as unknown as (solo: TournamentSave,squads: TournamentSave,team?: string | null,member?: string) => Fighter | null)(state,squadState,selectedTeamId,member.dataset.squadMember);
-    if(!result){status('Couldn’t save this fighter as a Hero.');return;}
-    if(!persist(result.name+' added to Saved Heroes.',TOURNAMENT_KEY)){
+    if(!result){status('Couldn’t save Hero');return;}
+    if(!persist(result.name+' saved as Hero',TOURNAMENT_KEY)){
       restorePersistedTournament(TOURNAMENT_KEY);render();return;
     }
     selectedId=result.id;selectedSource='saved';render();
@@ -928,9 +923,9 @@ $('saveHero').addEventListener('click',()=>{
   const row=getRecord(selectedId);
   if(!row||busy||!tournamentHeroEligible(row)||heroCurrent(row,getHero(selectedId)))return;
   const result=(saveTournamentHero as unknown as (state: TournamentSave,id?: string | null) => Fighter | false | null)(state,selectedId);
-  if(result==null||result===false){status('Couldn’t save this fighter as a Hero.');return;}
+  if(result==null||result===false){status('Couldn’t save Hero');return;}
   selectedSource='saved';
-  persist(`${row.name} added to Saved Heroes.`);renderHeroes();markSelected();renderProfile();
+  persist(`${row.name} saved as Hero`);renderHeroes();markSelected();renderProfile();
 });
 const removeHeroDialog=$('removeHeroDialog');
 let heroToRemove: Fighter | null=null;
@@ -940,17 +935,17 @@ $('removeHero').addEventListener('click',()=>{
   heroToRemove=hero;
   removeHeroDialog.returnValue='';
   $('removeHeroTitle').textContent='Remove '+hero.name+'?';
-  $('removeHeroHelp').textContent='This removes the saved copy from your Hero roster. The fighter’s tournament record and Peak Elo stay.';
+  $('removeHeroHelp').textContent='Tournament record and Peak Elo stay';
   removeHeroDialog.showModal();
 });
 removeHeroDialog.addEventListener('close',()=>{
   const hero=heroToRemove;
   heroToRemove=null;
   if(removeHeroDialog.returnValue!=='remove'||!hero||busy){$('removeHero').focus();return;}
-  if(!(removeTournamentHero as unknown as (state: TournamentSave,id: string) => boolean)(state,hero.id)){status('That Hero is no longer saved.');return;}
+  if(!(removeTournamentHero as unknown as (state: TournamentSave,id: string) => boolean)(state,hero.id)){status('Hero already removed');return;}
   selectedId=state.records?.[hero.id]?hero.id:null;
   selectedSource='live';
-  persist(hero.name+' removed from Saved Heroes. Tournament records are unchanged.',TOURNAMENT_KEY);
+  persist(hero.name+' removed',TOURNAMENT_KEY);
   render();
   if(selectedId)$('fighterName').focus({preventScroll:true});
   else $('heroesTitle').focus({preventScroll:true});
@@ -962,8 +957,8 @@ $('heroGenderEditor').addEventListener('submit',e=>{
   e.preventDefault();
   if(selectedSource!=='saved'||busy)return;
   const result=(setTournamentHeroGender as unknown as (state: TournamentSave,id: string | null | undefined,gender: string) => Fighter | null)(state,selectedId,$('heroGender').value);
-  if(!result){status('Couldn’t save this Hero’s gender.');return;}
-  persist(result.name+' · '+fighterGenderLabel(result.gender)+' saved.',TOURNAMENT_KEY);
+  if(!result){status('Couldn’t save gender');return;}
+  persist('Gender saved',TOURNAMENT_KEY);
   renderHeroes();
   // Update the profile and portrait without discarding any unsaved Elo edits.
   const rating=$('heroEloRating').value,floor=$('heroEloFloor').value;
@@ -979,8 +974,8 @@ $('heroEloEditor').addEventListener('submit',e=>{
   if(selectedSource!=='saved'||busy)return;
   const rating=$('heroEloRating').valueAsNumber;
   const result=(setTournamentHeroElo as unknown as (state: TournamentSave,id: string | null | undefined,elo: number,floor: string) => Fighter | null)(state,selectedId,rating,$('heroEloFloor').value);
-  if(!result){status('Enter a valid Elo in half-point steps.');return;}
-  persist('Saved Hero Elo: '+result.elo.toLocaleString()+'. Tournament Elo is unchanged.',TOURNAMENT_KEY);
+  if(!result){status('Elo must use half-point steps');return;}
+  persist('Hero Elo set to '+result.elo.toLocaleString(),TOURNAMENT_KEY);
   const pendingGender=$('heroGender').value;
   renderProfile();
   $('heroGender').value=pendingGender;
@@ -997,8 +992,8 @@ const resetDialog=$('resetDialog');
 $('resetButton').addEventListener('click',()=>{
   if(busy||!currentState().season)return;
   resetDialog.returnValue='';
-  $('resetHeading').textContent=isSquad()?'Reset 5v5 tournament?':'Reset 1v1 tournament?';
-  $('resetDescription').textContent=isSquad()?'This clears squad brackets, team Elo, peak records and replays from this browser. The 1v1 tournament and Saved Heroes stay.':'This clears 1v1 brackets, Elo, peak records and bout results from this browser. Saved Heroes and the 5v5 tournament stay.';
+  $('resetHeading').textContent=isSquad()?'Reset Squad Tournament?':'Reset Tournament?';
+  $('resetDescription').textContent=isSquad()?'Clears squad brackets, Elo and replays':'Clears brackets and Elo, keeps Heroes';
   resetDialog.showModal();
 });
 resetDialog.addEventListener('close',()=>{
@@ -1007,13 +1002,13 @@ resetDialog.addEventListener('close',()=>{
   if(isSquad()){squadState=(resetSquadTournament as unknown as (state: SquadSave) => SquadSave)(squadState);selectedTeamId=null;}
   else{state=(resetTournament as unknown as (state: SoloSave) => SoloSave)(state);selectedId=null;selectedSource='live';}
   newSetup.hidden=true;
-  persist(isSquad()?'5v5 tournament reset.':'1v1 tournament reset. Saved Heroes were kept.');
+  persist(isSquad()?'Squad Tournament reset':'Tournament reset, Heroes kept');
   render();newButton.focus();
 });
 const replaySpeed=$('replaySpeed'),replayPause=$('replayPause'),replaySkip=$('replaySkip');
 let skipPlayback: (()=>boolean) | null=null;
 function resetReplayPause(){playbackPaused=false;pausePlayback=null;replayPause.disabled=true;replayPause.textContent='Pause';skipPlayback=null;replaySkip.disabled=true;}
-replaySkip.addEventListener('click',()=>{if(skipPlayback?.()){replaySkip.disabled=true;replayPause.disabled=true;replaySpeed.disabled=true;$('replayStatus').textContent='Skipping to result…';}});
+replaySkip.addEventListener('click',()=>{if(skipPlayback?.()){replaySkip.disabled=true;replayPause.disabled=true;replaySpeed.disabled=true;$('replayStatus').textContent='Skipping…';}});
 replayPause.addEventListener('click',()=>{
   if(!pausePlayback)return;
   playbackPaused=!playbackPaused;
@@ -1026,7 +1021,7 @@ watchLast.addEventListener('click',async()=>{
   if(!replay||!supportsReplay(replay.ruleset)||busy||replayDialog.open)return;
   const version=++replayEpoch,replayStatus=$('replayStatus'),canvas=$('replayArena');
   canvas.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);
-  replayStatus.textContent='Opening replay…';
+  replayStatus.textContent='Loading replay…';
   replaySpeed.value='1';replaySpeed.disabled=true;resetReplayPause();
   const livePlans=$('replayPlans');livePlans.hidden=true;livePlans.textContent='';
   replayDialog.showModal();
@@ -1040,7 +1035,7 @@ watchLast.addEventListener('click',async()=>{
       onFrame(secondsLeft,game){
         if(!live())return;
         const n=Math.max(0,Math.ceil(secondsLeft)),stamp=`${Math.trunc(n/60)}:${String(n%60).padStart(2,'0')}`;
-        const line=`Replay · ${stamp} remaining`;
+        const line=stamp;
         if(replayStatus.textContent!==line)replayStatus.textContent=line;
         if(game?.config?.matchGoalPlanning){
           const plans=[0,1].map((team,i)=>{
@@ -1053,12 +1048,12 @@ watchLast.addEventListener('click',async()=>{
           if(livePlans.textContent!==plans)livePlans.textContent=plans;
         }
       },
-      onSkipError(){if(live()){replayPause.disabled=!pausePlayback;replayPause.textContent='Pause';playbackPaused=false;replaySpeed.disabled=!setPlaybackSpeed;replayStatus.textContent='Skip could not finish. Replay resumed.';}},
+      onSkipError(){if(live()){replayPause.disabled=!pausePlayback;replayPause.textContent='Pause';playbackPaused=false;replaySpeed.disabled=!setPlaybackSpeed;replayStatus.textContent='Skip failed, replay resumed';}},
       onEnd(winnerIndex){
         if(!live())return;
         replaySpeed.disabled=true;setPlaybackSpeed=null;resetReplayPause();
         const winner=(squad?replay.teams:replay.fighters)?.[winnerIndex!]?.name;
-        replayStatus.textContent=winner?`${winner} won. Replay only.`:'Bout ended in a draw. Replay only.';
+        replayStatus.textContent=winner?`${winner} wins`:'Draw';
       }
     });
     const end=typeof result==='function'?result:typeof result?.destroy==='function'?()=>result.destroy!():typeof result?.stop==='function'?()=>result.stop!():null;
@@ -1066,9 +1061,9 @@ watchLast.addEventListener('click',async()=>{
     stopPlayback=end;setPlaybackSpeed=result?.setSpeed;replaySpeed.disabled=!setPlaybackSpeed;
     if(result?.pause&&result?.resume){pausePlayback=paused=>paused?result.pause!():result.resume!();replayPause.disabled=false;}
     if(result?.skip){skipPlayback=()=>result.skip!();replaySkip.disabled=false;}
-    if(replayStatus.textContent==='Opening replay…')replayStatus.textContent='Replay only. It does not change the bracket.';
+    if(replayStatus.textContent==='Loading replay…')replayStatus.textContent='Replay';
   }catch(error){if(version===replayEpoch&&replayDialog.open){
-    console.error('Could not open replay',error);replayStatus.textContent='Couldn’t open this replay.';
+    console.error('Could not open replay',error);replayStatus.textContent='Couldn’t open replay';
   }}
 });
 replayDialog.addEventListener('close',()=>{
@@ -1081,7 +1076,7 @@ window.addEventListener('storage',({key})=>{
   const keys=key===null?tournamentKeys:tournamentKeys.includes(key as SaveKey)?[key as SaveKey]:[];
   const changed=keys.filter(syncTournamentSave);
   if(!changed.length)return;
-  if(changed.includes(saveKey()))stop('Loaded tournament progress from another tab or device.');
+  if(changed.includes(saveKey()))stop('Reloaded from another tab');
   else render();
 });
 window.addEventListener('pagehide',()=>{
@@ -1090,6 +1085,6 @@ window.addEventListener('pagehide',()=>{
 window.addEventListener('pageshow',event=>{
   if(!event.persisted)return;
   tournamentKeys.forEach(syncTournamentSave);render();
-  if(!resumableRun())status('Auto Seasons do not continue when this page is closed or left.');
-  else status('This tab stopped running Auto Seasons when you left.');
+  if(!resumableRun())status('Auto stopped when you left');
+  else status('Auto paused: tap Resume Auto');
 });

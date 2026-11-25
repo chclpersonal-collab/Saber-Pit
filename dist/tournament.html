@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101519">
-  <meta name="description" content="Run the Loomen tournament and recruit fighters that learn from their matches.">
-  <title>Tournament · Loomen</title>
+  <meta name="description" content="LOOMEN Tournament: 1v1 and 5v5 saber brackets.">
+  <title>Tournament · LOOMEN</title>
   <link rel="stylesheet" href="./tournament.css?v=3.2.0">
   <script type="module" src="./tournament-sync-entry.js?v=5.1.0"></script>
   <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
@@ -26,12 +26,11 @@
       <a href="./backup.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#save"/></svg><span>Saves</span><small aria-hidden="true">04</small></a>
       <a href="./style-lab.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#flask-conical"/></svg><span>Style Lab</span><small aria-hidden="true">05</small></a>
     </nav>
-    <p class="ops-dock-foot" aria-hidden="true"><i></i> THE CIRCUIT</p>
   </header>
   <div class="v5-head">
   <section class="intro ops-hero" aria-labelledby="tournamentTitle">
-    <div class="ops-hero-copy"><p class="kicker ops-kicker">TOURNAMENT / IRON CIRCUIT</p><h1 id="tournamentTitle"><span class="heading-duel">1v1 Tournament</span><span class="heading-squad">5v5 Tournament</span></h1>
-    <p id="formatDescription">One-on-one bouts train the field. Save fighters as Heroes for custom matches.</p></div>
+    <div class="ops-hero-copy"><h1 id="tournamentTitle"><span class="heading-duel">Tournament</span><span class="heading-squad">Squad Tournament</span></h1>
+    <p id="formatDescription" hidden></p></div>
     <svg class="circuit-schematic ops-hero-art" viewBox="0 0 296 176" aria-hidden="true">
       <circle cx="149" cy="86" r="71"/><circle cx="149" cy="86" r="59" stroke-dasharray="1 7"/>
       <path d="M5 18h26m-26 0v22m286 116h-26m26 0v-22M149 5v16m0 129v18M67 86h-19m183 0h18M59 48h34l12 14h24m-70 62h34l12-14h24m108-62h-34l-12 14h-24m70 62h-34l-12-14h-24"/>
@@ -41,148 +40,144 @@
     </svg>
   </section>
   <nav class="format-picker" aria-label="Tournament format">
-    <button id="soloFormat" type="button" aria-pressed="true"><span class="ops-format-mark" aria-hidden="true">01</span> 1v1 Duels</button>
-    <button id="squadFormat" type="button" aria-pressed="false"><span class="ops-format-mark" aria-hidden="true">05</span> 5v5 Squads</button>
-    <a class="format-link" href="./gauntlet.html"><span class="ops-format-mark" aria-hidden="true">03</span> 1v3 Gauntlet</a>
-    <button id="showCareer" class="quiet peak-link" type="button">Top 10 Elo ↓</button>
-    <button id="showPeaks" class="quiet peak-link" type="button">Peak Elo Top 10 ↓</button>
+    <button id="soloFormat" type="button" aria-pressed="true"><span class="ops-format-mark" aria-hidden="true">01</span> Tournament</button>
+    <button id="squadFormat" type="button" aria-pressed="false"><span class="ops-format-mark" aria-hidden="true">05</span> Squad Tournament</button>
+    <a class="format-link" href="./gauntlet.html"><span class="ops-format-mark" aria-hidden="true">03</span> Gauntlet</a>
+    <button id="showCareer" class="quiet peak-link" type="button">Top 10</button>
+    <button id="showPeaks" class="quiet peak-link" type="button">Peak Elo</button>
   </nav>
   </div>
   <div class="desk">
     <div class="left-column">
       <section class="panel schedule" aria-labelledby="seasonTitle">
-        <div class="section-top"><div><p class="kicker">BOUT DESK</p><h2 id="seasonTitle">The bracket</h2></div><span class="badge" id="seasonBadge">No season</span></div>
-        <p class="muted detail" id="seasonWeek">One season is one in-game week.</p>
-        <div id="activeSeed" class="seed-strip" hidden><span class="muted">Bracket seed <strong id="activeSeedValue"></strong></span><button type="button" id="copyActiveSeed">Copy seed</button></div>
+        <div class="section-top"><div><h2 id="seasonTitle">Bracket</h2></div><span class="badge" id="seasonBadge">No Season</span></div>
+        <p class="muted detail" id="seasonWeek" hidden></p>
+        <div id="activeSeed" class="seed-strip" hidden><span class="muted">Seed <strong id="activeSeedValue"></strong></span><button type="button" id="copyActiveSeed">Copy</button></div>
         <div class="next" id="nextBout" data-tone="empty">
-          <p class="kicker" id="nextLabel">FIRST BOUT</p><h3 id="matchup">The ring is empty</h3><p id="matchMeta">Start a season to draw the bracket.</p>
+          <p class="kicker" id="nextLabel">First Bout</p><h3 id="matchup">No Bout</h3><p id="matchMeta"></p>
         </div>
-        <div class="progress" id="progressBar" hidden><label for="boutProgress" id="progressLabel">Bracket progress</label><progress id="boutProgress" max="1" value="0"></progress></div>
+        <div class="progress" id="progressBar" hidden><label for="boutProgress" id="progressLabel">Progress</label><progress id="boutProgress" max="1" value="0"></progress></div>
         <div class="actions" aria-label="Tournament controls">
-          <button class="primary v5-ico" id="nextButton" data-ico="play" type="button" disabled>Next bout</button>
-          <button class="v5-ico" id="newButton" data-ico="plus" type="button">New season</button>
-          <button class="v5-ico v5-label-tool" id="runButton" data-ico="ff" data-tip="Run bracket" type="button" disabled>Run bracket</button>
+          <button class="primary v5-ico" id="nextButton" data-ico="play" type="button" disabled>Next Bout</button>
+          <button class="v5-ico" id="newButton" data-ico="plus" type="button">New Season</button>
+          <button class="v5-ico v5-label-tool" id="runButton" data-ico="ff" data-tip="Run Bracket" type="button" disabled>Run Bracket</button>
           <button class="v5-ico v5-label-tool" id="autoSeasons" data-ico="loop" data-tip="Auto Seasons" type="button" aria-pressed="false" aria-describedby="autoResumeHint">Auto Seasons</button>
-          <button class="v5-ico v5-label-tool" id="watchLast" data-ico="eye" data-tip="Watch last bout" type="button" hidden>Watch last bout</button>
+          <button class="v5-ico v5-label-tool" id="watchLast" data-ico="eye" data-tip="Watch" type="button" hidden>Watch</button>
           <button id="cancelButton" type="button" hidden>Stop</button>
           <details class="v5-more"><summary class="v5-ico v5-tool" data-ico="dots" data-tip="More" aria-label="More tournament controls">More</summary>
-            <div class="v5-more-menu"><button id="resetButton" class="reset-action" type="button" disabled>Reset tournament</button></div>
+            <div class="v5-more-menu"><button id="resetButton" class="reset-action" type="button" disabled>Reset</button></div>
           </details>
         </div>
         <p class="muted auto-resume-hint" id="autoResumeHint" hidden></p>
         <details class="bout-plans" id="lastMatchPlan" hidden>
-          <summary>Last bout: match plans</summary>
+          <summary>Match Plans</summary>
           <p class="muted" id="planOutcome"></p>
           <div id="planParticipants" class="plan-participants"></div>
         </details>
-        <p id="replayNotice" class="muted" hidden>The last replay was recorded under older combat rules. Its result still counts.</p>
+        <p id="replayNotice" class="muted" hidden>Replay uses older rules</p>
         <form class="new-setup" id="newSetup" hidden>
           <div class="settings">
-            <label>Seed <input id="seedInput" aria-describedby="seedHelp" title="Different numbers generate different draws, not different difficulty." type="number" min="1" max="4294967295" inputmode="numeric" placeholder="Random"></label>
-            <label id="fieldSetting">Field <select id="fieldInput" aria-describedby="newNote"><option value="32" selected>32 · Veterans</option><option value="24">24 · Classic</option></select></label>
-            <label>Bout length <select id="limitInput" aria-describedby="squadClockHelp"><option value="45">45 sec</option><option value="75">75 sec</option><option value="90">90 sec</option><option value="150">2:30</option><option id="longClock" value="360" selected>6:00</option></select></label>
-            <label>Arena <select id="terrainInput" aria-describedby="terrainHelp"><option value="underpit">The Underpit</option><option value="rotation">Arena rotation</option><option value="foundry">The Foundry</option><option value="ember_ring">Ember Ring</option><option value="crossroads">Crossroads</option><option value="zigzag">Zigzag</option><option value="craterfield">Craterfield</option></select></label>
+            <label>Seed <input id="seedInput" aria-describedby="seedHelp" type="number" min="1" max="4294967295" inputmode="numeric" placeholder="Random"></label>
+            <label id="fieldSetting">Field <select id="fieldInput" aria-describedby="newNote"><option value="32" selected>32 Veterans</option><option value="24">24 Classic</option></select></label>
+            <label>Clock <select id="limitInput" aria-describedby="squadClockHelp"><option value="45">45s</option><option value="75">75s</option><option value="90">90s</option><option value="150">2:30</option><option id="longClock" value="360" selected>6:00</option></select></label>
+            <label>Arena <select id="terrainInput" aria-describedby="terrainHelp"><option value="underpit">The Underpit</option><option value="rotation">Rotation</option><option value="foundry">The Foundry</option><option value="ember_ring">Ember Ring</option><option value="crossroads">Crossroads</option><option value="zigzag">Zigzag</option><option value="craterfield">Craterfield</option></select></label>
           </div>
-          <p id="squadClockHelp" class="muted" hidden>Clock expiry is a draw. A 2:30 clock gives both squads more time to finish by elimination.</p>
-          <p id="seedHelp" class="muted">Different seeds give different draws. Leave blank for a random one.</p>
-          <p id="terrainHelp" class="muted" hidden>Rotation assigns layouts from the season seed before any bout. Rematches stay in the same arena.</p>
-          <p id="newNote" class="muted">32 fighters. Open spots go to rated veterans before new recruits, with spots kept for newcomers.</p>
-          <div class="actions"><button class="primary" type="submit">Draw bracket</button><button id="closeSetup" type="button">Cancel</button></div>
+          <p id="squadClockHelp" class="muted" hidden>Time out is a draw</p>
+          <p id="seedHelp" class="muted" hidden>Blank seed draws at random</p>
+          <p id="terrainHelp" class="muted" hidden>Rotation picks arenas from the seed</p>
+          <p id="newNote" class="muted" hidden>32 fighters, top 8 seeded</p>
+          <div class="actions"><button class="primary" type="submit">Draw Bracket</button><button id="closeSetup" type="button">Cancel</button></div>
         </form>
         <p id="tourStatus" class="status" role="status" aria-live="polite"></p>
       </section>
-      <section class="panel bracket-panel" aria-labelledby="bracketTitle"><div class="section-top"><div><p class="kicker">ROAD TO THE FINAL</p><h2 id="bracketTitle">Matchups</h2></div><span class="meta" id="bracketCount"></span></div>
-        <div id="bracketRows" class="bracket-rows"><p class="empty">No draw yet.</p></div>
+      <section class="panel bracket-panel" aria-labelledby="bracketTitle"><div class="section-top"><div><h2 id="bracketTitle">Matchups</h2></div><span class="meta" id="bracketCount"></span></div>
+        <div id="bracketRows" class="bracket-rows"><p class="empty">No bracket yet</p></div>
       </section>
     </div>
     <div class="right-column">
-      <section class="panel board" aria-labelledby="leadersTitle"><div class="section-top"><div><p class="kicker">CAREER RECORD</p><h2 id="leadersTitle" tabindex="-1">Top 10</h2></div><span class="meta" id="leaderTag">ELO</span></div>
-        <p class="muted detail" id="leaderDetail">Career Elo across seasons. Separate from the current bracket.</p>
+      <section class="panel board" aria-labelledby="leadersTitle"><div class="section-top"><div><h2 id="leadersTitle" tabindex="-1">Top 10</h2></div><span class="meta" id="leaderTag">Elo</span></div>
+        <p class="muted detail" id="leaderDetail" hidden></p>
         <p class="muted detail" id="leaderForms" hidden></p>
-        <p class="v5-swipe" id="careerScrollHelp">Swipe the table for Loss % and Win + Draw % →</p>
+        <p class="v5-swipe" id="careerScrollHelp" hidden>Swipe for more stats</p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="leadersTitle" aria-describedby="careerScrollHelp"><table class="career-table">
-          <thead><tr><th scope="col">#</th><th scope="col" id="leaderSubject">Fighter</th><th scope="col" id="leaderRating">Elo</th><th scope="col">KO</th><th scope="col">D</th><th scope="col">K/D</th><th scope="col"><abbr title="Wins, draws, losses">W–D–L</abbr></th><th scope="col">Loss %</th><th scope="col">Win + Draw %</th></tr></thead><tbody id="leaderRows"><tr><td colspan="9" class="empty">No bouts recorded.</td></tr></tbody>
+          <thead><tr><th scope="col">#</th><th scope="col" id="leaderSubject">Fighter</th><th scope="col" id="leaderRating">Elo</th><th scope="col">KO</th><th scope="col">D</th><th scope="col">K/D</th><th scope="col"><abbr title="Wins, draws, losses">W–D–L</abbr></th><th scope="col">Loss %</th><th scope="col"><abbr title="Win or draw rate">W+D %</abbr></th></tr></thead><tbody id="leaderRows"><tr><td colspan="9" class="empty">No bouts yet</td></tr></tbody>
         </table></div>
-        <details class="bout-plans career-directory"><summary id="careerSearchTitle">Find a fighter</summary>
-          <label id="careerSearchLabel" for="careerSearch">Search fighters</label>
-          <input id="careerSearch" type="search" maxlength="48" autocomplete="off" placeholder="Search by name">
-          <p class="muted detail" id="careerSearchNote" role="status">Type at least two letters.</p>
+        <details class="bout-plans career-directory"><summary id="careerSearchTitle">Search</summary>
+          <label id="careerSearchLabel" for="careerSearch">Fighter</label>
+          <input id="careerSearch" type="search" maxlength="48" autocomplete="off" placeholder="Name">
+          <p class="muted detail" id="careerSearchNote" role="status">2+ letters</p>
           <ul id="careerSearchRows" class="hero-rows directory-rows"></ul>
         </details>
         <section id="teamProfile" class="profile" aria-labelledby="teamName" hidden>
-          <p class="kicker">SQUAD ROSTER</p>
           <h3 id="teamName" tabindex="-1"></h3>
           <p id="teamMeta" class="muted"></p>
-          <p class="muted">Save any fighter after their squad’s first bout.</p>
           <ul id="teamMembers" class="team-members" aria-label="Squad fighters"></ul>
         </section>
         <div id="profile" class="profile" hidden>
-          <div class="profile-head"><div class="hero-identity"><canvas id="heroPortrait" class="hero-portrait" width="180" height="180" aria-hidden="true" hidden></canvas><div><p class="kicker" id="profileSource">FIGHTER FILE</p><h3 id="fighterName" tabindex="-1"></h3><p class="muted" id="fighterTitle"></p></div></div><div class="profile-actions"><button id="saveHero" type="button">Save Hero</button><button id="removeHero" class="quiet" type="button" hidden>Remove Hero</button></div></div>
+          <div class="profile-head"><div class="hero-identity"><canvas id="heroPortrait" class="hero-portrait" width="180" height="180" aria-hidden="true" hidden></canvas><div><p class="kicker" id="profileSource">Fighter</p><h3 id="fighterName" tabindex="-1"></h3><p class="muted" id="fighterTitle"></p></div></div><div class="profile-actions"><button id="saveHero" type="button">Save Hero</button><button id="removeHero" class="quiet" type="button" hidden>Remove Hero</button></div></div>
           <form id="heroGenderEditor" class="new-setup hero-gender-editor" hidden aria-label="Saved Hero gender">
             <label for="heroGender">Gender <select id="heroGender" required></select></label>
-            <button id="applyHeroGender" type="submit">Save gender</button>
+            <button id="applyHeroGender" type="submit">Save</button>
           </form>
-          <form id="heroEloEditor" class="new-setup" hidden aria-label="Saved Hero Elo">
+          <form id="heroEloEditor" class="new-setup" hidden aria-label="Saved Hero Elo" aria-describedby="heroEloHelp">
             <div class="settings">
               <label>Custom Elo <input id="heroEloRating" type="number" min="0" max="9007199254740991" required step="0.5" inputmode="numeric"></label>
-              <label>Minimum rank floor <select id="heroEloFloor" aria-label="Hero minimum Elo floor"></select></label>
+              <label>Rank Floor <select id="heroEloFloor" aria-label="Rank Floor"></select></label>
             </div>
-            <div class="actions"><button id="applyHeroElo" type="submit">Save Hero Elo</button></div>
-            <p class="muted">Combat rank stays SSS+ V. Custom Elo affects this Hero’s Arena AI, not tournament ratings.</p>
+            <div class="actions"><button id="applyHeroElo" type="submit">Save Elo</button></div>
+            <p id="heroEloHelp" class="muted" hidden>Arena AI only, tournament Elo unchanged</p>
           </form>
           <ul id="learnedList" class="learned" aria-label="Learned profile"></ul>
         </div>
       </section>
       <section class="panel board peak-board" aria-labelledby="peaksTitle">
-        <div class="section-top"><div><p class="kicker">ALL-TIME RECORD</p><h2 id="peaksTitle" tabindex="-1">Peak Elo Top 10</h2></div></div>
-        <p class="muted detail" id="peakDetail">Highest recorded Elo for each fighter. It stays on this board even if their Elo falls.</p>
+        <div class="section-top"><div><h2 id="peaksTitle" tabindex="-1">Peak Elo</h2></div></div>
+        <p class="muted detail" id="peakDetail" hidden></p>
         <div class="board-window" tabindex="0" role="region" aria-labelledby="peaksTitle"><table>
-          <thead><tr><th scope="col">#</th><th scope="col" id="peakSubject">Fighter</th><th scope="col">Peak Elo</th><th scope="col">Season / Week</th></tr></thead><tbody id="peakRows"><tr><td colspan="4" class="empty">No peak ratings recorded yet.</td></tr></tbody>
+          <thead><tr><th scope="col">#</th><th scope="col" id="peakSubject">Fighter</th><th scope="col">Peak Elo</th><th scope="col">Season / Week</th></tr></thead><tbody id="peakRows"><tr><td colspan="4" class="empty">No peaks yet</td></tr></tbody>
         </table></div>
-        <p class="muted peak-history" id="peakHistory" hidden>Older saves kept current Elo, so earlier peaks and exact seasons may be missing.</p>
+        <p class="muted peak-history" id="peakHistory" hidden>Older saves may miss peaks</p>
       </section>
-      <details class="panel tour-guide v5-fold" id="seasonArchive"><summary>Recent champions</summary>
-        <ul id="seasonArchiveRows" class="season-archive-rows"><li>No completed seasons yet.</li></ul>
+      <details class="panel tour-guide v5-fold" id="seasonArchive"><summary>Champions</summary>
+        <ul id="seasonArchiveRows" class="season-archive-rows"><li>No champions yet</li></ul>
       </details>
       <details class="panel heroes v5-fold" id="heroesPanel"><summary><h2 id="heroesTitle" tabindex="-1">Saved Heroes</h2></summary>
-        <ul id="heroRows" class="hero-rows"><li class="empty">Save a fighter from either tournament format.</li></ul>
-        <a href="./index.html" class="text-link">Open lobby</a>
+        <ul id="heroRows" class="hero-rows"><li class="empty">No Heroes yet</li></ul>
+        <a href="./index.html" class="text-link">Lobby</a>
       </details>
       <details class="panel tour-guide v5-fold" id="soloGuide"><summary>Rules</summary>
-        <ul><li>Last season’s quarterfinalists and career #1–8 return directly. Career #9–10 start in the qualifier unless already direct.</li><li>Fighters can play for a win or a draw. Clock expiry is a draw. After three drawn bouts, one seed advances without a win, or the final closes without a title.</li><li>Save an SSS+ V Hero from the bracket or leaderboard, then select them in the match lobby. Tournament records and Heroes are kept in this browser.</li><li>Next bout simulates and records one matchup. Run bracket simulates every remaining bout. Stop keeps all completed results.</li></ul>
+        <ul><li>Top 8 + Last Quarterfinalists Seeded</li><li>Time Out: Draw</li><li>3 Draws: Seed Advances</li><li>Heroes: SSS+ V Only</li></ul>
       </details>
       <details class="panel tour-guide v5-fold" id="squadGuide" hidden><summary>Rules</summary>
-        <ul><li>Each side fields five SSS+ V fighters. Last season’s quarterfinalists and career #1–8 return directly. Career #9–10 get a qualifier slot if they need one.</li><li>Fighters can play for a win or a draw. Clock expiry is a draw. After three drawn bouts, one seed advances without a win, or the final closes without a title.</li><li id="squadRatingRule"></li><li>New squads fill out the mix of All Female, All Male, and Mixed teams. Returning rosters stay together.</li><li>Team records and the 1v1 tournament are saved separately in this browser.</li></ul>
+        <ul><li>5v5, All SSS+ V</li><li>Top 8 + Last Quarterfinalists Seeded</li><li>Time Out: Draw</li><li>3 Draws: Seed Advances</li><li id="squadRatingRule"></li><li>Squads Stay Together</li></ul>
       </details>
     </div>
   </div>
   <dialog id="resetDialog" class="reset-dialog" aria-labelledby="resetHeading" aria-describedby="resetDescription">
     <form method="dialog">
-      <p class="kicker">TOURNAMENT SETTINGS</p>
       <h2 id="resetHeading">Reset tournament?</h2>
-      <p id="resetDescription"></p>
+      <p id="resetDescription" hidden></p>
       <div class="actions"><button type="submit" value="cancel" autofocus>Cancel</button>
-      <button class="danger" id="confirmReset" type="submit" value="reset">Reset tournament</button></div>
+      <button class="danger" id="confirmReset" type="submit" value="reset">Reset</button></div>
     </form>
   </dialog>
   <dialog id="removeHeroDialog" class="reset-dialog" aria-labelledby="removeHeroTitle" aria-describedby="removeHeroHelp">
     <form method="dialog">
-      <p class="kicker">SAVED HEROES</p>
       <h2 id="removeHeroTitle">Remove saved Hero?</h2>
-      <p id="removeHeroHelp"></p>
+      <p id="removeHeroHelp" hidden></p>
       <div class="actions"><button type="submit" value="cancel" autofocus>Cancel</button>
-      <button class="danger" type="submit" value="remove">Remove Hero</button></div>
+      <button class="danger" type="submit" value="remove">Remove</button></div>
     </form>
   </dialog>
   <dialog id="replayDialog" class="replay" aria-labelledby="replayHeading">
-    <div class="section-top"><div><p class="kicker">LAST RECORDED BOUT</p><h2 id="replayHeading">Replay</h2></div>
+    <div class="section-top"><div><h2 id="replayHeading">Replay</h2></div>
       <form method="dialog"><button type="submit" id="closeReplay" autofocus>Close</button></form></div>
-    <div class="replay-stage"><canvas id="replayArena" width="960" height="540" role="img" aria-label="Replay of the last simulated fight"></canvas></div>
-    <div class="actions"><label>Replay speed
+    <div class="replay-stage"><canvas id="replayArena" width="960" height="540" role="img" aria-label="Last bout replay"></canvas></div>
+    <div class="actions"><label>Speed
       <select id="replaySpeed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select>
     </label>
     <button type="button" id="replayPause" disabled>Pause</button>
-    <button type="button" id="replaySkip" disabled>Skip to result</button></div>
+    <button type="button" id="replaySkip" disabled>Skip</button></div>
     <p id="replayPlans" class="muted" hidden></p>
     <p id="replayStatus" class="status" role="status"></p>
   </dialog>

@@ -42,7 +42,7 @@ test('Auto Seasons advances both actual brackets with a single worker and protec
     el('fieldInput').value='32';el('terrainInput').value='rotation';el('newSetup').hidden=true;
     await import(URLfor('tournament'));
     assert.equal(el('leaderForms').hidden,true);
-    assert.equal(el('leaderForms').textContent,'');
+    assert.deepEqual(el('leaderForms').children,[]);
     const tick=async()=>{const now=timerQueue.keys().next();assert(!now.done);const t=timerQueue.get(now.value);timerQueue.delete(now.value);t.fn();await Promise.resolve();return t.delay;};
     const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
     const readSolo=()=>loadTournament(globalThis.localStorage),readSquad=()=>loadSquadTournament(globalThis.localStorage);
@@ -53,12 +53,12 @@ test('Auto Seasons advances both actual brackets with a single worker and protec
     occupied=false;auto.fire();await flush();await tick();
     assert.equal(el('activeSeed').hidden,false);
     assert.equal(el('activeSeedValue').textContent,String(readSolo().active.seed));
-    await el('copyActiveSeed').fire();assert.match(el('tourStatus').textContent,/Bracket seed:/);
+    await el('copyActiveSeed').fire();assert.match(el('tourStatus').textContent,/Seed:/);
     assert.equal(readSolo().season,1);assert.equal(readSolo().active.limit,360);assert.equal(readSolo().active.terrain,'rotation');assert.equal(readSolo().active.fieldSize,32);
     assert.match(pending[0].url.pathname,/solo-tournament-worker/);assert.equal(auto.attrs['aria-pressed'],'true');
     assert.equal(el('cancelButton').hidden,true);assert.equal(el('squadFormat').disabled,true);
     auto.fire();assert.equal(auto.disabled,true);assert.equal(pending.length,1);
-    await simulate();assert.equal(auto.attrs['aria-pressed'],'false');assert.equal(timerQueue.size,0);assert.match(el('tourStatus').textContent,/last bout was saved/);
+    await simulate();assert.equal(auto.attrs['aria-pressed'],'false');assert.equal(timerQueue.size,0);assert.match(el('tourStatus').textContent,/last bout saved/);
     assert.equal(data.has(soloResume),false);
     const first=readSolo().active;assert.equal(first.qualifiers.flat().filter(r=>r.result).length,1);
     auto.fire();await flush();
@@ -108,12 +108,12 @@ test('Auto Seasons advances both actual brackets with a single worker and protec
     assert.equal(maxConcurrent,1);
     auto.fire();await flush();await tick();timeoutWrite=true;await simulate();timeoutWrite=false;
     assert.equal(auto.attrs['aria-pressed'],'false');assert.match(el('tourStatus').textContent,/could not save/);
-    assert.equal(auto.textContent,'Resume Auto Seasons');
+    assert.equal(auto.textContent,'Resume Auto');
     el('soloFormat').fire();auto.fire();await flush();await tick();
     winHandlers.pagehide();await flush();assert.equal(timerQueue.size,0);assert.equal(pending.length,0);
     winHandlers.pageshow({persisted:true});assert.equal(auto.attrs['aria-pressed'],'false');
-    assert.equal(auto.textContent,'Resume Auto Seasons');
-    const locks=navigator.locks;navigator.locks=null;auto.fire();assert.match(el('tourStatus').textContent,/tab locking/);
+    assert.equal(auto.textContent,'Resume Auto');
+    const locks=navigator.locks;navigator.locks=null;auto.fire();assert.match(el('tourStatus').textContent,/no tab locking/);
     navigator.locks=locks;
     // A newly drawn short solo season must still offload to the worker in Auto.
     // Replace local progress as an external tab would, then choose explicit setup.
@@ -152,18 +152,18 @@ test('Auto Seasons advances both actual brackets with a single worker and protec
     const remount=URLfor('tournament');remount.search='fresh-document';
     await import(remount);
     const resume=el('autoSeasons');
-    assert.equal(resume.textContent,'Resume Auto Seasons');
+    assert.equal(resume.textContent,'Resume Auto');
     assert.match(el('autoResumeHint').textContent,/Season 1/);
     assert.equal(resume.attrs['aria-pressed'],'false');
     assert.equal(timerQueue.size,0);assert.equal(pending.length,0);
     el('squadFormat').fire();
-    assert.equal(resume.textContent,'Resume Auto Seasons'); // independent squad save-failure marker
+    assert.equal(resume.textContent,'Resume Auto'); // independent squad save-failure marker
     assert.notEqual(data.get(squadResume),marker);
-    el('soloFormat').fire();assert.equal(resume.textContent,'Resume Auto Seasons');
+    el('soloFormat').fire();assert.equal(resume.textContent,'Resume Auto');
     data.set(TOURNAMENT_KEY,snapshot+' ');winHandlers.storage({key:TOURNAMENT_KEY});
     assert.equal(resume.textContent,'Auto Seasons');
     data.set(TOURNAMENT_KEY,snapshot);winHandlers.storage({key:TOURNAMENT_KEY});
-    assert.equal(resume.textContent,'Resume Auto Seasons');
+    assert.equal(resume.textContent,'Resume Auto');
 
     resume.fire();await flush();await tick();
     const continued=pending[0];
@@ -204,12 +204,12 @@ test('Auto Seasons advances both actual brackets with a single worker and protec
     const rankedRaw=JSON.stringify(ranked);
     data.set(TOURNAMENT_KEY,rankedRaw);winHandlers.storage({key:TOURNAMENT_KEY});
     assert.equal(el('leaderForms').hidden,false);
-    assert.equal(el('leaderForms').textContent,'Top 10 forms: Soresu 6 · Djem So 2 · Makashi 2');
+    assert.deepEqual(el('leaderForms').children.filter(c=>typeof c!=='string').map(c=>c.textContent),['Top Forms','Soresu 6','Djem So 2','Makashi 2']);
     assert.equal(data.get(TOURNAMENT_KEY),rankedRaw);
     el('squadFormat').fire();
-    assert.equal(el('leaderForms').hidden,true);assert.equal(el('leaderForms').textContent,'');
+    assert.equal(el('leaderForms').hidden,true);assert.deepEqual(el('leaderForms').children,[]);
     el('soloFormat').fire();
-    assert.equal(el('leaderForms').textContent,'Top 10 forms: Soresu 6 · Djem So 2 · Makashi 2');
+    assert.deepEqual(el('leaderForms').children.filter(c=>typeof c!=='string').map(c=>c.textContent),['Top Forms','Soresu 6','Djem So 2','Makashi 2']);
   }finally{
    for(const name of names){if(originals[name])Object.defineProperty(globalThis,name,originals[name]);else delete globalThis[name];}
   }
