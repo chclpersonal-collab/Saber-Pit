@@ -80,7 +80,7 @@ const lobby=get<HTMLFormElement>('lobby');
 const play=el('div','v6-play');play.id='v6Play';
 const head=el('div','v6-play-head');const back=el('button','v6-back');back.type='button';back.setAttribute('aria-label','Back to home');back.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 back.addEventListener('click',()=>showHome());head.append(back,el('h2',undefined,'Play'));
-const list=el('div','v6-modes');list.setAttribute('role','list');
+const list=el('div','v6-modes');list.setAttribute('role','group');list.setAttribute('aria-label','Match modes');
 const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master trial','','solo'],['hero','Play a Hero','','heroes']];
 const THUMB:Record<string,V6Card>={duel:'arena',squad:'heroes',watch:'heroes',master:'gauntlet',hero:'heroes'};
 function thumbArt(card:V6Card){const cv=el('canvas','v6-thumb');cv.setAttribute('aria-hidden','true');cards.set(cv,card);return cv;}
@@ -88,13 +88,13 @@ const presetSource=(p:string)=>p==='hero'?get<HTMLButtonElement>('watchHero'):do
 const modeButtons:HTMLButtonElement[]=[];
 for(const [preset,name,sub,scene] of MODE_ROWS){
   const src=presetSource(preset);if(!src)continue;
-  const b=el('button','v6-mode');b.type='button';b.dataset.v6Preset=preset;b.setAttribute('role','listitem');
+  const b=el('button','v6-mode');b.type='button';b.dataset.v6Preset=preset;
   void sub;void scene;
   const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));
   b.append(thumbArt(THUMB[preset]??'arena'),tx);b.addEventListener('click',()=>{src.click();syncModes();});
   modeButtons.push(b);list.append(b);
   if(preset==='squad')for(const [name,href,card] of [['Three Fronts','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Duel tournament','./tournament.html','tournament'],['Squad tournament','./tournament.html#squads','tournament']] as const){
-    const a=el('a','v6-mode v6-mode-link');a.href=href;a.setAttribute('role','listitem');const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));a.append(thumbArt(card),tx);list.append(a);
+    const a=el('a','v6-mode v6-mode-link');a.href=href;const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));a.append(thumbArt(card),tx);list.append(a);
   }
 }
 const stage=el('div','v6-stage');const stageArt=art('duel');const stageTitle=el('h3','v6-stage-title','Duel');
@@ -120,10 +120,25 @@ const stageText=el('div','v6-stage-text');stageText.append(stageTitle,chips,go);
 stage.append(stageArt,stageText);
 play.append(head,list,stage);
 lobby?.prepend(play);
+// Keep the actual controls, so the existing start/save handlers and state remain authoritative.
+const playTools=el('details','v6-play-tools');
+const playToolsSummary=el('summary',undefined,'More modes and tools');
+const playToolRow=el('div','v6-play-tool-row');
+for(const id of ['autoDuelStart','formsGuide','rankSetup']){
+ const item=get(id);
+ if(item){item.classList.add('v6-cta','v6-cta-2');playToolRow.append(item);}
+}
+const classic=lobby?.querySelector<HTMLAnchorElement>('a[href="./classic.html"]');
+if(classic){classic.classList.add('v6-cta','v6-cta-2');classic.textContent='Classic (legacy)';playToolRow.append(classic);}
+for(const [label,href] of [['Style Lab','./style-lab.html'],['Idle RPG','./idle-rpg.html']]){
+ const link=el('a','v6-cta v6-cta-2',label);link.href=href;playToolRow.append(link);
+}
+playTools.append(playToolsSummary,playToolRow);
+play.after(playTools);
 const custom=get<HTMLDetailsElement>('customizeMatch');const customSum=custom?.querySelector('summary');if(customSum)customSum.textContent='More options';
 function syncModes(){
   let active:HTMLButtonElement|undefined;
-  for(const b of modeButtons){const src=presetSource(b.dataset.v6Preset??'');const on=src?.getAttribute('aria-pressed')==='true';b.setAttribute('aria-current',String(on));b.disabled=!!src?.disabled;if(on)active=b;}
+  for(const b of modeButtons){const src=presetSource(b.dataset.v6Preset??'');const on=src?.getAttribute('aria-pressed')==='true';b.setAttribute('aria-current',String(on));b.setAttribute('aria-pressed',String(on));b.disabled=!!src?.disabled;if(on)active=b;}
   const row=MODE_ROWS.find(r=>r[0]===active?.dataset.v6Preset);
   stageTitle.textContent=row?row[1]:'Custom match';
   if(matchMedia('(max-width:760px)').matches){if(active&&active.nextSibling!==chips)active.after(chips);}else if(chips.parentElement!==stageText)stageText.insertBefore(chips,go);
