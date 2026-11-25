@@ -568,3 +568,11 @@
 :root body.pit-v5 .player-form-note .v6-tag{margin-left:6px;vertical-align:middle}
 @media (max-width:760px){:root body.pit-v5 #guideForms{grid-template-columns:1fr}}
 @media (max-height:560px) and (orientation:landscape){:root body.pit-v5 #guideForms{grid-template-columns:repeat(2,1fr)}}
+/* The page background reaches the bottom of the screen, and the desktop Loadout fills the screen height. */
+:root body.pit-v5{min-height:100dvh}
+@media (min-width:761px) and (min-height:561px){
+  :root body.pit-v5 .v6-loadout{height:calc(100dvh - 44px);min-height:560px;grid-template-rows:auto minmax(0,1fr)}
+  :root body.pit-v5 .v6-loadout-art{grid-row:2;height:100%;min-height:0}
+  :root body.pit-v5 .v6-loadout-panel{grid-row:2;min-height:0;overflow-y:auto}
+  :root body.pit-v5 .v6-loadout-panel [role=tabpanel]:not([hidden]){flex:1;align-content:start;grid-auto-rows:minmax(72px,104px)}
+}

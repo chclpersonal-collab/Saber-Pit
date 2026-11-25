@@ -17,7 +17,7 @@ export function openGauntletSeat(): ArenaSeatOpen{
   if(known===undefined)return {ok:false,text:'Saving blocked in this browser',back:BACK};
   const state=loadGauntlet();
   const bout=startHumanBout(state);
-  if(!bout||!nextGauntletBout(state))return {ok:false,text:'No bout ready: draw a bracket',back:BACK};
+  if(!bout||!nextGauntletBout(state))return {ok:false,text:'No bout ready: draw a bracket',back:BACK,redirect:true};
   let ending: Promise<ArenaSeatEnd> | null=null, left=false;
   const game=bout.game as unknown as {terrain?: {id?: string}};
   const seat: ArenaSeat={

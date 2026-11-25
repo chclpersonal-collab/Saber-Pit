@@ -24,7 +24,9 @@ export interface ArenaSeat {
 export function arenaSeatKind(search=globalThis.location?.search??''): ArenaSeatKind | null{
   return new URLSearchParams(search).get('seat')==='gauntlet'?'gauntlet':null;
 }
-export type ArenaSeatOpen={ok:true;seat:ArenaSeat}|{ok:false;text:string;back:string};
+export type ArenaSeatOpen={ok:true;seat:ArenaSeat}|{ok:false;text:string;back:string;
+  /** Nothing went wrong: there is simply no bout yet, so the player goes straight back to draw one. */
+  redirect?:true};
 export async function openArenaSeat(kind: ArenaSeatKind): Promise<ArenaSeatOpen>{
   if(kind==='gauntlet')return (await import('./gauntlet-seat.js')).openGauntletSeat();
   return {ok:false,text:'Seat not available',back:'./index.html'};

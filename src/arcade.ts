@@ -1618,6 +1618,7 @@ if(seatKind){
   void openArenaSeat(seatKind).catch(()=>({ok:false as const,text:'Could not open bout: save unchanged',back:'./index.html'})).then(opened=>{
     delete document.body.dataset.seatOpening;
     if(opened.ok){seed=0;setScene('game',opened.seat.mode,1,{seat:opened.seat});return;}
+    if('redirect' in opened&&opened.redirect){location.replace(opened.back);return;}
     $('setupStatus').textContent=opened.text;
     showSeatProblem(opened.text,opened.back);
   });
