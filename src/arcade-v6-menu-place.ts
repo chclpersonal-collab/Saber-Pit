@@ -43,4 +43,10 @@ if(typeof document!=='undefined'){
   },true);
   addEventListener('scroll',e=>{const t=e.target;if(t instanceof Element&&t.closest(':is(.v5-more-menu,.v6p-more-menu,.v6-info-pop)'))return;replace();},{capture:true,passive:true});
   addEventListener('resize',replace);
+  // Escape closes the newest open menu first (before any dialog it sits in) and hands focus back to its button.
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape')return;
+    const d=[...open].reverse().find(x=>x.isConnected&&x.open);if(!d)return;
+    e.preventDefault();e.stopPropagation();d.open=false;d.querySelector<HTMLElement>(':scope>summary')?.focus();
+  },true);
 }
