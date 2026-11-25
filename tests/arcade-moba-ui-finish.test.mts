@@ -16,6 +16,7 @@ test('the real controller announces a natural core finish once and retry does no
     setAttribute(key,value){this.attributes[key]=value;}
     focus(){focus=this.id;}
     append(child){if(child.id)ids[child.id]=child;child.parentElement=this;}
+    replaceChildren(...children){this.children=children;}
   }
   const ids=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(([,id])=>[id,new Element(id)]));
   const lanes=[...html.matchAll(/data-lane="([^"]+)"/g)].map(([,lane])=>new Element('lane'+lane,{lane}));
@@ -50,7 +51,7 @@ test('the real controller announces a natural core finish once and retry does no
   assert.match(fallen.attributes['data-towers'],/^[0-2]$/);
   assert.ok(parseInt(ids.blueKills.textContent,10)+parseInt(ids.redKills.textContent,10)>0);
   assert.equal(ids.redKills.attributes['aria-label'],'Pink knockouts: '+ids.redKills.textContent);
-  assert.match(ids.result.textContent,/^(Citadel lost|Siege won)$/);
+  assert.match(ids.result.textContent,/^(Defeat|Victory)$/);
   assert.equal(ids.announce.textContent,ids.result.textContent);
   assert.equal(announcements.filter(x=>x===ids.result.textContent).length,1);
   for(let i=0;i<30;i++)tick();
@@ -59,9 +60,9 @@ test('the real controller announces a natural core finish once and retry does no
   ids.restart.dispatch('click');assert.equal(ids.announce.textContent,'');assert.equal(ids.clock.textContent,'10:00');
   assert.ok(ids.finished.hidden&&!ids.brief.hidden);
   lanes[1].dispatch('click');tick();
-  assert.equal(ids.announce.textContent,'Center front deployed.');
+  assert.equal(ids.announce.textContent,'Deployed to Center');
   assert.equal(focus,'field');
-  assert.match(ids.tacticalHint.textContent,/Wait for your first allied wave/);
+  assert.match(ids.tacticalHint.textContent,/Wait for your first wave/);
   for(let i=0;i<12;i++)tick();
   assert.match(ids.tacticalHint.textContent,/Follow your first center wave/);
   assert.equal(ids.firstTowerPing.hidden,false);
@@ -88,7 +89,7 @@ test('the real controller announces a natural core finish once and retry does no
   assert.equal(ids.respawnPaused.hidden,true);
   for(let i=0;i<370&&!ids.respawnOverlay.hidden;i++)tick();
   assert.equal(ids.respawnOverlay.hidden,true);
-  assert.equal(ids.announce.textContent,'Respawn complete.');
+  assert.equal(ids.announce.textContent,'Respawned');
   assert.ok(buttons.every(x=>!x.disabled));
   assert.equal(ids.tacticalHint.hidden,false);
 });

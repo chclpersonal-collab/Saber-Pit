@@ -24,13 +24,13 @@ const tactical=mountText('p','tacticalHint',field);tactical.hidden=true;
 const direction=mountText('p','firstTowerPing',field);direction.hidden=true;
 direction.setAttribute('aria-hidden','true');
 mountText('strong','firstTowerArrow',direction).textContent='↑';
-mountText('small','firstTowerLabel',direction).textContent='Pink tower';
+mountText('small','firstTowerLabel',direction).textContent='Pink Tower';
 const respawn=mountText('aside','respawnOverlay',field);respawn.hidden=true;
 respawn.setAttribute('aria-label','Respawn');
-mountText('strong','respawnTitle',respawn).textContent='Knocked out';
+mountText('strong','respawnTitle',respawn).textContent='Knocked Out';
 const respawnSource=mountText('p','respawnSource',respawn);
 const respawnClock=mountText('p','respawnClock',respawn);
-const respawnPaused=mountText('small','respawnPaused',respawn);respawnPaused.textContent='Match paused';
+const respawnPaused=mountText('small','respawnPaused',respawn);respawnPaused.textContent='Paused';
 const width=MOBA_WIDTH,height=MOBA_HEIGHT;
 canvas.width=width;canvas.height=height;
 const backdrop=paintMobaTerrain();
@@ -38,11 +38,11 @@ const formInput=byId<HTMLSelectElement>('saberForm'),formHint=byId('formHint');
 const bellRally=byId<HTMLInputElement>('bellRally');
 for(const id of MOBA_FORM_IDS){
   const option=document.createElement('option'),form=MOBA_FORMS[id];
-  option.value=id;option.textContent=form.name+' · '+form.role;
+  option.value=id;option.textContent=form.name;
   formInput.append(option);
 }
 const selectedForm=():MobaForm=>MOBA_FORM_IDS.find(key=>key===formInput.value)??MOBA_FORM_IDS[0];
-const renderFormHint=()=>{formHint.textContent=MOBA_FORMS[selectedForm()].description;};
+const renderFormHint=()=>{const form=MOBA_FORMS[selectedForm()];formHint.textContent=form.role+', '+form.hp+' HP';};
 formInput.addEventListener('change',renderFormHint);
 renderFormHint();
 const active=new Set<string>(), pulses=new Set<string>(), touches=new Map<number,string>(), reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -58,8 +58,8 @@ let game:MobaState=createMoba(), playing=false, paused=false, aim:{x:number;y:nu
 const changeBattleControls=(canAct:boolean)=>{for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))btn.disabled=!canAct;};
 const stamp=(el:HTMLElement,value:string)=>{if(el.textContent!==value)el.textContent=value;};
 function renderCameraControl(){
-  stamp(nodes.map,follow?'Show overview':'Follow hero');
-  nodes.map.setAttribute('aria-label',follow?'Show whole battlefield':'Follow your hero');
+  stamp(nodes.map,follow?'Overview':'Follow');
+  nodes.map.setAttribute('aria-label',follow?'Overview':'Follow');
 }
 const press=(id:string)=>active.has(id)||Array.from(touches.values()).includes(id);
 const setScreen=(screen:'brief'|'field'|'finished')=>{
@@ -75,7 +75,7 @@ function clearControls(){
 }
 function begin(lane:MobaLane){
   game=createMoba((Date.now()^performance.now()*1000)>>>0,lane,selectedForm(),{bellRally:bellRally.checked,smartAI:true}); lastBellNotice='';aim=null;paused=false;prior=0;lastUi=-1;lastAnnounced=0;previousAlive=true;knockoutSource=null;
-  follow=true;clearControls();setScreen('field');measureViewport();renderCameraControl();stamp(nodes.pause,'Pause');stamp(nodes.announce,['North','Center','South'][lane]+' front deployed.');
+  follow=true;clearControls();setScreen('field');measureViewport();renderCameraControl();stamp(nodes.pause,'Pause');stamp(nodes.announce,'Deployed to '+['North','Center','South'][lane]);
   canvas.focus({preventScroll:true});renderHud();
 }
 function leave(){
@@ -85,7 +85,7 @@ function leave(){
 function pause(value:boolean){
   if(!playing)return;
   paused=value;clearControls();changeBattleControls(playing&&!paused&&game.player.alive);prior=0;stamp(nodes.pause,paused?'Resume':'Pause');
-  stamp(nodes.announce,paused?'Match paused.':'Match resumed.');
+  stamp(nodes.announce,paused?'Paused':'Resumed');
   renderHud();if(!paused)canvas.focus({preventScroll:true});
 }
 for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-lane]')){
@@ -133,13 +133,13 @@ for(const btn of document.querySelectorAll<HTMLButtonElement>('[data-control]'))
 function renderHud(){
   const clock=Math.max(0,Math.ceil(MOBA_MATCH_LIMIT-game.time));
   stamp(nodes.clock,playing||!nodes.finished.hidden?Math.floor(clock/60)+':'+String(clock%60).padStart(2,'0'):'10:00');
-  stamp(nodes.wave,!playing&&nodes.finished.hidden?'AWAITING DEPLOYMENT':!game.wave?'WAVE INBOUND':'WAVE '+game.wave+' · '+Math.max(0,Math.ceil(game.nextWaveAt-game.time))+'S');
+  stamp(nodes.wave,!playing&&nodes.finished.hidden?'Ready':!game.wave?'Wave Inbound':'Wave '+game.wave+' · '+Math.max(0,Math.ceil(game.nextWaveAt-game.time))+'s');
   for(const [team,el,kos] of [[0,nodes.blue,nodes.blueKills],[1,nodes.red,nodes.redKills]] as const){
     const core=game.cores[team], towers=game.towers.filter(t=>t.team===team&&t.alive).length;
     const percent=Math.max(0,Math.min(100,Math.ceil(core.hp/core.maxHp*100)));
     el.setAttribute('data-towers',String(towers));
     el.setAttribute('data-core',core.shielded?'shield':String(percent));
-    stamp(el,(core.shielded?'Shielded':percent+'% Core')+' · '+towers+'/3 towers');
+    stamp(el,(core.shielded?'Shielded':percent+'% Core')+' · '+towers+'/3 Towers');
     // Opposing hero deaths count actual knockouts, including minion/tower kills.
     const total=game.heroes.reduce((n,h)=>n+(h.team!==team?h.deaths:0),0);
     stamp(kos,String(total));
@@ -161,15 +161,15 @@ function renderHud(){
     tactical.setAttribute('data-warning',String(cue.warning));
     stamp(tactical,cue.label);
   }
-  stamp(nodes.form,playing?(!p.alive?'Respawn '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s':MOBA_FORMS[p.form].name):'Ready to deploy');
+  stamp(nodes.form,playing?(!p.alive?'Respawn '+Math.max(0,Math.ceil(p.respawnAt-game.time))+'s':MOBA_FORMS[p.form].name):'Ready');
   stamp(nodes.hp,playing?String(Math.ceil(p.hp)):'—');
   stamp(nodes.energy,playing?String(Math.floor(p.energy)):'—');
   stamp(nodes.level,playing?String(p.level):'—');
   stamp(nodes.record,playing?p.kills+'/'+p.deaths:'—');
   const cost=mobaUpgradeCost(p),canBuy=p.alive&&Math.hypot(p.x-game.cores[0].x,p.y-game.cores[0].y)<=123&&cost!==null&&p.credits>=cost;
-  stamp(nodes.upgrade,cost===null?'Kit maxed':'Upgrade '+p.credits+'/'+cost);
+  stamp(nodes.upgrade,cost===null?'Maxed':'Upgrade '+p.credits+'/'+cost);
   nodes.upgrade.disabled=!playing||paused||!canBuy;
-  nodes.upgrade.title='Buy a kit upgrade at the allied Core';
+  nodes.upgrade.title='Buy at your Core';
   // The terminal frame owns its live-region result; HUD updates only announce
   // in-match tower changes and this player's respawn.
   if(!playing||game.phase!=='playing'||!p.alive)return;
@@ -179,7 +179,7 @@ function renderHud(){
   }
   else if(objective){
     lastAnnounced=objective.id;
-    stamp(nodes.announce,objective.type==='tower'?(objective.team===0?'Pink tower destroyed.':'Blue tower lost.'):'Respawn complete.');
+    stamp(nodes.announce,objective.type==='tower'?(objective.team===0?'Pink tower down':'Blue tower down'):'Respawned');
   }
 }
 const moving=new Set<MobaHero>();
@@ -208,9 +208,9 @@ function frame(now:number){
     if(dt>0){stepMoba(game,dt,input);upgrade=false;pulses.clear();}
     if(game.phase!=='playing'){
       setScreen('finished');clearControls();
-      stamp(nodes.result,game.phase==='won'?'Siege won':game.phase==='lost'?'Citadel lost':'Stalemate');
-      stamp(nodes.detail,(game.endReason==='timeout'?'Time limit. ':'')+'You finished level '+game.player.level+' with '+game.player.kills+' knockouts.');
-      stamp(nodes.announce,nodes.result.textContent??'Match complete.');
+      stamp(nodes.result,game.phase==='won'?'Victory':game.phase==='lost'?'Defeat':'Draw');
+      nodes.detail.replaceChildren(...[game.endReason==='timeout'?'Time Out':null,'Lv '+game.player.level,game.player.kills+' KOs'].filter((x):x is string=>Boolean(x)).flatMap((text,i)=>{const chip=document.createElement('span');chip.className='v6-meta';chip.textContent=text;return i?[' ',chip]:[chip];}));
+      stamp(nodes.announce,nodes.result.textContent??'Match over');
       byId('restart').focus({preventScroll:true});renderHud();
     }else if(previousAlive!==game.player.alive){
       previousAlive=game.player.alive;
@@ -218,7 +218,7 @@ function frame(now:number){
       if(!previousAlive){
         aim=null;
         knockoutSource=mobaDeathSource(game);
-        stamp(nodes.announce,knockoutSource?'Knocked out by '+knockoutSource+'.':'Knocked out.');
+        stamp(nodes.announce,knockoutSource?'Knocked out by '+knockoutSource:'Knocked out');
       }
       renderHud();lastUi=now;
     }else if(now-lastUi>100){renderHud();lastUi=now;}

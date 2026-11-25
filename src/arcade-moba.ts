@@ -12,10 +12,10 @@ export const MOBA_FORMS={
   shii_cho:{name:'Shii-Cho',role:'Vanguard',description:'Slash cleaves clustered enemy minions.',hp:150,speed:175,slash:26,arc:1.45,reach:55,guard:.37,lungeSpeed:475,lungeTime:.17,lungeCost:26,lungeDamage:36},
   makashi:{name:'Makashi',role:'Duelist',description:'Long, narrow strikes; less health.',hp:133,speed:181,slash:31,arc:.76,reach:67,guard:.42,lungeSpeed:510,lungeTime:.18,lungeCost:27,lungeDamage:39},
   soresu:{name:'Soresu',role:'Guardian',description:'Best armor and guard; short dash and lighter cuts.',hp:185,speed:155,slash:20,arc:1.19,reach:47,guard:.23,lungeSpeed:400,lungeTime:.14,lungeCost:30,lungeDamage:29},
-  ataru:{name:'Ataru',role:'Mobile striker',description:'Fastest, longest dash; fragile and stamina-hungry.',hp:128,speed:199,slash:23,arc:1.10,reach:49,guard:.46,lungeSpeed:570,lungeTime:.20,lungeCost:32,lungeDamage:42},
+  ataru:{name:'Ataru',role:'Striker',description:'Fastest, longest dash; fragile and stamina-hungry.',hp:128,speed:199,slash:23,arc:1.10,reach:49,guard:.46,lungeSpeed:570,lungeTime:.20,lungeCost:32,lungeDamage:42},
   djem_so:{name:'Djem So',role:'Guardian',description:'Hardest close-range cuts and solid guard; slow feet.',hp:174,speed:151,slash:36,arc:1.06,reach:44,guard:.31,lungeSpeed:420,lungeTime:.16,lungeCost:32,lungeDamage:42},
   niman:{name:'Niman',role:'Vanguard',description:'Reliable reach and a cheaper dash; moderate damage.',hp:152,speed:171,slash:25,arc:1.23,reach:56,guard:.37,lungeSpeed:454,lungeTime:.17,lungeCost:21,lungeDamage:33},
-  juyo:{name:'Juyo',role:'Mobile striker',description:'Quick, brutal dash; a weaker guard.',hp:140,speed:188,slash:30,arc:1.02,reach:50,guard:.55,lungeSpeed:550,lungeTime:.17,lungeCost:24,lungeDamage:44},
+  juyo:{name:'Juyo',role:'Striker',description:'Quick, brutal dash; a weaker guard.',hp:140,speed:188,slash:30,arc:1.02,reach:50,guard:.55,lungeSpeed:550,lungeTime:.17,lungeCost:24,lungeDamage:44},
 } as const;
 export type MobaForm=keyof typeof MOBA_FORMS;
 export const MOBA_FORM_IDS=Object.keys(MOBA_FORMS) as MobaForm[];

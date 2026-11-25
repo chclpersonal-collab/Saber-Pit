@@ -14,16 +14,16 @@ export function mobaDeathSource(game:MobaState):string|null{
 export function mobaObjectiveCue(game:MobaState):{label:string;warning:boolean}{
   const p=game.player, core=game.cores[1], lane=laneNames[p.lane];
   const safe=(label:string)=>({label,warning:false}), pressure=mobaPressure(game);
-  if(pressure.underFire)return {label:`${pressure.structureKind==='core'?'Core':'Tower'} uncovered · fall back to your wave`,warning:true};
-  if(pressure.waveBehind)return {label:'Your wave fell behind · regroup',warning:true};
-  if(!core.shielded)return safe('Core exposed: breach the enemy base');
+  if(pressure.underFire)return {label:`${pressure.structureKind==='core'?'Core':'Tower'} fire: fall back to wave`,warning:true};
+  if(pressure.waveBehind)return {label:'Wave behind: regroup',warning:true};
+  if(!core.shielded)return safe('Pink Core exposed: push in');
   const tower=game.towers.find(t=>t.team===1&&t.lane===p.lane&&t.alive);
-  if(!tower)return safe('Rotate with a wave to an enemy tower');
-  if(game.wave===0)return safe('Wait for your first allied wave');
+  if(!tower)return safe('Rotate to a Pink tower');
+  if(game.wave===0)return safe('Wait for your first wave');
   const behindWave=game.minions.some(m=>m.team===0&&m.lane===p.lane&&m.alive&&m.x>=p.x-38&&m.x<=p.x+265);
   if(behindWave)return safe(game.wave===1?'Follow your first '+lane.toLowerCase()+' wave':'Push with the '+lane.toLowerCase()+' wave');
   if(p.x<tower.x-125||p.x>tower.x+100)return safe('Regroup with your next '+lane.toLowerCase()+' wave');
-  return safe(lane+' tower: let minions take the first shots');
+  return safe(lane+' tower: let minions tank');
 }
 
 export function mobaFirstTowerDirection(game:MobaState,view:{x:number;y:number;width:number;height:number;zoom:number}){

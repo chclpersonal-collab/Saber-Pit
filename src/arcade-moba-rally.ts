@@ -41,16 +41,16 @@ export function bellRallyCue(rally:BellRally|undefined,tick:number){
   if(!rally)return null;
   if(rally.reward!==null){
     const team=rally.reward===0?'Blue':'Pink';
-    return {phase:'claimed',team:rally.reward,label:team+' · mid reinforcement',notice:team+' won the Bell Rally. One reinforced mid minion joins the next wave.'};
+    return {phase:'claimed',team:rally.reward,label:team+' won the Bell',notice:team+' won the Bell Rally'};
   }
   if(rally.phase==='open'){
     const remain=Math.max(0,Math.ceil((rally.untilTick-tick)/60));
     const label=rally.contested?'Bell contested':rally.holder!==null?
       'Bell hold '+Math.min(3,Math.floor(rally.heldTicks/60))+'/3s':'Hold the Bell ring';
-    return {phase:'open',label:label+' · '+remain+'s',notice:'Bell Rally is open. Hold the center ring uncontested for three seconds.'};
+    return {phase:'open',label:label+' · '+remain+'s',notice:'Bell Rally open: hold center 3s'};
   }
   if(tick>=rally.nextTick-330&&tick<rally.nextTick){
-    return {phase:'soon',label:'Bell opens in '+Math.ceil((rally.nextTick-tick)/60)+'s',notice:'Bell Rally opens soon at the center.'};
+    return {phase:'soon',label:'Bell opens in '+Math.ceil((rally.nextTick-tick)/60)+'s',notice:'Bell Rally opens soon'};
   }
   return null;
 }

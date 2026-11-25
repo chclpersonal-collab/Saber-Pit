@@ -2,40 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Loomen | The Three Fronts</title>
+<title>MOBA · LOOMEN</title>
 <link rel="stylesheet" href="moba.css?v=5.1.0"><link rel="stylesheet" href="pit-v5-tokens.css?v=5.3.0"><link rel="stylesheet" href="pit-v6-moba.css?v=6.0.0">
 </head>
 <body class="v6-moba">
 <main class="shell">
   <header class="mast">
     <a class="brand" href="index.html" aria-label="LOOMEN home"><span aria-hidden="true">◈</span><b>LOOMEN <small>VERSION 6.0.1</small></b></a>
-    <nav aria-label="Game modes"><a href="index.html">Arena</a><a href="moba.html" aria-current="page">Three Fronts</a><a href="tournament.html">Tournaments</a><a href="idle-rpg.html">Idle RPG</a></nav>
+    <nav aria-label="Game modes"><a href="index.html">Arena</a><a href="moba.html" aria-current="page">MOBA</a><a href="tournament.html">Tournament</a><a href="idle-rpg.html">Idle RPG</a></nav>
   </header>
   <section class="intro" aria-labelledby="fronts-title">
-    <div><h1 id="fronts-title">Three Fronts</h1></div>
-    <div class="tags"><span>MOBA</span><span>5v5</span><span>Solo + AI</span></div>
+    <div><h1 id="fronts-title">MOBA</h1></div>
+    <div class="tags"><span>5v5</span><span>Solo + AI</span></div>
   </section>
   <section class="battle" aria-label="Battlefield">
     <div class="score">
-      <div class="team blue"><b>BLUE</b><span id="blueStatus">Core intact</span></div>
-      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Blue knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Pink knockouts"></b></span><span id="wave">AWAITING DEPLOYMENT</span><span id="bellStatus" hidden></span></div>
-      <div class="team red"><b>PINK</b><span id="redStatus">Core intact</span></div>
+      <div class="team blue"><b>Blue</b><span id="blueStatus">Core Intact</span></div>
+      <div class="time"><span class="tally"><b id="blueKills" class="kills blue" aria-label="Blue knockouts"></b><b id="clock">00:00</b><b id="redKills" class="kills red" aria-label="Pink knockouts"></b></span><span id="wave">Ready</span><span id="bellStatus" hidden></span></div>
+      <div class="team red"><b>Pink</b><span id="redStatus">Core Intact</span></div>
     </div>
     <div class="viewport">
-      <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Three-lane battle arena"></canvas>
+      <canvas id="field" width="1280" height="720" tabindex="0" aria-label="Battlefield"></canvas>
       <div class="overlay" id="brief">
-        <h2>Choose a lane</h2><p>Destroy a tower to expose the enemy Core.</p>
-        <div class="form-pick"><label for="saberForm">Saber form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint"></p></div>
-        <label class="bell-toggle"><input id="bellRally" type="checkbox" aria-describedby="bellHelp"><span>Bell Rally <small>Optional objective</small></span></label><p class="bell-help" id="bellHelp">Hold the center ring uncontested to reinforce one minion in the next mid wave.</p>
-        <div class="deploy" aria-label="Choose front and deploy"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
-        <small>Blue vs Pink · 5 a side · no Arena Elo changes</small>
+        <h2>Pick a Lane</h2>
+        <div class="form-pick"><label for="saberForm">Form</label><select id="saberForm" aria-describedby="formHint"></select><p id="formHint" hidden></p></div>
+        <label class="bell-toggle"><input id="bellRally" type="checkbox" aria-describedby="bellHelp"><span>Bell Rally</span></label><p class="bell-help" id="bellHelp" hidden>Hold center ring to reinforce mid wave</p>
+        <div class="deploy" aria-label="Pick a lane"><button type="button" data-lane="0">North</button><button type="button" data-lane="1">Center</button><button type="button" data-lane="2">South</button></div>
       </div>
       <div class="overlay" id="finished" hidden>
         <h2 id="result"></h2><p id="resultInfo"></p>
-        <button type="button" id="restart">Choose another lane</button>
+        <button type="button" id="restart">Play Again</button>
       </div>
     </div>
-    <div class="field-tools"><div><p class="eyebrow">YOUR FIGHTER</p><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready to deploy</b><span>HP <b id="heroHP">—</b></span><span>Stamina <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints">WASD move · M map · Esc pause</small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>End match</button></div>
+    <div class="field-tools"><div><div id="vitals" aria-label="Fighter status"><b id="heroForm">Ready</b><span>HP <b id="heroHP">—</b></span><span>STA <b id="heroEnergy">—</b></span><span>Lv <b id="heroLevel">—</b></span><span>K/D <b id="heroRecord">—</b></span></div><small class="key-hints"><span class="v6-meta">WASD Move</span> <span class="v6-meta">M Map</span> <span class="v6-meta">Esc Pause</span></small></div><button type="button" id="map" hidden>Follow</button><button type="button" id="upgrade" hidden>Upgrade</button><button type="button" id="pause" hidden>Pause</button><button type="button" id="leave" hidden>Leave</button></div>
   </section>
   <section class="controls" aria-label="Battle controls">
     <div class="move" aria-label="Movement">
@@ -50,7 +49,7 @@
       <button type="button" data-control="guard" aria-label="Guard (Space)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z"/><path d="M12 7.5v9"/></svg><span class="lbl">Guard</span><kbd>Space</kbd></button>
     </div>
   </section>
-  <footer><p><b>Move</b> WASD or arrows <span>·</span> <b>Aim</b> cursor or tap arena <span>·</span> <b>Map</b> M <span>·</span> <b>Upgrade</b> U near your Core <span>·</span> <b>Push</b> behind allied minions</p><p>Local match · no online matchmaking</p></footer>
+  <footer><p><span class="v6-meta"><b>Move</b> WASD</span> <span class="v6-meta"><b>Aim</b> Click</span> <span class="v6-meta"><b>Map</b> M</span> <span class="v6-meta"><b>Upgrade</b> U</span></p></footer>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
 <script type="module" src="arcade-moba-ui.js?v=5.1.0"></script>
