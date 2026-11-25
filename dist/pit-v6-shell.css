@@ -109,7 +109,7 @@
 :root body.pit-v5 .v6-chip:not([aria-pressed=true]):focus{background:#1a1040cc;color:var(--v5-white)}
 :root body.pit-v5 .v6-stage-text{max-width:720px}
 @media (max-width:740px){
-  :root body.pit-v5 .v6-card:not(.v6-card-big) .v6-tag,:root body.pit-v5 .v6-card:not(.v6-card-big) p{display:none}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) p{display:none}
   :root body.pit-v5 .v6-card:not(.v6-card-big) h2{margin-bottom:10px}
   :root body.pit-v5[data-view=menu] .mast-right{margin-left:auto}
   :root body.pit-v5[data-view=menu] .identity{flex:1}
@@ -167,3 +167,186 @@
 /* HUD Elo beside the player's name */
 :root body.pit-v5 .hud .v6-hud-elo{font:800 .78rem/1 var(--v5-display,inherit);color:#ffd84a;margin-left:.4em;letter-spacing:.02em}
 :root body.pit-v5 .hud .v6-hud-elo[hidden]{display:none}
+
+/* No descriptor lines on menus: rating note stays for screen readers only */
+:root body.pit-v5[data-view="menu"] #arenaRatingStatus{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- home, matched to mockups/home-desk.png and home-phone.png ---- */
+:root body.pit-v5[data-view=menu][data-v6=home] #settingsOpen,:root body.pit-v5[data-view=menu] .landscape-start{display:none}
+:root body.pit-v5:not([data-view=menu]) .v6-nav,:root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-nav{display:none}
+:root body.pit-v5[data-view=menu][data-v6=home] .mast{margin-bottom:0}
+:root body.pit-v5 #v6Home{margin-top:clamp(18px,calc(100vh - 610px),230px)}
+:root body.pit-v5 .v6-grid{grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:repeat(2,minmax(200px,226px));gap:18px 20px}
+:root body.pit-v5 .v6-card::after{display:none}
+:root body.pit-v5 .v6-card{border:3px solid #6b5bd0;box-shadow:0 0 0 2px #1a0f3a,0 10px 0 #120a2a,0 18px 30px #0008;background:#2a1a5a}
+:root body.pit-v5 .v6-card-text{padding:0 20px 18px}
+:root body.pit-v5 .v6-card h2{font-size:30px;text-shadow:0 3px 0 #1a0a2a,0 0 10px #1a0a2a80}
+:root body.pit-v5 .v6-card-big h2{font-size:clamp(44px,4.6vw,60px);margin-bottom:14px}
+:root body.pit-v5 .v6-card:not(.v6-card-big) h2{margin-bottom:12px}
+:root body.pit-v5 .v6-tag{position:absolute;top:14px;right:14px;z-index:2;margin:0;padding:5px 11px;border-radius:9px;font-family:var(--v5-display);font-weight:400;font-size:15px;letter-spacing:.02em;transform:rotate(3deg);box-shadow:0 3px 0 #1a0a2a}
+:root body.pit-v5 .v6-tag-red{background:#ff4d6d;color:#fff}
+:root body.pit-v5 .v6-tag-green{background:#3ee08a;color:#10331f}
+:root body.pit-v5 .v6-cover{position:absolute;inset:0;z-index:1}
+:root body.pit-v5 .v6-card-text{z-index:2;pointer-events:none}
+:root body.pit-v5 .v6-card-text .v6-cta{pointer-events:auto}
+:root body.pit-v5 .v6-card:not(.v6-card-big) .v6-cta{min-height:44px;padding:0 24px;font-size:20px}
+:root body.pit-v5 .v6-cta-2{background:linear-gradient(180deg,#5546c8,#3a2a9a)}
+:root body.pit-v5 .v6-cta-cyan{color:#fff;background:linear-gradient(180deg,#5fd6ff,#1fa6e8);box-shadow:0 var(--v5-lip) 0 #0f6a9a,0 8px 18px #0008}
+:root body.pit-v5 .v6-play-main{flex:1;justify-content:flex-start;max-width:300px}
+:root body.pit-v5 .v6-play-main::before{content:"";width:0;height:0;border-left:20px solid currentColor;border-block:12px solid transparent}
+:root body.pit-v5 .v6-card-big .v6-card-actions{flex-wrap:nowrap}
+/* nav: icons in the header on desk, bottom bar on phone */
+:root body.pit-v5 .v6-nav{display:flex;gap:6px;font-family:var(--v5-ui)}
+:root body.pit-v5 .v6-nav-item{appearance:none;border:0;background:none;cursor:pointer;color:var(--v5-soft,#c9c0ff);display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:12px;text-decoration:none;font-weight:800;font-size:12px}
+:root body.pit-v5 .v6-nav-item svg{width:22px;height:22px}
+:root body.pit-v5 .v6-nav-item[aria-current=page]{color:#fff}
+:root body.pit-v5 .v6-nav-item[aria-current=page] svg{filter:drop-shadow(0 0 6px #ffd27a)}
+:root body.pit-v5 .v6-nav-item:hover{color:#fff}
+:root body.pit-v5 .v6-nav-item:focus-visible{outline:3px solid #fff;outline-offset:2px}
+@media (min-width:761px){
+  :root body.pit-v5 .v6-nav [aria-current=page]{display:none}
+  :root body.pit-v5 .v6-player{border-radius:18px;padding:8px 10px 8px 8px;gap:8px;border:2px solid #6b5bd0}
+  :root body.pit-v5 .v6-stat{background:#1a1040;border-radius:12px;padding:8px 10px;min-width:56px}
+  :root body.pit-v5 .v6-who{padding:0 10px 0 4px}
+}
+@media (max-width:760px){
+  :root body.pit-v5[data-view=menu][data-v6=home] #app{padding:max(14px,env(safe-area-inset-top)) 2px 110px}
+  :root body.pit-v5[data-view=menu][data-v6=home] .mast{align-items:flex-start}
+  :root body.pit-v5 #v6Home{margin-top:16px}
+  :root body.pit-v5 .v6-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto;gap:16px}
+  :root body.pit-v5 .v6-card-big{grid-column:1/-1;grid-row:auto;min-height:220px}
+  :root body.pit-v5 .v6-card:not(.v6-card-big){min-height:0;aspect-ratio:1.16}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) h2{font-size:22px;margin:0}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) .v6-card-text{padding:0 12px 12px}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) .v6-card-actions{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  :root body.pit-v5 .v6-card-big h2{font-size:46px;margin-bottom:12px}
+  :root body.pit-v5 .v6-card-big .v6-card-text{padding:0 12px 12px}
+  :root body.pit-v5 .v6-card-big .v6-cta{min-height:52px;font-size:22px;padding:0 18px}
+  :root body.pit-v5 .v6-tag{font-size:13px;top:10px;right:10px}
+  :root body.pit-v5 .v6-who,:root body.pit-v5 .v6-player .v6-stat:nth-of-type(n+5){display:none}
+  :root body.pit-v5 .v6-player{border-radius:22px;padding:6px;gap:6px;margin-left:auto}
+  :root body.pit-v5 .v6-player .v6-stat{background:#1a1040;border-radius:12px;padding:6px 8px}
+  :root body.pit-v5 .v6-nav{position:fixed;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:20;justify-content:space-around;padding:8px 6px;border-radius:22px;background:#1d1250f2;border:2px solid #6b5bd0;box-shadow:0 8px 24px #000a}
+  :root body.pit-v5 .v6-nav-item{font-size:12px}
+}
+/* ---- Play and Loadout, matched to mockups/modes-*.png and loadout-*.png ---- */
+:root body.pit-v5[data-view=menu]:not([data-v6=home]) #app{position:relative}
+:root body.pit-v5[data-view=menu]:not([data-v6=home]) .mast{position:absolute;top:max(14px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));margin:0;z-index:5}
+:root body.pit-v5[data-view=menu]:not([data-v6=home]) .identity,:root body.pit-v5[data-view=menu]:not([data-v6=home]) #settingsOpen,:root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-who,:root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-player .v6-stat:nth-of-type(n+6){display:none}
+:root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-play-head{min-height:64px}
+:root body.pit-v5 canvas.v6-thumb{display:block;width:84px;height:56px;background:none}
+:root body.pit-v5 canvas.v6-thumb::after{display:none}
+:root body.pit-v5 .v6-mode{min-height:72px;text-decoration:none}
+:root body.pit-v5 .v6-mode-link:hover{color:var(--v5-white)}
+:root body.pit-v5 .v6-loadout-art{border:0;box-shadow:none;border-radius:0;background:none}
+:root body.pit-v5 .v6-loadout-name{display:flex;align-items:center;gap:12px}
+:root body.pit-v5 .v6-loadout-rank{width:38px;height:34px;display:grid;place-items:center;font-size:20px;color:var(--v5-ink);background:var(--v5-gold);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);text-shadow:none}
+:root body.pit-v5 .v6-pane .v6-chip-row{margin-top:12px}
+@media (max-width:760px){
+  :root body.pit-v5[data-view=menu]:not([data-v6=home]) .mast{top:max(10px,env(safe-area-inset-top));right:12px}
+  :root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-player .v6-stat:nth-of-type(n+5){display:none}
+  :root body.pit-v5[data-view=menu][data-v6=play] #app{padding:max(10px,env(safe-area-inset-top)) 4px 110px}
+  :root body.pit-v5 .v6-play{display:flex;flex-direction:column;gap:12px}
+  :root body.pit-v5 .v6-play-head{order:0}
+  :root body.pit-v5 .v6-stage{order:1;min-height:220px!important;height:220px}
+  :root body.pit-v5 .v6-stage::after{height:45%}
+  :root body.pit-v5 .v6-modes{order:2;flex-direction:column;overflow:visible}
+  :root body.pit-v5 .v6-mode{width:100%}
+  :root body.pit-v5 .v6-modes>.v6-chips{display:flex;flex-direction:column;gap:10px;margin:0;padding:12px;border-radius:var(--v5-r);border:2px solid var(--v5-line);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel))}
+  :root body.pit-v5 .v6-go{position:fixed;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:20;display:grid!important;grid-template-columns:1fr 1fr;gap:12px;flex-direction:row-reverse}
+  :root body.pit-v5 .v6-go .v6-play-btn{order:2}
+  :root body.pit-v5 .v6-go .v6-cta{min-height:58px;font-size:24px;width:100%}
+  :root body.pit-v5[data-view=menu][data-v6=loadout] #app{padding:max(10px,env(safe-area-inset-top)) 6px 24px}
+  :root body.pit-v5 .v6-loadout-art{height:300px!important;min-height:300px}
+  :root body.pit-v5 .v6-loadout-name{position:relative;margin:-64px 0 12px 8px;font-size:32px;z-index:2}
+}
+:root body.pit-v5 .v6-pane .v6-look-art{aspect-ratio:1/1}
+:root body.pit-v5 .v6-pane .v6-chip{min-height:32px;font-size:13px;padding:0 11px}
+:root body.pit-v5 .v6-pane .v6-chip-row{margin-top:8px}
+:root body.pit-v5 .v6-loadout-panel{gap:10px}
+/* results and HUD: no narration lines, only the numbers (user, Nov 25) */
+:root body.pit-v5 #result #resultText,:root body.pit-v5 #result #resultWho{display:none}
+/* phone landscape: one header row, the whole grid on one screen */
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5[data-view=menu] #app{padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left))}
+  :root body.pit-v5[data-view=menu] .mast{flex-wrap:nowrap;align-items:center}
+  :root body.pit-v5[data-view=menu] .identity .wordmark{font-size:22px}
+  :root body.pit-v5[data-view=menu] .identity .mark{width:28px;height:28px}
+  :root body.pit-v5[data-view=menu] .mast-right{flex-wrap:nowrap;gap:8px}
+  :root body.pit-v5 .v6-nav{gap:2px}
+  :root body.pit-v5 .v6-nav-item{padding:4px 6px;font-size:10px}
+  :root body.pit-v5 .v6-nav-item svg{width:18px;height:18px}
+  :root body.pit-v5 .v6-player{padding:4px 6px 4px 4px;gap:5px;border-radius:14px}
+  :root body.pit-v5 .v6-avatar{width:32px;height:32px}
+  :root body.pit-v5 .v6-who,:root body.pit-v5 .v6-player .v6-stat:nth-of-type(n+6){display:none}
+  :root body.pit-v5 .v6-player .v6-stat{min-width:40px;padding:4px 6px;background:#1a1040;border-radius:10px}
+  :root body.pit-v5 .v6-stat b{font-size:16px}
+  :root body.pit-v5 .v6-stat small{font-size:8px}
+  :root body.pit-v5 .v6-rank b{width:26px;height:22px;font-size:13px}
+  :root body.pit-v5 #v6Home{margin-top:10px}
+  :root body.pit-v5 .v6-grid{grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:repeat(2,calc((100vh - 96px)/2));gap:10px}
+  :root body.pit-v5 .v6-card-big{grid-column:auto;grid-row:span 2}
+  :root body.pit-v5 .v6-card:not(.v6-card-big){min-height:0;aspect-ratio:auto}
+  :root body.pit-v5 .v6-card h2{font-size:20px!important;margin-bottom:6px!important}
+  :root body.pit-v5 .v6-card-big h2{font-size:36px!important}
+  :root body.pit-v5 .v6-card-text{padding:0 12px 10px!important}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) .v6-cta{min-height:32px;font-size:15px;padding:0 14px}
+  :root body.pit-v5 .v6-card:not(.v6-card-big) .v6-card-actions{position:static;width:auto;height:auto;overflow:visible;clip:auto}
+  :root body.pit-v5 .v6-card-big .v6-cta{min-height:42px;font-size:19px;padding:0 14px}
+  :root body.pit-v5 .v6-tag{font-size:11px;top:8px;right:8px;padding:3px 8px}
+  :root body.pit-v5 .v6-nav{position:static;padding:0;border:0;background:none;box-shadow:none}
+  :root body.pit-v5 .v6-nav [aria-current=page]{display:none}
+  :root body.pit-v5[data-view=menu][data-v6=home] #app{padding-bottom:10px}
+}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5[data-view=menu]:not([data-v6=home]) .mast{top:8px;right:14px}
+  :root body.pit-v5[data-view=menu]:not([data-v6=home]) .v6-play-head{min-height:44px}
+  :root body.pit-v5 .v6-play-head h2{font-size:26px}
+  :root body.pit-v5 .v6-back{width:38px;height:38px}
+  :root body.pit-v5 .v6-play{grid-template-columns:minmax(190px,230px) 1fr;gap:10px;margin-bottom:8px}
+  :root body.pit-v5 .v6-modes{max-height:calc(100vh - 74px);overflow-y:auto;gap:6px;padding:2px}
+  :root body.pit-v5 .v6-mode{min-height:50px;padding:5px}
+  :root body.pit-v5 canvas.v6-thumb{width:60px;height:40px}
+  :root body.pit-v5 .v6-mode-text b{font-size:16px}
+  :root body.pit-v5 .v6-stage{min-height:0!important;height:calc(100vh - 74px)}
+  :root body.pit-v5 .v6-stage-text{padding:10px 14px 12px}
+  :root body.pit-v5 .v6-stage-title{font-size:28px;margin-bottom:4px}
+  :root body.pit-v5 .v6-chips{gap:4px 18px;margin-bottom:8px}
+  :root body.pit-v5 .v6-chip-row legend{padding-bottom:2px;font-size:9px}
+  :root body.pit-v5 .v6-chip{min-height:28px;font-size:12px;padding:0 9px}
+  :root body.pit-v5 .v6-play-btn{min-height:42px;font-size:20px;padding:0 24px}
+  :root body.pit-v5 .v6-go .v6-cta{min-height:42px}
+  :root body.pit-v5 .v6-loadout{grid-template-columns:1fr minmax(300px,380px);gap:10px}
+  :root body.pit-v5 .v6-loadout-art{min-height:0;height:calc(100vh - 70px)}
+  :root body.pit-v5 .v6-loadout-name{font-size:26px;left:14px;bottom:10px}
+  :root body.pit-v5 .v6-loadout-panel{max-height:calc(100vh - 70px);overflow-y:auto;padding:10px;gap:8px}
+  :root body.pit-v5 .v6-tab{min-height:32px}
+  :root body.pit-v5 .v6-look{font-size:14px;padding:4px 4px 6px}
+  :root body.pit-v5 .v6-pane .v6-look-art{aspect-ratio:4/3}
+}
+/* touch pad never covers the results or pause cards */
+:root body.pit-v5:has(#result:not([hidden])) :is(.touch-pad,#actions,#techFold,#touchLayout,#touchSide),:root body.pit-v5:has(#pauseOverlay:not([hidden])) :is(.touch-pad,#actions,#techFold,#touchLayout,#touchSide){visibility:hidden}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5 #pauseOverlay .dialog{padding:12px 16px;max-height:calc(100vh - 16px);overflow-y:auto}
+  :root body.pit-v5 #pauseOverlay h2{font-size:30px;margin:0 0 6px}
+  :root body.pit-v5 #pauseOverlay .dialog-actions button{min-height:38px}
+  :root body.pit-v5 #pauseOverlay .dialog-actions{gap:6px}
+}
+/* results: winner art over the title, as in the mock */
+:root body.pit-v5 #result .v6-result-art{display:block;width:min(220px,50vw);height:min(200px,24vh);margin:0 auto -18px}
+@media (orientation:landscape) and (max-height:520px){:root body.pit-v5 #result .v6-result-art{display:none}}
+@media (max-width:760px){
+  :root body.pit-v5 #result .r-tiles{grid-template-columns:1fr 1fr!important;gap:10px}
+  :root body.pit-v5 #result .dialog-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+  :root body.pit-v5 #result .dialog-actions>button{width:100%;min-height:56px}
+  :root body.pit-v5 #result #resultTitle{text-align:left}
+}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5 #result .result-card{max-height:100vh;overflow-y:auto;padding:8px 12px;width:min(94%,600px)}
+  :root body.pit-v5 #result #resultTitle{font-size:46px;margin:2px 0}
+  :root body.pit-v5 #result .r-tiles div{padding:6px 4px}
+  :root body.pit-v5 #result .r-tiles dd{font-size:24px}
+  :root body.pit-v5 #result .r-elo{padding:8px 12px}
+  :root body.pit-v5 #result .dialog-actions button{min-height:42px}
+  :root body.pit-v5 #result .r-hits,:root body.pit-v5 #result #rankResult{margin:4px 0}
+}

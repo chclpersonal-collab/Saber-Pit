@@ -131,13 +131,75 @@ export function paintV6Scene(canvas:HTMLCanvasElement,scene:V6Scene){
 }
 const BODY_LOOK:Record<string,V6Look>={woman:'woman',femboy:'femboy',rabbit:'rabbit'};
 /** A single fighter on the sunset backdrop, for the Loadout screen and look cards. */
-export function paintV6Fighter(canvas:HTMLCanvasElement,body:string,{stage=true,team=0 as 0|1}={}){
+export function paintV6Fighter(canvas:HTMLCanvasElement,body:string,{stage=true,team=0 as 0|1,bare=false}={}){
   const box=canvas.getBoundingClientRect(),dpr=Math.min(2,globalThis.devicePixelRatio||1);
   const w=Math.max(1,Math.round(box.width)),h=Math.max(1,Math.round(box.height));
   canvas.width=w*dpr;canvas.height=h*dpr;const c=canvas.getContext('2d');if(!c)return;
   c.setTransform(dpr,0,0,dpr,0,0);
   let gy=h*.86,size=h*.62;
   if(stage){sky(c,w,h);ridge(c,w,h,h*.62,h*.12,'#7a2f7e',11,true);temple(c,w*.2,h*.6,h*.12,'#5a2167');ridge(c,w,h,h*.72,h*.1,'#4a1a5e',21);gy=h*.74;platform(c,w,h,gy);size=h*.42;}
-  else{const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#3d2d86');g.addColorStop(1,'#22164f');c.fillStyle=g;c.fillRect(0,0,w,h);}
+  else if(!bare){const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#3d2d86');g.addColorStop(1,'#22164f');c.fillStyle=g;c.fillRect(0,0,w,h);}
+  else{gy=h*.92;size=h*.78;}
   inkFighter(c,{x:stage?w*.42:w*.5,gy,h:size,look:BODY_LOOK[body]??'woman',team,act:'guard',t:.2,face:1,ring:stage},dpr);
+}
+
+/* ---------- home card art: one bright scene per card, as in the approved home mock ---------- */
+export type V6Card='arena'|'fronts'|'tournament'|'gauntlet'|'heroes';
+function grad(c:Ctx,w:number,h:number,stops:[number,string][],diag=false){
+  const g=diag?c.createLinearGradient(0,0,w,h):c.createLinearGradient(0,0,0,h);for(const [o,col] of stops)g.addColorStop(o,col);c.fillStyle=g;c.fillRect(0,0,w,h);
+}
+function hill(c:Ctx,w:number,h:number,y:number,col:string,seed:number){
+  const R=rnd(seed);c.fillStyle=col;c.beginPath();c.moveTo(0,h);c.lineTo(0,y+R()*h*.04);
+  const n=4;for(let i=1;i<=n;i++){const x=w*i/n,cx=x-w/n/2;c.quadraticCurveTo(cx,y-h*(.02+R()*.07),x,y+R()*h*.05);}
+  c.lineTo(w,h);c.closePath();c.fill();
+}
+function shadow(c:Ctx,x:number,y:number,r:number){c.save();c.fillStyle='#1a0a2a';c.globalAlpha=.55;c.beginPath();c.ellipse(x,y,r,r*.24,0,0,7);c.fill();c.restore();}
+function dust(c:Ctx,w:number,h:number,seed:number){const R=rnd(seed);c.save();c.fillStyle='#fff';for(let i=0;i<40;i++){c.globalAlpha=.15+R()*.35;c.fillRect(R()*w,R()*h*.5,1.5,1.5);}c.restore();}
+function trophy(c:Ctx,x:number,y:number,s:number){
+  c.save();c.fillStyle='#ffd23f';c.beginPath();c.moveTo(x-s*.5,y);c.lineTo(x+s*.5,y);c.lineTo(x+s*.38,y+s*.62);c.quadraticCurveTo(x,y+s*.82,x-s*.38,y+s*.62);c.closePath();c.fill();
+  c.fillRect(x-s*.09,y+s*.7,s*.18,s*.32);c.fillRect(x-s*.32,y+s*1.0,s*.64,s*.12);
+  c.globalAlpha=.25;c.fillStyle='#fff';c.fillRect(x-s*.36,y+s*.06,s*.12,s*.45);c.restore();
+}
+function stairs(c:Ctx,w:number,h:number){
+  c.save();const steps=6,x0=w*.5,base=h,sw=(w-x0)/steps,sh=h*.09;
+  for(let i=0;i<steps;i++){const x=x0+i*sw,top=base-(i+1)*sh;const g=c.createLinearGradient(x,top,x,base);g.addColorStop(0,'#5a1f2a');g.addColorStop(1,'#1c0810');c.fillStyle=g;c.fillRect(x,top,w-x,sh*(i+1)+2);
+    c.fillStyle='#ffffff10';c.fillRect(x,top,w-x,2);}
+  c.restore();
+}
+/** Paint one home card. Bright gradient, one prop, the game's own fighters in ink. */
+export function paintV6Card(canvas:HTMLCanvasElement,card:V6Card){
+  const box=canvas.getBoundingClientRect(),dpr=Math.min(2,globalThis.devicePixelRatio||1);
+  const w=Math.max(1,Math.round(box.width)),h=Math.max(1,Math.round(box.height));
+  canvas.width=w*dpr;canvas.height=h*dpr;const c=canvas.getContext('2d');if(!c)return;
+  c.setTransform(dpr,0,0,dpr,0,0);
+  const s=Math.min(h*.36,w*.2);
+  if(card==='arena'){
+    grad(c,w,h,[[0,'#4b2aa8'],[.45,'#d4579c'],[.75,'#f0806a'],[1,'#e8a05c']]);dust(c,w,h,3);
+    hill(c,w,h,h*.78,'#b86a52',5);hill(c,w,h,h*.86,'#8f4b46',9);
+    const gy=h*.62,fs=Math.min(h*.3,w*.26);
+    shadow(c,w*.5,gy+4,fs*.32);shadow(c,w*.76,gy+4,fs*.32);
+    const a=inkFighter(c,{x:w*.52,gy,h:fs,look:'woman',team:0,act:'rush',t:.32,face:1,ring:false},dpr);
+    inkFighter(c,{x:w*.76,gy,h:fs,look:'rabbit',team:1,act:'hit',t:.08,face:-1,ring:false},dpr);
+    spark(c,a.tip[0],a.tip[1],fs*.2);
+  }else if(card==='fronts'){
+    grad(c,w,h,[[0,'#1d7fb8'],[.5,'#3fc4c4'],[1,'#7fe3b8']],true);dust(c,w,h,4);
+    hill(c,w,h,h*.8,'#4aa58c',6);
+    c.save();c.strokeStyle='#ffffff';c.lineCap='round';for(let i=0;i<3;i++){c.globalAlpha=.35+i*.12;c.lineWidth=Math.max(3,h*.025);c.beginPath();c.moveTo(w*.12+i*w*.05,h*.95);c.quadraticCurveTo(w*.35+i*w*.06,h*.25,w*.82,h*.18);c.stroke();}c.restore();
+    c.save();c.fillStyle='#ff4d6d';c.beginPath();c.moveTo(w*.82,h*.08);c.lineTo(w*.87,h*.18);c.lineTo(w*.82,h*.28);c.lineTo(w*.77,h*.18);c.closePath();c.fill();
+    c.fillStyle='#3fb8ff';c.beginPath();c.moveTo(w*.1,h*.74);c.lineTo(w*.14,h*.84);c.lineTo(w*.1,h*.94);c.lineTo(w*.06,h*.84);c.closePath();c.fill();c.restore();
+    const gy=h*.82;shadow(c,w*.78,gy+3,s*.28);inkFighter(c,{x:w*.78,gy,h:s,look:'femboy',team:0,act:'guard',t:.2,face:-1,ring:false},dpr);
+  }else if(card==='tournament'){
+    grad(c,w,h,[[0,'#6e2a8e'],[.45,'#d8508a'],[1,'#f2c84a']],true);dust(c,w,h,5);
+    hill(c,w,h,h*.8,'#b8963a',7);
+    trophy(c,w*.74,h*.2,Math.min(h*.5,w*.3));
+  }else if(card==='gauntlet'){
+    grad(c,w,h,[[0,'#3a0d24'],[.5,'#b23a52'],[1,'#e2765a']],true);dust(c,w,h,6);
+    stairs(c,w,h);
+    const gy=h*.72;inkFighter(c,{x:w*.66,gy,h:s,look:'woman2',team:0,act:'leap',t:.32,face:1,ring:false},dpr);
+  }else{
+    grad(c,w,h,[[0,'#3346b8'],[.55,'#7a6ae0'],[1,'#c9a8f0']],true);dust(c,w,h,8);
+    hill(c,w,h,h*.86,'#8a74d0',9);
+    const gy=h*.86,fs=s*.9,looks:V6Look[]=['woman','rabbit','femboy2'];
+    looks.forEach((lk,i)=>{const x=w*(.52+i*.15);shadow(c,x,gy+3,fs*.26);inkFighter(c,{x,gy,h:fs,look:lk,team:i===1?1:0,act:'guard',t:.2+i*.05,face:i===2?-1:1,ring:false},dpr);});
+  }
 }

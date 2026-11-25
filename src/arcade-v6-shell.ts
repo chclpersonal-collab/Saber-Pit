@@ -3,13 +3,14 @@
  *  No save, storage key or rating code is read for writing here. */
 import {readArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {statsView} from './arcade-stats-page.js';
-import {paintV6Scene,paintV6Fighter,type V6Scene} from './arcade-v6-scene.js';
+import {paintV6Scene,paintV6Fighter,paintV6Card,type V6Scene,type V6Card} from './arcade-v6-scene.js';
 
 const body=document.body;
 const get=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T|null;
 function el<K extends keyof HTMLElementTagNameMap>(tag:K,cls?:string,text?:string){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
 const canvases=new Map<HTMLCanvasElement,V6Scene>();
-const paintAll=()=>{for(const [c,s] of canvases)if(c.isConnected&&c.offsetParent!==null)paintV6Scene(c,s);};
+const cards=new Map<HTMLCanvasElement,V6Card>();
+const paintAll=()=>{for(const [c,s] of canvases)if(c.isConnected&&c.offsetParent!==null)paintV6Scene(c,s);for(const [c,k] of cards)if(c.isConnected&&c.offsetParent!==null)paintV6Card(c,k);};
 function art(scene:V6Scene){const c=el('canvas','v6-art');c.setAttribute('aria-hidden','true');canvases.set(c,scene);return c;}
 
 /* ---------- player card ---------- */
@@ -19,7 +20,9 @@ function playerCard(){
     const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;
     card.replaceChildren();
     const av=el('span','v6-avatar');av.setAttribute('aria-hidden','true');
-    const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'New fighter'),el('small',undefined,view?`${view.mode} · round ${view.round}`:'No rated rounds yet'));
+    const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'You'));
+    const bodyTxt=get<HTMLSelectElement>('bodyStyle')?.selectedOptions[0]?.text,formTxt=get<HTMLSelectElement>('style')?.selectedOptions[0]?.text?.replace(/^[IVX]+\s*·\s*/,'');
+    const line=[bodyTxt,formTxt].filter(Boolean).join(' · ');if(line)who.append(el('small',undefined,line));
     const stat=(v:string,k:string,cls='')=>{const s=el('span','v6-stat '+cls);s.append(el('b',undefined,v),el('small',undefined,k));return s;};
     // K/D and Win stay blank until the round record travels with Saves across devices.
     card.append(av,who,stat(you?.rank?.split(' ')[0]??'—','Rank','v6-rank'),stat(you?.elo!=null?String(Math.round(you.elo)):'—','Elo'),stat('—','K/D'),stat('—','Win'));
@@ -30,30 +33,43 @@ function playerCard(){
 /* ---------- home grid ---------- */
 const home=el('section','v6-home');home.id='v6Home';home.setAttribute('aria-label','Play');
 const {card:homeCard,fill:fillCard}=playerCard();
-function tile(opts:{title:string;sub:string;scene:V6Scene;cta:string;href?:string;onPlay?:()=>void;tag?:string;big?:boolean}){
-  const t=el('article','v6-card'+(opts.big?' v6-card-big':''));
-  t.append(art(opts.scene));
+function tile(opts:{title:string;card:V6Card;cta:string;href?:string;onPlay?:()=>void;tag?:string;tagTone?:string;tone?:string;big?:boolean}){
+  const t=el('article','v6-card v6-card-'+opts.card+(opts.big?' v6-card-big':''));
+  const cv=el('canvas','v6-art');cv.setAttribute('aria-hidden','true');cards.set(cv,opts.card);t.append(cv);
+  if(opts.tag)t.append(el('span','v6-tag v6-tag-'+(opts.tagTone??'red'),opts.tag));
   const txt=el('div','v6-card-text');
-  if(opts.tag)txt.append(el('span','v6-tag',opts.tag));
-  txt.append(el('h2',undefined,opts.title),el('p',undefined,opts.sub));
+  txt.append(el('h2',undefined,opts.title));
   const row=el('div','v6-card-actions');
-  if(opts.href){const a=el('a','v6-cta',opts.cta);a.href=opts.href;row.append(a);}
-  else{const b=el('button','v6-cta',opts.cta);b.type='button';b.addEventListener('click',()=>opts.onPlay?.());row.append(b);}
+  if(opts.href){
+    const cover=el('a','v6-cover');cover.href=opts.href;cover.tabIndex=-1;cover.setAttribute('aria-hidden','true');t.append(cover);
+    const a=el('a','v6-cta '+(opts.tone??'v6-cta-2'),opts.cta);a.href=opts.href;a.setAttribute('aria-label',`${opts.cta} ${opts.title}`);row.append(a);
+  }else{const b=el('button','v6-cta v6-play-main',opts.cta);b.type='button';b.addEventListener('click',()=>opts.onPlay?.());row.append(b);}
   txt.append(row);t.append(txt);return {t,row};
 }
-const arena=tile({title:'Arena',sub:'Duel · Elimination',scene:'duel',cta:'Play',tag:'RANKED',big:true,onPlay:()=>showPlay()});
+const arena=tile({title:'Arena',card:'arena',cta:'Play',tag:'RANKED',big:true,onPlay:()=>showPlay()});
 const modesBtn=el('button','v6-cta v6-cta-2','Modes');modesBtn.type='button';modesBtn.addEventListener('click',()=>showPlay());arena.row.append(modesBtn);
 const grid=el('div','v6-grid');
 grid.append(arena.t,
-  tile({title:'Three Fronts',sub:'Lanes, towers, pushes',scene:'fronts',cta:'Play',tag:'NEW',href:'./moba.html'}).t,
-  tile({title:'Tournament',sub:'Bracket',scene:'bracket',cta:'Open',href:'./tournament.html'}).t,
-  tile({title:'Gauntlet',sub:'Solo climb',scene:'solo',cta:'Climb',href:'./gauntlet.html'}).t,
-  tile({title:'Heroes',sub:'Saved fighters',scene:'heroes',cta:'Manage',href:'./tournament.html'}).t);
-const more=el('nav','v6-more');more.setAttribute('aria-label','More');
-for(const [label,href] of [['Style Lab','./style-lab.html'],['Idle RPG','./idle-rpg.html'],['Saves','./backup.html'],['Classic','./classic.html']] as const){const a=el('a',undefined,label);a.href=href;more.append(a);}
-home.append(grid,more);
+  tile({title:'Three Fronts',card:'fronts',cta:'Play',tag:'NEW',tagTone:'green',tone:'v6-cta-cyan',href:'./moba.html'}).t,
+  tile({title:'Tournament',card:'tournament',cta:'Open',href:'./tournament.html'}).t,
+  tile({title:'Gauntlet',card:'gauntlet',cta:'Climb',href:'./gauntlet.html'}).t,
+  tile({title:'Heroes',card:'heroes',cta:'Manage',href:'./tournament.html'}).t);
+const ICON={
+  home:'<path d="M3 11 12 3l9 8v10h-6v-6H9v6H3Z"/>',
+  stats:'<path d="M4 20V10h3v10Zm6.5 0V4h3v16ZM17 20v-7h3v7ZM2 21h20v1.5H2Z"/>',
+  heroes:'<circle cx="12" cy="7.5" r="4.5"/><path d="M3 21c0-5 4-8 9-8s9 3 9 8Z"/>',
+  saves:'<path d="M4 3h16v18H4Zm4 4v10h8V7Z"/>',
+  settings:'<path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z"/>'};
+const more=el('nav','v6-nav');more.setAttribute('aria-label','Menu');
+for(const [key,label,act] of [['home','Home',()=>showHome()],['stats','Stats',()=>document.querySelector<HTMLButtonElement>('[data-open-stats]')?.click()],['heroes','Heroes','./tournament.html'],['saves','Saves','./backup.html'],['settings','Settings',()=>get<HTMLButtonElement>('settingsOpen')?.click()]] as const){
+  const n=typeof act==='string'?Object.assign(el('a'),{href:act}):Object.assign(el('button'),{type:'button'});
+  n.className='v6-nav-item';if(key==='home')n.setAttribute('aria-current','page');
+  n.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">${ICON[key]}</svg>`;n.append(el('span',undefined,label));
+  if(typeof act!=='string')n.addEventListener('click',act);more.append(n);
+}
+home.append(grid);
 const entry=get('entry');entry?.before(home);
-get('frameRate')?.before(homeCard);
+get('frameRate')?.before(more,homeCard);
 
 /* ---------- Play screen (restyled setup) ---------- */
 const lobby=get<HTMLFormElement>('lobby');
@@ -61,16 +77,21 @@ const play=el('div','v6-play');play.id='v6Play';
 const head=el('div','v6-play-head');const back=el('button','v6-back');back.type='button';back.setAttribute('aria-label','Back to home');back.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 back.addEventListener('click',()=>showHome());head.append(back,el('h2',undefined,'Play'));
 const list=el('div','v6-modes');list.setAttribute('role','list');
-const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','1v1 · You fight','duel'],['squad','Squads','3v3 · You fight','squad'],['watch','Showdown','5v5 · Watch','squad'],['master','Master trial','1v15 · Watch','solo'],['hero','Watch a Hero','Saved Hero · Watch','heroes']];
+const MODE_ROWS:[string,string,string,V6Scene][]=[['duel','Duel','','duel'],['squad','Squads','','squad'],['watch','Showdown','','squad'],['master','Master trial','','solo'],['hero','Watch a Hero','','heroes']];
+const THUMB:Record<string,V6Card>={duel:'arena',squad:'heroes',watch:'heroes',master:'gauntlet',hero:'heroes'};
+function thumbArt(card:V6Card){const cv=el('canvas','v6-thumb');cv.setAttribute('aria-hidden','true');cards.set(cv,card);return cv;}
 const presetSource=(p:string)=>p==='hero'?get<HTMLButtonElement>('watchHero'):document.querySelector<HTMLButtonElement>(`[data-preset="${p}"]`);
 const modeButtons:HTMLButtonElement[]=[];
 for(const [preset,name,sub,scene] of MODE_ROWS){
   const src=presetSource(preset);if(!src)continue;
   const b=el('button','v6-mode');b.type='button';b.dataset.v6Preset=preset;b.setAttribute('role','listitem');
-  const thumb=el('span','v6-thumb');thumb.dataset.scene=scene;
-  const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name),el('small',undefined,sub));
-  b.append(thumb,tx);b.addEventListener('click',()=>{src.click();syncModes();});
+  void sub;void scene;
+  const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));
+  b.append(thumbArt(THUMB[preset]??'arena'),tx);b.addEventListener('click',()=>{src.click();syncModes();});
   modeButtons.push(b);list.append(b);
+  if(preset==='squad')for(const [name,href,card] of [['Three Fronts','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Tournament','./tournament.html','tournament']] as const){
+    const a=el('a','v6-mode v6-mode-link');a.href=href;a.setAttribute('role','listitem');const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));a.append(thumbArt(card),tx);list.append(a);
+  }
 }
 const stage=el('div','v6-stage');const stageArt=art('duel');const stageTitle=el('h3','v6-stage-title','Duel');
 const chips=el('div','v6-chips');
@@ -101,10 +122,11 @@ function syncModes(){
   for(const b of modeButtons){const src=presetSource(b.dataset.v6Preset??'');const on=src?.getAttribute('aria-pressed')==='true';b.setAttribute('aria-current',String(on));b.disabled=!!src?.disabled;if(on)active=b;}
   const row=MODE_ROWS.find(r=>r[0]===active?.dataset.v6Preset);
   stageTitle.textContent=row?row[1]:'Custom match';
+  if(matchMedia('(max-width:760px)').matches){if(active&&active.nextSibling!==chips)active.after(chips);}else if(chips.parentElement!==stageText)stageText.insertBefore(chips,go);
   const scene=row?row[3]:'squad';if(canvases.get(stageArt)!==scene){canvases.set(stageArt,scene);if(stageArt.offsetParent)paintV6Scene(stageArt,scene);}
   syncChips();
 }
-lobby?.addEventListener('change',()=>queueMicrotask(syncModes));
+lobby?.addEventListener('change',()=>queueMicrotask(()=>{syncModes();fillCard();}));
 lobby?.addEventListener('click',()=>setTimeout(syncModes,0));
 
 /* ---------- views ---------- */
@@ -131,6 +153,7 @@ const pauseActions=document.querySelector('#pauseOverlay .dialog-actions');
 const leave=pauseActions?.querySelector<HTMLButtonElement>('[data-home]');
 if(leave){leave.textContent='Leave match';leave.classList.add('v6-danger');pauseActions?.append(leave);}
 const keys=get('keysOpen');if(keys)keys.textContent='Controls';
+const pSet=get('pauseSettings');if(pSet&&keys)keys.before(pSet);
 const pauseLine=el('p','v6-pause-line');
 document.querySelector('#pauseOverlay .dialog')?.append(pauseLine);
 new MutationObserver(()=>{const o=get('pauseOverlay');if(!o||o.hidden)return;
@@ -152,11 +175,12 @@ const tabBtns=TABS.map(([id,label],i)=>{const b=el('button','v6-tab',label);b.ty
   b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){e.preventDefault();const n=(i+d+TABS.length)%TABS.length;selectTab(n);tabBtns[n]?.focus();}});tabs.append(b);return b;});
 const paneEls=TABS.map(([id])=>{const p=el('div','v6-pane');p.id='v6pane-'+id;p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','v6tab-'+id);panes.append(p);return p;});
 function selectTab(n:number){tabBtns.forEach((b,i)=>{b.setAttribute('aria-selected',String(i===n));b.tabIndex=i===n?0:-1;});paneEls.forEach((p,i)=>{p.hidden=i!==n;});}
-function chipsFrom(selectId:string,pane:HTMLElement,label:string){
+function chipsFromInto(selectId:string,box:HTMLElement,label:string){chipsFrom(selectId,box,label,()=>{lookPane();paintHero();});}
+function chipsFrom(selectId:string,pane:HTMLElement,label:string,after?:()=>void){
   const sel=get<HTMLSelectElement>(selectId);pane.replaceChildren();if(!sel){pane.append(el('p','v6-empty','Not available for this match.'));return;}
   const g=el('fieldset','v6-chip-row v6-chip-wrap');g.append(el('legend',undefined,label));
-  for(const o of sel.options){const b=el('button','v6-chip',o.text);b.type='button';b.dataset.value=o.value;b.disabled=o.disabled||sel.disabled;b.setAttribute('aria-pressed',String(o.value===sel.value));
-    b.addEventListener('click',()=>{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));chipsFrom(selectId,pane,label);});g.append(b);}
+  for(const o of sel.options){const b=el('button','v6-chip',o.text.replace(/^[IVX]+\s*·\s*/,'').replace(/^Force (\w)/,(_,c:string)=>c.toUpperCase()).replace(/ sabers?$/,''));b.setAttribute('aria-label',o.text);b.type='button';b.dataset.value=o.value;b.disabled=o.disabled||sel.disabled;b.setAttribute('aria-pressed',String(o.value===sel.value));
+    b.addEventListener('click',()=>{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));if(after)after();else chipsFrom(selectId,pane,label);paintHero();fillCard();});g.append(b);}
   pane.append(g);
 }
 const LOOK_CARDS:[string,string][]=[['woman','Woman'],['femboy','Femboy'],['rabbit','Rabbit']];
@@ -166,9 +190,14 @@ function lookPane(){
   for(const [v,name] of LOOK_CARDS){const b=el('button','v6-look');b.type='button';b.setAttribute('aria-pressed',String(sel?.value===v));b.disabled=!sel||sel.disabled;
     const cv=el('canvas','v6-look-art');cv.setAttribute('aria-hidden','true');b.append(cv,el('b',undefined,name));
     b.addEventListener('click',()=>{if(!sel)return;sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));lookPane();paintHero();});row.append(b);}
-  pane.append(row);requestAnimationFrame(()=>{row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false});});});
+  pane.append(row);
+  for(const [id,label] of [['style','Form'],['saberKit0','Saber'],['startingForceFamily0','Force']] as const){const box=el('div');chipsFromInto(id,box,label);pane.append(box);}
+  requestAnimationFrame(()=>{row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false});});});
 }
-function paintHero(){const body=get<HTMLSelectElement>('bodyStyle')?.value??'woman';const form=get<HTMLSelectElement>('style');heroName.textContent=form?.selectedOptions[0]?.text??'';if(hero.offsetParent)paintV6Fighter(hero,body);}
+function paintHero(){const body=get<HTMLSelectElement>('bodyStyle')?.value??'woman';const form=get<HTMLSelectElement>('style');
+  const view=statsView(readArcadeCareer()),you=view?.you??view?.best??null;heroName.replaceChildren();
+  const rk=el('span','v6-loadout-rank',you?.rank?.split(' ')[0]??'—');rk.setAttribute('aria-label','Rank');heroName.append(rk,(form?.selectedOptions[0]?.text??'').replace(/^[IVX]+\s*·\s*/,''));
+  if(hero.offsetParent)paintV6Fighter(hero,body);}
 const ready=el('button','v6-cta v6-ready','Ready');ready.type='button';ready.addEventListener('click',()=>showPlay());
 panel.append(tabs,panes,ready);
 loadout.append(lHead,hero,heroName,panel);
@@ -181,6 +210,8 @@ addEventListener('resize',()=>{if(body.dataset.v6==='loadout')paintHero();});
 
 /* ---------- results wording like the mock ---------- */
 const resultTitle=get('resultTitle');
+const winnerArt=el('canvas','v6-result-art');winnerArt.setAttribute('aria-hidden','true');resultTitle?.before(winnerArt);
 new MutationObserver(()=>{const o=get('result');if(!o||o.hidden||!resultTitle)return;
+  requestAnimationFrame(()=>{if(winnerArt.offsetParent)paintV6Fighter(winnerArt,get<HTMLSelectElement>('bodyStyle')?.value??'woman',{stage:false,bare:true});});
   const t=resultTitle.textContent;if(t==='Round won')resultTitle.textContent='Victory';else if(t==='Round lost')resultTitle.textContent='Defeat';
 }).observe(get('result')??body,{attributes:true,attributeFilter:['hidden']});
