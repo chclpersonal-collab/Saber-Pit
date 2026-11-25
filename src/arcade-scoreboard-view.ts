@@ -17,7 +17,7 @@ export function renderArenaScoreboard(root:HTMLElement,model:ScoreboardModel){
   const blue=q('scoreboardBlue'),pink=q('scoreboardPink'),meta=q('scoreboardMeta'),badge=q('scoreboardBadge'),note=q('scoreboardNote'),body=q('scoreboardRows'),round=q('scoreboardRound');
   if(blue)blue.textContent=String(model.score[0]);
   if(pink)pink.textContent=String(model.score[1]);
-  if(meta)meta.replaceChildren(...model.meta.map(t=>el('span',t,'v6-meta')));
+  if(meta)meta.replaceChildren(...model.meta.flatMap((t,i)=>i?[' ',el('span',t,'v6-meta')]:[el('span',t,'v6-meta')]));
   if(round)round.textContent=model.round;
   if(badge){badge.textContent=model.badge;badge.dataset.rated=String(model.rated);}
   if(note){note.textContent=model.note;note.hidden=!model.note;}

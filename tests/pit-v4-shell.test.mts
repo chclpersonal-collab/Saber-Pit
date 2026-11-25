@@ -8,7 +8,7 @@ test('play and watch launch shortcuts target the exact validated match form',asy
  assert.match(html,/form="lobby" data-launch="play"/);
  assert.match(html,/form="lobby" data-launch="watch"/);
  assert.match(html,/id="lobby"/);
- assert.match(html,/nav class="pit-nav" aria-label="Game modes"/);
+ assert.match(html,/nav class="pit-nav" aria-label="Game Modes"/);
  const pkg=JSON.parse(await readFile(new URL('../../package.json',import.meta.url),'utf8'));
  const [major,minor,patch]=pkg.version.split('.');
  assert.ok(html.includes('VERSION '+[major,major==='4'?minor.padStart(2,'0'):minor,patch].join('.')));

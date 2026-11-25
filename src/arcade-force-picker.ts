@@ -24,7 +24,7 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
   // The reason line is for screen readers only; the grid points at it.
   notes.id='forceNote'+side;notes.hidden=true;grid.setAttribute('aria-describedby',notes.id);
   const actions=make('div',undefined,'force-card-actions');
-  const mixed=make('button','Mixed trio'),clear=make('button','Clear');
+  const mixed=make('button','Mixed Trio'),clear=make('button','Clear');
   mixed.type=clear.type='button';
   actions.append(mixed,clear);
   const status=make('span',undefined,'sr');status.setAttribute('role','status');
@@ -34,7 +34,8 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
     button.type='button';
     const order=make('b',undefined,'force-card-order'), spokenOrder=make('span',undefined,'sr');
     const label=make('strong',power.label), stat=make('small',undefined,'force-card-stats');
-    stat.append(make('span',power.cost+' STA','v6-meta'),make('span',power.cooldown.toFixed(1)+'s CD','v6-meta'),
+    // A plain space between pills keeps them readable before .v6-meta is styled.
+    stat.append(make('span',power.cost+' STA','v6-meta'),' ',make('span',power.cooldown.toFixed(1)+'s CD','v6-meta'),' ',
       make('span',power.range===0?(power.id==='force_lattice'?'Self':'Move'):power.range+' Range','v6-meta'));
     const heading=make('span',undefined,'force-card-heading');
     order.setAttribute('aria-hidden','true');heading.append(label,order);

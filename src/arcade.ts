@@ -167,7 +167,7 @@ const announce=(text:string)=>{$('announce').textContent=text;};
 /** Short labels as separate .v6-meta pills instead of a "·" chain. Empty parts are dropped. */
 function setPills(target:HTMLElement,parts:readonly (string|null|undefined|false)[]){
   const list=parts.filter((t):t is string=>!!t),key=list.join('|');if(target.dataset.pills===key)return;target.dataset.pills=key;
-  target.replaceChildren(...list.map(t=>{const n=document.createElement('span');n.className='v6-meta';n.textContent=t;return n;}));
+  target.replaceChildren(...list.flatMap((t,i)=>{const n=document.createElement('span');n.className='v6-meta';n.textContent=t;return i?[' ',n]:[n];}));
 }
 function resize(){
   const {width,height}=canvas.getBoundingClientRect();
@@ -374,7 +374,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('modeLabel').textContent=matchLabel();
   const primary=game.fighters.find(f=>f.control)||game.fighters.find(f=>f.team===0), rival=game.fighters.find(f=>f.team===1);
   const deployedHeroes=view==='game'?game.fighters.filter(f=>f.heroId).map(f=>`${f.team?'Pink':'Blue'} Hero: ${f.displayName}`):[];
-  canvas.setAttribute('aria-label',['Loomen arena',...deployedHeroes].join('. '));
+  canvas.setAttribute('aria-label',['Loomen Arena',...deployedHeroes].join(', '));
   setPills($('profileText'),[isMenu?'':roundRated?'Rated':game.config.novicePractice?'Practice 0.75×':laneDrill?(spreadDeployed?'Spread Deploy':'Standard Starts'):'Unrated',mode==='watch'?'AI vs AI':arcadeSaberOption(primary!.gear).label]);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form Footwork';
@@ -787,7 +787,7 @@ function showSeatEnd(owner:ArenaSeat){
   });
 }
 const regionName=(id:string)=>ARCADE_BODY_REGIONS.find(x=>x.id===id)?.label??'Body';
-const shortRegion={head:'Head',torso:'Torso',leftArm:'L arm',rightArm:'R arm',leftLeg:'L leg',rightLeg:'R leg'};
+const shortRegion={head:'Head',torso:'Torso',leftArm:'L Arm',rightArm:'R Arm',leftLeg:'L Leg',rightLeg:'R Leg'};
 const compactRegion={head:'H',torso:'T',leftArm:'LA',rightArm:'RA',leftLeg:'LL',rightLeg:'RL'};
 const severityLevel=(label:unknown)=>{
   const text=String(label??'').toLowerCase();
@@ -1437,7 +1437,7 @@ function heroSelects(){
     const selected=choices.find(x=>x.id===$(`heroChoice${i}`).value), info=$(`heroEloHint${i}`);
     info.hidden=!selected;
     const actor=lobbyHeroControl(setup,i)==='manual'?'You':'AI';
-    info.replaceChildren(...(selected?[actor,fighterGenderLabel(selected.gender),'SSS+ V',ratingText(selected.elo)+' Elo','Floor '+ratingText(eloFloor(selected.eloFloorGrade))]:[]).map(t=>reportCell('span',t,'v6-meta')));
+    info.replaceChildren(...(selected?[actor,fighterGenderLabel(selected.gender),'SSS+ V',ratingText(selected.elo)+' Elo','Floor '+ratingText(eloFloor(selected.eloFloorGrade))]:[]).flatMap((t,i)=>i?[' ',reportCell('span',t,'v6-meta')]:[reportCell('span',t,'v6-meta')]));
     fillOptions($(`heroPos${i}`),Array.from({length:setup.teamSizes[i]},(_,j)=>[j,'Slot '+(j+1)]));
     $(`heroPos${i}`).value=String(p.slot);
     $(`heroPosLabel${i}`).hidden=!$(`heroChoice${i}`).value||setup.teamSizes[i]===1;
@@ -1539,7 +1539,7 @@ function updateSetupHints(){
   }
   const summary=document.getElementById('setupSummary');
   const parts=arenaSetupSummaryParts(setup);
-  if(summary&&summary.dataset.parts!==parts.join('|')){summary.dataset.parts=parts.join('|');summary.replaceChildren(...parts.map(t=>reportCell('span',t,'v6-meta')));}
+  if(summary&&summary.dataset.parts!==parts.join('|')){summary.dataset.parts=parts.join('|');summary.replaceChildren(...parts.flatMap((t,i)=>i?[' ',reportCell('span',t,'v6-meta')]:[reportCell('span',t,'v6-meta')]));}
   $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.tag??'':'';
   $('airFormDetail').textContent=!play?'':hero?formName(hero.form):mixed?'Rotates Each Round':field(FORM_AIR_NAMES,setup.form)??'';
 }

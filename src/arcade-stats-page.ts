@@ -46,7 +46,7 @@ export function renderStats(root:HTMLElement,view:StatsView){
   }
   const head=el('section','st-card st-hero');head.setAttribute('aria-label','Your Run');
   const who=el('div','st-who');
-  const meta=el('span');for(const part of view.you?[view.mode,'Round '+view.round]:['Round '+view.round])meta.append(el('span','v6-meta',part));
+  const meta=el('span');for(const part of view.you?[view.mode,'Round '+view.round]:['Round '+view.round])meta.append(meta.childNodes.length?' ':'',el('span','v6-meta',part));
   who.append(el('b',undefined,view.you?label(view.you):view.mode),meta);
   const tiles=el('dl','st-tiles');
   const tile=(name:string,value:string,cls='')=>{const d=el('div','st-tile '+cls);d.append(el('dt',undefined,name),el('dd',undefined,value));tiles.append(d);};

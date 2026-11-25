@@ -3,7 +3,7 @@ import type {RoundResultModel} from './arcade-results.js';
 /** Mode, size, round and clock as separate pills; the parent styles .v6-meta. */
 export function renderResultMeta(target:HTMLElement|null,parts:readonly string[]){
   if(!target)return;
-  target.replaceChildren(...parts.filter(Boolean).map(t=>{const s=document.createElement('span');s.className='v6-meta';s.textContent=t;return s;}));
+  target.replaceChildren(...parts.filter(Boolean).flatMap((t,i)=>{const s=document.createElement('span');s.className='v6-meta';s.textContent=t;return i?[' ',s]:[s];}));
 }
 
 /** Fills the result card's stat line and Elo block. Markup lives in index.html. */

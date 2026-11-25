@@ -9,9 +9,9 @@ export const PAD_BUTTONS: Readonly<Record<number,PadButton>>=Object.freeze({
 });
 /** What each control does, for the Controls help. */
 export const PAD_LAYOUT: readonly (readonly [string,string])[]=[
-  ['Left stick / D-pad','Move'],['Right stick','Aim'],['A / Cross','Slash'],['X / Square','Signature'],
-  ['B / Circle','Dash'],['Y / Triangle','Jump'],['LT / L2 (hold)','Guard'],['RT / R2','Technique'],
-  ['LB / L1','Feint'],['RB / R1','Force'],['L3','Walk'],['R3','Extend blade'],['View / Share (hold)','Scoreboard'],['Menu / Options','Pause'],
+  ['Left Stick / D-Pad','Move'],['Right Stick','Aim'],['A / Cross','Slash'],['X / Square','Signature'],
+  ['B / Circle','Dash'],['Y / Triangle','Jump'],['LT / L2 (Hold)','Guard'],['RT / R2','Technique'],
+  ['LB / L1','Feint'],['RB / R1','Force'],['L3','Walk'],['R3','Extend Blade'],['View / Share (Hold)','Scoreboard'],['Menu / Options','Pause'],
 ];
 export interface PadLike {
   index:number;connected:boolean;mapping?:string;

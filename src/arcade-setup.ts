@@ -23,7 +23,7 @@ const RANKS=SOLDIER_GRADES.map(x=>x.label);
 export const ARCADE_MAX_FIGHTERS=24;
 export const ARCADE_SETUP_KEY='saber-pit-arcade-setup-v1';
 export const ARCADE_MAPS={
-  rotation:['Arena rotation','Open rings that rotate each round. No walls.'],
+  rotation:['Arena Rotation','Open rings that rotate each round. No walls.'],
   underpit:['The Underpit','Open arena with clear sightlines.'],
   foundry:['The Foundry','Open forge court under timber arches.'],
   ember_ring:['Ember Ring','Open rooftop ring above a dusk village.'],

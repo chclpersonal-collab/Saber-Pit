@@ -17,14 +17,14 @@ function art(scene:V6Scene){const c=el('canvas','v6-art');c.setAttribute('aria-h
 
 /* ---------- player card ---------- */
 function playerCard(){
-  const card=el('div','v6-player');card.setAttribute('aria-label','Your Arena record');
+  const card=el('div','v6-player');card.setAttribute('aria-label','Your Arena Record');
   const fill=()=>{
     const view=statsView(readArcadeCareer()),you=view?.you??null;
     card.replaceChildren();
     const av=el('span','v6-avatar');av.setAttribute('aria-hidden','true');
     const who=el('span','v6-who');who.append(el('b',undefined,you?`${you.team===0?'Blue':'Pink'} ${you.slot+1}`:'You'));
     const bodyTxt=get<HTMLSelectElement>('bodyStyle')?.selectedOptions[0]?.text,formTxt=get<HTMLSelectElement>('style')?.selectedOptions[0]?.text?.replace(/^[IVX]+\s*·\s*/,'');
-    const parts=[bodyTxt,formTxt].filter((t):t is string=>!!t);if(parts.length){const line=el('small');for(const t of parts)line.append(el('span','v6-meta',t));who.append(line);}
+    const parts=[bodyTxt,formTxt].filter((t):t is string=>!!t);if(parts.length){const line=el('small');for(const t of parts)line.append(line.childNodes.length?' ':'',el('span','v6-meta',t));who.append(line);}
     const stat=(v:string,k:string,cls='')=>{const s=el('span','v6-stat '+cls);s.append(el('b',undefined,v),el('small',undefined,k));return s;};
     // K/D and Win stay blank until the round record travels with Saves across devices.
     card.append(av,who,stat(you?.rank?.split(' ')[0]??'—','Rank','v6-rank'),stat(you?.elo!=null?String(Math.round(you.elo)):'—','Elo'),stat('—','K/D'),stat('—','Win'));

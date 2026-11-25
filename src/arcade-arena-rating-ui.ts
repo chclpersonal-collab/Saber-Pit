@@ -15,7 +15,7 @@ export function arenaLobbyRating(mode:string,rule:string,teamSizes:readonly numb
   if(fighters.some(f=>f.heroId))return {rated,label:'Unrated · Saved Hero'};
   if(opponentReads)return {rated,label:'Unrated · Adaptive Sparring'};
   if(squadTactics)return {rated,label:'Unrated · Squad Drills'};
-  if(novicePractice)return {rated,label:'Unrated · Novice Practice'};
+  if(novicePractice)return {rated,label:'Unrated · Practice 0.75×'};
   if(forcePools?.some(pool=>pool.length))return {rated,label:'Unrated · Custom Force'};
   if(!valid)return {rated,label:'Set Team Sizes'};
   if(size!==teamSizes[1])return {rated,label:'Unrated · Uneven Teams'};

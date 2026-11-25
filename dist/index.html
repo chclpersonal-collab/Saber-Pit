@@ -16,7 +16,7 @@ body[data-loomen-boot] #app{position:fixed!important;inset:0;pointer-events:none
 body[data-seat-opening] #entry{visibility:hidden}
 </style><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=6.0.1-meta"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v6-shell.css?v=6.0.1-seat"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
 <body class="pit-v3 pit-v4 pit-v5" data-loomen-boot>
-<section id="loomenBoot" aria-label="LOOMEN startup">
+<section id="loomenBoot" aria-label="LOOMEN Startup">
   <div>
     <svg viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#140b2e" stroke-width="3" fill="none"/></svg>
     <h1>LOOMEN</h1>
@@ -26,13 +26,13 @@ body[data-seat-opening] #entry{visibility:hidden}
   </div>
 </section>
 <main id="app" inert aria-hidden="true">
-  <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 6.0.1</span></div></a>
-  <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournament</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
-  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Play</button><output id="frameRate" class="fps" aria-label="Frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action Cam" aria-pressed="true" hidden>Action Cam</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop Auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
+  <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen Home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 6.0.1</span></div></a>
+  <nav class="pit-nav" aria-label="Game Modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournament</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
+  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Play</button><output id="frameRate" class="fps" aria-label="Frames Per Second">FPS</output><button type="button" id="cameraView" aria-label="Action Cam" aria-pressed="true" hidden>Action Cam</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop Auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
   <section class="arena-launch home-hub" aria-labelledby="arenaLaunchTitle">
     <div class="hub-hero">
     <h1 id="arenaLaunchTitle">Arena</h1>
-    <p><span class="v6-meta">1v1</span><span class="v6-meta">Squads</span></p>
+    <p><span class="v6-meta">1v1</span> <span class="v6-meta">Squads</span></p>
     <div class="launch-actions">
       <button type="submit" form="lobby" data-launch="play"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="./pit-v4-icons.svg#play"/></svg> Play</button>
       <button type="submit" form="lobby" data-launch="watch"><span aria-hidden="true">◉</span> Watch</button>
@@ -49,7 +49,7 @@ body[data-seat-opening] #entry{visibility:hidden}
       <p id="masterHelp" hidden>SSS+ V vs 15 F</p><p id="watchHeroHelp" hidden>Saved Hero vs 3 SSS+ V</p>
       <p id="setupSummary" class="setup-summary" aria-live="polite"></p>
       <details class="setup-custom" id="customizeMatch"><summary>More Options</summary>
-      <div class="setup-tabs" hidden role="tablist" aria-label="Match setup">
+      <div class="setup-tabs" hidden role="tablist" aria-label="Match Setup">
         <button role="tab" type="button" id="setup-tab-match" aria-controls="setup-panel-match">Match</button>
         <button role="tab" type="button" id="setup-tab-roster" aria-controls="setup-panel-roster">Fighters</button>
         <button role="tab" type="button" id="setup-tab-rules" aria-controls="setup-panel-rules">Rules</button>
@@ -105,7 +105,7 @@ body[data-seat-opening] #entry{visibility:hidden}
           <div><label>Pink Hero<select id="heroChoice1"></select></label><small class="hero-elo-hint" id="heroEloHint1" hidden></small><label id="heroPosLabel1">Pink Hero Slot<select id="heroPos1"></select></label></div>
         </div>
         <p id="heroHelp" hidden>Heroes fight at SSS+ V</p>
-        <p id="heroEmpty" class="v6-empty" hidden><span class="v6-meta">No Heroes</span><a class="v6-link" href="./tournament.html">Tournament</a></p>
+        <p id="heroEmpty" class="v6-empty" hidden><span class="v6-meta">No Heroes</span> <a class="v6-link" href="./tournament.html">Tournament</a></p>
       </details>
       </div>
       <div class="setup-section" id="setup-panel-rules">
@@ -121,23 +121,23 @@ body[data-seat-opening] #entry{visibility:hidden}
       </details>
       <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Elo…</p>
       <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Play</button>
-      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="AI vs AI until you stop">Auto Battle</button><button id="formsGuide" type="button">Forms</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
+      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="AI vs AI">Auto Battle</button><button id="formsGuide" type="button">Forms</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
       <output class="sr" id="setupStatus"></output>
     </form>
   </section>
   <div class="arena-shell" id="arenaShell">
-    <canvas id="arena" width="1120" height="640" tabindex="0" aria-label="Loomen arena"></canvas>
+    <canvas id="arena" width="1120" height="640" tabindex="0" aria-label="Loomen Arena"></canvas>
     <div class="grain" aria-hidden="true"></div>
-    <section id="hud" class="hud" aria-label="Match status" hidden>
-      <div class="health blue"><div class="hud-label"><strong id="blueName">Blue</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><button id="blueInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina"></progress></div>
+    <section id="hud" class="hud" aria-label="Match Status" hidden>
+      <div class="health blue"><div class="hud-label"><strong id="blueName">Blue</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><button id="blueInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect Injuries"></button><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina"></progress></div>
       <div class="clock"><span id="round">Round 1</span><strong id="clock">0:45</strong></div>
-      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink</strong></div><button id="redInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 Stamina" hidden></progress></div>
+      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink</strong></div><button id="redInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect Injuries"></button><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 Stamina" hidden></progress></div>
     </section>
     <div id="mapCaption" class="map-caption"><p class="eyebrow">Map Preview</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc" hidden></span></div>
-    <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
+    <section id="objectiveHUD" class="objective-hud" aria-label="Objective Score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
     <dialog id="scoreboard" class="scoreboard" aria-labelledby="scoreboardTitle" hidden>
-      <div class="sb-head"><h2 id="scoreboardTitle" class="sr">Scoreboard</h2><p class="sb-score"><b id="scoreboardBlue" class="blue">0</b> – <b id="scoreboardPink" class="pink">0</b></p><p class="sb-meta"><span id="scoreboardRound" class="v6-meta">Round 1</span><span id="scoreboardMeta"></span></p><span id="scoreboardBadge" class="sb-badge">UNRATED</span><span class="sb-actions"><button type="button" id="scoreboardDetails">Details</button><button type="button" id="scoreboardClose" aria-label="Close scoreboard">Close</button></span></div>
-      <div class="sb-scroll" tabindex="0" role="region" aria-label="Fighter scores"><table class="sb-table"><thead><tr><th scope="col">Fighter</th><th scope="col"><abbr title="Kills">K</abbr></th><th scope="col"><abbr title="Deaths">D</abbr></th><th scope="col"><abbr title="Damage">DMG</abbr></th><th scope="col">Elo</th></tr></thead><tbody id="scoreboardRows"></tbody></table></div>
+      <div class="sb-head"><h2 id="scoreboardTitle" class="sr">Scoreboard</h2><p class="sb-score"><b id="scoreboardBlue" class="blue">0</b> – <b id="scoreboardPink" class="pink">0</b></p><p class="sb-meta"><span id="scoreboardRound" class="v6-meta">Round 1</span> <span id="scoreboardMeta"></span></p><span id="scoreboardBadge" class="sb-badge">UNRATED</span><span class="sb-actions"><button type="button" id="scoreboardDetails">Details</button><button type="button" id="scoreboardClose" aria-label="Close Scoreboard">Close</button></span></div>
+      <div class="sb-scroll" tabindex="0" role="region" aria-label="Fighter Scores"><table class="sb-table"><thead><tr><th scope="col">Fighter</th><th scope="col"><abbr title="Kills">K</abbr></th><th scope="col"><abbr title="Deaths">D</abbr></th><th scope="col"><abbr title="Damage">DMG</abbr></th><th scope="col">Elo</th></tr></thead><tbody id="scoreboardRows"></tbody></table></div>
       <p id="scoreboardNote" class="sb-note" hidden></p>
     </dialog>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
@@ -145,39 +145,39 @@ body[data-seat-opening] #entry{visibility:hidden}
     </section>
     <section class="panel-cover" id="result" aria-labelledby="resultTitle" hidden>
       <div class="dialog result-card"><p class="r-top"><span class="eyebrow" id="resultRound"></span><span id="resultBadge" class="r-badge">UNRATED</span></p><h2 id="resultTitle"></h2><p id="resultText"></p>
-      <p id="resultWho" class="r-who" hidden></p><dl id="resultTiles" class="r-tiles" aria-label="Round stats"></dl><p id="resultHits" class="r-hits"></p>
+      <p id="resultWho" class="r-who" hidden></p><dl id="resultTiles" class="r-tiles" aria-label="Round Stats"></dl><p id="resultHits" class="r-hits"></p>
       <section id="resultElo" class="r-elo" aria-label="Elo"></section>
       <p id="turningPoint" class="turning-point" hidden></p><p id="rankResult" class="promotion"></p><p id="autoDuelCountdown" class="promotion" hidden></p><div class="dialog-actions">
       <button type="button" id="again" class="primary">Next Round</button><button type="button" id="resultStats">Stats</button><button type="button" id="resultSettings">Settings</button><button type="button" id="stopAutoDuelResult" hidden>Stop Auto</button><button type="button" data-home>Leave</button></div></div>
     </section>
   </div>
   <div class="floor-ui" id="floorUI" hidden>
-    <div class="loadout"><span id="profileText">Duelist</span><strong id="modeLabel">Duel</strong></div><div id="commandBar" hidden aria-label="Team orders"><button type="button" data-order="push">Push</button><button type="button" data-order="hold">Hold</button><button type="button" data-order="regroup">Regroup</button><button type="button" data-order="flank">Flank</button></div>
-    <section id="heroWatch" class="hero-watch" aria-label="Hero watch" hidden>
+    <div class="loadout"><span id="profileText">Duelist</span><strong id="modeLabel">Duel</strong></div><div id="commandBar" hidden aria-label="Team Orders"><button type="button" data-order="push">Push</button><button type="button" data-order="hold">Hold</button><button type="button" data-order="regroup">Regroup</button><button type="button" data-order="flank">Flank</button></div>
+    <section id="heroWatch" class="hero-watch" aria-label="Hero Watch" hidden>
       <div class="hero-watch-profile"><p class="eyebrow">Hero Watch</p>
         <label for="heroWatchChoice" class="sr">Watched Hero</label><select id="heroWatchChoice"></select>
         <span id="heroWatchPlan"></span></div>
       <div class="hero-watch-activity"><strong id="heroWatchMove"></strong><span id="heroWatchTrakata"></span></div>
       <div class="hero-watch-actions"><button id="heroWatchFocus" type="button" aria-pressed="false">Follow Hero</button><button id="heroWatchStats" type="button">Hero Stats</button></div>
     </section>
-    <div class="touch-pad" aria-label="Movement controls">
+    <div class="touch-pad" aria-label="Movement Controls">
       <button type="button" id="touchStick" class="touch-stick" aria-label="Movement Stick"><span class="stick-thumb" aria-hidden="true"></span></button>
       <button type="button" id="walkTouch" aria-pressed="false" aria-label="Walk">Walk</button>
-      <button type="button" data-move="up" aria-label="Move up">↑</button><button type="button" data-move="left" aria-label="Move left">←</button><button type="button" data-move="down" aria-label="Move down">↓</button><button type="button" data-move="right" aria-label="Move right">→</button>
+      <button type="button" data-move="up" aria-label="Move Up">↑</button><button type="button" data-move="left" aria-label="Move Left">←</button><button type="button" data-move="down" aria-label="Move Down">↓</button><button type="button" data-move="right" aria-label="Move Right">→</button>
     </div>
-    <div class="actions" id="actions" aria-label="Combat controls">
+    <div class="actions" id="actions" aria-label="Combat Controls">
       <button type="button" data-action="strike"><kbd>J</kbd><b>Slash</b><small>Chain</small></button>
-      <button type="button" data-action="heavy" aria-label="Signature attack"><kbd>K</kbd><b class="action-full">Signature</b><b class="action-compact" aria-hidden="true">Heavy</b><small id="signatureHint">Heavy Attack</small></button>
+      <button type="button" data-action="heavy" aria-label="Signature Attack"><kbd>K</kbd><b class="action-full">Signature</b><b class="action-compact" aria-hidden="true">Heavy</b><small id="signatureHint">Heavy Attack</small></button>
       <button type="button" id="forceAction" data-action="force"><kbd>F</kbd><b>Force</b><small id="forceHint">Force</small></button>
       <button type="button" data-action="jump"><kbd>Q</kbd><b>Jump</b><small id="airControlHint">Form Footwork</small></button>
       <button type="button" data-action="dash"><kbd>Shift</kbd><b>Dash</b><small>Dash + Slash</small></button>
       <button type="button" data-action="guard"><kbd>Space</kbd><b>Guard</b><small id="guardHint">Tap to Parry</small></button>
       <button type="button" id="feintAction" data-action="feint"><kbd>X</kbd><b>Feint</b><small>Bait Guard</small></button>
-      <button type="button" id="quickTechnique" class="quick-technique" data-action="technique" aria-label="Use selected technique" hidden><b>Tech.</b></button>
+      <button type="button" id="quickTechnique" class="quick-technique" data-action="technique" aria-label="Use Selected Technique" hidden><b>Tech.</b></button>
       <button type="button" id="phaseAction" data-action="phase" aria-label="Extend Blade" aria-pressed="false" hidden><kbd>V</kbd><b id="phaseLabel">Extend</b><small id="phaseHint">Short Reach</small></button>
     </div>
   </div>
-  <div id="mobileTools" class="mobile-tools" aria-label="Phone controls" hidden>
+  <div id="mobileTools" class="mobile-tools" aria-label="Phone Controls" hidden>
     <button type="button" id="touchLayout" aria-label="Movement Controls">Move: Stick</button>
     <button type="button" id="touchSide" aria-label="Attack Hand">Hand: Right</button>
     <button type="button" id="resetAim" aria-label="Auto Aim">Aim: Auto</button>
@@ -185,9 +185,9 @@ body[data-seat-opening] #entry{visibility:hidden}
   </div>
   <div id="techniqueBar" class="technique-bar" hidden><details id="techFold" class="tech-fold"><summary><span class="tech-fold-k">Tech</span> <b id="techFoldName">Technique</b></summary><div class="tech-fold-body"><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div></details></div>
   <footer id="help"><span id="helpText"></span><button type="button" data-home hidden>Setup</button></footer>
-  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">Saber Forms</h2><details class="v6-info"><summary aria-label="Forms info">i</summary><div class="v6-info-pop"><a class="guide-source" href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">Source</a></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
+  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">Saber Forms</h2><details class="v6-info"><summary aria-label="Forms Info">i</summary><div class="v6-info-pop"><a class="guide-source" href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">Source</a></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
-    <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="Two Players info">i</summary><div class="v6-info-pop"><p class="keys-note"><span class="v6-meta">2 Pads: One Each</span><span class="v6-meta">1 Pad: Pink</span></p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
+    <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="Two Players Info">i</summary><div class="v6-info-pop"><p class="keys-note"><span class="v6-meta">2 Pads: One Each</span> <span class="v6-meta">1 Pad: Pink</span></p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
     <h3 class="keys-sub">Controller</h3>
     <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (Hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend Blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (Hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
@@ -197,7 +197,7 @@ body[data-seat-opening] #entry{visibility:hidden}
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
   </dialog>
   <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
-    <div class="set-head"><form method="dialog"><button type="submit" class="set-back" aria-label="Close settings"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form><h2 id="settingsTitle">Settings</h2></div>
+    <div class="set-head"><form method="dialog"><button type="submit" class="set-back" aria-label="Close Settings"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form><h2 id="settingsTitle">Settings</h2></div>
     <div class="set-body">
       <div class="set-tabs" role="tablist" aria-label="Settings">
         <button type="button" role="tab" id="setTabControls" aria-controls="setPanelControls" aria-selected="true">Controls</button><button type="button" role="tab" id="setTabAudio" aria-controls="setPanelAudio" aria-selected="false" tabindex="-1">Audio</button><button type="button" role="tab" id="setTabAccess" aria-controls="setPanelAccess" aria-selected="false" tabindex="-1">Access</button>
@@ -219,13 +219,13 @@ body[data-seat-opening] #entry{visibility:hidden}
     </div>
   </dialog>
   <dialog id="statsPage" class="settings-dialog stats-page" aria-labelledby="statsPageTitle">
-    <div class="set-head"><form method="dialog"><button type="submit" class="set-back" aria-label="Close stats"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form><h2 id="statsPageTitle">Stats</h2></div>
+    <div class="set-head"><form method="dialog"><button type="submit" class="set-back" aria-label="Close Stats"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M15 4 7 12l8 8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form><h2 id="statsPageTitle">Stats</h2></div>
     <div id="statsPageBody" class="st-body"></div>
   </dialog>
   <dialog id="statsDialog" class="guide reports" aria-labelledby="statsTitle">
     <div class="guide-head"><div><p class="eyebrow" id="statsRound">Round Report</p><h2 id="statsTitle">Match Stats</h2></div><form method="dialog"><button type="submit">Close</button></form></div>
     <section class="injury-report moves-used" aria-labelledby="injuryHeading">
-      <div class="injury-top"><div class="v6-title"><h3 id="injuryHeading">Body</h3><details class="v6-info"><summary aria-label="Body info">i</summary><div class="v6-info-pop"><p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p></div></details></div><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
+      <div class="injury-top"><div class="v6-title"><h3 id="injuryHeading">Body</h3><details class="v6-info"><summary aria-label="Body Info">i</summary><div class="v6-info-pop"><p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p></div></details></div><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
       <details id="fighterAppearance" class="fighter-appearance-detail" open hidden><summary>Look</summary><p id="fighterAppearanceDetails"></p></details>
       <dl class="fighter-damage" aria-label="Fighter Damage"><div><dt>DMG Dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>DMG Taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
       <div class="injury-scroll"><table aria-label="Injuries"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal Risk</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
@@ -234,7 +234,7 @@ body[data-seat-opening] #entry{visibility:hidden}
     </section>
     <div class="report-layout">
       <section><h3>This Round</h3><table aria-label="This Round"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
-      <section><div class="v6-title"><h3>Careers</h3><details class="v6-info"><summary aria-label="Careers info">i</summary><div class="v6-info-pop"><p class="report-note"><span class="v6-meta">K/D/A: All Rounds</span><span class="v6-meta">XP: Round End</span></p></div></details></div><table aria-label="Careers"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank</th><th scope="col">K/D/A</th></tr></thead><tbody id="fighterStats"></tbody></table></section>
+      <section><div class="v6-title"><h3>Careers</h3><details class="v6-info"><summary aria-label="Careers Info">i</summary><div class="v6-info-pop"><p class="report-note"><span class="v6-meta">K/D/A: All Rounds</span> <span class="v6-meta">XP: Round End</span></p></div></details></div><table aria-label="Careers"><thead><tr><th scope="col">Fighter</th><th scope="col">Rank</th><th scope="col">K/D/A</th></tr></thead><tbody id="fighterStats"></tbody></table></section>
     </div>
 
     <details class="recent-events"><summary>Recent Events</summary><ol id="recentEvents"></ol></details><div class="seed-tools"><span id="reportSeed"></span><button type="button" id="copySeed">Copy Seed</button></div>
