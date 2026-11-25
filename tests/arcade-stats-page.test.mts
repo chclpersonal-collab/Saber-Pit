@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {readArcadeCareer} from '../dist/arcade-career.js';
 import {statsView} from '../dist/arcade-stats-page.js';
 const store=(data:unknown)=>({getItem:()=>JSON.stringify(data)});
@@ -33,4 +34,10 @@ test('controlled slot follows the saved lineup; no training, Elo or Hero data is
   assert.doesNotMatch(JSON.stringify(view),/PRIVATE|adaptation|heroLineup/);
   const command=readArcadeCareer(store({...saved,mode:'command'}));
   assert.equal(statsView(command)?.you,null);
+});
+test('no saved run shows the same hero card zeroed with Play, not a helper line',()=>{
+  const source=readFileSync(new URL('../dist/arcade-stats-page.js',import.meta.url),'utf8').replace(/\s+/g,'');
+  assert.match(source,/st-herost-zero/);assert.match(source,/'Round0'/);
+  assert.match(source,/\['Rank','—','st-rank'\],\['Elo','—',''\],\['Rated','0',''\]/);
+  assert.match(source,/'v6-ctast-play','Play'/);assert.doesNotMatch(source,/No Saved Run|st-empty/);
 });

@@ -1,6 +1,6 @@
 /* Stats page: saved rank and Arena Elo per fighter. Shares the Settings dialog shell. */
 .pit-v5 .stats-page{width:min(960px,calc(100vw - 32px))}
-.st-body{overflow:auto;padding:16px 20px 22px;display:grid;gap:14px;border-top:2px solid var(--v5-line);min-height:0}
+.st-body{overflow:auto;padding:16px 20px 22px;display:grid;align-content:start;gap:14px;border-top:2px solid var(--v5-line);min-height:0}
 .st-card{border-radius:var(--v5-r);background:rgb(12 6 36 / .45);padding:14px 16px}
 .st-hero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
 .st-who{display:grid;gap:4px}
@@ -20,13 +20,13 @@
 .st-name{font-weight:800;font-size:.92rem;white-space:nowrap}
 .st-badge{justify-self:start;padding:3px 7px;border-radius:8px;background:var(--v5-panel-hi);color:var(--v5-gold);font:400 .85rem/1 var(--v5-display)}
 .st-elo{text-align:right;font-weight:900;font-variant-numeric:tabular-nums}
-.st-empty{display:grid;gap:6px;padding:28px 8px;text-align:center}
-.st-empty b{font:400 1.3rem/1 var(--v5-display)}.st-empty span{color:var(--v5-muted)}
+.st-zero :is(.st-tile dd,.st-row){color:var(--v5-muted)}
+.st-play{flex:none}
 @media (max-width:760px),(max-height:500px){
   .pit-v5 .stats-page{width:100vw}
   .st-body{padding:12px 14px 22px}
   .st-teams{grid-template-columns:1fr}
-  .st-tiles{width:100%;flex-wrap:nowrap}.st-tile{min-width:0;flex:1 1 0;padding:10px 6px}.st-tile dt{font-size:.62rem;letter-spacing:.03em}
+  .st-tiles{width:100%;flex-wrap:nowrap}.st-tile{min-width:0;flex:1 1 0;padding:10px 6px}.st-tile dt{font-size:.62rem;letter-spacing:.03em} .st-play{width:100%}
 }
 @media (max-height:500px) and (min-width:700px){.st-teams{grid-template-columns:repeat(2,minmax(0,1fr))}.st-tile{flex:1 1 0}}
 

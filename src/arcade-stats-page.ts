@@ -40,9 +40,24 @@ function el<K extends keyof HTMLElementTagNameMap>(tag:K,cls?:string,text?:strin
 export function renderStats(root:HTMLElement,view:StatsView){
   root.replaceChildren();
   if(!view){
-    const empty=el('div','st-empty');
-    empty.append(el('b',undefined,'No Saved Run'));
-    root.append(empty);return;
+    // Same hero card as a saved run, zeroed, with Play as the way in.
+    const head=el('section','st-card st-hero st-zero');head.setAttribute('aria-label','Your Run');
+    const who=el('div','st-who');who.append(el('b',undefined,'Blue 1'),el('span','v6-meta','Round 0'));
+    const tiles=el('dl','st-tiles');
+    for(const [name,value,cls] of [['Rank','—','st-rank'],['Elo','—',''],['Rated','0','']]){
+      const d=el('div','st-tile '+cls);d.append(el('dt',undefined,name),el('dd',undefined,value));tiles.append(d);
+    }
+    const play=el('button','v6-cta st-play','Play');play.type='button';
+    play.addEventListener('click',()=>{root.closest('dialog')?.close();document.querySelector<HTMLElement>('.v6-card-big .v6-cta')?.click();});
+    head.append(who,tiles,play);root.append(head);
+    const board=el('div','st-teams st-zero');
+    for(const [i,side] of [[0,'Blue'],[1,'Pink']] as const){
+      const card=el('section','st-card st-team st-team-'+side.toLowerCase());
+      const h=el('h3',undefined,side);h.id='stTeam'+i;card.setAttribute('aria-labelledby',h.id);
+      const row=el('li','st-row');row.append(el('span','st-name',side+' 1'),el('span','st-badge','—'),el('span','st-elo','—'));
+      const list=el('ol','st-list');list.append(row);card.append(h,list);board.append(card);
+    }
+    root.append(board);return;
   }
   const head=el('section','st-card st-hero');head.setAttribute('aria-label','Your Run');
   const who=el('div','st-who');
