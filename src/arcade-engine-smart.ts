@@ -4,6 +4,7 @@
  *  It never touches a player-controlled fighter: those do only what the player presses.
  *  Skill scales with rank: F reacts sometimes, SSS+ V almost always, and everyone learns spam. */
 import type {SimCommand,SimFighter,SimGame,SimMove} from './arcade-engine-state.js';
+import {pacingLift} from './arcade-engine-rank.js';
 
 interface SmartMemory {
   seenSerial: number | null;      // enemy attack serial already judged
@@ -61,6 +62,16 @@ function recovering(enemy: SimFighter){
   return Boolean(enemy.attack&&spec&&enemy.actionTime>(spec.contact??.2)+.03&&left>.2);
 }
 
+/** An ally standing in the line to the enemy would take the swing: leave the lane-finding to the authored AI. */
+function allyInLane(s: SimGame,f: SimFighter,enemy: SimFighter){
+  const dx=enemy.x-f.x,dy=enemy.y-f.y,len=Math.hypot(dx,dy)||1;
+  return s.fighters.some(a=>a!==f&&a.alive&&a.team===f.team&&(()=>{
+    const t=((a.x-f.x)*dx+(a.y-f.y)*dy)/(len*len);
+    if(t<=0||t>=1)return false;
+    return Math.abs((a.x-f.x)*dy-(a.y-f.y)*dx)/len<a.radius+4;
+  })());
+}
+
 export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,base: SimCommand): SimCommand {
   if(!s.config.smartAI||f.control||!f.alive||!enemy||!enemy.alive)return base;
   // Audit hook: a side can be held to the authored AI to measure the difference head to head.
@@ -107,7 +118,7 @@ export function smartCommands(s: SimGame,f: SimFighter,enemy: SimFighter | null,
   const parried=(f.counterUntil??0)>s.time&&f.counterTarget===enemy.id;
   const open=recovering(enemy)||parried;
   const readyToSwing=f.actionDuration===0||f.action==='guard'||f.action==='walk'||f.action==='run'||f.action==='idle';
-  if(open&&d<112&&readyToSwing&&f.energy>=8&&s.time-m.lastPunishAt>.18){
+  if(open&&d<112&&readyToSwing&&f.energy>=8&&s.time-m.lastPunishAt>.18&&!allyInLane(s,f,enemy)){
     if(draw(s,f,977)<.55+.45*q){
       m.lastPunishAt=s.time;
       const heavy=enemy.action==='stagger'&&f.energy>=24&&draw(s,f,331)<.35+.3*q;
@@ -144,6 +155,8 @@ export function smartChain(s: SimGame,victim: SimFighter){
   const v=victim as SimFighter&{smartChainAt?:number;smartChainCount?:number};
   const n=s.time-(v.smartChainAt??-9)<1.1?Math.min(4,(v.smartChainCount??0)+1):0;
   v.smartChainAt=s.time;v.smartChainCount=n;
-  // Elite pacing already measures SSS+ III-V exchanges, so don't stack the toughness on top of it.
-  return {damage:CHAIN_DAMAGE[n]*(s.elitePacing?1:SMART_TOUGHNESS),stun:CHAIN_STUN[n]};
+  // Elite pacing already measures the opening of SSS+ V mirrors, so toughness phases in as that pacing lifts:
+  // the decisive end of an elite match hits exactly as hard as any other v6 match.
+  const tough=s.elitePacing?1-(1-SMART_TOUGHNESS)*pacingLift(s as Parameters<typeof pacingLift>[0]):SMART_TOUGHNESS;
+  return {damage:CHAIN_DAMAGE[n]*tough,stun:CHAIN_STUN[n]};
 }
