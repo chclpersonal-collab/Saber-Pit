@@ -49,6 +49,7 @@ import {activeArenaPreset,arenaSetupSummary} from './arcade-setup-summary.js';
 import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
+import {createPadReader,assignPads,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
@@ -120,6 +121,11 @@ hudText.addEventListener('change',()=>{
 
 let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
 const heldArenaKeys=createHeldArenaKeys(keys);
+// Controllers and local versus. Nothing here is saved: Two players is chosen per visit.
+const padReader=createPadReader();
+let pads:PadState[]=[], padStatsHeld=false, localVersus=false;
+const p2keys=new Set<string>(), p2pulse=new Set<string>(), heldP2Keys=createHeldArenaKeys(p2keys);
+const versusLive=()=>view==='game'&&game?.config.localVersus===true;
 let scoreboardKey:string|null=null;
 const scoreboard=mountArenaScoreboard({
   root:document.getElementById('scoreboard') as HTMLDialogElement|null,toggle:document.getElementById('statsButton') as HTMLButtonElement|null,
@@ -242,7 +248,7 @@ function cancelStick(){
   paintStick();
 }
 function clearInput(clearAim=true){
-  touchDown=null;heldArenaKeys.clear();pointers.clear();pulse.clear();aim=null;cancelStick();scoreboardKey=null;scoreboard.hold(false);
+  touchDown=null;heldArenaKeys.clear();heldP2Keys.clear();p2pulse.clear();pointers.clear();pulse.clear();aim=null;cancelStick();scoreboardKey=null;scoreboard.hold(false);
   if(clearAim){touchAim=null;syncTouchAim();}
   document.querySelectorAll<HTMLElement>('[data-held=true]').forEach(b=>b.dataset.held='false');
 }
@@ -257,10 +263,27 @@ function currentTouchAim(){
   touchAim=null;syncTouchAim();return null;
 }
 function inputs(){
-  const p=currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
-  const data=arenaInputFrame({held:active,pulse,fromStick:stick.snapshot(),aim:p,touchWalk,
-    technique:()=>$('chosenTechnique').value},pendingOrder);
-  pulse.clear();pendingOrder=null;return data;
+  const {p1,p2}=assignPads(pads,versusLive());
+  const me=game.fighters.find(f=>f.control&&f.team===0);
+  const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
+  const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name),pulse,fromStick:padStick(p1)??stick.snapshot(),aim:p,touchWalk,
+    technique:()=>$('chosenTechnique').value},pendingOrder) as ArcadeInput;
+  if(versusLive()){
+    const pink=game.fighters.find(f=>f.control&&f.team===1);
+    const second=arenaInputFrame({held:name=>p2keys.has(name)||padHeld(p2,name),pulse:p2pulse,fromStick:padStick(p2)??{x:0,y:0},
+      aim:padAim(p2,pink),touchWalk:false,technique:()=>''},null);
+    data.p2={...second,technique:null,order:undefined};
+  }
+  pulse.clear();p2pulse.clear();pendingOrder=null;return data;
+}
+/** Once a frame: read controllers, and let Menu pause and View peek at the scoreboard like the keyboard does. */
+function pollPads(){
+  pads=padReader.read();
+  if(!pads.length&&!padStatsHeld)return;
+  if(pads.length)document.documentElement.dataset.arenaPad='true';
+  if(view==='game'&&mode!=='watch'&&mode!=='command'&&game.phase==='playing'&&pads.some(p=>p.pausePressed))pause(!paused);
+  const peek=view==='game'&&!paused&&game.phase==='playing'&&pads.some(p=>p.stats);
+  if(peek!==padStatsHeld){padStatsHeld=peek;scoreboard.hold(peek);}
 }
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
   if(nextView==='menu'){autoDuel.stop();roundSaveBaseline=undefined;autoCareerMode=undefined;}
@@ -290,13 +313,13 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const squadTactics=!isMenu&&config.squadTactics&&canArenaSquadTraining(config,sideHeroes);
   const laneDrill=!isMenu&&mode==='watch'&&config.laneDrill&&canArenaLaneDrill(config,sideHeroes);
   const opponentReads=!isMenu&&config.opponentReads&&canArenaAdaptiveSparring(config,sideHeroes);
-  const useArenaElo=!isMenu&&arenaLobbyRating(mode,config.rule,sideSizes,sideHeroes,forcePools,novicePractice,squadTactics,opponentReads).rated;
+  const useArenaElo=!isMenu&&!(localVersus&&mode==='duel')&&arenaLobbyRating(mode,config.rule,sideSizes,sideHeroes,forcePools,novicePractice,squadTactics,opponentReads).rated;
   const fighterRatings=useArenaElo?sideSizes.map((size,team)=>Array.from({length:size},(_,slot)=>
     arenaNormalRating(roundRatings[team+'-'+slot]))):undefined;
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
-    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
+    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,localVersus:!isMenu&&localVersus&&mode==='duel',perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,forcePools,squadTactics,laneDrill,opponentReads,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   if(novicePractice)game.config.novicePractice=true;
   const spreadDeployed=game.config.laneDrill===true;
@@ -342,6 +365,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
   $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue':'Blue side');
   $('rivalName').textContent=rival!.displayName??(mode==='duel'?formName(rival!.form):'Pink');
+  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Player 1';$('rivalName').textContent='Player 2';}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
@@ -540,10 +564,17 @@ window.addEventListener('keydown',e=>{
   const action=Object.hasOwn(keyMap,key)?keyMap[key]:null;
   // Scoreboard is a peek, not a move: it works for spectators and commanders too, and never enters the input set.
   if(action==='stats'){if(!paused&&game.phase==='playing'){e.preventDefault();if(!e.repeat){scoreboardKey=e.code||key;scoreboard.hold(true);}}return;}
+  // Local versus: the second keyboard player gets the arrows and the keys around them, unless player one bound them.
+  const second=versusLive()&&Object.hasOwn(P2_KEYS,key)&&!Object.values(arenaBindings).includes(key)?P2_KEYS[key]!:null;
+  if(second&&!paused&&game.phase==='playing'){
+    e.preventDefault();if(e.repeat)return;heldP2Keys.press(e,second);
+    if(['strike','heavy','dash','guard','force','technique','phase','feint','jump'].includes(second))p2pulse.add(second);
+    return;
+  }
   if(!action||paused||mode==='watch'||mode==='command'||game.phase!=='playing')return;
   e.preventDefault();if(e.repeat)return;heldArenaKeys.press(e,action);if(['strike','heavy','dash','guard','force','technique','phase','feint','jump'].includes(action))pulse.add(action);
 });
-window.addEventListener('keyup',e=>{heldArenaKeys.release(e);if(scoreboardKey&&(e.code||e.key.toLowerCase())===scoreboardKey){scoreboardKey=null;scoreboard.hold(false);}});
+window.addEventListener('keyup',e=>{heldArenaKeys.release(e);heldP2Keys.release(e);if(scoreboardKey&&(e.code||e.key.toLowerCase())===scoreboardKey){scoreboardKey=null;scoreboard.hold(false);}});
 document.addEventListener('focusin',e=>{if(isEditableTarget(e.target)||document.querySelector('dialog[open]:not(#scoreboard), #scoreboard[data-opened=toggle]'))clearInput(false);});
 window.addEventListener('blur',()=>clearInput(false));
 window.addEventListener('orientationchange',()=>clearInput(false));
@@ -640,7 +671,8 @@ canvas.addEventListener('pointerup',e=>{
 });
 function showEnd(){
   if(!$('result').hidden)return;
-  const text=game.phase==='draw'?'Draw':mode==='watch'?(game.phase==='won'?'Blue wins':'Pink wins'):game.phase==='won'?'Round won':'Round lost';
+  const versus=game.config.localVersus===true;
+  const text=game.phase==='draw'?'Draw':mode==='watch'||versus?(game.phase==='won'?'Blue wins':'Pink wins'):game.phase==='won'?'Round won':'Round lost';
   $('resultTitle').textContent=text;
   const obj=game.objective;
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
@@ -676,11 +708,11 @@ function showEnd(){
     sessionOnly?'Session only. Saved run unchanged.':persisted?'':'Save unavailable.';
   const progress=(mode==='watch'?'Blue fighter 1: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions;
   // Elo now lives in the result card's own block; this line keeps training and save notices.
-  $('rankResult').textContent=ratingUnrecorded?saveNotice:progress+(saveNotice?' · '+saveNotice:'');
+  $('rankResult').textContent=versus?'Two players · nothing saved':ratingUnrecorded?saveNotice:progress+(saveNotice?' · '+saveNotice:'');
   const me=game.fighters.find(f=>f.control), lineKeys=['kills','deaths','damage','parries','saberHits','saberSwings'] as const;
   renderRoundResult($('result'),buildRoundResult({
     mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:settled.rated,save:tracked?saveResult:'untracked',
-    who:me?null:'Blue side totals',
+    who:versus?'Blue player':me?null:'Blue side totals',
     line:me?me.stats:Object.fromEntries(lineKeys.map(k=>[k,game.stats?.[k]?.[0]])) as Record<typeof lineKeys[number],number>,
     elo:persisted&&settled.rated?{who:me?null:'Blue fighter 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
       floor:eloFloor(selected.after.grade),cap:selected.ratingCap}:null,
@@ -781,6 +813,8 @@ function updateHUD(){
     $(`${side}Count`).textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
     if(lead)renderRibbon(`${side}Injuries`,lead);
   }
+  const second=game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined,stamina2=document.getElementById('energy2') as HTMLProgressElement|null;
+  if(stamina2){stamina2.hidden=!second;if(second)stamina2.value=clamp(second.energy/100,0,1);}
   const player=game.fighters.find(f=>f.control);$('quickTechnique').disabled=$('useTechnique').disabled=player?.alive===false;$('energy').hidden=!player;$('energy').value=clamp((player?.energy??0)/100,0,1);
   const low=Boolean(player?.alive&&player.energy<=30);
   const guardHint=low?'Low stamina · weak guard':'Aim · tap to parry';
@@ -976,6 +1010,7 @@ function draw(dt:number){
 }
 function frame(now:number){
   const dt=displayDelta(clock,now);
+  pollPads();
   const fps=clock.fps?clock.fps+' FPS':'FPS';
   // On heavy battles shed decorative effects rather than frames. Fighter
   // silhouettes, timing, collision and the HUD do not change.
@@ -1370,7 +1405,7 @@ function updateSetupHints(){
   $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':field(FORM_AIR_NAMES,setup.form)??'';
 }
 function applyLobby(){
-  $('participation').value=setupPlayAs(setup);
+  $('participation').value=localVersus&&setup.participation==='play'?'versus':setupPlayAs(setup);
   $('style').value=setup.fixedForm;
   for(const [key,id] of Object.entries(scalar))if(key!=='playerSlot')$(id).value=setup[key as keyof typeof setup]===null?'':String(setup[key as keyof typeof setup]);
   for(const key of Object.keys(pairs))for(const i of [0,1] as const)(document.getElementById(key+i) as HTMLSelectElement).value=((setup as unknown as Record<string,string[]>)[key])?.[i]??'default';
@@ -1383,10 +1418,11 @@ function applyLobby(){
   rosterFromSetup();heroSelects();updateSetupHints();
 }
 function readLobby(forcePools=setup.forcePools){
-  const old=setup, input:Record<string,unknown>={...old,...playAsSetup($('participation').value as Parameters<typeof playAsSetup>[0],$('style').value,old)};
+  const playAs=$('participation').value;localVersus=playAs==='versus';
+  const old=setup, input:Record<string,unknown>={...old,...playAsSetup((localVersus?'play':playAs) as Parameters<typeof playAsSetup>[0],$('style').value,old)};
   for(const [key,id] of Object.entries(scalar))input[key]=$(id).value;
   for(const key of Object.keys(pairs))input[key]=([0,1] as const).map(i=>(document.getElementById(key+i) as HTMLSelectElement).value);
-  input.teamSizes=([0,1] as const).map(i=>$(`count${i}`).value);
+  input.teamSizes=localVersus?[1,1]:([0,1] as const).map(i=>$(`count${i}`).value);
   const kits=([0,1] as const).map(i=>ARCADE_SABER_OPTIONS.find(o=>o.id===$(`saberKit${i}`).value)??ARCADE_SABER_OPTIONS[0]);
   input.startingSaberWeapon=kits.map(o=>o.weapon);
   input.startingSaberGrip=kits.map(o=>o.grip);

@@ -43,7 +43,7 @@ export function saveArcadeCareer(data:object,storage?:Pick<Storage,'setItem'>|nu
 }
 /** Opt-in training/custom Force runs are temporary and never dirty a saved career. */
 export function isArenaSessionOnly(config:ArenaNormalMatch['config']):boolean{
-  return Boolean(config?.novicePractice||config?.squadTactics||config?.laneDrill||config?.opponentReads||(!config?.saberOnly&&config?.forcePools?.some(pool=>pool?.length)));
+  return Boolean(config?.localVersus||config?.novicePractice||config?.squadTactics||config?.laneDrill||config?.opponentReads||(!config?.saberOnly&&config?.forcePools?.some(pool=>pool?.length)));
 }
 export function persistArenaRound(data:object, config:ArenaNormalMatch['config'], storage?:Pick<Storage,'setItem'>|null){
   return !isArenaSessionOnly(config)&&saveArcadeCareer(data,storage);

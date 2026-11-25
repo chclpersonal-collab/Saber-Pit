@@ -34,7 +34,7 @@
       </div>
       <div class="setup-section" id="setup-panel-match">
       <div class="lobby-grid">
-        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
+        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="versus">Two players (1v1)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
         <label>Rules<select id="rule"><option value="elimination">Elimination</option><option value="control">Control</option><option value="relic">Relic</option></select></label>
         <label>Map<select id="mapPick"></select></label>
         <label>Map size<select id="mapSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
@@ -109,7 +109,7 @@
     <section id="hud" class="hud" aria-label="Match status" hidden>
       <div class="health blue"><div class="hud-label"><strong id="blueName">Blue side</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><div id="blueInjuries" class="injury-ribbon"></div><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina" title="At 30% stamina or lower, holding guard is weaker. Perfect parries and clean saber hits restore stamina."></progress></div>
       <div class="clock"><span id="round">Round 1</span><strong id="clock">0:45</strong></div>
-      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink side</strong></div><div id="redInjuries" class="injury-ribbon"></div></div>
+      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink side</strong></div><div id="redInjuries" class="injury-ribbon"></div><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 stamina" hidden></progress></div>
     </section>
     <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
@@ -167,6 +167,11 @@
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
     <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
+    <h3 class="keys-sub">Controller</h3>
+    <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
+    <h3 class="keys-sub">Two players</h3>
+    <p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. Pink on the keyboard:</p>
+    <ul class="keys-list keys-fixed" id="p2List"><li><span>Move</span><kbd>Arrows</kbd></li><li><span>Slash</span><kbd>.</kbd></li><li><span>Signature</span><kbd>/</kbd></li><li><span>Guard (hold)</span><kbd>,</kbd></li><li><span>Dash</span><kbd>;</kbd></li><li><span>Jump</span><kbd>L</kbd></li><li><span>Feint</span><kbd>M</kbd></li><li><span>Force</span><kbd>N</kbd></li></ul>
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
   </dialog>
   <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
