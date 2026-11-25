@@ -1,4 +1,4 @@
-import type {Point} from './arcade-rig-projection.js';
+import type {Point} from './arcade-rig-projection.js?v=6.0.2-rc2';
 
 /** Shared, deterministic emitter choreography. Paint never advances combat. */
 export type OrbitBladeId='primary'|'offhand'|'orbit_third';

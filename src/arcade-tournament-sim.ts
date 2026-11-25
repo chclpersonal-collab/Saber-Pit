@@ -2,7 +2,7 @@ import {arcadeChessStyleForId,normalizeArcadeChessStyle} from './arcade-chess-st
 import {createMatchReport,appendMatchReportEvents,finishMatchReport} from './arcade-match-report.js?v=2.33.0';
 import {learnTournamentLoadout,sanitizeTournamentLoadout,selectTournamentLoadout,validTournamentMove} from './arcade-tournament-adaptation.js?v=2.42.0';
 import {fighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
-import {createArcade, stepArcade, ARCADE_FORMS, ARCADE_STAT_KEYS} from './arcade-engine.js?v=5.0.0';
+import {createArcade, stepArcade, ARCADE_FORMS, ARCADE_STAT_KEYS} from './arcade-engine.js?v=6.0.2-rc2';
 
 type Doctrine='balanced'|'aggressive'|'defensive';
 type RawVariant={bouts?:number;score?:number;wins?:number};

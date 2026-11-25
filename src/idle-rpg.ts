@@ -1,18 +1,18 @@
-import type {IdleCampaign, IdleExpedition, IdleStatus} from './arcade-idle-campaign.js';
-import type {QuestPhase, QuestRun, QuestSave} from './arcade-quests.js';
-import type {FighterBody, QuestResult, SavedHeroInput} from './arcade-save-types.js';
+import type {IdleCampaign, IdleExpedition, IdleStatus} from './arcade-idle-campaign.js?v=6.0.2-rc2';
+import type {QuestPhase, QuestRun, QuestSave} from './arcade-quests.js?v=6.0.2-rc2';
+import type {FighterBody, QuestResult, SavedHeroInput} from './arcade-save-types.js?v=6.0.2-rc2';
 type RpgHero = SavedHeroInput & {body?: FighterBody};
 type ReplayCreated = ReturnType<typeof createIdleWaveReplay> | ReturnType<typeof restoreQuestEncounter>;
 interface PlaybackOptions { created: ReplayCreated; name: string; enemy: string; key: string; result: QuestResult | null; index?: number | null; legacy?: boolean }
 interface PlaybackScene { key: string; legacy: boolean; result: QuestResult | null; index: number | null; ended: boolean }
-import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=4.01.1';
-import * as campaign from './arcade-idle-campaign.js?v=4.0.0';
-import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=4.01.1';
-import * as rigArt from './arcade-fighters.js?v=5.0.0';
-import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=5.0.0';
-import {ARCADE_FORMS} from './arcade-engine.js?v=5.0.0';
-import {BELL_GUARDIAN,restoreQuestEncounter,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=3.0.0';
-import {startArcadeTournamentPlayback} from './tournament-replay.js?v=4.0.0';
+import {QUEST_STORAGE_KEY,loadQuests,saveQuests,questStatus,resolveQuest,claimQuest,recordQuestResult,saveIdleQuestCampaign} from './arcade-quests.js?v=6.0.2-rc2';
+import * as campaign from './arcade-idle-campaign.js?v=6.0.2-rc2';
+import {TOURNAMENT_KEY,loadTournament,tournamentHeroes} from './arcade-tournament.js?v=6.0.2-rc2';
+import * as rigArt from './arcade-fighters.js?v=6.0.2-rc2';
+import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2-rc2';
+import {ARCADE_FORMS} from './arcade-engine.js?v=6.0.2-rc2';
+import {BELL_GUARDIAN,restoreQuestEncounter,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=6.0.2-rc2';
+import {startArcadeTournamentPlayback} from './tournament-replay.js?v=6.0.2-rc2';
 
 const {BELL_WAVES,idleCampaignStatus,deployIdleCampaign,advanceIdleCampaign,claimIdleCampaign,
   upgradeIdleCampaignHero,idleCampaignUpgradeCost,createIdleWaveReplay,collectIdleCampaignPatrol}=campaign;

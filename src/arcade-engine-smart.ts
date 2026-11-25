@@ -3,12 +3,12 @@
  *  only when `config.smartAI` is on, so seeded tournament replays and their tests keep their history.
  *  It never touches a player-controlled fighter: those do only what the player presses.
  *  Skill scales with rank: F reacts sometimes, SSS+ V almost always, and everyone learns spam. */
-import type {SimCommand,SimFighter,SimGame,SimMove} from './arcade-engine-state.js';
-import {contactChainOpen} from './arcade-motion-flow.js';
-import {pacingLift} from './arcade-engine-rank.js';
-import {arcadeLimbDisabled} from './arcade-injuries.js';
-import {sampleOrbitSabers,orbitHitsBody} from './arcade-orbit-sabers.js';
-import {crowdDefense} from './arcade-crowd-ai.js';
+import type {SimCommand,SimFighter,SimGame,SimMove} from './arcade-engine-state.js?v=6.0.2-rc2';
+import {contactChainOpen} from './arcade-motion-flow.js?v=6.0.2-rc2';
+import {pacingLift} from './arcade-engine-rank.js?v=6.0.2-rc2';
+import {arcadeLimbDisabled} from './arcade-injuries.js?v=6.0.2-rc2';
+import {sampleOrbitSabers,orbitHitsBody} from './arcade-orbit-sabers.js?v=6.0.2-rc2';
+import {crowdDefense} from './arcade-crowd-ai.js?v=6.0.2-rc2';
 
 interface SmartMemory {
   seenSerial: number | null;      // enemy attack serial already judged

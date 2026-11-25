@@ -1,4 +1,4 @@
-import {mobaPressure,type MobaState} from './arcade-moba.js';
+import {mobaPressure,type MobaState} from './arcade-moba.js?v=6.0.2-rc2';
 const laneNames=['North','Center','South'] as const;
 export function mobaDeathSource(game:MobaState):string|null{
   const ko=game.events.findLast(e=>e.type==='ko'&&e.targetId===game.player.id);

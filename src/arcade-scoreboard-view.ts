@@ -1,4 +1,4 @@
-import type {ScoreboardModel} from './arcade-scoreboard.js';
+import type {ScoreboardModel} from './arcade-scoreboard.js?v=6.0.2-rc2';
 
 /**
  * Scoreboard panel. Hold the bound key to peek; tap Stats to pin it open on touch or with a mouse.

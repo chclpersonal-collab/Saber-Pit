@@ -1,5 +1,5 @@
 /** Canvas/world conversions shared by live paint and blade collision. */
-import type {OrbitBlade} from './arcade-orbit-sabers.js';
+import type {OrbitBlade} from './arcade-orbit-sabers.js?v=6.0.2-rc2';
 export type Point={x:number;y:number};
 type Origin={x?:number;y?:number};
 type RigFrame={roll:number;flightSide?:number|null;hdx:number;trick?:{angle?:number}|null;

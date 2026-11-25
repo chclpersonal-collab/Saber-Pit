@@ -3,7 +3,7 @@ import {GAUNTLET_SIM_VERSION,gauntletReplayVersion} from './gauntlet-rules.js';
 import {recruitFighterName} from './arcade-fighter-names.js';
 import {appearanceSeedFor,FIGHTER_GENDERS} from './arcade-fighter-profiles.js';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js';
-import {tournamentTerrainOption,tournamentFixtureTerrain} from './arcade-map-rotation.js';
+import {tournamentTerrainOption,tournamentFixtureTerrain} from './arcade-map-rotation.js?v=6.0.2-rc2';
 import {ELO_K,eloExpected} from './arcade-elo.js';
 
 export const GAUNTLET_KEY='saber-pit-gauntlet-v1';

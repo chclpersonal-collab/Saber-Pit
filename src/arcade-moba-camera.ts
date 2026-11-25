@@ -1,4 +1,4 @@
-import {MOBA_WIDTH,MOBA_HEIGHT,type MobaPoint} from './arcade-moba.js';
+import {MOBA_WIDTH,MOBA_HEIGHT,type MobaPoint} from './arcade-moba.js?v=6.0.2-rc2';
 
 export type MobaViewport={width:number;height:number};
 export type MobaView=MobaPoint&MobaViewport&{zoom:number};

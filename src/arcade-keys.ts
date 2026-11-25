@@ -1,4 +1,4 @@
-import type {SaveStorage, StorageReader} from './arcade-save-types.js';
+import type {SaveStorage, StorageReader} from './arcade-save-types.js?v=6.0.2-rc2';
 
 /** Keyboard bindings for the Arena. Stored on this device only, never in a save or a backup. */
 export const KEY_BINDINGS_KEY='saber-pit-keys-v1';

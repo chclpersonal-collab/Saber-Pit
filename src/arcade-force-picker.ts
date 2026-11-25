@@ -1,4 +1,4 @@
-import {ARCADE_FORCE_POOL,normalizeArcadeForcePool,type ArcadeForcePoolId} from './arcade-force-pool.js';
+import {ARCADE_FORCE_POOL,normalizeArcadeForcePool,type ArcadeForcePoolId} from './arcade-force-pool.js?v=6.0.2-rc2';
 
 const LIMIT=3;
 export const MIXED_FORCE_TRIO=['force_push','force_anchor','force_siphon'] as const;

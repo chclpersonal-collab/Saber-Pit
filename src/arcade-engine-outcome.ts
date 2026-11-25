@@ -1,5 +1,5 @@
 /** Authoritative end-of-round resolution. Tournament wrappers separately score a timeout draw. */
-import {compareArcadeDanger} from './arcade-injuries.js?v=2.9.0';
+import {compareArcadeDanger} from './arcade-injuries.js?v=6.0.2-rc2';
 import {objectiveOutcome} from './arcade-objectives.js';
 
 type Injuries = Parameters<typeof compareArcadeDanger>[0];

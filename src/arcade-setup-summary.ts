@@ -1,6 +1,6 @@
-import {arenaFixedMapSize,engineForcePools,presets,ARCADE_MAPS,type ArcadeSetup} from './arcade-setup.js';
-import {ARCADE_FORCE_FAMILIES} from './arcade-loadouts.js';
-import {arcadeForcePoolEntry} from './arcade-force-pool.js';
+import {arenaFixedMapSize,engineForcePools,presets,ARCADE_MAPS,type ArcadeSetup} from './arcade-setup.js?v=6.0.2-rc2';
+import {ARCADE_FORCE_FAMILIES} from './arcade-loadouts.js?v=6.0.2-rc2';
+import {arcadeForcePoolEntry} from './arcade-force-pool.js?v=6.0.2-rc2';
 
 const rules={elimination:'Elimination',control:'Control',relic:'Relic'} as const;
 const appearance={mixed:'Mixed Look',femboy:'Femboy',woman:'Woman',rabbit:'Rabbit'} as const;

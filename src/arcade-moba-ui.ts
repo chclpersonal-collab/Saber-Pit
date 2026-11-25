@@ -1,9 +1,9 @@
-import {createMoba,stepMoba,mobaUpgradeCost,MOBA_FORMS,MOBA_FORM_IDS,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js';
-import type {MobaInput,MobaLane,MobaForm,MobaHero,MobaState} from './arcade-moba.js';
-import {frameMobaCamera,mobaCanvasAim,type MobaView} from './arcade-moba-camera.js';
-import {mobaDeathSource,mobaObjectiveCue,mobaFirstTowerDirection} from './arcade-moba-guidance.js';
-import {bellRallyCue} from './arcade-moba-rally.js';
-import {paintMobaTerrain,paintMobaField} from './arcade-moba-field.js';
+import {createMoba,stepMoba,mobaUpgradeCost,MOBA_FORMS,MOBA_FORM_IDS,MOBA_WIDTH,MOBA_HEIGHT,MOBA_MATCH_LIMIT} from './arcade-moba.js?v=6.0.2-rc2';
+import type {MobaInput,MobaLane,MobaForm,MobaHero,MobaState} from './arcade-moba.js?v=6.0.2-rc2';
+import {frameMobaCamera,mobaCanvasAim,type MobaView} from './arcade-moba-camera.js?v=6.0.2-rc2';
+import {mobaDeathSource,mobaObjectiveCue,mobaFirstTowerDirection} from './arcade-moba-guidance.js?v=6.0.2-rc2';
+import {bellRallyCue} from './arcade-moba-rally.js?v=6.0.2-rc2';
+import {paintMobaTerrain,paintMobaField} from './arcade-moba-field.js?v=6.0.2-rc2';
 
 function byId<T extends HTMLElement=HTMLElement>(id:string):T{
   const node=document.getElementById(id);

@@ -1,5 +1,5 @@
 /** Stats page: read-only view of the saved Arena run. Nothing here writes a save. */
-import {readArcadeCareer} from './arcade-career.js?v=4.01.1';
+import {readArcadeCareer} from './arcade-career.js?v=6.0.2-rc2';
 import {gradeForMerit} from './progression.js?v=1.4.0';
 
 export type StatsFighter={id:string;team:0|1;slot:number;elo:number|null;rated:boolean;rank:string|null};

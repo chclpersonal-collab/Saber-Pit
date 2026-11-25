@@ -1,6 +1,6 @@
-import {drawArcadeFighter as original} from './arcade-fighters.js?v=5.0.0';
-import {drawArcadePeasantFighter,drawArcadePeasantFighterPreview} from './arcade-peasant-art.js?v=5.0.0';
-import type { sampleArcadeFighter } from './arcade-fighters.js?v=5.0.0';
+import {drawArcadeFighter as original} from './arcade-fighters.js?v=6.0.2-rc2';
+import {drawArcadePeasantFighter,drawArcadePeasantFighterPreview} from './arcade-peasant-art.js?v=6.0.2-rc2';
+import type { sampleArcadeFighter } from './arcade-fighters.js?v=6.0.2-rc2';
 
 export interface FighterPaintIdentity {
   peasantMotion?: boolean;

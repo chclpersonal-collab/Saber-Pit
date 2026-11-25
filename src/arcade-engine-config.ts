@@ -1,13 +1,13 @@
-import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
+import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js?v=6.0.2-rc2';
 /** Options that the current game normalizes before the first authoritative tick. */
-import {normalizeArcadeForcePool} from './arcade-force-pool.js';
-import type {ArcadeForcePoolId} from './arcade-force-pool.js';
-import {normalizeArcadeGear} from './arcade-loadouts.js?v=3.1.0';
+import {normalizeArcadeForcePool} from './arcade-force-pool.js?v=6.0.2-rc2';
+import type {ArcadeForcePoolId} from './arcade-force-pool.js?v=6.0.2-rc2';
+import {normalizeArcadeGear} from './arcade-loadouts.js?v=6.0.2-rc2';
 import {normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 import {ENVIRONMENTS} from './environment.js?v=1.4.0';
 import type {ArcadeBounds,ArcadeCover} from './arcade-engine-geometry.js';
-import {normalizeArcadeMotionFlow} from './arcade-motion-flow.js?v=5.0.0';
-import type {ArcadeMotionFlow,ArcadeMotionFlowInput} from './arcade-motion-flow.js?v=5.0.0';
+import {normalizeArcadeMotionFlow} from './arcade-motion-flow.js?v=6.0.2-rc2';
+import type {ArcadeMotionFlow,ArcadeMotionFlowInput} from './arcade-motion-flow.js?v=6.0.2-rc2';
 import type {ArcadeRecord} from './arcade-engine-stats.js';
 
 export type ArcadeRule='elimination'|'control'|'relic';
