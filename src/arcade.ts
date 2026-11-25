@@ -1147,7 +1147,7 @@ $('bodyRows').addEventListener('click',event=>{
 });
 function showInjuryReport(f:ArcadeFighter|undefined){
   const rank=f?.career?.gradeIndex??0;
-  const opts={attackerRank:rank,defenderRank:rank};
+  const opts={attackerRank:rank,defenderRank:rank,freshTorso:f?.regionalInjuries===true};
   const front=arcadeInjuryReport(f?.injuries,{...opts,direction:'front'}), rear=arcadeInjuryReport(f?.injuries,{...opts,direction:'rear'});
   const local=arcadeRegionalCondition(f?.injuries);
   $('bodyRows').replaceChildren(...front.map((a,i)=>{

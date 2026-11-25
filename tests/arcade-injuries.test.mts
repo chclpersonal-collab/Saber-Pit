@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {
-  ARCADE_BODY_REGIONS,ARCADE_INJURY_REFERENCE,
+  ARCADE_BODY_REGIONS,ARCADE_INJURY_REFERENCE,ARCADE_FRESH_TORSO_CAP,
   arcadeFatalChance,arcadeInjuryBurden,arcadeInjuryEffects,arcadeInjuryLabel,arcadeInjuryReport,
   applyArcadeInjury,compareArcadeDanger,createArcadeInjuries,
 } from '../dist/arcade-injuries.js';
@@ -142,4 +142,27 @@ test('UI reports reference probabilities and exact local front/rear labels',()=>
   assert.equal(item.fatalPct,Number((100*risk).toFixed(1)));
   assert.ok(item.fatalChance>front.find(e=>e.id==='torso').fatalChance);
   assert.match(ARCADE_INJURY_REFERENCE.description,/Fictional/);
+});
+
+test('with regional injuries, a fresh torso cannot be ended by the first hit at equal rank; later hits keep the full risk',()=>{
+  const clean=createArcadeInjuries();
+  const fresh={freshTorso:true};
+  // Classic play keeps the old roll.
+  assert.ok(arcadeFatalChance(clean,{...defaults,region:'torso'})>0);
+  assert.equal(ARCADE_FRESH_TORSO_CAP,0);
+  for(const amount of [18,40,73,140])for(const direction of ['front','rear']){
+    const first=hit(clean,'torso',{...fresh,amount,quality:1,direction,roll:0});
+    assert.equal(first.fatal,false,`first ${amount} ${direction}`);
+    assert.equal(first.fatalChance,0);
+    assert.ok(first.changed,'the hit still injures');
+    const second=arcadeFatalChance(first.injuries,{...defaults,...fresh,region:'torso',amount,direction});
+    assert.ok(second>0,`second ${amount} ${direction} keeps risk`);
+  }
+  // Unequal ranks and other regions are unchanged.
+  assert.ok(arcadeFatalChance(clean,{...defaults,...fresh,region:'torso',attackerRank:5,defenderRank:4})>0);
+  assert.ok(arcadeFatalChance(clean,{...defaults,...fresh,region:'head'})>0);
+  // The report reads the same probability the roll uses.
+  const report=arcadeInjuryReport(clean,{attackerRank:4,...fresh});
+  assert.equal(report.find(e=>e.id==='torso').fatalChance,arcadeFatalChance(clean,{...ARCADE_INJURY_REFERENCE,...fresh,region:'torso',attackerRank:4,defenderRank:4}));
+  assert.equal(report.find(e=>e.id==='torso').fatalPct,0);
 });
