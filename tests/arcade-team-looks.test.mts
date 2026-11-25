@@ -40,11 +40,11 @@ test('two-seat Mixed inspections show the resolved distinct fighters, and Hero l
     const [a,b]=first.fighters.filter(f=>f.team===team).map(arenaFighterAppearance);
     assert.notEqual(a.gender,b.gender);
     assert.notEqual(a.appearance,b.appearance);
-    assert.equal(a.source,'Match roster');
-    assert.equal(b.source,'Match roster');
+    assert.equal(a.source,'Roster');
+    assert.equal(b.source,'Roster');
     assert.notEqual(a.gender,'Mixed');assert.notEqual(a.appearance,'Mixed');
   }
   const saved=createArcade({...options,heroLineup:{'0-1':{id:'signed',name:'Named Hero',body:'rabbit',gender:'nonbinary',form:'ataru'}}});
   assert.deepEqual(arenaFighterAppearance(saved.fighters.find(x=>x.id==='0-1')!),
-    {gender:'Nonbinary',appearance:'Rabbit duelist',source:'Saved Hero'});
+    {gender:'Nonbinary',appearance:'Rabbit',source:'Saved Hero'});
 });

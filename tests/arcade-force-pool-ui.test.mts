@@ -27,7 +27,7 @@ test('only applied AI Force pools disable rating, and Saber only does not erase 
   const watch=normalizeSetup({...base,participation:'watch'});
   const options=engineForcePools(watch);
   assert.deepEqual(options,[['force_anchor'],[]]);
-  assert.match(arenaLobbyRating('watch','elimination',[1,1],{},options).label,/Unrated.*AI Force/);
+  assert.match(arenaLobbyRating('watch','elimination',[1,1],{},options).label,/Unrated.*Custom Force/);
   const fighters=[{id:'0-0',team:0},{id:'1-0',team:1}];
   assert.equal(arenaNormalRanked({mode:'watch',config:{rule:'elimination',teamSizes:[1,1],forcePools:options},fighters}),false);
   assert.deepEqual(engineForcePools(normalizeSetup({...watch,saberOnly:true})),[[],[]]);

@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {activeArenaPreset,arenaSetupSummary} from '../dist/arcade-setup-summary.js';
+import {activeArenaPreset,arenaSetupSummary,arenaSetupSummaryParts} from '../dist/arcade-setup-summary.js';
 import {normalizeSetup,presets,saveSetup,loadSetup} from '../dist/arcade-setup.js';
 
 test('summary reports fixed dimensions, applied per-side Force and distinct gender/appearance',()=>{
   const s=normalizeSetup({rule:'control',participation:'play',teamSizes:[1,3],mapId:'three_causeways',mapSize:'small',body:'woman',teamGenders:['female','mixed'],teamAppearances:['default','mixed'],forcePools:[['force_push'],['force_siphon','force_anchor']]});
   const summary=arenaSetupSummary(s);
-  assert.match(summary,/1v3 · Control · Three Causeways · 2400 × 1350/);
+  assert.deepEqual(arenaSetupSummaryParts(s).slice(1,5),['1v3','Control','Three Causeways','2400×1350']);
   assert.doesNotMatch(summary,/Small|Push/);
-  assert.match(summary,/AI Force: Pink Siphon, Anchor/);
-  assert.match(summary,/Blue All female \/ Pink Mixed appearance, Mixed gender \/ Default Slim-thick woman/);
+  assert.ok(arenaSetupSummaryParts(s).includes('Pink AI: Siphon, Anchor'));
+  assert.deepEqual(arenaSetupSummaryParts(s).slice(-3),['Blue Female','Pink Mixed Look, Mixed Gender','Woman']);
   const saber=arenaSetupSummary(normalizeSetup({...s,saberOnly:true}));
-  assert.match(saber,/Sabers only/);assert.doesNotMatch(saber,/Force:|Siphon/);
-  assert.match(arenaSetupSummary(normalizeSetup({startingForceFamily:['force_pulse','force_push']})),/Primary Force: Blue/);
+  assert.match(saber,/Sabers Only/);assert.doesNotMatch(saber,/AI:|Siphon/);
+  assert.ok(arenaSetupSummaryParts(normalizeSetup({startingForceFamily:['force_pulse','force_push']})).includes('Blue Pulse'));
 });
 test('each standard and Master preset is recognized after persistence, no false Hero Master preset',()=>{
   const values=new Map<string,string>();

@@ -17,15 +17,15 @@ export function renderArenaScoreboard(root:HTMLElement,model:ScoreboardModel){
   const blue=q('scoreboardBlue'),pink=q('scoreboardPink'),meta=q('scoreboardMeta'),badge=q('scoreboardBadge'),note=q('scoreboardNote'),body=q('scoreboardRows'),round=q('scoreboardRound');
   if(blue)blue.textContent=String(model.score[0]);
   if(pink)pink.textContent=String(model.score[1]);
-  if(meta)meta.textContent=model.meta;
+  if(meta)meta.replaceChildren(...model.meta.map(t=>el('span',t,'v6-meta')));
   if(round)round.textContent=model.round;
   if(badge){badge.textContent=model.badge;badge.dataset.rated=String(model.rated);}
-  if(note)note.textContent=model.note;
+  if(note){note.textContent=model.note;note.hidden=!model.note;}
   if(!body)return;
   const rows:HTMLTableRowElement[]=[];
   for(const team of model.teams){
     const head=el('tr',undefined,'sb-team '+team.side), cell=el('th',team.name);
-    cell.colSpan=5;cell.scope='rowgroup';cell.append(el('small',team.alive+'/'+team.total+' standing'));
+    cell.colSpan=5;cell.scope='rowgroup';const alive=el('small',team.alive+'/'+team.total);alive.setAttribute('aria-label',team.alive+' of '+team.total+' standing');cell.append(alive);
     head.append(cell);rows.push(head);
     for(const r of team.rows){
       const row=el('tr',undefined,[r.me?'me':'',r.ko?'ko':''].filter(Boolean).join(' ')||undefined);

@@ -174,7 +174,7 @@ else if(location.hash==='#settings')get<HTMLButtonElement>('settingsOpen')?.clic
 /* ---------- pause column ---------- */
 const pauseActions=document.querySelector('#pauseOverlay .dialog-actions');
 const leave=pauseActions?.querySelector<HTMLButtonElement>('[data-home]');
-if(leave){leave.textContent='Leave match';leave.classList.add('v6-danger');pauseActions?.append(leave);}
+if(leave){leave.textContent='Leave';leave.classList.add('v6-danger');pauseActions?.append(leave);}
 const keys=get('keysOpen');if(keys)keys.textContent='Controls';
 const pSet=get('pauseSettings');if(pSet&&keys)keys.before(pSet);
 const pauseLine=el('p','v6-pause-line');
@@ -203,7 +203,7 @@ function selectTab(n:number){tabBtns.forEach((b,i)=>{b.setAttribute('aria-select
 /** Loadout picks are tiles that fill their tab: the bare name, plus one small tag where it says something
  *  (a form's numeral, a blade count). No "· detail" tails, no "saber(s)", no repeated section heading. */
 const pickName=(t:string)=>t.replace(/^[IVX]+\s*·\s*/,'').split(' · ')[0]!.replace(/^Force (\w)/,(_,c:string)=>c.toUpperCase()).replace(/ sabers?$/i,'').trim();
-const pickTag=(selectId:string,o:HTMLOptionElement)=>selectId==='style'?o.text.match(/^([IVX]+)\s*·/)?.[1]??'':
+const pickTag=(selectId:string,o:HTMLOptionElement)=>selectId==='style'?o.dataset.roman??'':
   selectId.startsWith('saberKit')?((n=ARCADE_SABER_OPTIONS.find(k=>k.id===o.value) as {blades?:number}|undefined)=>n?.blades?'×'+n.blades:'')():'';
 function chipsFrom(selectId:string,pane:HTMLElement,label:string){
   const sel=get<HTMLSelectElement>(selectId);pane.replaceChildren();if(!sel){pane.append(el('p','v6-empty','Locked'));return;}
@@ -243,35 +243,34 @@ addEventListener('resize',()=>{if(body.dataset.v6==='loadout')paintHero();});
 const resultTitle=get('resultTitle');
 const winnerArt=el('canvas','v6-result-art');winnerArt.setAttribute('aria-hidden','true');resultTitle?.before(winnerArt);
 new MutationObserver(()=>{const o=get('result');if(!o||o.hidden||!resultTitle)return;
-  const t=resultTitle.textContent;if(t==='Round won')resultTitle.textContent='Victory';else if(t==='Round lost')resultTitle.textContent='Defeat';
   // Only your own win shows your fighter; a draw, a loss or a watched round shows no winner art.
   const look=o.dataset.winnerBody;
   winnerArt.hidden=!look;
   if(look)requestAnimationFrame(()=>{if(winnerArt.offsetParent&&o.dataset.winnerBody===look)paintV6Fighter(winnerArt,look,{stage:false,bare:true});});
   trimResult(o);
 }).observe(get('result')??body,{attributes:true,attributeFilter:['hidden']});
-/** One line under the title (mode, round, time, badge) and the Elo bar read as rank to next rank, as in the mock.
- *  Training progress stays in Stats; only a save warning is shown here. */
+/** Meta pills under the title (mode, round, time, badge) and the Elo bar read as rank to next rank, as in the mock. */
 const resultLeave=document.querySelector<HTMLButtonElement>('#result .dialog-actions [data-home]');
 resultLeave?.classList.add('v6-result-leave');
 function trimResult(o:HTMLElement){
-  const top=o.querySelector<HTMLElement>('.r-top'),eyebrow=get('resultRound');
+  const top=o.querySelector<HTMLElement>('.r-top');
   if(top&&resultTitle&&resultTitle.nextElementSibling!==top)resultTitle.after(top);
-  if(eyebrow){const parts=(eyebrow.textContent??'').split(' · ');const round=parts.find(p=>/^Round \d+$/.test(p));
-    const rest=parts.filter(p=>p!==round&&p!=='1v1');const clock=rest.pop();
-    if(round&&clock)eyebrow.textContent=[...rest,round,clock].join(' · ');}
   const next=o.querySelector<HTMLElement>('#resultElo .r-next'),rank=o.querySelector('#resultElo .r-rank')?.textContent??'';
   if(next&&!next.dataset.v6){
     const i=SOLDIER_GRADES.findIndex(g=>g.displayLabel===rank||g.label===rank),up=i>=0?SOLDIER_GRADES[i+1]:undefined;
     const raw=next.textContent??'',left=raw.match(/^([\d.,]+) to current Elo cap$/)?.[1];
-    const right=!up?'Top rank':left?`${left} to ${up.displayLabel}`:/^At current Elo cap$/.test(raw)?`At ${up.displayLabel} line`:raw;
+    const right=!up?'Top Rank':left?`${left} to ${up.displayLabel}`:/^At current Elo cap$/.test(raw)?`At ${up.displayLabel}`:raw;
     next.replaceChildren(el('span',undefined,rank),el('span',undefined,right));next.dataset.v6='1';
   }
-  // A save warning hides Next round; then the way out reads as the Setup step the warning names.
   // A seated bout (Gauntlet) goes back to its own page, and its save line always shows.
   const seatLabel=body.dataset.seat?body.dataset.seatLabel:'';
-  if(resultLeave)resultLeave.textContent=seatLabel?'Back to '+seatLabel:get('again')?.hidden?'Back to Setup':'← Leave';
+  if(resultLeave){resultLeave.textContent=seatLabel?'Back':get('again')?.hidden?'Setup':'Leave';
+    if(seatLabel)resultLeave.setAttribute('aria-label','Back to '+seatLabel);else resultLeave.removeAttribute('aria-label');}
   const note=get('rankResult');
   if(note&&seatLabel)note.hidden=false;
-  else if(note){const warn=(note.textContent??'').split(' · ').find(p=>/Save|Session only/.test(p))??'';note.textContent=warn;note.hidden=!warn;}
+  else if(note){
+    // Training progress stays in Stats; only a save badge (Not Saved, Save Conflict) shows here.
+    const badge=note.dataset.saveBadge??'';
+    note.replaceChildren(...(badge?[el('span','r-badge r-save-badge',badge)]:[]));note.hidden=!badge;
+  }
 }

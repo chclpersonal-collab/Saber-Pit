@@ -22,12 +22,12 @@ test('Control is unrated and scores by objective; unsaved fighters read as a das
   const m=buildArenaScoreboard({fighters:[fighter(0,0,{control:true,kills:4,deaths:1,damage:612.4,slotRating:236}),fighter(1,0,{kills:3,deaths:3,damage:570})],
     rule:'control',mapSize:'medium',round:2,secondsLeft:101.2,rated:false,objective:[7.0000001,4]});
   assert.deepEqual(m.score,[7,4]);
-  assert.equal(m.meta,'Control · Medium · 1:42');
+  assert.deepEqual(m.meta,['Control','Medium','1:42']);
   assert.equal(m.round,'Round 2');
   assert.equal(m.badge,'UNRATED');
   assert.deepEqual(m.teams[0].rows[0],{id:'0-0',name:'Makashi',rank:'E',k:4,d:1,dmg:612,elo:'236',me:true,ko:false});
   assert.equal(m.teams[1].rows[0]!.elo,'—');
-  assert.match(m.note,/^Unrated\./);
+  assert.equal(m.note,'');
 });
 test('Elimination scores by kills, sorts by K then D then damage, and keeps slot order on ties',()=>{
   const m=buildArenaScoreboard({fighters:[
@@ -50,7 +50,7 @@ test('15v15 keeps every fighter, each on their own side',()=>{
 test('bad live numbers never reach the board',()=>{
   const m=buildArenaScoreboard({fighters:[fighter(0,0,{kills:-2,deaths:Number.NaN,damage:'9'})],rule:'relic',mapSize:'tiny',round:0,secondsLeft:-5,rated:false,objective:null});
   assert.deepEqual(m.teams[0].rows[0]!.k+m.teams[0].rows[0]!.d+m.teams[0].rows[0]!.dmg,0);
-  assert.equal(m.meta,'Relic · 0:00');
+  assert.deepEqual(m.meta,['Relic','0:00']);
   assert.equal(m.round,'Round 1');
   assert.equal(scoreboardClock(59.01),'1:00');
 });
@@ -100,5 +100,5 @@ test('key peek leaves focus alone; pinned Stats is a real modal with Escape, foc
 
 test('fixed arena geometry displays the authored name before the clock',()=>{
   const m=buildArenaScoreboard({fighters:[],rule:'control',mapSize:'small',mapLabel:'Three Causeways',round:1,secondsLeft:43,rated:false});
-  assert.equal(m.meta,'Control · Three Causeways · 0:43');
+  assert.deepEqual(m.meta,['Control','Three Causeways','0:43']);
 });

@@ -1,13 +1,13 @@
 /** Explicit custom-Arena Force catalogue. A missing side pool leaves legacy AI intact. */
 export const ARCADE_FORCE_POOL=[
-  {id:'force_push',label:'Push',description:'Strong knockback in a forward cone.',style:'cast',cost:18,range:125,cooldown:2.2},
-  {id:'force_burst',label:'Burst',description:'Wider, harder hit at short range; higher cost.',style:'cast',cost:23,range:95,cooldown:2.6},
-  {id:'force_pulse',label:'Pulse',description:'Quick, narrow ranged hit with light knockback.',style:'cast',cost:15,range:163,cooldown:2.0},
-  {id:'force_pull',label:'Pull',description:'Draw one exposed foe toward you; weak damage and narrow aim.',style:'pull',cost:21,range:142,cooldown:3.4},
-  {id:'force_anchor',label:'Anchor',description:'Slow a moving foe briefly; guard and walls block it.',style:'anchor',cost:20,range:125,cooldown:3.8},
-  {id:'force_lattice',label:'Lattice',description:'Raise a timed ward that absorbs one incoming hit.',style:'lattice',cost:28,range:0,cooldown:5.1},
-  {id:'force_echo_step',label:'Echo Step',description:'Step across clear ground; no invulnerability.',style:'echoStep',cost:23,range:0,cooldown:4.4},
-  {id:'force_siphon',label:'Siphon',description:'Recover up to nine stamina from one exposed foe.',style:'siphon',cost:17,range:139,cooldown:4.0},
+  {id:'force_push',label:'Push',description:'Knockback Cone',style:'cast',cost:18,range:125,cooldown:2.2},
+  {id:'force_burst',label:'Burst',description:'Close Impact',style:'cast',cost:23,range:95,cooldown:2.6},
+  {id:'force_pulse',label:'Pulse',description:'Long Reach',style:'cast',cost:15,range:163,cooldown:2.0},
+  {id:'force_pull',label:'Pull',description:'Draw In',style:'pull',cost:21,range:142,cooldown:3.4},
+  {id:'force_anchor',label:'Anchor',description:'Slow',style:'anchor',cost:20,range:125,cooldown:3.8},
+  {id:'force_lattice',label:'Lattice',description:'Ward',style:'lattice',cost:28,range:0,cooldown:5.1},
+  {id:'force_echo_step',label:'Echo Step',description:'Blink Step',style:'echoStep',cost:23,range:0,cooldown:4.4},
+  {id:'force_siphon',label:'Siphon',description:'Drain STA',style:'siphon',cost:17,range:139,cooldown:4.0},
 ] as const;
 export type ArcadeForcePoolId=(typeof ARCADE_FORCE_POOL)[number]['id'];
 const codes=new Set<string>(ARCADE_FORCE_POOL.map(x=>x.id));

@@ -22,6 +22,6 @@ export function arenaTeamLook<T extends TeamLookValue>(list:TeamValue<T>|undefin
 
 /** Summarize the actual fighter, never an unresolved team setting or save pick. */
 export function arenaFighterAppearance(f:{gender:unknown;body:unknown;heroId?:string|null}){
-  const body=f.body==='woman'?'Slim-thick woman':f.body==='femboy'?'Femboy':f.body==='rabbit'?'Rabbit duelist':'Unspecified';
-  return {gender:fighterGenderLabel(f.gender)||'Unspecified',appearance:body,source:f.heroId?'Saved Hero':'Match roster'};
+  const body=f.body==='woman'?'Woman':f.body==='femboy'?'Femboy':f.body==='rabbit'?'Rabbit':'Unspecified';
+  return {gender:fighterGenderLabel(f.gender)||'Unspecified',appearance:body,source:f.heroId?'Saved Hero':'Roster'};
 }

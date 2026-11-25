@@ -18,9 +18,11 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
   const element=make('details',undefined,'force-pool');
   element.dataset.forceSetting='';
   const summary=make('summary'), count=make('span',undefined,'force-card-count');
-  summary.append(make('span','AI Force loadout'),count);
+  summary.append(make('span','AI Force'),count);
   const notes=make('p',undefined,'force-card-note'), grid=make('div',undefined,'force-card-grid');
-  grid.setAttribute('role','group');grid.setAttribute('aria-label',side+' AI Force powers');
+  grid.setAttribute('role','group');grid.setAttribute('aria-label',side+' AI Force');
+  // The reason line is for screen readers only; the grid points at it.
+  notes.id='forceNote'+side;notes.hidden=true;grid.setAttribute('aria-describedby',notes.id);
   const actions=make('div',undefined,'force-card-actions');
   const mixed=make('button','Mixed trio'),clear=make('button','Clear');
   mixed.type=clear.type='button';
@@ -31,15 +33,16 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
     const button=make('button',undefined,'force-card');
     button.type='button';
     const order=make('b',undefined,'force-card-order'), spokenOrder=make('span',undefined,'sr');
-    const label=make('strong',power.label), stat=make('small',power.cost+' stamina · '+power.cooldown.toFixed(1)+' s cooldown');
-    const effect=make('span',power.description),range=make('small',power.range===0?(power.id==='force_lattice'?'Self':'Movement'):power.range+' px range');
+    const label=make('strong',power.label), stat=make('small',undefined,'force-card-stats');
+    stat.append(make('span',power.cost+' STA','v6-meta'),make('span',power.cooldown.toFixed(1)+'s CD','v6-meta'),
+      make('span',power.range===0?(power.id==='force_lattice'?'Self':'Move'):power.range+' Range','v6-meta'));
     const heading=make('span',undefined,'force-card-heading');
     order.setAttribute('aria-hidden','true');heading.append(label,order);
-    button.append(heading,stat,range,effect,spokenOrder);
+    button.append(heading,stat,spokenOrder);
     button.addEventListener('click',()=>{
       if(inactive)return;
       if(pool.length===LIMIT&&!pool.includes(power.id)){
-        status.textContent='Three selected. Remove a power before adding another.';return;
+        status.textContent='Three selected, remove one';return;
       }
       apply(toggleArenaForceCard(pool,power.id));
     });
@@ -49,7 +52,7 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
   function apply(next:ArcadeForcePoolId[]){
     onSelect(next);
     const ordered=next.map(id=>ARCADE_FORCE_POOL.find(power=>power.id===id)?.label).join(', ');
-    status.textContent=next.length?next.length+' of 3 selected: '+ordered+'.':'Cleared. Uses Primary Force.';
+    status.textContent=next.length?next.length+' of 3: '+ordered:'Cleared';
   }
   mixed.addEventListener('click',()=>{if(!inactive)apply([...MIXED_FORCE_TRIO]);});
   clear.addEventListener('click',()=>{if(!inactive&&pool.length)apply([]);});
@@ -57,9 +60,7 @@ export function createArenaForcePicker(side:string,onSelect:(pool:ArcadeForcePoo
   function render(value:unknown,disabled:boolean){
     pool=normalizeArcadeForcePool(value);inactive=disabled;
     count.textContent=pool.length+' / 3';
-    notes.textContent=inactive?'No Blue AI in this match. Selections are kept.':pool.length?
-      'Custom AI Force makes this match unrated. It won’t replace your saved run.':
-      'Choose up to three AI powers. Empty uses Primary Force.';
+    notes.textContent=inactive?'No Blue AI this match':pool.length?'Custom AI Force, unrated':'Empty uses Primary Force';
     mixed.disabled=inactive;clear.disabled=inactive;clear.setAttribute('aria-disabled',String(pool.length===0));
     for(const {power,button,order,spokenOrder} of cards){
       const pos=pool.indexOf(power.id);

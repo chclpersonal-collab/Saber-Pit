@@ -9,25 +9,24 @@ const base:RoundResultInput={mode:'duel',teamSizes:[1,1],round:2,seconds:161.7,r
 
 test('a saved rated round shows the Elo change, the saved tick data and the gap to the current Elo cap',()=>{
   const m=buildRoundResult(base);
-  assert.equal(m.eyebrow,'Round 2 · Duel · 1v1 · 2:41');
+  assert.deepEqual(m.meta,['Duel','Round 2','2:41']);
   assert.equal(m.badge,'RATED');
   assert.deepEqual(m.tiles.map(t=>t.value),['3','1','412','7']);
-  assert.equal(m.hits,'Saber hits 14 · Swings 22');
   assert.deepEqual(m.elo,{kind:'saved',who:null,rank:'E',rating:'245',delta:'+9',up:true,toCap:'54.5 to current Elo cap',bar:true,pct:.45/.995,gainPct:.09/.995});
 });
 test('a failed save never shows a delta or a saved tick',()=>{
   for(const save of ['conflict','session-only','unavailable','untracked'] as const){
     const m=buildRoundResult({...base,save});
-    assert.deepEqual(m.elo,{kind:'unrecorded',text:'Elo not recorded.'},save);
+    assert.deepEqual(m.elo,{kind:'unrecorded',badge:'NOT SAVED'},save);
     assert.equal(JSON.stringify(m).includes('+9'),false,save);
   }
   assert.equal(resultElo({rated:true,save:'saved',elo:null}).kind,'unrecorded');
 });
-test('unrated rounds say so and change nothing',()=>{
+test('unrated rounds carry the UNRATED badge and change nothing',()=>{
   const m=buildRoundResult({...base,rated:false,mode:'squad',teamSizes:[15,15]});
   assert.equal(m.badge,'UNRATED');
-  assert.equal(m.eyebrow,'Round 2 · Squads · 15v15 · 2:41');
-  assert.deepEqual(m.elo,{kind:'unrated',text:'Unrated round. Elo unchanged.'});
+  assert.deepEqual(m.meta,['Squads','15v15','Round 2','2:41']);
+  assert.deepEqual(m.elo,{kind:'unrated',badge:''});
 });
 test('losses and Elo caps read plainly; Elo never claims a rank-up',()=>{
   const loss=resultElo({rated:true,save:'saved',elo:{...elo,ratingBefore:245,ratingAfter:236,delta:-9}});
@@ -40,16 +39,15 @@ test('losses and Elo caps read plainly; Elo never claims a rank-up',()=>{
   }
 });
 test('mode tags are plain categories',()=>{
-  assert.equal(resultModeTag('duel',[1,1]),'Duel · 1v1');
-  assert.equal(resultModeTag('watch',[5,5]),'Watch · 5v5');
-  assert.equal(resultModeTag('command',[3,3]),'Commander · 3v3');
-  assert.equal(resultModeTag('anything',[]),'1v1');
+  assert.deepEqual(resultModeTag('duel',[1,1]),['Duel','1v1']);
+  assert.deepEqual(resultModeTag('watch',[5,5]),['Watch','5v5']);
+  assert.deepEqual(resultModeTag('command',[3,3]),['Commander','3v3']);
+  assert.deepEqual(resultModeTag('anything',[]),['1v1']);
 });
 test('bad numbers never reach the card',()=>{
   const m=buildRoundResult({...base,seconds:Number.NaN,round:0,line:{kills:-1,deaths:'x',damage:Number.POSITIVE_INFINITY,parries:null,saberHits:undefined,saberSwings:2.9}});
   assert.deepEqual(m.tiles.map(t=>t.value),['0','0','0','0']);
-  assert.equal(m.hits,'Saber hits 0 · Swings 2');
-  assert.equal(m.eyebrow,'Round 1 · Duel · 1v1 · 0:00');
+  assert.deepEqual(m.meta,['Duel','Round 1','0:00']);
 });
 test('a rating below its rank floor still fills the bar from where it is',()=>{
   const low=resultElo({rated:true,save:'saved',elo:{...elo,who:'Blue fighter 1',ratingBefore:100,ratingAfter:102,delta:2}});
@@ -66,6 +64,6 @@ test('no Elo line mentions a rank-up',()=>{
 
 test('missing or nonfinite settled Elo numbers cannot show a saved amount or delta',()=>{
   for(const broken of [{ratingBefore:null},{ratingAfter:0},{ratingAfter:Infinity},{delta:null},{delta:NaN}]){
-    assert.deepEqual(resultElo({rated:true,save:'saved',elo:{...elo,...broken}}),{kind:'unrecorded',text:'Elo not recorded.'});
+    assert.deepEqual(resultElo({rated:true,save:'saved',elo:{...elo,...broken}}),{kind:'unrecorded',badge:'NOT SAVED'});
   }
 });

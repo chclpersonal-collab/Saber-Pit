@@ -6,11 +6,11 @@ test('Home keeps Play and Watch on the existing validatable setup form and Conti
   const html=read('index.html');
   const hub=html.match(/<section class="arena-launch home-hub"[\s\S]*?<\/section>/)?.[0]??'';
   assert.match(hub,/<h1 id="arenaLaunchTitle">Arena<\/h1>/);
-  assert.match(hub,/1v1 · Squads/);
+  assert.match(hub,/<span class="v6-meta">1v1<\/span><span class="v6-meta">Squads<\/span>/);
   assert.match(hub,/<button type="submit" form="lobby" data-launch="play">/);
   assert.match(hub,/<button type="submit" form="lobby" data-launch="watch">/);
   assert.match(hub,/<button type="button" id="homeContinue" class="hub-continue" hidden>/);
-  assert.match(hub,/href="#entry">Match setup/);assert.match(hub,/href="\.\/backup\.html">Saves/);
+  assert.match(hub,/href="#entry">Setup/);assert.match(hub,/href="\.\/backup\.html">Saves/);
   assert.match(html,/<section id="entry"[^>]*tabindex="-1"/);
   assert.match(html,/id="rankDialog"/);assert.match(html,/href="\.\/moba\.html">Three Fronts/);
   assert.doesNotMatch(hub,/players online|status: online|season\s+\d|Customize match/i);

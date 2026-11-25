@@ -46,9 +46,9 @@ import {createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings
 import {buildArenaScoreboard} from './arcade-scoreboard.js';
 import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
-import {renderRoundResult} from './arcade-results-view.js';
+import {renderRoundResult,renderResultMeta} from './arcade-results-view.js';
 import {recordArenaRound} from './arcade-record.js';
-import {activeArenaPreset,arenaSetupSummary} from './arcade-setup-summary.js';
+import {activeArenaPreset,arenaSetupSummaryParts} from './arcade-setup-summary.js';
 import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
@@ -81,13 +81,13 @@ const mobileUI=matchMedia('(max-width:740px), (pointer:coarse) and (max-width:11
 const portraitUI=matchMedia('(max-width:740px) and (orientation:portrait)');
 const touchPrefs=readTouchPrefs(), stick=createArcadeTouchOwner(), stickButton=$('touchStick');
 const lore={
-  shii_cho:{name:'Shii-Cho',roman:'I',read:'Wide, flowing cuts and broad footwork. Useful against multiple rivals.',signature:'Wide sweep'},
-  makashi:{name:'Makashi',roman:'II',read:'One-handed precision and direct footwork. Built for saber duels.',signature:'Linear thrust'},
-  soresu:{name:'Soresu',roman:'III',read:'Close guard and compact deflections. Let the rival commit first.',signature:'Guard riposte'},
-  ataru:{name:'Ataru',roman:'IV',read:'Acrobatic bursts and fast entries. The attack comes from above.',signature:'Acrobatic vault'},
-  djem_so:{name:'Djem So',roman:'V',read:'Powerful two-handed cuts. Turn a block or parry into a counter.',signature:'Power counter'},
-  niman:{name:'Niman',roman:'VI',read:'Balanced blade work with space for a Force-assisted attack.',signature:'Force-assisted strike'},
-  juyo:{name:'Juyo',roman:'VII',read:'Aggressive, irregular chains. Pressure the rival before they can reset.',signature:'Ferocity chain'}
+  shii_cho:{name:'Shii-Cho',roman:'I',tag:'Crowd Control',signature:'Wide Sweep'},
+  makashi:{name:'Makashi',roman:'II',tag:'Precision',signature:'Linear Thrust'},
+  soresu:{name:'Soresu',roman:'III',tag:'Defense',signature:'Guard Riposte'},
+  ataru:{name:'Ataru',roman:'IV',tag:'Acrobatic',signature:'Acrobatic Vault'},
+  djem_so:{name:'Djem So',roman:'V',tag:'Counter Power',signature:'Power Counter'},
+  niman:{name:'Niman',roman:'VI',tag:'Force Hybrid',signature:'Force Strike'},
+  juyo:{name:'Juyo',roman:'VII',tag:'Relentless',signature:'Ferocity Chain'}
 };
 const ratingText=(value:number)=>value.toLocaleString('en-US');
 const formName=(id:string)=>field(lore,id)?.name||field(ARCADE_FORMS,id)?.name||'Saber';
@@ -161,7 +161,7 @@ const scoreboard=mountArenaScoreboard({
   onUnavailable:()=>{if(view==='game'&&game&&(paused||game.phase!=='playing')&&!document.querySelector('dialog[open]'))openStats();},
   canOpen:()=>view==='game'&&!paused&&game?.phase==='playing'&&!document.querySelector('dialog[open]:not(#scoreboard)'),
 });
-const punishLabels:Record<string,string>={whiff:'missed swing',parried:'parried strike',guard_break:'broken guard'};
+const punishLabels:Record<string,string>={whiff:'Whiff',parried:'Parry',guard_break:'Guard Break'};
 const callouts=createArcadeFloatingText();
 const announce=(text:string)=>{$('announce').textContent=text;};
 function resize(){
@@ -360,8 +360,9 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   syncFullscreen();
   $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';syncAutoDuel();scoreboard.close();
   for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
-  for(const [where,plain] of [['#pauseOverlay','Setup'],['#result','Setup'],['#help','Match setup']] as const)
-    for(const b of document.querySelectorAll<HTMLElement>(where+' [data-home]'))b.textContent=!seat?plain:where==='#result'?'Back to '+seat.label:'Leave bout';
+  for(const [where,plain] of [['#pauseOverlay','Leave'],['#result','Leave'],['#help','Setup']] as const)
+    for(const b of document.querySelectorAll<HTMLElement>(where+' [data-home]')){b.textContent=!seat?plain:where==='#result'?'Back':'Leave';
+      if(seat&&where==='#result')b.setAttribute('aria-label','Back to '+seat.label);else b.removeAttribute('aria-label');}
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
   $('modeLabel').textContent=matchLabel();
@@ -370,8 +371,8 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   canvas.setAttribute('aria-label',['Loomen arena',...deployedHeroes].join('. '));
   $('profileText').textContent=(isMenu?'':roundRated?'Rated · ':game.config.novicePractice?'Practice · 0.75× · ':laneDrill?(spreadDeployed?'Spread deployment · ':'Standard starts · '):'Unrated · ')+(mode==='watch'?(deployedHeroes.length?'AI fights for both sides':'Both sides use AI'):arcadeSaberOption(primary!.gear).label);
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
-  $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
-  $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
+  $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form Footwork';
+  $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy Attack';
   $('blueName').textContent='Blue';
   $('rivalName').textContent='Pink';
   // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
@@ -384,13 +385,13 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
 }
 
 const FORM_AIR_NAMES={
-  shii_cho:'Wheel hop',
-  makashi:'Line vault',
-  soresu:'Guard tuck',
-  ataru:'Corkscrew / crossflip',
-  djem_so:'Hammer bound',
-  niman:'Drift turn',
-  juyo:'Scissor pounce',
+  shii_cho:'Wheel Hop',
+  makashi:'Line Vault',
+  soresu:'Guard Tuck',
+  ataru:'Corkscrew / Crossflip',
+  djem_so:'Hammer Bound',
+  niman:'Drift Turn',
+  juyo:'Scissor Pounce',
 };
 function syncHelp(){
   $('helpText').textContent=mode==='watch'?'Open Stats to inspect any fighter.':mode==='command'?'Choose an order for Blue. The team fights automatically.':
@@ -698,7 +699,7 @@ function showEnd(){
   if(seat){showSeatEnd(seat);return;}
   (document.getElementById('resultElo') as HTMLElement).hidden=false;
   const versus=game.config.localVersus===true;
-  const text=game.phase==='draw'?'Draw':mode==='watch'||versus?(game.phase==='won'?'Blue wins':'Pink wins'):game.phase==='won'?'Round won':'Round lost';
+  const text=game.phase==='draw'?'Draw':mode==='watch'||versus?(game.phase==='won'?'Blue Wins':'Pink Wins'):game.phase==='won'?'Victory':'Defeat';
   $('resultTitle').textContent=text;
   const winningPlayer=game.phase==='won'&&mode!=='watch'&&!versus?game.fighters.find(f=>f.team===0&&f.control&&f.alive):undefined;
   $('result').dataset.winnerBody=winningPlayer?.body??'';
@@ -706,16 +707,16 @@ function showEnd(){
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
   const decidedByObjective=game.endReason==='control'||game.endReason==='relic'||(timedOut&&obj?.target&&Math.abs(obj.score[0]-obj.score[1])>=.001);
   const survivors=[0,1].map(team=>game.fighters.filter(f=>f.team===team&&f.alive).length);
-  $('resultText').textContent=game.phase==='draw'?(timedOut?'Time limit · Both sides finished even.':'Both sides finished even.')
-    :decidedByObjective?(timedOut?'Time limit · ':'')+(obj.rule==='control'?'Decided by signal points.':'Decided by relic deliveries.')
-    :timedOut?'Time limit · '+(survivors[0]!==survivors[1]?'Decided by survivors.':'Decided by regional injuries.')
-    :mode==='watch'?'One side knocked out the other.':game.phase==='won'?'Pink side knocked out.':'Blue side knocked out.';
+  $('resultText').textContent=game.phase==='draw'?(timedOut?'Time Up · Even':'Even')
+    :decidedByObjective?(timedOut?'Time Up · ':'')+(obj.rule==='control'?'Signal Points':'Relic Deliveries')
+    :timedOut?'Time Up · '+(survivors[0]!==survivors[1]?'Survivors':'Injuries')
+    :'Knockout';
   const lastPunish=game.events.findLast(e=>e.punish&&(e.damage as number)>0);
   const relevant=lastPunish&&game.phase!=='draw'&&lastPunish.team===(game.phase==='won'?0:1)&&game.time-lastPunish.time<=3;
   $('turningPoint').hidden=!relevant;
   if(relevant){
     const reason=field(punishLabels,lastPunish.punishReason);
-    $('turningPoint').textContent=(lastPunish.team?'Pink':'Blue')+' punished '+(reason?'a '+reason:'an opening')+(lastPunish.region?' with a hit to '+regionName(lastPunish.region).toLowerCase():'')+' late in the round.';
+    $('turningPoint').textContent=(lastPunish.team?'Pink':'Blue')+' Punish · '+(reason??(lastPunish.region?regionName(lastPunish.region):'Opening'));
   }
   const settled=settleArcadeCareer(game,roundRatings)!, selected=settled.report.find(r=>r.id===game.fighters.find(f=>f.control)?.id)??settled.report[0];
   career={arenaRatings:settled.arenaRatings,mode:autoCareerMode??mode,round:round+1,seed:(seed+Math.imul(++seedCounter,2654435761))>>>0,careers:settled.careers,records:game.records,form:matchSetup.form,body:matchSetup.body,setup:matchSetup,heroLineup:matchHeroes};
@@ -731,23 +732,22 @@ function showEnd(){
     roundSaveBaseline=arenaCareerBytes(career);
   }else if(conflict||sessionOnly)savedCareer=readCareerForUI();
   const promoted=settled.report.filter(f=>f.promoted);
-  const promotions=promoted.length>1?' · '+promoted.length+' promotions':selected.promoted?' · Promoted':'';
-  const saveNotice=conflict?'Save changed in another tab. Return to Setup to continue that save.':
-    sessionOnly?'Session only. Saved run unchanged.':persisted?'':'Save unavailable.';
-  const progress=(mode==='watch'?'Blue fighter 1: ':'')+gradeDisplayLabel(selected.after.grade)+' · +'+selected.reward+' training pts'+promotions;
-  // Elo now lives in the result card's own block; this line keeps training and save notices.
-  $('rankResult').textContent=versus?'Two players · nothing saved':ratingUnrecorded?saveNotice:progress+(saveNotice?' · '+saveNotice:'');
+  const promotions=promoted.length>1?' '+promoted.length+' Promotions':selected.promoted?' Promoted':'';
+  // A save problem is a badge on the card, never a sentence (an unsaved rated round shows it in the Elo block). Conflict also hides Next Round below.
+  const saveBadge=versus?'Not Saved':conflict?'Save Conflict':ratingUnrecorded?'':sessionOnly||!persisted?'Not Saved':'';
+  const progress=(mode==='watch'?'Blue 1 ':'')+gradeDisplayLabel(selected.after.grade)+' +'+selected.reward+' XP'+promotions;
+  $('rankResult').textContent=progress;$('rankResult').dataset.saveBadge=saveBadge;
   const me=game.fighters.find(f=>f.control), lineKeys=['kills','deaths','damage','parries','saberHits','saberSwings'] as const;
   renderRoundResult($('result'),buildRoundResult({
     mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:settled.rated,save:tracked?saveResult:'untracked',
-    who:versus?'Blue player':me?null:'Blue side totals',
+    who:versus?'Blue':me?null:'Blue Total',
     line:me?me.stats:Object.fromEntries(lineKeys.map(k=>[k,game.stats?.[k]?.[0]])) as Record<typeof lineKeys[number],number>,
-    elo:persisted&&settled.rated?{who:me?null:'Blue fighter 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
+    elo:persisted&&settled.rated?{who:me?null:'Blue 1',rank:gradeDisplayLabel(selected.after.grade),ratingBefore:selected.ratingBefore,ratingAfter:selected.ratingAfter,delta:selected.ratingDelta,
       floor:eloFloor(selected.after.grade),cap:selected.ratingCap}:null,
   }));
   // Player's own K/D and wins, kept apart from the career save.
   if(me&&(mode==='duel'||mode==='squad')&&!autoDuel.active)recordArenaRound(me.stats??{},game.phase);
-  $('again').textContent='Next round';
+  $('again').textContent='Next Round';
   updateHUD();
   scoreboard.close();$('result').hidden=false;$('pause').hidden=true;$('again').hidden=conflict;clearInput();
   $(conflict?'resultStats':'again').focus({preventScroll:true});
@@ -755,7 +755,7 @@ function showEnd(){
   announce(autoDuel.active?text+'. Next round in 3 seconds.':text);
 }
 function showSeatEnd(owner:ArenaSeat){
-  const head=game.phase==='draw'?'Draw':game.phase==='won'?'Blue wins':'Pink wins';
+  const head=game.phase==='draw'?'Draw':game.phase==='won'?'Blue Wins':'Pink Wins';
   const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
   $('resultTitle').textContent=head;
   $('result').dataset.winnerBody=game.phase==='won'?game.fighters.find(f=>f.control)?.body??'':'';
@@ -767,10 +767,10 @@ function showSeatEnd(owner:ArenaSeat){
   // Gauntlet Elo is settled by the Gauntlet itself, so the Arena's Elo block and rated badge do not apply here.
   (document.getElementById('resultElo') as HTMLElement).hidden=true;(document.getElementById('resultBadge') as HTMLElement).textContent=owner.label.toUpperCase();
   const clockText=Math.floor(game.time/60)+':'+String(Math.floor(game.time%60)).padStart(2,'0');
-  $('resultRound').textContent=owner.teamSizes.join('v')+' · '+clockText;
-  $('resultText').textContent=(timedOut?'Time limit · ':'')+(game.phase==='won'?'You knocked out the Pink side.':game.phase==='draw'?'Both sides finished even.':'Blue was knocked out.');
-  $('rankResult').textContent='Saving…';
-  $('again').textContent='Fight next bout';$('again').hidden=true;
+  renderResultMeta($('resultRound'),[owner.teamSizes.join('v'),clockText]);
+  $('resultText').textContent=(timedOut?'Time Up · ':'')+(game.phase==='draw'?'Even':'Knockout');
+  $('rankResult').textContent='Saving…';delete $('rankResult').dataset.saveBadge;
+  $('again').textContent='Next Bout';$('again').hidden=true;
   updateHUD();
   scoreboard.close();$('result').hidden=false;$('pause').hidden=true;clearInput();
   $('resultStats').focus({preventScroll:true});
@@ -1144,11 +1144,29 @@ let debug:HTMLOutputElement|null=null;
 if(new URLSearchParams(location.search).has('qa')){
   debug=document.createElement('output');debug.style.cssText='position:fixed;bottom:0;left:0;background:#170c27;color:white;font:12px monospace;z-index:10;padding:4px';debug.id='arcadeQA';document.body.append(debug);
 }
+/** Forms codex: numeral badge, name, style tag, 1–5 stat meters from the engine's own form numbers, signature move. */
+type FormRow=(typeof ARCADE_FORMS)[keyof typeof ARCADE_FORMS];
+const CODEX_STATS:[string,(f:FormRow)=>number][]=[['Speed',f=>f.speed],['Reach',f=>f.reach],['Guard',f=>f.guardAI],['Tempo',f=>1/f.tempo]];
+const codexRows=ARCADE_FORM_IDS.map(id=>field(ARCADE_FORMS,id)).filter((f):f is FormRow=>!!f);
+function codexPips(read:(f:FormRow)=>number,f:FormRow){
+  const all=codexRows.map(read),lo=Math.min(...all),hi=Math.max(...all);
+  return hi>lo?Math.round(1+4*(read(f)-lo)/(hi-lo)):3;
+}
+const make=<K extends keyof HTMLElementTagNameMap>(tag:K,cls?:string,text?:string)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
 for(const id of ARCADE_FORM_IDS){
-  const form=field(lore,id);if(!form)continue;
-  const option=document.createElement('option');option.value=id;option.textContent=form.roman+' · '+form.name;$('style').append(option);
-  const card=document.createElement('section'),title=document.createElement('h3'),desc=document.createElement('p');
-  title.textContent=option.textContent;desc.textContent=form.read;card.append(title,desc);$('guideForms').append(card);
+  const form=field(lore,id),stats=field(ARCADE_FORMS,id);if(!form)continue;
+  const option=document.createElement('option');option.value=id;option.textContent=form.name;option.dataset.roman=form.roman;$('style').append(option);
+  const card=make('section','codex-card');card.dataset.form=id;
+  const head=make('div','codex-head'),badge=make('span','v6-tag codex-num',form.roman);badge.setAttribute('aria-label','Form '+form.roman);
+  head.append(badge,make('h3',undefined,form.name),make('span','v6-meta codex-style',form.tag));
+  const list=make('dl','codex-stats');
+  if(stats)for(const [label,read] of CODEX_STATS){
+    const pips=codexPips(read,stats),row=make('div','codex-stat'),meter=make('meter','codex-meter');
+    meter.min=0;meter.max=5;meter.value=pips;meter.textContent=pips+'/5';meter.setAttribute('aria-label',label+' '+pips+' of 5');
+    const dd=make('dd');dd.append(meter);row.append(make('dt',undefined,label),dd);list.append(row);
+  }
+  const sig=make('div','codex-stat codex-sig');sig.append(make('dt',undefined,'Signature'),make('dd',undefined,form.signature));list.append(sig);
+  card.append(head,list);$('guideForms').append(card);
 }
 $('style').value='makashi';
 
@@ -1334,9 +1352,9 @@ function showForcePools(){
   }
 }
 const pairs:Record<string,[string,string][]>= {
-  teamGenders:ARENA_TEAM_GENDERS.map(id=>[id,id==='default'?'Default':id==='mixed'?'Mixed':'All '+id]),
-  teamAppearances:ARENA_TEAM_APPEARANCES.map(id=>[id,id==='default'?'Default':id==='woman'?'Slim-thick woman':id==='rabbit'?'Rabbit duelist':titleCase(id)]),
-  startingRanks:SOLDIER_GRADES.map(g=>[g.label,g.displayLabel]),
+  teamGenders:ARENA_TEAM_GENDERS.map(id=>[id,titleCase(id)]),
+  teamAppearances:ARENA_TEAM_APPEARANCES.map(id=>[id,titleCase(id)]),
+  startingRanks:SOLDIER_GRADES.map(g=>[g.label,g.displayLabel.replace(/\s*\(entry\)$/,'')]),
   groupForms:[['mixed','Mixed'],...ARCADE_FORM_IDS.map(id=>[id,formName(id)] as [string,string])],
   chessStyles:Object.entries(ARCADE_CHESS_STYLES).filter(([id])=>id!=='none').map(([id,style])=>[id,style.label]),
   doctrines:[['balanced','Balanced'],['aggressive','Aggressive'],['defensive','Defensive']],
@@ -1347,7 +1365,7 @@ const pairs:Record<string,[string,string][]>= {
   startingForceQuality:ARCADE_GEAR_QUALITIES.map(x=>[x.id,x.label]),
   startingForceFamily:ARCADE_FORCE_FAMILIES.map(x=>[x.id,x.label])
 };
-const teamLabels:Record<string,string>={teamGenders:'Team gender',teamAppearances:'Team appearance',startingRanks:'Starting rank',groupForms:'Team forms',doctrines:'AI style',formations:'Formation',targeting:'Target priority',deployments:'Deployment',startingSaberQuality:'Saber grade',startingForceQuality:'Force grade',startingForceFamily:'Primary Force'};
+const teamLabels:Record<string,string>={teamGenders:'Team Gender',teamAppearances:'Team Look',startingRanks:'Starting Rank',groupForms:'Team Forms',doctrines:'AI Style',formations:'Formation',targeting:'Target',deployments:'Deployment',startingSaberQuality:'Saber Grade',startingForceQuality:'Force Grade',startingForceFamily:'Primary Force'};
 function fillOptions(select:HTMLSelectElement,options:readonly (readonly [string|number,string])[]){select.replaceChildren(...options.map(([value,label])=>new Option(label,value as string)));}
 function createLabel(name:string,field:HTMLElement){
   const label=document.createElement('label');label.append(document.createTextNode(name),field);return label;
@@ -1362,12 +1380,12 @@ function buildLobby(){
     card.append(reportCell('h2',name,i?'pink':'blue'));
     const advanced=document.createElement('details');
     advanced.className='arena-team-advanced';
-    advanced.append(reportCell('summary','Advanced AI setup'));
+    advanced.append(reportCell('summary','Advanced AI'));
     const advancedKeys=new Set(['doctrines','formations','targeting','deployments']);
     for(const [key,opts] of Object.entries(pairs)){
       if(key==='groupForms'||key==='chessStyles')continue;
       const select=document.createElement('select');select.id=key+i;
-      select.setAttribute('aria-label',name+' '+teamLabels[key].toLowerCase());fillOptions(select,opts);
+      select.setAttribute('aria-label',name+' '+teamLabels[key]);fillOptions(select,opts);
       const label=createLabel(teamLabels[key],select);
       if(key.startsWith('startingForce'))label.dataset.forceSetting='';
       (advancedKeys.has(key)?advanced:card).append(label);
@@ -1378,8 +1396,6 @@ function buildLobby(){
     $('teamControls').append(card);
   }
   const floors=$('rankFloorList');
-  const note=reportCell('p','Arena Elo starts at 100. Kills and assists earn Elo. Knockouts cost more when credited to a lower-rated fighter. Equal-size Elimination matches from 1v1 through 15v15 count, unless a saved Hero joins. Raise training rank to unlock a higher Elo cap. In rated matches, higher Elo sharpens AI decisions. Tournament Hero floors are listed below.');
-  floors.before(note);
   for(const grade of SOLDIER_GRADES){
     const row=document.createElement('div');
     row.append(reportCell('dt',grade.displayLabel),reportCell('dd',ratingText(eloFloor(grade.label))));floors.append(row);
@@ -1393,9 +1409,9 @@ function rosterFromSetup(){
     const place=$(`roster${i}`);
     const length=setup.teamSizes[i];place.replaceChildren();
     for(let j=0;j<length;j++){
-      if(i===0&&j===setup.playerSlot&&setup.participation==='play'){place.append(reportCell('p',name+' '+(j+1)+(setup.form==='mixed'?' · Mixed form':' · Your form'),'player-form-note'));continue;}
+      if(i===0&&j===setup.playerSlot&&setup.participation==='play'){const note=reportCell('p',name+' '+(j+1)+' ','player-form-note');note.append(reportCell('span',setup.form==='mixed'?'Mixed':'You','v6-tag'));place.append(note);continue;}
       const sel=document.createElement('select');sel.id='slotForm'+i+'-'+j;
-      fillOptions(sel,[['','Use team default'],...pairs.groupForms]);sel.value=setup.teamForms[i][j]??'';
+      fillOptions(sel,[['','Team Default'],...pairs.groupForms]);sel.value=setup.teamForms[i][j]??'';
       place.append(createLabel(name+' '+(j+1),sel));
     }
   }
@@ -1409,7 +1425,7 @@ function heroSelects(){
   const empty=heroRoster.length===0;
   $('heroEmpty').hidden=!empty;$('heroHelp').hidden=empty;
   $('watchHero').disabled=empty;
-  $('watchHeroHelp').textContent=empty?'Save a Hero in Tournament to play a Hero.':'You fight as a saved Hero against three SSS+ V fighters.';
+  $('watchHeroHelp').textContent=empty?'No saved Heroes':'Saved Hero vs 3 SSS+ V';
   document.querySelector<HTMLElement>('.hero-options')!.hidden=empty;
   for(const i of [0,1] as const){
     const p=setup.heroPicks[i], other=setup.heroPicks[1-i]?.id??'';
@@ -1418,22 +1434,22 @@ function heroSelects(){
     $(`heroChoice${i}`).value=choices.some(x=>x.id===p.id)?p.id:'';
     const selected=choices.find(x=>x.id===$(`heroChoice${i}`).value), info=$(`heroEloHint${i}`);
     info.hidden=!selected;
-    const actor=lobbyHeroControl(setup,i)==='manual'?'You control this Hero':'AI-controlled';
-    info.textContent=selected?actor+' · '+fighterGenderLabel(selected.gender)+' · SSS+ V · '+ratingText(selected.elo)+' Elo · floor '+ratingText(eloFloor(selected.eloFloorGrade)):'';
+    const actor=lobbyHeroControl(setup,i)==='manual'?'You':'AI';
+    info.replaceChildren(...(selected?[actor,fighterGenderLabel(selected.gender),'SSS+ V',ratingText(selected.elo)+' Elo','Floor '+ratingText(eloFloor(selected.eloFloorGrade))]:[]).map(t=>reportCell('span',t,'v6-meta')));
     fillOptions($(`heroPos${i}`),Array.from({length:setup.teamSizes[i]},(_,j)=>[j,'Slot '+(j+1)]));
     $(`heroPos${i}`).value=String(p.slot);
     $(`heroPosLabel${i}`).hidden=!$(`heroChoice${i}`).value||setup.teamSizes[i]===1;
   }
 }
-/** The name the player picked (Showdown, Master trial, Play a Hero), not just the engine mode. */
+/** The name the player picked (Showdown, Master Trial, Hero), not just the engine mode. */
 function matchLabel(){
   if(seat)return seat.label;
-  if(game.config.localVersus)return 'Two players';
-  if(autoDuel.active)return 'Auto battle';
+  if(game.config.localVersus)return 'Two Players';
+  if(autoDuel.active)return 'Auto Battle';
   if(mode==='watch')return 'Showdown';
   if(mode!=='duel'){
-    if(setup.heroPicks[0]?.id&&setup.teamSizes.join()==='1,3')return 'Play a Hero';
-    if(activeArenaPreset(setup,'master'))return 'Master trial';
+    if(setup.heroPicks[0]?.id&&setup.teamSizes.join()==='1,3')return 'Hero';
+    if(activeArenaPreset(setup,'master'))return 'Master Trial';
     if(activeArenaPreset(setup,'watch'))return 'Showdown';
   }
   return titleCase(mode);
@@ -1451,15 +1467,16 @@ function refreshHeroRoster(){
   heroSelects();
   updateLobbyRating(setup.teamSizes);
 }
+/** Screen-reader descriptions for the saber selects, 8 words or fewer. */
 const kitHints:Record<string,string>={
-  single:'Direct cuts and a quick return to guard.',
-  dual:'Two independently timed swings; the second blade follows the first.',
-  backhand:'Compact close-range cuts with a quick wrist return.',
-  'backhand-dual':'Close-range alternating cuts, with a quick second swing.',
-  staff:'One rigid hilt, two opposing tips. The lead tip can change between swings.',
-  orbit:'Three violet blades held by the Force. Quick strikes send one; heavy attacks send all three in sequence. Long recovery if you miss.',
-  shoto:'Shorter reach, faster swings and lower stamina cost.',
-  greatsaber:'Longer reach and harder hits, with slower and costlier swings.',
+  single:'Direct cuts, quick guard',
+  dual:'Two blades, staggered swings',
+  backhand:'Compact close cuts',
+  'backhand-dual':'Close alternating cuts',
+  staff:'Two tips, one hilt',
+  orbit:'Three Force-held blades, slow recovery',
+  shoto:'Short reach, fast swings',
+  greatsaber:'Long reach, heavy slow swings',
 };
 function updateLobbyRating(teamSizes:readonly number[]){
   const chosen=battleHeroLineup(setup.heroPicks,heroRoster,tournamentHeroLoadout);
@@ -1467,20 +1484,19 @@ function updateLobbyRating(teamSizes:readonly number[]){
   const practiceAvailable=canArenaNovicePractice(snapshot,chosen);
   const practice=$('novicePractice');
   practice.disabled=!practiceAvailable;
-  $('novicePracticeHint').textContent=practiceAvailable?'Play at 0.75× speed. Session only; no Elo or change to your saved run.':'Available for a played 1v1 F/E Elimination duel without Heroes.';
+  $('novicePracticeHint').textContent=practiceAvailable?'Unrated, 0.75× speed':'Played 1v1 F/E duel only';
   const squadAvailable=canArenaSquadTraining(snapshot,chosen);
   $('squadTactics').disabled=!squadAvailable;
-  $('squadTacticsHint').textContent=squadAvailable?'Bots coordinate ranked formations and target choices. No Elo or saved-run changes.':'Available in Elimination with at least two per side and no saved Heroes.';
+  $('squadTacticsHint').textContent=squadAvailable?'Unrated squad formations':'Elimination, 2+ per side only';
   const laneAvailable=canArenaLaneDrill(snapshot,chosen);
   $('laneDrill').disabled=!laneAvailable;
-  $('laneDrillHint').textContent=laneAvailable?'Start across five fronts. No Elo or saved-run changes.':
-    'For 16v16 Watch Elimination on medium Underpit or Crossroads, or High Bastion. Rank A or lower; no other drills, Heroes, Pulse, Greatsaber or custom Force.';
+  $('laneDrillHint').textContent=laneAvailable?'Unrated, five fronts':'16v16 Watch Elimination only';
   const adaptiveAvailable=canArenaAdaptiveSparring(snapshot,chosen);
   $('opponentReads').disabled=!adaptiveAvailable;
-  $('opponentReadsHint').textContent=adaptiveAvailable?'The opponent can feint after reading repeated guards. Session only; no Elo.':'Available for a played 1v1 Elimination duel without Heroes.';
+  $('opponentReadsHint').textContent=adaptiveAvailable?'Unrated, AI reads your guard':'Played 1v1 duel only';
   const {rated,label}=arenaLobbyRating(setupMode(snapshot),setup.rule,teamSizes,chosen,engineForcePools(snapshot),setup.novicePractice&&practiceAvailable,setup.squadTactics&&squadAvailable,setup.opponentReads&&adaptiveAvailable);
   const output=$('arenaRatingStatus');
-  const summary=setup.laneDrill&&laneAvailable?'Unrated · spread deployment is session only':label;
+  const summary=setup.laneDrill&&laneAvailable?'Unrated · Spread Deploy':label;
   if(output.textContent!==summary)output.textContent=summary;
   output.dataset.rated=String(rated);
   $('autoDuelStart').disabled=!rated;
@@ -1490,7 +1506,7 @@ for(const count of [$('count0'),$('count1')])count.addEventListener('input',()=>
 function updateSetupHints(){
   const fixedSize=arenaFixedMapSize(setup.mapId);
   $('mapSize').disabled=Boolean(fixedSize);
-  $('mapSize').title=fixedSize?'Fixed layout: '+fixedSize.join(' × '):'';
+  $('mapSize').title=fixedSize?'Fixed '+fixedSize.join('×'):'';
 
   showForcePools();
   updateLobbyRating(setup.teamSizes);
@@ -1513,17 +1529,17 @@ function updateSetupHints(){
   const usesTeamLook=Boolean(setup.teamAppearances?.[0]&&setup.teamAppearances[0]!=='default');
   const look=$('bodyStyle');
   look.disabled=Boolean(hero)||usesTeamLook;
-  $('bodyStyleHelp').textContent=hero?'This slot uses the saved Hero appearance.':usesTeamLook?'Blue team appearance is active under Teams, gear & AI.':'Default appearance when the team setting is Default.';
-  $('pace').disabled=play;$('pace').title=play?'Available for Spectator and Commander':'';
+  $('bodyStyleHelp').textContent=hero?'Saved Hero look':usesTeamLook?'Team look active':'';
+  $('pace').disabled=play;document.getElementById('paceHelp')!.textContent=play?'Watch and Commander only':'';
   for(const el of document.querySelectorAll<HTMLElement>('[data-force-setting]'))el.hidden=setup.saberOnly;
   for(const b of document.querySelectorAll<HTMLElement>('[data-preset]')){
     b.setAttribute('aria-pressed',String(activeArenaPreset(setup,b.dataset.preset??'')));
   }
   const summary=document.getElementById('setupSummary');
-  const text=arenaSetupSummary(setup);
-  if(summary&&summary.textContent!==text)summary.textContent=text;
-  $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.read??'':'';
-  $('airFormDetail').textContent=!play?'':hero?`${hero.name} uses ${formName(hero.form)}${mixed?' instead of rotating':''}.`:mixed?'Mixed rotates your form each round.':setup.form==='ataru'?'Corkscrew or sideways crossflip.':field(FORM_AIR_NAMES,setup.form)??'';
+  const parts=arenaSetupSummaryParts(setup);
+  if(summary&&summary.dataset.parts!==parts.join('|')){summary.dataset.parts=parts.join('|');summary.replaceChildren(...parts.map(t=>reportCell('span',t,'v6-meta')));}
+  $('formDetail').textContent=play&&!mixed&&!hero?field(lore,setup.form)?.tag??'':'';
+  $('airFormDetail').textContent=!play?'':hero?formName(hero.form):mixed?'Rotates Each Round':field(FORM_AIR_NAMES,setup.form)??'';
 }
 function applyLobby(){
   $('participation').value=localVersus&&setup.participation==='play'?'versus':setupPlayAs(setup);
@@ -1572,7 +1588,7 @@ $('watchHero').addEventListener('click',()=>{
   if(!prepareWatchHero())return;
   applyLobby();saveSetup(setup);setScene('menu');
   const name=heroRoster.find(h=>h.id===setup.heroPicks[0].id)?.name??'Saved Hero';
-  $('setupStatus').textContent='You fight as '+name+'. Press Start match when ready.';
+  $('setupStatus').textContent='Playing as '+name;
 });
 $('lobby').addEventListener('change',()=>readLobby());
 for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
@@ -1582,7 +1598,7 @@ for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
     if(!p)return;
     if(key==='master')imported=null;
     setup=normalizeSetup({...setup,...p,...(key==='master'?{heroPicks:[]}:{}),playerSlot:0});applyLobby();saveSetup(setup);setScene('menu');
-    $('setupStatus').textContent=(button.querySelector('b')?.textContent??button.textContent)+' preset selected.';
+    $('setupStatus').textContent=(button.querySelector('b')?.textContent??button.textContent)+' selected';
   });
 }
 $('resetSetup').addEventListener('click',()=>{setup=normalizeSetup();imported=null;applyLobby();saveSetup(setup);setScene('menu');$('setupStatus').textContent='Setup reset.';});

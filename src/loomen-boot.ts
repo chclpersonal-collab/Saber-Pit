@@ -9,7 +9,7 @@ const showProblem=(message:string):void=>{
   if(status)status.textContent=message;
   if(retry)retry.hidden=false;
 };
-const timeout=setTimeout(()=>showProblem('Taking longer than expected. You can reload.'),8000);
+const timeout=setTimeout(()=>showProblem('Still loading'),8000);
 import('./arcade-sync-entry.js?v=6.0.1-boot').then(()=>{
   requestAnimationFrame(()=>{
     clearTimeout(timeout);
@@ -17,7 +17,7 @@ import('./arcade-sync-entry.js?v=6.0.1-boot').then(()=>{
     const view=body.dataset.view, seated=Boolean(body.dataset.seat||body.dataset.seatOpening);
     const skin=getComputedStyle(document.documentElement).getPropertyValue('--loomen-v6-skin').trim();
     if(skin!=='ready'||!document.getElementById('v6Home')||!body.dataset.v6||!(view==='menu'||seated&&view==='game')){
-      showProblem('LOOMEN couldn’t finish loading.');
+      showProblem('Load failed');
       return;
     }
     if(boot)boot.hidden=true;
@@ -28,6 +28,6 @@ import('./arcade-sync-entry.js?v=6.0.1-boot').then(()=>{
   });
 }).catch(()=>{
   clearTimeout(timeout);
-  showProblem('LOOMEN couldn’t finish loading.');
+  showProblem('Load failed');
 });
 export {};

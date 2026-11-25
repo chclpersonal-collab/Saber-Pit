@@ -8,7 +8,7 @@ const read=(f)=>readFileSync(new URL('../dist/'+f,import.meta.url),'utf8');
 const startup=read('loomen-boot.js').replace(/^export\s*\{\s*\};?\s*$/m,'');
 function harness({ready=true,good=true,view='menu',skin='ready'}={}){
  assert.ok(startup,'Startup controller is in the Arena document');
- const result={gate:true,inert:true,boot:{hidden:false},retry:{hidden:true},status:{textContent:'Loading arena…'},frame:null,timeout:null};
+ const result={gate:true,inert:true,boot:{hidden:false},retry:{hidden:true},status:{textContent:'Loading…'},frame:null,timeout:null};
  const body={dataset:{v6:'home',view},hasAttribute:()=>result.gate,removeAttribute:()=>{result.gate=false;}};
  const elements={loomenBoot:result.boot,loomenBootStatus:result.status,loomenBootRetry:result.retry,
   app:{removeAttribute:(name)=>{if(name==='inert')result.inert=false;}},v6Home:ready?{}:null};
@@ -25,7 +25,7 @@ function harness({ready=true,good=true,view='menu',skin='ready'}={}){
 test('the first HTML frame is purple and the legacy Arena is hidden and inert, without JS',()=>{
  assert.match(html,/<body[^>]+data-loomen-boot[^>]*>[\s\S]*?<section id="loomenBoot"[\s\S]*?<main id="app" inert aria-hidden="true">/);
  assert.match(html,/<style>[\s\S]*?body\[data-loomen-boot\] #app[\s\S]*?visibility:hidden!important[\s\S]*?<\/style>[\s\S]*?<link rel="stylesheet"/);
- assert.match(html,/Enable JavaScript to open the arena/);
+ assert.match(html,/<noscript><p>JavaScript Required<\/p><\/noscript>/);
  assert.match(html,/<script type="module" src="\.\/loomen-boot\.js[^"]*"><\/script><\/body>/,'startup gate runs from src, not an inline script');
 });
 test('timeout does not reveal the legacy app and a successful v6 still replaces the loader',async()=>{
@@ -49,7 +49,7 @@ test('blocked boot and shell-not-mounted boot keep the older layout hidden and o
   assert.equal(h.gate,true);
   assert.equal(h.inert,true);
   assert.equal(h.retry.hidden,false);
-  assert.match(h.status.textContent,/couldn’t finish loading/);
+  assert.match(h.status.textContent,/Load failed/);
  }
 });
 test('game state discovery precedes engine initialization; compat-form setup binds once',()=>{

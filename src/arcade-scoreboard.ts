@@ -1,4 +1,4 @@
-import {ARENA_NORMAL_ELO_START,arenaNormalRating} from './arcade-normal-elo.js';
+import {arenaNormalRating} from './arcade-normal-elo.js';
 
 /**
  * Mid-match scoreboard model. Pure: reads live round numbers the Arena already keeps and
@@ -20,7 +20,7 @@ export type ScoreboardInput={
 export type ScoreboardRow={id:string;name:string;rank:string;k:number;d:number;dmg:number;elo:string;me:boolean;ko:boolean};
 export type ScoreboardTeam={side:'blue'|'pink';name:string;alive:number;total:number;rows:ScoreboardRow[]};
 export type ScoreboardModel={
-  score:[number,number];meta:string;round:string;rated:boolean;badge:'RATED'|'UNRATED';
+  score:[number,number];meta:string[];round:string;rated:boolean;badge:'RATED'|'UNRATED';
   teams:[ScoreboardTeam,ScoreboardTeam];note:string;
 };
 
@@ -64,9 +64,10 @@ export function buildArenaScoreboard(input:ScoreboardInput):ScoreboardModel {
     :[teams[0].rows.reduce((n,r)=>n+r.k,0),teams[1].rows.reduce((n,r)=>n+r.k,0)];
   return {
     score,
-    meta:[RULES[input.rule]??'Arena',input.mapLabel||SIZES[input.mapSize],scoreboardClock(input.secondsLeft)].filter(Boolean).join(' · '),
+    meta:[RULES[input.rule]??'Arena',input.mapLabel||SIZES[input.mapSize],scoreboardClock(input.secondsLeft)].filter((t):t is string=>!!t),
     round:'Round '+Math.max(1,Math.floor(input.round)||1),
     rated:input.rated,badge:input.rated?'RATED':'UNRATED',teams,
-    note:input.rated?'Elo before this round. Starts at '+ARENA_NORMAL_ELO_START+'.':'Unrated. Elo shows a saved rating where one exists, otherwise —.',
+    // The header badge says RATED or UNRATED; no explainer line under the table.
+    note:'',
   };
 }

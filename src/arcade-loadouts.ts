@@ -10,9 +10,9 @@ export const ARCADE_GEAR_QUALITIES = Object.freeze(QUALITY_LEVELS.map(({ id, lab
   Object.freeze({ id, label: label || 'Standard' })));
 
 const forceDescriptions:Record<string,string> = {
-  force_push: 'Strongest knockback. Creates space in a forward cone.',
-  force_burst: 'A broad, short-range cast with the highest damage and energy cost.',
-  force_pulse: 'A quick, long-range cast with narrow aim and lighter impact.',
+  force_push: 'Knockback Cone',
+  force_burst: 'Close Impact',
+  force_pulse: 'Long Reach',
 };
 export const ARCADE_FORCE_FAMILIES = Object.freeze(FORCE_FAMILIES.map(({ id, name }) =>
   Object.freeze({ id, label: name, description: forceDescriptions[id] })));

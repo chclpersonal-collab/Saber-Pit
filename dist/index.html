@@ -20,108 +20,108 @@ body[data-seat-opening] #entry{visibility:hidden}
   <div>
     <svg viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#140b2e" stroke-width="3" fill="none"/></svg>
     <h1>LOOMEN</h1>
-    <p id="loomenBootStatus" role="status">Loading arena…</p>
-    <a id="loomenBootRetry" href="" hidden>Reload LOOMEN</a>
-    <noscript><p>Enable JavaScript to open the arena.</p></noscript>
+    <p id="loomenBootStatus" role="status">Loading…</p>
+    <a id="loomenBootRetry" href="" hidden>Reload</a>
+    <noscript><p>JavaScript Required</p></noscript>
   </div>
 </section>
 <main id="app" inert aria-hidden="true">
   <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 6.0.1</span></div></a>
-  <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
-  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
+  <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournament</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
+  <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Play</button><output id="frameRate" class="fps" aria-label="Frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action Cam" aria-pressed="true" hidden>Action Cam</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop Auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
   <section class="arena-launch home-hub" aria-labelledby="arenaLaunchTitle">
     <div class="hub-hero">
     <h1 id="arenaLaunchTitle">Arena</h1>
-    <p>1v1 · Squads</p>
+    <p><span class="v6-meta">1v1</span><span class="v6-meta">Squads</span></p>
     <div class="launch-actions">
-      <button type="submit" form="lobby" data-launch="play"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="./pit-v4-icons.svg#play"/></svg> Play match</button>
-      <button type="submit" form="lobby" data-launch="watch"><span aria-hidden="true">◉</span> Watch AI</button>
-      <button type="button" id="homeContinue" class="hub-continue" hidden>Continue run</button>
+      <button type="submit" form="lobby" data-launch="play"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="./pit-v4-icons.svg#play"/></svg> Play</button>
+      <button type="submit" form="lobby" data-launch="watch"><span aria-hidden="true">◉</span> Watch</button>
+      <button type="button" id="homeContinue" class="hub-continue" hidden>Continue</button>
     </div>
-    <div class="launch-links"><a class="launch-setup" href="#entry">Match setup</a><button class="launch-setup" type="button" data-open-stats aria-haspopup="dialog" aria-controls="statsPage">Stats</button><a class="launch-setup" href="./backup.html">Saves</a></div>
+    <div class="launch-links"><a class="launch-setup" href="#entry">Setup</a><button class="launch-setup" type="button" data-open-stats aria-haspopup="dialog" aria-controls="statsPage">Stats</button><a class="launch-setup" href="./backup.html">Saves</a></div>
     </div>
   </section>
   <section id="entry" class="entry" tabindex="-1" aria-labelledby="lobbyHeading">
     <form id="lobby" class="lobby">
-      <div class="lobby-title"><div><p class="eyebrow">LOADOUT &amp; RULES</p><h2 id="lobbyHeading">Match setup</h2></div><div class="lobby-links"><button type="button" id="continueRun" hidden>Continue run</button><button type="button" id="autoDuelSaved" hidden>Auto battle saved run</button></div></div>
+      <div class="lobby-title"><div><p class="eyebrow">Loadout &amp; Rules</p><h2 id="lobbyHeading">Match Setup</h2></div><div class="lobby-links"><button type="button" id="continueRun" hidden>Continue</button><button type="button" id="autoDuelSaved" hidden>Auto Battle</button></div></div>
       <div class="arena-sync-status" data-cloud-notice-host role="status" aria-live="polite"></div>
-      <div class="presets" aria-label="Presets"><button type="button" data-preset="duel"><b>Duel</b><span>1v1 · You fight</span></button><button type="button" data-preset="squad"><b>Squad</b><span>3v3 · You fight</span></button><button type="button" data-preset="watch"><b>Showdown</b><span>5v5 · You fight</span></button><button type="button" data-preset="master" title="Be the SSS+ V fighter against 15 F fighters"><b>Master trial</b><span>1v15 · You fight</span></button><button type="button" id="watchHero" aria-describedby="watchHeroHelp"><b>Play a Hero</b><span>Saved Hero · You fight</span></button></div>
-      <p id="watchHeroHelp" class="hero-help">You fight as a saved Hero against three SSS+ V fighters.</p>
+      <div class="presets" aria-label="Presets"><button type="button" data-preset="duel"><b>Duel</b><span class="v6-meta">1v1</span></button><button type="button" data-preset="squad"><b>Squads</b><span class="v6-meta">3v3</span></button><button type="button" data-preset="watch"><b>Showdown</b><span class="v6-meta">5v5</span></button><button type="button" data-preset="master" aria-describedby="masterHelp"><b>Master Trial</b><span class="v6-meta">1v15</span></button><button type="button" id="watchHero" aria-describedby="watchHeroHelp"><b>Hero</b><span class="v6-meta">Saved Hero</span></button></div>
+      <p id="masterHelp" hidden>SSS+ V vs 15 F</p><p id="watchHeroHelp" hidden>Saved Hero vs 3 SSS+ V</p>
       <p id="setupSummary" class="setup-summary" aria-live="polite"></p>
-      <details class="setup-custom" id="customizeMatch"><summary>Customize match</summary>
+      <details class="setup-custom" id="customizeMatch"><summary>More Options</summary>
       <div class="setup-tabs" hidden role="tablist" aria-label="Match setup">
         <button role="tab" type="button" id="setup-tab-match" aria-controls="setup-panel-match">Match</button>
         <button role="tab" type="button" id="setup-tab-roster" aria-controls="setup-panel-roster">Fighters</button>
-        <button role="tab" type="button" id="setup-tab-rules" aria-controls="setup-panel-rules">Rules &amp; more</button>
+        <button role="tab" type="button" id="setup-tab-rules" aria-controls="setup-panel-rules">Rules</button>
       </div>
       <div class="setup-section" id="setup-panel-match">
       <div class="lobby-grid">
-        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="versus">Two players (1v1)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
+        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Mixed</option><option value="versus">Two Players</option><option value="watch">Watch</option><option value="command">Commander</option></select></label>
         <label>Rules<select id="rule"><option value="elimination">Elimination</option><option value="control">Control</option><option value="relic">Relic</option></select></label>
         <label>Map<select id="mapPick"></select></label>
-        <label>Map size<select id="mapSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
+        <label>Map Size<select id="mapSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
       </div>
       <div class="team-counts">
-        <label class="team-pick blue">Blue fighters<input id="count0" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
+        <label class="team-pick blue">Blue Fighters<input id="count0" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
         <span aria-hidden="true">VS</span>
-        <label class="team-pick pink">Pink fighters<input id="count1" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
+        <label class="team-pick pink">Pink Fighters<input id="count1" type="number" min="1" max="24" value="3" step="1" required inputmode="numeric"></label>
       </div>
       </div>
       <div class="setup-section" id="setup-panel-roster">
       <div class="lobby-grid saber-settings">
-        <div><label>Blue saber<select id="saberKit0" aria-describedby="kitHint0"></select></label><p id="kitHint0" class="saber-kit-hint"></p><label class="saber-phase-setting"><input id="dualPhase0" type="checkbox" aria-label="Blue dual-phase ignition"> Dual-phase ignition</label></div>
-        <div><label>Pink saber<select id="saberKit1" aria-describedby="kitHint1"></select></label><p id="kitHint1" class="saber-kit-hint"></p><label class="saber-phase-setting"><input id="dualPhase1" type="checkbox" aria-label="Pink dual-phase ignition"> Dual-phase ignition</label></div>
+        <div><label>Blue Saber<select id="saberKit0" aria-describedby="kitHint0"></select></label><p id="kitHint0" class="saber-kit-hint" hidden></p><label class="saber-phase-setting"><input id="dualPhase0" type="checkbox" aria-label="Blue Dual-Phase"> Dual-Phase</label></div>
+        <div><label>Pink Saber<select id="saberKit1" aria-describedby="kitHint1"></select></label><p id="kitHint1" class="saber-kit-hint" hidden></p><label class="saber-phase-setting"><input id="dualPhase1" type="checkbox" aria-label="Pink Dual-Phase"> Dual-Phase</label></div>
       </div>
       <div class="lobby-grid fighter-settings" id="fighterSettings">
-        <div><label>Default fighter appearance<select id="bodyStyle" aria-describedby="bodyStyleHelp"><option value="femboy">Femboy</option><option value="woman">Slim-thick woman</option><option value="rabbit">Rabbit duelist</option></select></label><p class="saber-kit-hint" id="bodyStyleHelp"></p></div>
+        <div><label>Look<select id="bodyStyle" aria-describedby="bodyStyleHelp"><option value="femboy">Femboy</option><option value="woman">Woman</option><option value="rabbit">Rabbit</option></select></label><p class="saber-kit-hint" id="bodyStyleHelp" hidden></p></div>
       </div>
       <section class="lobby-forms" aria-labelledby="lobbyFormsHeading">
-        <h2 id="lobbyFormsHeading">Saber forms</h2>
+        <h2 id="lobbyFormsHeading">Saber Forms</h2>
         <div class="lobby-grid" id="yourFormRow">
-          <label id="styleLabel">Your form<select id="style" aria-describedby="formDetail airFormDetail"></select></label>
-          <label id="playerSlotLabel">You control<select id="playerSlot"></select></label>
+          <label id="styleLabel">Your Form<select id="style" aria-describedby="formDetail airFormDetail"></select></label>
+          <label id="playerSlotLabel">Your Slot<select id="playerSlot"></select></label>
         </div>
         <p id="formDetail" class="sr"></p>
-        <p id="airFormDetail" class="air-form-detail"></p>
+        <p id="airFormDetail" class="air-form-detail v6-meta"></p>
         <div class="lobby-grid" id="teamFormRow">
-          <label id="blueDefaultLabel" class="blue">Blue default<select id="groupForms0"></select></label>
-          <label class="pink">Pink default<select id="groupForms1"></select></label>
+          <label id="blueDefaultLabel" class="blue">Blue Default<select id="groupForms0"></select></label>
+          <label class="pink">Pink Default<select id="groupForms1"></select></label>
         </div>
-        <details class="per-fighter all-overrides"><summary>Fighter overrides</summary>
+        <details class="per-fighter all-overrides"><summary>Fighter Overrides</summary>
           <div class="lobby-grid"><div id="roster0"></div><div id="roster1"></div></div>
         </details>
       </section>
-      <details class="lobby-fold" id="chessStyleOptions"><summary>Chess style</summary>
-        <p class="hero-help">All fighters can move in any direction. Chess styles change attack lanes and reach. <a href="./style-lab.html">Try them in the Style Lab.</a></p>
+      <details class="lobby-fold" id="chessStyleOptions"><summary>Chess Style</summary>
+        <a class="v6-link" href="./style-lab.html">Style Lab</a>
         <div class="lobby-grid fold-inner">
-          <div><label>Blue chess style<select id="chessStyles0" aria-describedby="chessStyleHint0"></select></label><p id="chessStyleHint0" class="saber-kit-hint"></p></div>
-          <div><label>Pink chess style<select id="chessStyles1" aria-describedby="chessStyleHint1"></select></label><p id="chessStyleHint1" class="saber-kit-hint"></p></div>
+          <div><label>Blue Chess Style<select id="chessStyles0" aria-describedby="chessStyleHint0"></select></label><p id="chessStyleHint0" class="saber-kit-hint" hidden></p></div>
+          <div><label>Pink Chess Style<select id="chessStyles1" aria-describedby="chessStyleHint1"></select></label><p id="chessStyleHint1" class="saber-kit-hint" hidden></p></div>
         </div>
       </details>
-      <details class="lobby-fold" id="teamOptions"><summary>Teams, gear &amp; AI</summary><div class="team-options" id="teamControls"></div><details class="rank-floors"><summary>Elo floors</summary><dl id="rankFloorList"></dl><p>Higher Elo improves AI decisions. Rank sets move unlocks; Elo does not add damage or health.</p></details></details>
+      <details class="lobby-fold" id="teamOptions"><summary>Teams &amp; AI</summary><div class="team-options" id="teamControls"></div><details class="rank-floors"><summary>Elo Floors</summary><dl id="rankFloorList"></dl></details></details>
       <details class="lobby-fold" id="heroOptions"><summary>Heroes</summary>
         <div class="lobby-grid hero-options">
-          <div><label>Blue Hero<select id="heroChoice0"></select></label><small class="hero-elo-hint" id="heroEloHint0" hidden></small><label id="heroPosLabel0">Blue Hero slot<select id="heroPos0"></select></label></div>
-          <div><label>Pink Hero<select id="heroChoice1"></select></label><small class="hero-elo-hint" id="heroEloHint1" hidden></small><label id="heroPosLabel1">Pink Hero slot<select id="heroPos1"></select></label></div>
+          <div><label>Blue Hero<select id="heroChoice0"></select></label><small class="hero-elo-hint" id="heroEloHint0" hidden></small><label id="heroPosLabel0">Blue Hero Slot<select id="heroPos0"></select></label></div>
+          <div><label>Pink Hero<select id="heroChoice1"></select></label><small class="hero-elo-hint" id="heroEloHint1" hidden></small><label id="heroPosLabel1">Pink Hero Slot<select id="heroPos1"></select></label></div>
         </div>
-        <p id="heroHelp" class="hero-help">Heroes fight at SSS+ V. Select Spectator to leave every fighter under AI control.</p>
-        <p id="heroEmpty" class="hero-help" hidden>Save a fighter in <a href="./tournament.html">Tournament</a> to bring them here.</p>
+        <p id="heroHelp" hidden>Heroes fight at SSS+ V</p>
+        <p id="heroEmpty" class="v6-empty" hidden><span class="v6-meta">No Heroes</span><a class="v6-link" href="./tournament.html">Tournament</a></p>
       </details>
       </div>
       <div class="setup-section" id="setup-panel-rules">
-      <details class="lobby-fold" id="roundOptions" open><summary>Match rules &amp; speed</summary><div class="lobby-grid fold-inner">
-        <label>Round length<select id="duration"><option value="45">45 sec</option><option value="75">75 sec</option><option value="90">90 sec</option><option value="150">150 sec</option></select></label>
-        <label>AI match speed<select id="pace"><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+      <details class="lobby-fold" id="roundOptions" open><summary>Rules &amp; Speed</summary><div class="lobby-grid fold-inner">
+        <label>Round<select id="duration"><option value="45">45s</option><option value="75">75s</option><option value="90">90s</option><option value="150">150s</option></select></label>
+        <label>AI Speed<select id="pace" aria-describedby="paceHelp"><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="4">4×</option></select></label>
         <label>Weather<select id="weatherPick"><option value="clear">Clear</option><option value="rain">Rain</option><option value="fog">Fog</option><option value="sandstorm">Sandstorm</option></select></label>
         <label>Seed<input type="number" id="matchSeed" min="1" max="4294967295" step="1" inputmode="numeric" placeholder="Random"></label>
-        <details class="lobby-fold fold-inner" id="trainingOptions"><summary>Training options</summary><div class="practice-option"><label class="switch-setting"><input id="novicePractice" type="checkbox" aria-describedby="novicePracticeHint"> Novice practice</label><p id="novicePracticeHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="squadTactics" type="checkbox" aria-describedby="squadTacticsHint"> Squad drills</label><p id="squadTacticsHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="laneDrill" type="checkbox" aria-describedby="laneDrillHint"> Spread deployment</label><p id="laneDrillHint" class="hero-help"></p></div><div class="practice-option"><label class="switch-setting"><input id="opponentReads" type="checkbox" aria-describedby="opponentReadsHint"> Adaptive sparring</label><p id="opponentReadsHint" class="hero-help"></p></div></details>
-        <label class="switch-setting"><input id="saberOnly" type="checkbox"> Sabers only</label>
-      </div><button type="button" id="resetSetup" class="quiet">Reset setup</button></details>
+        <details class="lobby-fold fold-inner" id="trainingOptions"><summary>Training</summary><div class="practice-option"><label class="switch-setting"><input id="novicePractice" type="checkbox" aria-describedby="novicePracticeHint"> Novice Practice</label><p id="novicePracticeHint" class="hero-help" hidden></p></div><div class="practice-option"><label class="switch-setting"><input id="squadTactics" type="checkbox" aria-describedby="squadTacticsHint"> Squad Drills</label><p id="squadTacticsHint" class="hero-help" hidden></p></div><div class="practice-option"><label class="switch-setting"><input id="laneDrill" type="checkbox" aria-describedby="laneDrillHint"> Spread Deploy</label><p id="laneDrillHint" class="hero-help" hidden></p></div><div class="practice-option"><label class="switch-setting"><input id="opponentReads" type="checkbox" aria-describedby="opponentReadsHint"> Adaptive Sparring</label><p id="opponentReadsHint" class="hero-help" hidden></p></div></details><p id="paceHelp" hidden></p>
+        <label class="switch-setting"><input id="saberOnly" type="checkbox"> Sabers Only</label>
+      </div><button type="button" id="resetSetup" class="quiet">Reset</button></details>
       </div>
       </details>
-      <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Arena Elo…</p>
-      <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Start match</button>
-      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="Both sides use AI. Rated rounds continue until you stop.">Auto battle</button><button id="formsGuide" type="button">Form guide</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
+      <p id="arenaRatingStatus" class="arena-rating-status" role="status" aria-live="polite">Checking Elo…</p>
+      <div class="lobby-bottom"><button type="submit" class="start-match" id="startMatch" aria-describedby="arenaRatingStatus">Play</button>
+      <div class="lobby-links"><button id="autoDuelStart" type="button" aria-describedby="arenaRatingStatus" title="AI vs AI until you stop">Auto Battle</button><button id="formsGuide" type="button">Forms</button><button id="rankSetup" type="button">Saves</button><a href="./classic.html">Classic</a></div></div>
       <output class="sr" id="setupStatus"></output>
     </form>
   </section>
@@ -136,9 +136,9 @@ body[data-seat-opening] #entry{visibility:hidden}
     <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
     <dialog id="scoreboard" class="scoreboard" aria-labelledby="scoreboardTitle" hidden>
-      <div class="sb-head"><h2 id="scoreboardTitle" class="sr">Scoreboard</h2><p class="sb-score"><b id="scoreboardBlue" class="blue">0</b> – <b id="scoreboardPink" class="pink">0</b></p><p class="sb-meta"><span id="scoreboardRound">Round 1</span> · <span id="scoreboardMeta"></span></p><span id="scoreboardBadge" class="sb-badge">UNRATED</span><span class="sb-actions"><button type="button" id="scoreboardDetails">Details</button><button type="button" id="scoreboardClose" aria-label="Close scoreboard">Close</button></span></div>
+      <div class="sb-head"><h2 id="scoreboardTitle" class="sr">Scoreboard</h2><p class="sb-score"><b id="scoreboardBlue" class="blue">0</b> – <b id="scoreboardPink" class="pink">0</b></p><p class="sb-meta"><span id="scoreboardRound" class="v6-meta">Round 1</span><span id="scoreboardMeta"></span></p><span id="scoreboardBadge" class="sb-badge">UNRATED</span><span class="sb-actions"><button type="button" id="scoreboardDetails">Details</button><button type="button" id="scoreboardClose" aria-label="Close scoreboard">Close</button></span></div>
       <div class="sb-scroll" tabindex="0" role="region" aria-label="Fighter scores"><table class="sb-table"><thead><tr><th scope="col">Fighter</th><th scope="col"><abbr title="Kills">K</abbr></th><th scope="col"><abbr title="Deaths">D</abbr></th><th scope="col"><abbr title="Damage">DMG</abbr></th><th scope="col">Elo</th></tr></thead><tbody id="scoreboardRows"></tbody></table></div>
-      <p id="scoreboardNote" class="sb-note"></p>
+      <p id="scoreboardNote" class="sb-note" hidden></p>
     </dialog>
     <section class="panel-cover" id="pauseOverlay" aria-labelledby="pauseTitle" hidden>
       <div class="dialog"><p class="eyebrow">LOOMEN</p><h2 id="pauseTitle">Paused</h2><div class="dialog-actions"><button type="button" class="primary" id="resume">Resume</button><button type="button" id="keysOpen">Keys</button><button type="button" id="pauseSettings">Settings</button><button type="button" data-home>Setup</button></div></div>
@@ -185,7 +185,7 @@ body[data-seat-opening] #entry{visibility:hidden}
   </div>
   <div id="techniqueBar" class="technique-bar" hidden><details id="techFold" class="tech-fold"><summary><span class="tech-fold-k">Tech</span> <b id="techFoldName">Technique</b></summary><div class="tech-fold-body"><label>Technique <select id="chosenTechnique"></select></label><button id="useTechnique" type="button" data-action="technique"><kbd>R</kbd> Use</button><span id="techniqueHelp"></span></div></details></div>
   <footer id="help"><span id="helpText">WASD / arrows to run. Hold C to walk. Aim with your pointer or use auto-aim.</span><button type="button" data-home hidden>Match setup</button></footer>
-  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">The seven saber forms</h2><details class="v6-info"><summary aria-label="About the forms">i</summary><div class="v6-info-pop"><p class="guide-source">Gameplay is adapted from <a href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">The Jedi Path</a> (Legends). Attacks and animations are interpretations for Loomen.</p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
+  <dialog id="guide" class="guide" aria-labelledby="guideTitle"><div class="guide-head"><div class="v6-title"><h2 id="guideTitle">Saber Forms</h2><details class="v6-info"><summary aria-label="Forms info">i</summary><div class="v6-info-pop"><a class="guide-source" href="https://www.chroniclebooks.com/products/the-jedi-path" target="_blank" rel="noopener noreferrer">Source</a></div></details></div><form method="dialog"><button type="submit">Close</button></form></div><div id="guideForms" class="guide-forms"></div></dialog>
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
     <div class="guide-head"><div class="v6-title"><h2 id="keysTitle">Keys</h2><details class="v6-info"><summary aria-label="About two players">i</summary><div class="v6-info-pop"><p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. A seat stays yours for the round, even if the controller drops. Pink's Technique uses their style's top technique. Pink on the keyboard:</p></div></details></div><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
