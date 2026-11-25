@@ -360,12 +360,12 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('forceHint').textContent=ARCADE_FORCE_FAMILIES.find(x=>x.id===config.startingForceFamily?.[0])?.label??'Force';
   $('airControlHint').textContent=FORM_AIR_NAMES[primary!.form]??'Form footwork';
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
-  $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue':'Blue side');
-  $('rivalName').textContent=rival!.displayName??(mode==='duel'?formName(rival!.form):'Pink');
+  $('blueName').textContent='Blue';
+  $('rivalName').textContent='Pink';
   // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
   const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
   p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
-  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Blue · P1';$('rivalName').textContent='Pink · P2';}
+  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
