@@ -9,9 +9,9 @@ import {TOURNAMENT_KEY,loadTournament,saveTournament,startTournament,nextTournam
 import {FIGHTER_GENDERS,fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
 import {drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2';
 import {ELO_FLOORS} from './arcade-elo.js?v=2.18.5';
-import {playTournamentBout,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.2';
+import {playTournamentBout,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.3-seat';
 import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament,startSquadTournament,nextSquadBout,runSquadStep,resetSquadTournament,squadLeaderboard,squadPeakLeaderboard,squadGenderLabel,SQUAD_ELO_START,SQUAD_ELO_FLOOR} from './squad-tournament.js?v=6.0.2';
-import {SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=6.0.2';
+import {SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=6.0.3-seat';
 
 import {seasonWeek} from './tournament-calendar.js?v=3.1.1';
 
@@ -91,6 +91,7 @@ interface DomMap {
   copyActiveSeed: HTMLButtonElement;
   boutProgress: HTMLProgressElement;
   nextButton: HTMLButtonElement;
+  fightButton: HTMLButtonElement;
   runButton: HTMLButtonElement;
   autoSeasons: HTMLButtonElement;
   cancelButton: HTMLButtonElement;
@@ -144,7 +145,7 @@ const nextBout=()=>isSquad()?(nextSquadBout as unknown as Next)(squadState):(nex
 const supportsReplay=(rules: number)=>isSquad()?supportsArcadeReplay(rules,1,SQUAD_REPLAY_RULESET):supportsArcadeReplay(rules,2,TOURNAMENT_REPLAY_RULESET);
 let runEpoch=0,boutJob: PendingBout | null=null,autoRun: AutoRun | null=null,processingBout=false,claiming=false,releaseRunLock: (()=>void) | null=null;
 let selectedId: string | null | undefined=null,selectedSource: Source='live',busy=false,timer: ReturnType<typeof setTimeout> | null=null,steps=0,replayEpoch=0,stopPlayback: (()=>void) | null=null,setPlaybackSpeed: ReplayControl['setSpeed'] | null=null,pausePlayback: ((paused: boolean)=>void) | null=null,playbackPaused=false;
-const nextButton=$('nextButton'),runButton=$('runButton'),cancelButton=$('cancelButton'),newButton=$('newButton'),autoButton=$('autoSeasons');
+const nextButton=$('nextButton'),fightButton=$('fightButton'),runButton=$('runButton'),cancelButton=$('cancelButton'),newButton=$('newButton'),autoButton=$('autoSeasons');
 const watchLast=$('watchLast'),replayDialog=$('replayDialog');
 const newSetup=$('newSetup'),bracketRows=$('bracketRows'),leaderRows=$('leaderRows'),heroRows=$('heroRows');
 const count=(v: unknown,fallback=0)=>Number.isFinite(v)?Math.max(0,Math.trunc(v as number)):fallback;
@@ -625,6 +626,7 @@ function render(){
   $('boutProgress').max=total||1;$('boutProgress').value=done;
   $('progressLabel').textContent=`${done}/${total} Bouts`;
   nextButton.disabled=busy||!next;
+  fightButton.hidden=!next;fightButton.disabled=busy;
   runButton.disabled=busy||!next;
   cancelButton.hidden=!busy||Boolean(autoRun);
   renderAutoControl();
@@ -672,13 +674,13 @@ async function settle(epoch: number){
   const squad=isSquad();
   let result: Settlement | false | null | undefined;
   if(squad){
-    const bout=await simulateInWorker(before,'./squad-tournament-worker.js?v=6.0.2');
+    const bout=await simulateInWorker(before,'./squad-tournament-worker.js?v=6.0.3-seat');
     if(epoch!==runEpoch)return false;
     if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No squad fight result returned.');
     result=await (runSquadStep as unknown as SettleSquad)(squadState,()=>bout);
   }else if(before.limit===360||autoRun){
-    const bout=await simulateInWorker(before,'./solo-tournament-worker.js?v=6.0.2');
+    const bout=await simulateInWorker(before,'./solo-tournament-worker.js?v=6.0.3-seat');
     if(epoch!==runEpoch)return false;
     if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No duel result returned.');
@@ -815,6 +817,13 @@ runButton.addEventListener('click',()=>{
     busy=true;steps=0;newSetup.hidden=true;render();cancelButton.focus();status('Running bracket…');
     scheduleTick(epoch,24);
   });
+});
+// Fight: opens the v6 match screen with the person as Blue in the next bout. That screen settles the bout
+// once, under this save's lock; leaving it before the end saves nothing.
+fightButton.addEventListener('click',()=>{
+  if(busy||claiming||replayDialog.open||!nextBout())return;
+  if(syncTournamentSave(saveKey())){render();status('Reloaded from another tab');return;}
+  location.assign('./index.html?seat='+(isSquad()?'squads':'tournament'));
 });
 cancelButton.addEventListener('click',()=>{
   stop('Stopped, bouts kept');if(!runButton.disabled)runButton.focus();
@@ -1027,8 +1036,18 @@ watchLast.addEventListener('click',async()=>{
   replayDialog.showModal();
   try{
     const squad=isSquad();
-    const play=squad?(await import('./squad-tournament-replay.js?v=6.0.2')).startSquadTournamentPlayback:
-      (await import('./tournament-replay.js?v=6.0.2')).startTournamentPlayback;
+    // A bout you fought is only ever shown as your own fight. Without its controls there is no replay.
+    const {TOURNAMENT_HUMAN_KEYS,tournamentHumanReplay,tournamentHumanGame}=await import('./tournament-play.js?v=6.0.3-seat');
+    const fought=tournamentHumanReplay(savedRaw(TOURNAMENT_HUMAN_KEYS[format]),currentState() as never);
+    if(version!==replayEpoch||!replayDialog.open)return;
+    if(fought.kind==='unavailable'){replayStatus.textContent='Replay unavailable for your bout';return;}
+    const human=fought.kind==='replay'?async(...[canvas,,options]: Parameters<StartReplay>)=>{
+      const [{startArcadeTournamentPlayback},{arcadeReplayRules}]=await Promise.all([import('./tournament-replay.js?v=6.0.3-seat'),import('./arcade-replay-rules.js?v=6.0.2')]);
+      const rules=await arcadeReplayRules(), {game,step,markedId}=tournamentHumanGame(format,replay as never,fought.log,rules);
+      return startArcadeTournamentPlayback(canvas,game,(replay as {terrain?: string}).terrain,{...rules,stepArcade:step},{...options,drawOnTimeout:true,showMemberNames:squad,markedId});
+    }:null;
+    const play=human??(squad?(await import('./squad-tournament-replay.js?v=6.0.3-seat')).startSquadTournamentPlayback:
+      (await import('./tournament-replay.js?v=6.0.3-seat')).startTournamentPlayback);
     if(version!==replayEpoch||!replayDialog.open)return;
     const live=()=>version===replayEpoch&&replayDialog.open;
     const result=await (play as unknown as StartReplay)(canvas,replay,{

@@ -12,7 +12,7 @@ import * as rigArt from './arcade-fighters.js?v=6.0.2';
 import {drawArcadeFighter,drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2';
 import {ARCADE_FORMS} from './arcade-engine.js?v=6.0.2';
 import {BELL_GUARDIAN,restoreQuestEncounter,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=6.0.2';
-import {startArcadeTournamentPlayback} from './tournament-replay.js?v=6.0.2';
+import {startArcadeTournamentPlayback} from './tournament-replay.js?v=6.0.3-seat';
 
 const {BELL_WAVES,idleCampaignStatus,deployIdleCampaign,advanceIdleCampaign,claimIdleCampaign,
   upgradeIdleCampaignHero,idleCampaignUpgradeCost,createIdleWaveReplay,collectIdleCampaignPatrol}=campaign;

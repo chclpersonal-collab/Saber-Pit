@@ -7,7 +7,7 @@
   <meta name="description" content="LOOMEN Tournament: 1v1 and 5v5 saber brackets.">
   <title>Tournament · LOOMEN</title>
   <link rel="stylesheet" href="./tournament.css?v=3.2.0">
-  <script type="module" src="./tournament-sync-entry.js?v=6.0.2"></script>
+  <script type="module" src="./tournament-sync-entry.js?v=6.0.3-seat"></script>
   <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
   <link rel="stylesheet" href="./ops-v3-secondary.css?v=3.0.0-auto1">
   <link rel="stylesheet" href="./pit-v4-tournaments.css?v=4.0.0">
@@ -58,7 +58,8 @@
         </div>
         <div class="progress" id="progressBar" hidden><label for="boutProgress" id="progressLabel">Progress</label><progress id="boutProgress" max="1" value="0"></progress></div>
         <div class="actions" aria-label="Tournament controls">
-          <button class="primary v5-ico" id="nextButton" data-ico="play" type="button" disabled>Next Bout</button>
+          <button class="primary v5-ico" id="fightButton" data-ico="play" type="button" hidden>Fight</button>
+          <button class="v5-ico" id="nextButton" data-ico="ff" type="button" disabled>Sim Bout</button>
           <button class="v5-ico" id="newButton" data-ico="plus" type="button">New Season</button>
           <button class="v5-ico v5-label-tool" id="runButton" data-ico="ff" data-tip="Run Bracket" type="button" disabled>Run Bracket</button>
           <button class="v5-ico v5-label-tool" id="autoSeasons" data-ico="loop" data-tip="Auto Seasons" type="button" aria-pressed="false" aria-describedby="autoResumeHint">Auto Seasons</button>

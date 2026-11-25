@@ -41,6 +41,23 @@ function decode(run: HumanRun): GauntletInput{
   return input as GauntletInput;
 }
 const same=(a: HumanRun,b: HumanRun)=>a[1]===b[1]&&a[2]===b[2]&&a[3]===b[3]&&a[4]===b[4]&&a[5]===b[5]&&a[6]===b[6];
+/** Adds one tick's controls to a bout's log, as runs of unchanged states, and returns them as engine input. Tournament seats share it. */
+export function logControls(runs: HumanRun[],controls: HumanControls,tick: number): GauntletInput{
+  const run=encode(controls,tick), last=runs.at(-1);
+  if(!last||!same(last,run)){
+    if(runs.length>=MAX_RUNS)throw new Error('Too many control changes to keep this bout.');
+    runs.push(run);
+  }
+  return decode(run);
+}
+/** Feeds a logged bout back one tick per call, then neutral controls after its last tick. */
+export function replayControls(log: Pick<HumanBoutLog,'ticks'|'runs'>){
+  let tick=0, index=0;
+  return (): GauntletInput=>{
+    while(index+1<log.runs.length&&log.runs[index+1]![0]<=tick)index++;
+    return tick++<log.ticks?decode(log.runs[index]!):{};
+  };
+}
 
 /** The live bout. step() advances exactly one Gauntlet tick with the person's controls. */
 export function startHumanBout(state: State){
@@ -57,12 +74,7 @@ export function startHumanBout(state: State){
     step(controls: HumanControls={}){
       if(game.phase!=='playing')return game;
       if(ticks>=max)throw new Error('Gauntlet bout did not reach its deadline.');
-      const run=encode(controls,ticks), last=runs.at(-1);
-      if(!last||!same(last,run)){
-        if(runs.length>=MAX_RUNS)throw new Error('Too many control changes to keep this bout.');
-        runs.push(run);
-      }
-      stepGauntletBattle(game,GAUNTLET_STEP,decode(run));
+      stepGauntletBattle(game,GAUNTLET_STEP,logControls(runs,controls,ticks));
       recorder.observe();ticks++;
       return game;
     },
@@ -111,15 +123,8 @@ export function humanLogMatches(log: HumanBoutLog | null,state: State): log is H
 }
 /** Replays the fought bout from its controls: a fresh human battle plus a stepper that feeds each logged tick. */
 export function humanReplay(fixture: Fixture | NonNullable<NonNullable<State['active']>['lastFixture']>,log: HumanBoutLog){
-  const game: Game=createGauntletBattle(fixture as Fixture,{human:true});
-  let tick=0, index=0;
-  const step=(g: Game)=>{
-    if(g.phase!=='playing')return g;
-    while(index+1<log.runs.length&&log.runs[index+1]![0]<=tick)index++;
-    stepGauntletBattle(g,GAUNTLET_STEP,tick<log.ticks?decode(log.runs[index]!):{});
-    tick++;
-    return g;
-  };
+  const game: Game=createGauntletBattle(fixture as Fixture,{human:true}), next=replayControls(log);
+  const step=(g: Game)=>g.phase!=='playing'?g:stepGauntletBattle(g,GAUNTLET_STEP,next());
   return {game,step};
 }
 

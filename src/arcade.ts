@@ -1,5 +1,5 @@
 import {createArcadeCombatAudio} from './arcade-combat-audio.js?v=6.0.2';
-import {arenaSeatKind,openArenaSeat,type ArenaSeat} from './arena-seat.js?v=6.0.2';
+import {arenaSeatKind,openArenaSeat,type ArenaSeat} from './arena-seat.js?v=6.0.3-seat';
 import {arenaFighterAppearance,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js?v=6.0.2';
 import {createAutoDuel} from './arcade-auto-duel.js';
 import {ARENA_MOTION_FLOW,PREVIEW_MOTION_FLOW} from './arcade-motion-flow.js?v=6.0.2';
@@ -37,7 +37,7 @@ import {arenaLobbyRating} from './arcade-arena-rating-ui.js?v=6.0.2';
 import {arenaNormalRanked,arenaNormalRating,arenaNormalCap} from './arcade-normal-elo.js?v=6.0.2';
 import type {ArenaNormalRatings as ArenaRatings} from './arcade-normal-elo.js?v=6.0.2';
 import {loadTournament,tournamentHeroes} from './arcade-tournament.js?v=6.0.2';
-import {tournamentHeroLoadout} from './arcade-tournament-sim.js?v=6.0.2';
+import {tournamentHeroLoadout} from './arcade-tournament-sim.js?v=6.0.3-seat';
 import {arcadeTapAim,createArcadeTouchOwner} from './arcade-touch.js?v=2.14.0';
 import {heroWatchFrame,captureHeroWatch} from './arcade-hero-watch.js?v=2.33.0';
 import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?v=6.0.2';

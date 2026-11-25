@@ -7,8 +7,8 @@ import {masteryTitle} from './arcade-mastery-title.js?v=2.33.0';
 import {combatMoveLabel} from './arcade-callouts.js?v=6.0.2';
 import {arcadeSaberOption} from './arcade-loadouts.js?v=6.0.2';
 
-import type {startArcadeTournamentPlayback} from './tournament-replay.js?v=6.0.2';
-import {GAUNTLET_HUMAN_KEY,humanBoutReplay,humanReplay} from './gauntlet-play.js?v=6.0.2';
+import type {startArcadeTournamentPlayback} from './tournament-replay.js?v=6.0.3-seat';
+import {GAUNTLET_HUMAN_KEY,humanBoutReplay,humanReplay} from './gauntlet-play.js?v=6.0.3-seat';
 type SaveState = ReturnType<typeof loadGauntlet>;
 type Season = NonNullable<SaveState['active']>;
 type Fighter = SaveState['fighters'][number];
@@ -164,7 +164,7 @@ function withLock(task: () => void | Promise<void>,{requireWorker=false}={}){
 function work(fixture: Fixture): Promise<WorkerFinish> {
   if(typeof Worker!=='function')return import('./gauntlet-sim.js?v=6.0.2').then(({simulateGauntlet})=>simulateGauntlet(fixture));
   return new Promise<WorkerFinish>((resolve,reject)=>{
-    const worker=new Worker(new URL('./gauntlet-worker.js?v=6.0.2',import.meta.url),{type:'module'});
+    const worker=new Worker(new URL('./gauntlet-worker.js?v=6.0.3-seat',import.meta.url),{type:'module'});
     const finish: FinishWorker=(error,result)=>{
       if(workerJob?.worker!==worker)return;
       workerJob=null;worker.terminate();
@@ -399,7 +399,7 @@ async function openReplay(){
   status.textContent='Loading replay…';$('gReplay').showModal();
   try{
     const [{createGauntletBattle,stepGauntletBattle},{startArcadeTournamentPlayback},{arcadeReplayRules}]=await Promise.all([
-      import('./gauntlet-sim.js?v=6.0.2'),import('./tournament-replay.js?v=6.0.2'),import('./arcade-replay-rules.js?v=6.0.2')]);
+      import('./gauntlet-sim.js?v=6.0.2'),import('./tournament-replay.js?v=6.0.3-seat'),import('./arcade-replay-rules.js?v=6.0.2')]);
     const rules={...await arcadeReplayRules(),stepArcade:stepGauntletBattle};
     const valid=()=>session===replayEpoch&&$('gReplay').open;
     if(!valid())return;

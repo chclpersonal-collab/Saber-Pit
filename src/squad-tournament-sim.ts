@@ -76,24 +76,34 @@ export function squadReplayWinner(game:Pick<LiveGame,'endReason'|'phase'>){
   if(game.endReason==='timeout')return null;
   return game.phase==='won'?0:game.phase==='lost'?1:null;
 }
-export function playSquadBout(fixture:Fixture){
+/** A squad bout that advances on demand, one SQUAD_SIM_TICK per step, simulated or with a seated person's controls.
+ *  observe() follows each step and finish() reads the result and replay the same way for both. */
+export function startSquadBout(fixture:Fixture){
   const replay:Descriptor=descriptor(fixture),game=createSquadReplay(replay);
   const trace=game.config.matchGoalPlanning?createMatchReport({...replay,
     fighters:game.fighters.map(f=>({id:f.id,name:f.displayName,team:f.team})),
     plans:game.fighters.map(f=>({goal:f.matchGoal})),clock:{source:'tournament settings'}}):null;
+  const observe=()=>{if(trace&&game.eventId>trace.lastEventId)appendMatchReportEvents(trace,game.events);};
+  const finish=()=>{
+    const winnerIndex=squadReplayWinner(game);
+    if(trace)replay.matchReport=finishMatchReport(trace,{time:game.time,winnerIndex,reason:game.endReason??'simulation-limit'});
+    const members:MemberResult[][]=[[],[]];
+    for(const f of game.fighters){
+      const stats=Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,safe(f.stats[k])]));
+      members[f.team].push({...(replay.ruleset>=12?{chessStyle:f.chessStyle}:{}),id:f.squadMemberId,name:f.displayName,alive:f.alive,stats,kills:stats.kills,deaths:stats.deaths});
+    }
+    const tally=(key:'kills'|'deaths')=>members.map(side=>side.reduce((n,f)=>n+f[key],0));
+    return {winnerIndex,winner:winnerIndex===null?null:replay.teams[winnerIndex].id,
+      reason:game.endReason??'simulation-limit',time:game.time,elapsed:game.time,kills:tally('kills'),deaths:tally('deaths'),damage:members.map(side=>side.reduce((n,f)=>n+f.stats.damage,0)),members,replay};
+  };
+  return {game,observe,finish};
+}
+export function playSquadBout(fixture:Fixture){
+  const live=startSquadBout(fixture), {game}=live;
   const budget=Math.ceil(game.limit*120)+3;
   for(let n=0;n<budget&&game.phase==='playing';n++){
     (stepArcade as unknown as (match:LiveGame,tick:number)=>unknown)(game,SQUAD_SIM_TICK);
-    if(trace&&game.eventId>trace.lastEventId)appendMatchReportEvents(trace,game.events);
+    live.observe();
   }
-  const winnerIndex=squadReplayWinner(game);
-  if(trace)replay.matchReport=finishMatchReport(trace,{time:game.time,winnerIndex,reason:game.endReason??'simulation-limit'});
-  const members:MemberResult[][]=[[],[]];
-  for(const f of game.fighters){
-    const stats=Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,safe(f.stats[k])]));
-    members[f.team].push({...(replay.ruleset>=12?{chessStyle:f.chessStyle}:{}),id:f.squadMemberId,name:f.displayName,alive:f.alive,stats,kills:stats.kills,deaths:stats.deaths});
-  }
-  const tally=(key:'kills'|'deaths')=>members.map(side=>side.reduce((n,f)=>n+f[key],0));
-  return {winnerIndex,winner:winnerIndex===null?null:replay.teams[winnerIndex].id,
-    reason:game.endReason??'simulation-limit',time:game.time,elapsed:game.time,kills:tally('kills'),deaths:tally('deaths'),damage:members.map(side=>side.reduce((n,f)=>n+f.stats.damage,0)),members,replay};
+  return live.finish();
 }

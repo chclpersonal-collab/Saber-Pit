@@ -2,16 +2,10 @@
  *  Same fixture, rules and clock as a simulated bout. The bout is written once, under the Gauntlet's lock,
  *  and only if the save still expects this exact fixture. Leaving early writes nothing. */
 import {GAUNTLET_KEY,loadGauntlet,saveGauntlet,nextGauntletBout} from './gauntlet-tournament.js?v=6.0.2';
-import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,humanMarker,type HumanControls} from './gauntlet-play.js?v=6.0.2';
-import type {ArenaSeat,ArenaSeatEnd,ArenaSeatOpen} from './arena-seat.js?v=6.0.2';
+import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,humanMarker,type HumanControls} from './gauntlet-play.js?v=6.0.3-seat';
+import {readSeatSave as read,settleSeat,type ArenaSeat,type ArenaSeatEnd,type ArenaSeatOpen} from './arena-seat.js?v=6.0.3-seat';
 
 const BACK='./gauntlet.html';
-const read=(key: string)=>{try{return globalThis.localStorage.getItem(key);}catch{return undefined;}};
-function locked<T>(task: () => T, otherwise: T): Promise<T>{
-  const locks=globalThis.navigator?.locks;
-  if(typeof locks?.request!=='function')return Promise.resolve(task());
-  return Promise.resolve(locks.request('saber-pit:progress:'+GAUNTLET_KEY,{ifAvailable:true},lock=>lock?task():otherwise)).catch(()=>otherwise);
-}
 export function openGauntletSeat(): ArenaSeatOpen{
   const known=read(GAUNTLET_KEY);
   if(known===undefined)return {ok:false,text:'Saving blocked in this browser',back:BACK};
@@ -33,26 +27,12 @@ export function openGauntletSeat(): ArenaSeatOpen{
           return {title,text,saved,next:Boolean(next)};
         };
         if(left)return done('Bout left, not saved');
-        const outcome=await locked(()=>{
-          if(read(GAUNTLET_KEY)!==known)return 'changed';
-          const result=commitHumanBout(loadGauntlet(),bout);
-          if(!result.ok)return 'settled';
-          // The fight record goes down first, so a settled human bout is never replayed as an AI fight:
-          // the full log, or if storage refuses it, a small marker that says its replay is unavailable.
-          const cursor=result.state.active!.cursor, store=globalThis.localStorage, before=read(GAUNTLET_HUMAN_KEY);
-          const put=(value: unknown)=>{try{store.setItem(GAUNTLET_HUMAN_KEY,JSON.stringify(value));return true;}catch{return false;}};
-          if(!put(bout.log(cursor))&&!put(humanMarker(bout.season,bout.fixture.id,cursor)))return 'full';
-          if(!saveGauntlet(result.state)){
-            try{if(before==null)store.removeItem(GAUNTLET_HUMAN_KEY);else store.setItem(GAUNTLET_HUMAN_KEY,before);}catch{/* the record names a bout the save never reached, so it can never match */}
-            return 'unsaved';
-          }
-          return 'saved:'+cursor;
-        },'busy');
-        if(outcome.startsWith('saved:'))return done('Bout '+outcome.slice(6)+' saved',true);
-        return done(outcome==='changed'?'Not saved: changed in another tab':
-          outcome==='settled'?'Not saved: bout already settled':
-          outcome==='busy'?'Not saved: busy in another tab':
-          outcome==='full'?'Not saved: storage full':'Not saved: last save kept');
+        const end=await settleSeat({key:GAUNTLET_KEY,known,logKey:GAUNTLET_HUMAN_KEY,
+          commit:()=>commitHumanBout(loadGauntlet(),bout),
+          log:state=>bout.log(state.active!.cursor),
+          marker:state=>humanMarker(bout.season,bout.fixture.id,state.active!.cursor),
+          save:saveGauntlet,savedText:state=>'Bout '+state.active!.cursor+' saved'});
+        return done(end.text,end.saved);
       })();
     },
     leave(){if(!bout.over)left=true;},

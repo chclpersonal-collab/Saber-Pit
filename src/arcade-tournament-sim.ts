@@ -136,7 +136,9 @@ export function createTournamentReplay(bout:Bout,forcePlans?:readonly Plan[],fac
   }
   return game;
 }
-export function playTournamentBout(bout:Bout){
+/** A tournament bout that advances on demand. The simulator steps it in .1 s calls; a seated person steps it at 1/120 s
+ *  with their controls. Either way observe() follows each step and finish() reads the result, learning and replay the same way. */
+export function startTournamentBout(bout:Bout){
   const sides=(bout.fighters??[bout.left,bout.right]) as readonly RawFighter[];
   // Only live entrants consult learned evidence. Historical descriptors
   // already contain the actual applied form, kit and doctrine and are fixed.
@@ -156,15 +158,11 @@ export function playTournamentBout(bout:Bout){
   const trace=game.config.matchGoalPlanning?createMatchReport({...replay,
     fighters:game.fighters.map((f,i)=>({id:f.id,name:replay.fighters[i].name,team:f.team})),
     plans:game.fighters.map((f,i)=>({...plans[i],goal:f.matchGoal})),clock:{source:'tournament settings'}}):null;
-  // Each .1 s call advances the same authoritative 120-Hz substeps used by
-  // real battles. The cap protects the tournament from an engine regression.
-  const budget=Math.ceil(game.limit*10)+3;
   let lastEvent=0;
   const landed=game.fighters.map(()=>Object.create(null));
   const actorIndex=Object.fromEntries(game.fighters.map((f,i)=>[f.id,i]));
-  for(let n=0;n<budget&&game.phase==='playing';n++){
-    (stepArcade as unknown as (match:LiveGame,tick:number)=>unknown)(game,.1);
-    if(game.eventId===lastEvent)continue;
+  const observe=()=>{
+    if(game.eventId===lastEvent)return;
     if(trace)appendMatchReportEvents(trace,game.events);
     for(const e of game.events){
       if(e.id<=lastEvent||!e.technique||!(e.damage>0)||!['hit','launch','break'].includes(e.kind))continue;
@@ -172,19 +170,33 @@ export function playTournamentBout(bout:Bout){
       if(hits)hits[e.technique]=(hits[e.technique]??0)+1;
     }
     lastEvent=game.eventId;
+  };
+  const finish=()=>{
+    const winnerIndex=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
+    if(trace)replay.matchReport=finishMatchReport(trace,{time:game.time,winnerIndex,reason:game.endReason??'simulation-limit'});
+    const stats=game.fighters.map(f=>Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,valid(f.stats[k],0)])));
+    const adaptations=sides.map((f,i)=>{
+      const old=adaptationOf(f), seen=learnBout(old,plans[i].doctrine,stats[i],stats[1-i],i===winnerIndex,winnerIndex===null,game.time);
+      const applied={...replay.fighters[i],move:plans[i].move,reason:selected[i].reason};
+      const other={...sides[1-i],form:replay.fighters[1-i].form};
+      const loadouts=learnTournamentLoadout(old,applied,stats[i],stats[1-i],winnerIndex===null?.5:i===winnerIndex?1:0,other,game.fighters[i].moves,landed[i]);
+      return {...seen,loadouts};
+    });
+    return {winnerIndex,winner:winnerIndex===null?null:sides[winnerIndex].id??null,
+      reason:game.endReason??'simulation-limit',time:game.time,elapsed:game.time,
+      stats,kills:stats.map(s=>s.kills),deaths:stats.map(s=>s.deaths),
+      plans,replay,adaptations,profiles:adaptations};
+  };
+  return {game,observe,finish};
+}
+export function playTournamentBout(bout:Bout){
+  const live=startTournamentBout(bout), {game}=live;
+  // Each .1 s call advances the same authoritative 120-Hz substeps used by
+  // real battles. The cap protects the tournament from an engine regression.
+  const budget=Math.ceil(game.limit*10)+3;
+  for(let n=0;n<budget&&game.phase==='playing';n++){
+    (stepArcade as unknown as (match:LiveGame,tick:number)=>unknown)(game,.1);
+    live.observe();
   }
-  const winnerIndex=game.endReason==='timeout'?null:game.phase==='won'?0:game.phase==='lost'?1:null;
-  if(trace)replay.matchReport=finishMatchReport(trace,{time:game.time,winnerIndex,reason:game.endReason??'simulation-limit'});
-  const stats=game.fighters.map(f=>Object.fromEntries(ARCADE_STAT_KEYS.map(k=>[k,valid(f.stats[k],0)])));
-  const adaptations=sides.map((f,i)=>{
-    const old=adaptationOf(f), seen=learnBout(old,plans[i].doctrine,stats[i],stats[1-i],i===winnerIndex,winnerIndex===null,game.time);
-    const applied={...replay.fighters[i],move:plans[i].move,reason:selected[i].reason};
-    const other={...sides[1-i],form:replay.fighters[1-i].form};
-    const loadouts=learnTournamentLoadout(old,applied,stats[i],stats[1-i],winnerIndex===null?.5:i===winnerIndex?1:0,other,game.fighters[i].moves,landed[i]);
-    return {...seen,loadouts};
-  });
-  return {winnerIndex,winner:winnerIndex===null?null:sides[winnerIndex].id??null,
-    reason:game.endReason??'simulation-limit',time:game.time,elapsed:game.time,
-    stats,kills:stats.map(s=>s.kills),deaths:stats.map(s=>s.deaths),
-    plans,replay,adaptations,profiles:adaptations};
+  return live.finish();
 }
