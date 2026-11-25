@@ -1,9 +1,30 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101112"><meta name="description" content="Loomen. Hand-inked saber duels and squad battles.">
-<title>Loomen</title><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v6-shell.css?v=6.0.0-rc.1"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
-<body class="pit-v3 pit-v4 pit-v5">
-<main id="app">
+<meta name="theme-color" content="#140b2e"><meta name="description" content="Loomen. Hand-inked saber duels and squad battles.">
+<title>Loomen</title><style>
+html { background:#140b2e; color-scheme:dark }
+body[data-loomen-boot] {margin:0; background:#140b2e}
+body[data-loomen-boot] #app,body[data-loomen-boot] #app *{visibility:hidden!important;pointer-events:none!important}
+body[data-loomen-boot] #app{position:fixed!important;inset:0;pointer-events:none!important;overflow:hidden}
+#loomenBoot[hidden],#loomenBoot [hidden]{display:none!important}
+#loomenBoot{position:fixed;z-index:2147483647;inset:0;display:grid;place-items:center;box-sizing:border-box;overflow:auto;
+ padding:24px; text-align:center; background:radial-gradient(ellipse at 50% 42%,#32246f,#140b2e 65%,#0c0624); color:#fff;font:700 16px system-ui,sans-serif}
+#loomenBoot h1{margin:12px 0 6px;font:bold clamp(34px,8vw,60px) system-ui,sans-serif;letter-spacing:.09em;color:#fff}
+#loomenBoot p{margin:6px 0 16px;color:#cfc8f5}
+#loomenBoot svg{width:58px;height:58px;color:#ffd23f}
+#loomenBoot a{display:inline-block;padding:10px 16px;border-radius:10px;background:#ffd23f;color:#0c0624;text-decoration:none}
+</style><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v6-shell.css?v=6.0.0-rc.1"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
+<body class="pit-v3 pit-v4 pit-v5" data-loomen-boot>
+<section id="loomenBoot" aria-label="LOOMEN startup">
+  <div>
+    <svg viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#140b2e" stroke-width="3" fill="none"/></svg>
+    <h1>LOOMEN</h1>
+    <p id="loomenBootStatus" role="status">Loading arena…</p>
+    <a id="loomenBootRetry" href="" hidden>Reload LOOMEN</a>
+    <noscript><p>Enable JavaScript to open the arena.</p></noscript>
+  </div>
+</section>
+<main id="app" inert aria-hidden="true">
   <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 5.3.0</span></div></a>
   <nav class="pit-nav" aria-label="Game modes"><a href="./index.html" aria-current="page">Arena</a><a class="fronts-link" href="./moba.html">Three Fronts</a><a href="./tournament.html">Tournaments</a><a href="./style-lab.html">Style Lab</a><a href="./idle-rpg.html">Idle RPG</a></nav>
   <div class="mast-right"><button class="landscape-start" type="submit" form="lobby" aria-describedby="arenaRatingStatus">Start match</button><output id="frameRate" class="fps" title="Measured rendered frames per second" aria-label="Rendered frames per second">FPS</output><button type="button" id="cameraView" aria-label="Action camera" aria-pressed="true" title="Action camera: follow close fights" hidden>Camera: Action</button><button type="button" id="statsButton" aria-controls="scoreboard" aria-expanded="false" aria-haspopup="dialog" data-key-action="stats" hidden>Stats <kbd>B</kbd></button><button type="button" id="settingsOpen" class="settings-open" aria-haspopup="dialog" aria-controls="settingsDialog" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.4 4.6-.1-2.4 2-1.6-2-3.4-2.4.9a8 8 0 0 0-2-1.2L15.5 3h-4l-.4 2.5a8 8 0 0 0-2 1.2l-2.4-.9-2 3.4 2 1.6a8 8 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-.9a8 8 0 0 0 2 1.2l.4 2.5h4l.4-2.5a8 8 0 0 0 2-1.2l2.4.9 2-3.4-2-1.6Z" fill="currentColor"/></svg><span class="settings-label">Settings</span></button><button type="button" id="stopAutoDuel" hidden>Stop auto</button><button type="button" id="pause" hidden>Pause</button></div></header>
@@ -227,4 +248,35 @@
   </dialog>
   <p id="announce" class="sr" aria-live="polite"></p>
 </main>
-<script type="module" src="./arcade-sync-entry.js?v=5.3.0-fight"></script><script type="module" src="./pit-v3-ui.js?v=5.3.0-setup"></script></body></html>
+<script>
+(() => {
+  const body = document.body;
+  const boot = document.getElementById('loomenBoot');
+  const status = document.getElementById('loomenBootStatus');
+  const retry = document.getElementById('loomenBootRetry');
+  const showProblem = (message) => {
+    if (!body.hasAttribute('data-loomen-boot')) return;
+    status.textContent = message;
+    retry.hidden = false;
+  };
+  const timeout = setTimeout(() => showProblem('Taking longer than expected. You can reload.'), 8000);
+  import('./arcade-sync-entry.js?v=6.0.1-boot').then(() => {
+    requestAnimationFrame(() => {
+      if (!document.getElementById('v6Home') || !body.dataset.v6 || body.dataset.view !== 'menu') {
+        clearTimeout(timeout);
+        showProblem('LOOMEN couldn’t finish loading.');
+        return;
+      }
+      clearTimeout(timeout);
+      boot.hidden = true;
+      const app = document.getElementById('app');
+      app.removeAttribute('inert');
+      app.removeAttribute('aria-hidden');
+      body.removeAttribute('data-loomen-boot');
+    });
+  }).catch(() => {
+    clearTimeout(timeout);
+    showProblem('LOOMEN couldn’t finish loading.');
+  });
+})();
+</script></body></html>
