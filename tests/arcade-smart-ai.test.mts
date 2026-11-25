@@ -84,7 +84,7 @@ test('the new AI beats the old AI as squadmates on either side', () => {
   assert.ok(smart>=6&&old<=1,`smart ${smart}, old ${old}`);
 });
 
-test('timing beats mashing on identical seeds at every rank', () => {
+test('timing beats mashing on identical seeds at A and SSS+', () => {
   // Same seeds, same ranks: only the player's inputs differ. Skill must pay, mashing must not.
   for(const [rank,seeds] of [['A',6],['SSS+',8]]){
     let skillWins=0,skillLosses=0,spamWins=0,spamLosses=0,parries=0,aiDefence=0;
