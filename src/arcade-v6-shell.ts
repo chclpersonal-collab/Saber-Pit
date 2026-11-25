@@ -5,6 +5,7 @@ import {readArcadeCareer} from './arcade-career.js?v=4.01.1';
 import {statsView} from './arcade-stats-page.js';
 import {paintV6Scene,paintV6Fighter,paintV6Card,type V6Scene,type V6Card} from './arcade-v6-scene.js';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
+import {ARCADE_SABER_OPTIONS} from './arcade-loadouts.js?v=3.1.0';
 
 const body=document.body;
 const get=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T|null;
@@ -199,12 +200,19 @@ const tabBtns=TABS.map(([id,label],i)=>{const b=el('button','v6-tab',label);b.ty
   b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(d){e.preventDefault();const n=(i+d+TABS.length)%TABS.length;selectTab(n);tabBtns[n]?.focus();}});tabs.append(b);return b;});
 const paneEls=TABS.map(([id])=>{const p=el('div','v6-pane');p.id='v6pane-'+id;p.setAttribute('role','tabpanel');p.setAttribute('aria-labelledby','v6tab-'+id);panes.append(p);return p;});
 function selectTab(n:number){tabBtns.forEach((b,i)=>{b.setAttribute('aria-selected',String(i===n));b.tabIndex=i===n?0:-1;});paneEls.forEach((p,i)=>{p.hidden=i!==n;});}
-function chipsFromInto(selectId:string,box:HTMLElement,label:string){chipsFrom(selectId,box,label,()=>{lookPane();paintHero();});}
-function chipsFrom(selectId:string,pane:HTMLElement,label:string,after?:()=>void){
-  const sel=get<HTMLSelectElement>(selectId);pane.replaceChildren();if(!sel){pane.append(el('p','v6-empty','Not available for this match.'));return;}
-  const g=el('fieldset','v6-chip-row v6-chip-wrap');g.append(el('legend',undefined,label));
-  for(const o of sel.options){const b=el('button','v6-chip',o.text.replace(/^[IVX]+\s*·\s*/,'').replace(/^Force (\w)/,(_,c:string)=>c.toUpperCase()).replace(/ sabers?$/,''));b.setAttribute('aria-label',o.text);b.type='button';b.dataset.value=o.value;b.disabled=o.disabled||sel.disabled;b.setAttribute('aria-pressed',String(o.value===sel.value));
-    b.addEventListener('click',()=>{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));if(after)after();else chipsFrom(selectId,pane,label);paintHero();fillCard();});g.append(b);}
+/** Loadout picks are tiles that fill their tab: the bare name, plus one small tag where it says something
+ *  (a form's numeral, a blade count). No "· detail" tails, no "saber(s)", no repeated section heading. */
+const pickName=(t:string)=>t.replace(/^[IVX]+\s*·\s*/,'').split(' · ')[0]!.replace(/^Force (\w)/,(_,c:string)=>c.toUpperCase()).replace(/ sabers?$/i,'').trim();
+const pickTag=(selectId:string,o:HTMLOptionElement)=>selectId==='style'?o.text.match(/^([IVX]+)\s*·/)?.[1]??'':
+  selectId.startsWith('saberKit')?((n=ARCADE_SABER_OPTIONS.find(k=>k.id===o.value) as {blades?:number}|undefined)=>n?.blades?'×'+n.blades:'')():'';
+function chipsFrom(selectId:string,pane:HTMLElement,label:string){
+  const sel=get<HTMLSelectElement>(selectId);pane.replaceChildren();if(!sel){pane.append(el('p','v6-empty','Locked'));return;}
+  const g=el('div','v6-picks');g.setAttribute('role','group');g.setAttribute('aria-label',label);g.dataset.pick=selectId;
+  for(const o of sel.options){const b=el('button','v6-pick');b.type='button';b.dataset.value=o.value;b.append(el('b',undefined,pickName(o.text)));
+    const tag=pickTag(selectId,o);if(tag){const t=el('span','v6-tag',tag);t.setAttribute('aria-hidden','true');b.append(t);}
+    if(selectId.startsWith('startingForceFamily')){const dot=el('i','v6-dot');dot.dataset.force=o.value;dot.setAttribute('aria-hidden','true');b.prepend(dot);}
+    b.disabled=o.disabled||sel.disabled;b.setAttribute('aria-pressed',String(o.value===sel.value));
+    b.addEventListener('click',()=>{sel.value=o.value;sel.dispatchEvent(new Event('input',{bubbles:true}));sel.dispatchEvent(new Event('change',{bubbles:true}));chipsFrom(selectId,pane,label);paintHero();fillCard();});g.append(b);}
   pane.append(g);
 }
 const LOOK_CARDS:[string,string][]=[['woman','Woman'],['femboy','Femboy'],['rabbit','Rabbit']];
@@ -215,7 +223,6 @@ function lookPane(){
     const cv=el('canvas','v6-look-art');cv.setAttribute('aria-hidden','true');b.append(cv,el('b',undefined,name));
     b.addEventListener('click',()=>{if(!sel)return;sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));lookPane();paintHero();});row.append(b);}
   pane.append(row);
-  for(const [id,label] of [['style','Form'],['saberKit0','Saber'],['startingForceFamily0','Force']] as const){const box=el('div');chipsFromInto(id,box,label);pane.append(box);}
   requestAnimationFrame(()=>{row.querySelectorAll<HTMLButtonElement>('.v6-look').forEach((b,i)=>{const cv=b.querySelector('canvas');const lk=LOOK_CARDS[i];if(cv&&lk)paintV6Fighter(cv,lk[0],{stage:false});});});
 }
 function paintHero(){const body=get<HTMLSelectElement>('bodyStyle')?.value??'woman';const form=get<HTMLSelectElement>('style');

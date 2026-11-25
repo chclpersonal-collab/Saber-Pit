@@ -499,3 +499,26 @@
 .pit-v5 .hud .pink .team-hp i::after{inset:0 0 0 auto;background:var(--v5-red)}
 .pit-v5 .hud .team-hp i[data-out=true]{opacity:.45}
 @media (max-width:740px),(orientation:landscape) and (max-height:520px){.pit-v5 .hud .team-hp{height:6px;gap:3px;margin-top:3px}.pit-v5 .hud .team-hp i{min-width:6px}}
+/* Loadout tabs (user, Nov 25): each tab shows only its own picks, as tiles that fill the panel.
+   Tiles share the Look card's family: panel fill, line border, gold ring when picked. */
+:root body.pit-v5 .v6-pane[hidden]{display:none!important}
+:root body.pit-v5 .v6-picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+:root body.pit-v5 .v6-pick{appearance:none;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;padding:8px 12px;border-radius:var(--v5-r);border:2px solid var(--v5-line);background:var(--v5-panel);color:var(--v5-white);font-family:var(--v5-display);font-size:20px;line-height:1.05;text-align:center}
+:root body.pit-v5 .v6-pick b{font-weight:400}
+:root body.pit-v5 .v6-pick[aria-pressed=true],:root body.pit-v5 .v6-look[aria-pressed=true]{border-color:var(--v5-gold);box-shadow:0 0 0 2px var(--v5-gold);background:var(--v5-panel-hi)}
+:root body.pit-v5 .v6-pick:focus,:root body.pit-v5 .v6-pick:hover{background:var(--v5-panel-hi);color:var(--v5-white)}
+:root body.pit-v5 .v6-pick:focus-visible{outline:3px solid var(--v5-white);outline-offset:3px}
+:root body.pit-v5 .v6-pick:disabled{opacity:.45;cursor:not-allowed}
+:root body.pit-v5 .v6-tag{position:absolute;top:6px;right:8px;min-width:22px;padding:1px 6px;border-radius:999px;background:var(--v5-ink);color:var(--v5-gold);font-family:var(--v5-ui);font-weight:900;font-size:11px;letter-spacing:.04em}
+:root body.pit-v5 .v6-dot{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+:root body.pit-v5 .v6-dot[data-force=force_push]{color:#99e6ff;background:#99e6ff}
+:root body.pit-v5 .v6-dot[data-force=force_burst]{color:#e6b8ff;background:#e6b8ff}
+:root body.pit-v5 .v6-dot[data-force=force_pulse]{color:#aaf2cb;background:#aaf2cb}
+:root body.pit-v5 #v6pane-force .v6-picks{grid-template-columns:1fr}
+@media (max-width:760px){:root body.pit-v5 .v6-pick{min-height:56px;font-size:18px}}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.pit-v5 .v6-picks{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  :root body.pit-v5 #v6pane-force .v6-picks{grid-template-columns:repeat(3,minmax(0,1fr))}
+  :root body.pit-v5 .v6-pick{min-height:44px;font-size:15px;padding:4px 8px}
+  :root body.pit-v5 .v6-tag{top:3px;right:4px;font-size:9px;min-width:16px;padding:0 4px}
+}
