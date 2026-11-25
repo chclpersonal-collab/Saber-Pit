@@ -7,7 +7,7 @@ import {masteryTitle} from './arcade-mastery-title.js?v=2.33.0';
 import {combatMoveLabel} from './arcade-callouts.js?v=3.1.0';
 
 import type {startArcadeTournamentPlayback} from './tournament-replay.js';
-import {GAUNTLET_HUMAN_KEY,startHumanBout,commitHumanBout,readHumanLog,humanLogMatches,humanReplay,type HumanBout} from './gauntlet-play.js';
+import {GAUNTLET_HUMAN_KEY,readHumanLog,humanLogMatches,humanReplay} from './gauntlet-play.js';
 type SaveState = ReturnType<typeof loadGauntlet>;
 type Season = NonNullable<SaveState['active']>;
 type Fighter = SaveState['fighters'][number];
@@ -33,8 +33,7 @@ interface DomMap {
   gBar: HTMLProgressElement; gStageFilter: HTMLSelectElement; gFind: HTMLInputElement; gRole: HTMLSelectElement;
   gFavoritesOnly: HTMLInputElement; gSort: HTMLSelectElement; gFighterPortrait: HTMLCanvasElement;
   gReplayPause: HTMLButtonElement; gReplaySkip: HTMLButtonElement; gReplaySpeed: HTMLSelectElement; gReplayCanvas: HTMLCanvasElement;
-  gFight: HTMLButtonElement; gFightDialog: HTMLDialogElement; gFightCanvas: HTMLCanvasElement; gFightLeave: HTMLButtonElement;
-  gFightNext: HTMLButtonElement; gFightClose: HTMLButtonElement; gFightAfter: HTMLElement; gFightPad: HTMLElement;
+  gFight: HTMLButtonElement;
 }
 const $=<ID extends string>(id: ID)=>document.getElementById(id) as ID extends keyof DomMap ? DomMap[ID] : HTMLElement;
 const formNames: Readonly<Record<string,string>>={shii_cho:'Shii-Cho',makashi:'Makashi',soresu:'Soresu',ataru:'Ataru',djem_so:'Djem So',niman:'Niman',juyo:'Juyo'};
@@ -44,7 +43,6 @@ const el=<K extends keyof HTMLElementTagNameMap>(tag: K,content?: string,style?:
 const raw=(key: string)=>{try{return globalThis.localStorage.getItem(key);}catch{return undefined;}};
 let state=loadGauntlet(), known=raw(GAUNTLET_KEY), activeJob: BoutJob | null=null, workerJob: PendingWorker | null=null, waiting: (()=>void) | null=null, claiming=false;
 let resumeDigest: string | undefined, digestSource: string | null | undefined;
-let fight: {bout: HumanBout; ui: {abandon():void;destroy():void;pause():void;resume():void} | null; known: string | null | undefined; settled: boolean} | null=null;
 let selected: string | null=null, replay: ReplayController | null=null, replayEpoch=0, replayPaused=false, stars=readStars(), leftPage=false, pageEpoch=0;
 const count=(x?: number | null)=>Number.isFinite(x)?Math.max(0,Math.trunc(x!)):0;
 const score=(n?: number | null)=>Number.isFinite(n)?n!.toLocaleString(undefined,{maximumFractionDigits:1}):'—';
@@ -70,7 +68,7 @@ function addMastery<T extends HTMLElement>(node: T,fighter?: Fighter | null): T{
 const form=(id: string)=>formNames[id]??'Unknown form';
 const heading=(text: unknown)=>typeof text==='string'&&text?text[0].toUpperCase()+text.slice(1):'Balanced';
 const notify=(text: string)=>{$('gStatus').textContent=text;};
-const busy=()=>Boolean(activeJob)||claiming||Boolean(fight);
+const busy=()=>Boolean(activeJob)||claiming;
 const resultOf=(b: Pick<SavedBout,'winner'>)=>b.winner===0?'Solo victory':b.winner===1?'Trio victory':'Draw';
 const stageOf=(b: Pick<SavedBout,'phase'|'group'>)=>b.phase==='final'?'Final':'Group '+(groups[b.group!]??'—');
 
@@ -443,83 +441,12 @@ $('gFavorite').addEventListener('click',()=>{
 });
 $('gCsv').addEventListener('click',downloadCsv);
 $('gWatch').addEventListener('click',openReplay);
-// Fight next bout: the person plays the Blue solo fighter. The bout is settled once, under the page's lock,
-// and only if the save still expects this exact fixture. Leaving before the end saves nothing.
-function fightStatus(text: string){$('gFightStatus').textContent=text;}
-function fightPips(blue: boolean[],pink: boolean[]){
-  const pip=(alive: boolean,side: string)=>{const s=el('span',undefined,'g-pip g-pip-'+side+(alive?'':' g-pip-out'));s.setAttribute('aria-hidden','true');return s;};
-  const label=el('span',`Blue ${blue.filter(Boolean).length} · Pink ${pink.filter(Boolean).length}`,'sr');
-  $('gFightPips').replaceChildren(...blue.map(a=>pip(a,'blue')),el('span','vs','g-pip-vs'),...pink.map(a=>pip(a,'pink')),label);
-}
-function fightLocked(task: () => void){
-  const locks=globalThis.navigator?.locks;
-  if(typeof locks?.request!=='function'){task();return Promise.resolve(true);}
-  return Promise.resolve(locks.request('saber-pit:progress:'+GAUNTLET_KEY,{ifAvailable:true},lock=>{if(lock)task();return Boolean(lock);})).catch(()=>false);
-}
-function settleFight(bout: HumanBout){
-  const f=fight;
-  if(!f||f.bout!==bout||f.settled||!bout.over)return;
-  f.settled=true;
-  $('gFightLeave').hidden=true;$('gFightPad').hidden=true;
-  const winner=bout.result().winnerIndex;
-  const head=winner===0?'Blue wins':winner===1?'Pink wins':'Draw';
-  let message=head+' · not saved. The Gauntlet is busy in another tab.';
-  void fightLocked(()=>{
-    if(raw(GAUNTLET_KEY)!==f.known){reload();message=head+' · not saved. The Gauntlet changed in another tab.';return;}
-    const outcome=commitHumanBout(state,bout);
-    if(!outcome.ok){message=head+' · not saved. This bout was already settled.';return;}
-    if(!saveState(outcome.state)){message=head+' · not saved. The last verified save was kept.';return;}
-    try{globalThis.localStorage.setItem(GAUNTLET_HUMAN_KEY,JSON.stringify(bout.log(state.active!.cursor)));}catch{/* Watch last bout then shows the simulated view. */}
-    message=`${head} · bout ${state.active!.cursor} saved.`;
-  }).then(()=>{
-    notify(message);render();
-    if(fight!==f)return;
-    fightStatus(message);
-    const next=nextGauntletBout(state);
-    $('gFightNext').hidden=!next;
-    $('gFightAfter').hidden=false;
-    (next?$('gFightNext'):$('gFightClose')).focus();
-  });
-}
-function dropFight(){
-  const f=fight;if(!f)return;
-  if(!f.settled&&f.bout.over){settleFight(f.bout);}
-  fight=null;
-  if(f.settled)f.ui?.destroy();else{f.ui?.abandon();notify('Bout left. Nothing was saved.');}
-  render();
-}
-async function openFight(){
-  if(busy()||leftPage||$('gReplay').open||$('gResetDialog').open||!checkSave())return;
-  const bout=startHumanBout(state);if(!bout)return;
-  const f: NonNullable<typeof fight>={bout,ui:null,known,settled:false};
-  fight=f;renderControls();
-  $('gFightAfter').hidden=true;$('gFightLeave').hidden=false;$('gFightPad').hidden=false;
-  fightStatus('');fightPips([true],[true,true,true]);
-  if(!$('gFightDialog').open)$('gFightDialog').showModal();
-  try{
-    const [{startArcadeTournamentPlayback},{arcadeReplayRules},{startGauntletFight}]=await Promise.all([
-      import('./tournament-replay.js?v=5.0.1'),import('./arcade-replay-rules.js?v=3.2.0'),import('./gauntlet-fight-ui.js')]);
-    const rules=await arcadeReplayRules();
-    if(fight!==f)return;
-    f.ui=startGauntletFight($('gFightCanvas'),$('gFightPad'),bout,startArcadeTournamentPlayback as never,rules as never,{
-      status:text=>{if(fight===f&&!f.settled)fightStatus(text);},
-      pips:fightPips,
-      ended:()=>settleFight(bout),
-    });
-    $('gFightCanvas').focus({preventScroll:true});
-  }catch(error){
-    if(fight!==f)return;
-    console.error('Gauntlet fight failed',error);
-    f.ui?.abandon();fight=null;render();
-    fightStatus('Could not open the fight. Your save was unchanged.');
-    $('gFightLeave').hidden=true;$('gFightPad').hidden=true;$('gFightNext').hidden=true;$('gFightAfter').hidden=false;
-  }
-}
-$('gFight').addEventListener('click',()=>{void openFight();});
-$('gFightNext').addEventListener('click',()=>{dropFight();void openFight();});
-$('gFightClose').addEventListener('click',()=>$('gFightDialog').close());
-$('gFightLeave').addEventListener('click',()=>$('gFightDialog').close());
-$('gFightDialog').addEventListener('close',()=>{dropFight();$('gFight').focus();});
+// Fight next bout: opens the v6 match screen with the person in the Blue seat. That screen settles the bout
+// once, under this save's lock; leaving it before the end saves nothing.
+$('gFight').addEventListener('click',()=>{
+  if(busy()||leftPage||!checkSave()||!nextGauntletBout(state))return;
+  location.assign('./index.html?seat=gauntlet');
+});
 
 $('gReplayPause').addEventListener('click',()=>{
   if(!replay)return;
@@ -547,7 +474,7 @@ window.addEventListener('storage',({key})=>{
   if(key===null||key===GAUNTLET_KEY)checkSave();
   if(key===null||key===AUTO_KEY)renderControls();
 });
-window.addEventListener('pagehide',()=>{pageEpoch++;leftPage=true;claiming=false;replayEpoch++;replay?.destroy?.();replay=null;cancelWork();dropFight();});
+window.addEventListener('pagehide',()=>{pageEpoch++;leftPage=true;claiming=false;replayEpoch++;replay?.destroy?.();replay=null;cancelWork();});
 window.addEventListener('pageshow',event=>{if(event.persisted){leftPage=false;if($('gReplay').open)$('gReplay').close();if(checkSave())notify('');render();}});
 syncSetup();
 render();
