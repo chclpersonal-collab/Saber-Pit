@@ -63,6 +63,31 @@ export function assignPads(pads:readonly PadState[],versus:boolean):{p1:PadState
   if(pads.length>=2)return {p1:[pads[0]!],p2:[pads[1]!]};
   return {p1:[],p2:[...pads]};
 }
+/** Local versus seats, latched for the round. A pad keeps its seat while it is unplugged, so a dropped controller
+ *  never hands its fighter to the other player; the seat stays empty until that pad comes back, or a spare pad claims it with a press. */
+export function createPadSeats(){
+  let seats:[number|null,number|null]|null=null;
+  const busy=(p:PadState)=>p.held.size>0||Boolean(p.stick.x||p.stick.y);
+  return {
+    reset(){seats=null;},
+    assign(pads:readonly PadState[],versus:boolean):{p1:PadState[];p2:PadState[]} {
+      if(!versus){seats=null;return assignPads(pads,false);}
+      if(!seats){
+        if(!pads.length)return {p1:[],p2:[]};
+        seats=pads.length>=2?[pads[0]!.index,pads[1]!.index]:[null,pads[0]!.index];
+      }else{
+        const live=new Set(pads.map(p=>p.index));
+        for(const p of pads){
+          if(seats.includes(p.index)||!busy(p))continue;
+          const free=seats.findIndex(i=>i==null||!live.has(i));
+          if(free>=0)seats[free]=p.index;
+        }
+      }
+      const [a,b]=seats;
+      return {p1:pads.filter(p=>p.index===a),p2:pads.filter(p=>p.index===b)};
+    },
+  };
+}
 export const padHeld=(pads:readonly PadState[],name:string)=>pads.some(p=>p.held.has(name as PadAction));
 export function padStick(pads:readonly PadState[]){
   for(const p of pads)if(p.stick.x||p.stick.y)return p.stick;

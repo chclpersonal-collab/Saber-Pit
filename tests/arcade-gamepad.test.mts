@@ -56,3 +56,35 @@ test('the phone sticks for two players have a dead zone and cap at full speed', 
   assert.deepEqual(stickVector(200,0,50),{x:1,y:0});
   const half=stickVector(0,-25,50);assert.ok(Math.abs(half.y+.5)<1e-9);
 });
+
+test('two-pad versus seats hold for the round: a dropped pad never hands Pink to Blue', async () => {
+  const {createPadSeats}=await import('../dist/arcade-gamepad.js');
+  const mk=(index,on=[])=>readPad({index,connected:true,axes:[0,0,0,0],buttons:Array.from({length:17},(_,i)=>({pressed:on.includes(i),value:on.includes(i)?1:0}))});
+  const seats=createPadSeats();
+  let s=seats.assign([mk(0),mk(1)],true);
+  assert.deepEqual([s.p1.map(p=>p.index),s.p2.map(p=>p.index)],[[0],[1]]);
+  // Pink's pad drops mid-bout while Blue keeps pressing: Blue stays Blue and Pink's seat stays empty.
+  s=seats.assign([mk(0,[0])],true);
+  assert.deepEqual([s.p1.map(p=>p.index),s.p2.length],[[0],0]);
+  s=seats.assign([mk(0,[0,2])],true);
+  assert.equal(s.p2.length,0);
+  // The same pad comes back and takes its own seat again.
+  s=seats.assign([mk(0),mk(1)],true);
+  assert.deepEqual(s.p2.map(p=>p.index),[1]);
+  // A new round re-seats from scratch.
+  seats.reset();
+  s=seats.assign([mk(1)],true);
+  assert.deepEqual([s.p1.length,s.p2.map(p=>p.index)],[0,[1]]);
+});
+
+test('a spare pad claims an empty seat only when someone presses on it', async () => {
+  const {createPadSeats}=await import('../dist/arcade-gamepad.js');
+  const mk=(index,on=[])=>readPad({index,connected:true,axes:[0,0,0,0],buttons:Array.from({length:17},(_,i)=>({pressed:on.includes(i),value:on.includes(i)?1:0}))});
+  const seats=createPadSeats();
+  seats.assign([mk(0),mk(1)],true);
+  let s=seats.assign([mk(0),mk(2)],true);
+  assert.equal(s.p2.length,0,'an idle spare pad stays out');
+  s=seats.assign([mk(0),mk(2,[0])],true);
+  assert.deepEqual(s.p2.map(p=>p.index),[2]);
+  assert.deepEqual(s.p1.map(p=>p.index),[0]);
+});

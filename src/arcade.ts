@@ -50,7 +50,7 @@ import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
 import {mountVersusTouch} from './arcade-vs-touch.js';
-import {createPadReader,assignPads,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
+import {createPadReader,createPadSeats,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
@@ -123,7 +123,7 @@ hudText.addEventListener('change',()=>{
 let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
 const heldArenaKeys=createHeldArenaKeys(keys);
 // Controllers and local versus. Nothing here is saved: Two players is chosen per visit.
-const padReader=createPadReader();
+const padReader=createPadReader(), padSeats=createPadSeats();
 let pads:PadState[]=[], padStatsHeld=false, localVersus=false;
 const p2keys=new Set<string>(), p2pulse=new Set<string>(), heldP2Keys=createHeldArenaKeys(p2keys);
 const versusLive=()=>view==='game'&&game?.config.localVersus===true;
@@ -134,7 +134,8 @@ const portraitView=matchMedia('(orientation:portrait)');
 let vsTouchKey='', p2Technique:string|null=null;
 function syncVersusTouch(){
   const on=versusLive()&&touchLayout.matches&&!paused&&game.phase==='playing';
-  const show:[boolean,boolean]=[on&&pads.length<2,on&&pads.length<1];
+  const {p1,p2}=padSeats.assign(pads,versusLive());
+  const show:[boolean,boolean]=[on&&!p1.length,on&&!p2.length];
   const key=show.join()+portraitView.matches;
   if(key===vsTouchKey)return;
   vsTouchKey=key;vsTouch.sync(show,portraitView.matches);
@@ -277,7 +278,7 @@ function currentTouchAim(){
   touchAim=null;syncTouchAim();return null;
 }
 function inputs(){
-  const {p1,p2}=assignPads(pads,versusLive());
+  const {p1,p2}=padSeats.assign(pads,versusLive());
   const me=game.fighters.find(f=>f.control&&f.team===0);
   const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
   const [t1,t2]=vsTouch.players, moved=(v:{x:number;y:number})=>v.x||v.y?v:null;
@@ -305,7 +306,7 @@ function pollPads(){
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
   if(nextView==='menu'){autoDuel.stop();roundSaveBaseline=undefined;autoCareerMode=undefined;}
   else autoDuel.clearRound();
-  career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingUnrecorded=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;$('walkTouch').setAttribute('aria-pressed','false');
+  career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingUnrecorded=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;padSeats.reset();$('walkTouch').setAttribute('aria-pressed','false');
   view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
   clearInput();fx.reset();swingWaves.reset();
   const config=nextView==='menu'?setup:normalizeSetup(options.setup??matchSetup);
@@ -385,7 +386,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
   const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
   p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
-  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Player 1';$('rivalName').textContent='Player 2';}
+  if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Blue · P1';$('rivalName').textContent='Pink · P2';}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
