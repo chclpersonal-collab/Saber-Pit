@@ -158,9 +158,9 @@ test('Force and free-hand drills show actual cast, effect, or defense; dual keep
  assert.ok(styleLabMoveList('shii_cho','dual','force').some(m=>m.id==='force_tether'));
  const options={style:'queen',form:'shii_cho',range:70};
  const anchor=play({...options,technique:'force_anchor'});
- assert.equal(anchor.outcome.label,'Slowed rival');
+ assert.equal(anchor.outcome.label,'Target Slowed');
  assert.equal(play({...options,technique:'force_anchor',defense:'held'}).outcome.id,'guard');
- assert.equal(play({...options,technique:'force_lattice'}).outcome.label,'Ward raised');
+ assert.equal(play({...options,technique:'force_lattice'}).outcome.label,'Ward Up');
  const palm=play({...options,range:49,technique:'unarmed_palm'});
  assert.ok(palm.g.events.some(e=>e.technique==='unarmed_palm'&&e.kind==='free_hand'&&e.contact>0));
  assert.ok(palm.damage>0);

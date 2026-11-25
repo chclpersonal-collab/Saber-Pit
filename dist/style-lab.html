@@ -4,60 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101112">
-<title>Style Lab · Loomen</title>
+<title>Style Lab | Loomen</title>
 <link rel="stylesheet" href="./style-lab.css?v=5.1.0">
 <link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=6.0.1-meta"><link rel="stylesheet" href="./pit-v6-pages.css?v=6.0.0"></head>
 <body class="ops-shell pit-v4-lab">
 <main>
   <header class="intro">
-    <div><p class="eyebrow">Loomen 6.0.1 · Practice</p><h1>Style Lab</h1></div>
-    <a class="back" href="./index.html">Back to Arena</a>
+    <div><p class="eyebrow"><span class="v6-meta">Practice</span> <span class="v6-meta">v6.0.1</span></p><h1>Style Lab</h1></div>
+    <a class="back" href="./index.html">Back</a>
   </header>
-  <section class="lab" aria-label="Style Lab drill">
-    <div class="field" aria-label="Live arena preview">
-      <div class="field-bar"><span>Underpit · Practice</span><strong id="labTravel">Wide turn · free travel</strong></div>
-      <canvas id="labCanvas" width="960" height="540" aria-label="Two fighters in the practice arena"></canvas>
-      <p id="labStatus" role="status" aria-live="polite">Choose a style to begin.</p>
+  <section class="lab" aria-label="Drill">
+    <div class="field" aria-label="Preview">
+      <div class="field-bar"><span><span class="v6-meta">Underpit</span> <span class="v6-meta">Practice</span></span><strong id="labTravel"><span class="v6-meta">Wide Turn</span> <span class="v6-meta">Free Travel</span></strong></div>
+      <canvas id="labCanvas" width="960" height="540" aria-label="Practice arena"></canvas>
+      <p id="labStatus" role="status" aria-live="polite">Pick a style</p>
     </div>
-    <div class="controls" aria-label="Practice settings">
+    <div class="controls" aria-label="Settings">
       <div class="core-pickers">
-        <label>Style<select id="labStyle"></select></label>
-        <label>Bearing<select id="labDirections" aria-label="Target bearing"></select></label>
-        <label>Move family<select id="labMoveFamily"><option value="saber">Saber attacks</option><option value="force">Force abilities</option><option value="free_hand">Free-hand moves</option></select></label>
+        <label>Style<select id="labStyle" aria-describedby="labHint"></select></label>
+        <label>Bearing<select id="labDirections" aria-label="Bearing"></select></label>
+        <label>Move Family<select id="labMoveFamily"><option value="saber">Saber</option><option value="force">Force</option><option value="free_hand">Free Hand</option></select></label>
         <label class="move-picker">Move<select id="labMove"></select></label>
       </div>
       <div class="actions">
         <button id="labStrike" type="button" class="strong">Strike</button>
-        <button id="labSpin" type="button">Full circle</button>
+        <button id="labSpin" type="button">Full Circle</button>
         <button id="labWalk" type="button">Walk</button>
         <button id="labJump" type="button">Jump</button>
-        <button id="labCompare" class="strong" type="button" aria-describedby="labCompareHelp">Compare 3 styles</button>
-        <button id="labCompareWeapons" type="button" aria-describedby="labWeaponCompareHint">Compare 3 weapons</button>
+        <button id="labCompare" class="strong" type="button" aria-describedby="labCompareHelp">Compare Styles</button>
+        <button id="labCompareWeapons" type="button" aria-describedby="labWeaponCompareHint">Compare Sabers</button>
         <button id="labPause" type="button" aria-pressed="false" disabled>Pause</button>
-        <button id="labStep" type="button" title="One frame at quarter speed" disabled>Step</button>
+        <button id="labStep" type="button" title="One frame" disabled>Step</button>
         <button id="labStop" type="button" disabled>Stop</button>
       </div>
-      <p id="labWeaponCompareHint" class="notes" hidden>Choose a saber attack to compare weapon lengths.</p>
+      <p id="labWeaponCompareHint" class="notes" hidden>Choose a saber attack first</p>
       <p id="labTiming" class="notes" hidden></p>
-      <p id="labCompareHelp" class="visually-hidden">Compare King, Queen, and Bishop side by side using the same Shii-Cho Open Cut, weapon, and target position.</p>
-      <details class="extra"><summary>Drill options</summary>
-        <p id="labHint"></p>
+      <p id="labCompareHelp" class="visually-hidden">King, Queen and Bishop, same Open Cut</p>
+      <details class="extra"><summary>Drill Options</summary>
+        <p id="labHint" hidden></p>
         <div class="pickers">
-          <label>Saber form<select id="labForm"></select></label>
-          <label>Weapon<select id="labWeapon"><option value="single">Single saber</option></select></label>
-          <label>Rival defense<select id="labDefense"><option value="open">Open</option><option value="held">Held guard</option></select></label>
-          <label>Rival facing<select id="labStance"><option value="facing">Toward you</option><option value="side">Side-on</option><option value="away">Away</option></select></label>
-          <label class="range"><span>Target distance <output id="labRangeValue">108 px</output></span><input type="range" id="labRange" min="42" max="156" step="1" value="108"></label>
-          <label>Attack from<select id="labEntry"><option value="set">Set stance</option><option value="step">Side step</option><option value="turn">Turning step</option><option value="guard">Guard release</option></select></label>
-          <label>Custom target angle (degrees)<input id="labAngle" type="number" step="any" inputmode="decimal" placeholder="Use bearing above" aria-describedby="labAngleHint"></label>
-          <label>Practice speed<select id="labPace"><option value="1" selected>Normal</option><option value="0.5">Half speed</option><option value="0.25">Quarter speed</option></select></label>
-          <label class="check"><input type="checkbox" id="labLoop"> Loop drill</label>
-          <p id="labAngleHint" class="notes two">0° is east. Angles increase clockwise. Leave blank for the preset bearing.</p>
+          <label>Form<select id="labForm"></select></label>
+          <label>Saber<select id="labWeapon"><option value="single">Single</option></select></label>
+          <label>Target Guard<select id="labDefense"><option value="open">Open</option><option value="held">Held</option></select></label>
+          <label>Target Facing<select id="labStance"><option value="facing">Toward</option><option value="side">Side-On</option><option value="away">Away</option></select></label>
+          <label class="range"><span>Distance <output id="labRangeValue">108 px</output></span><input type="range" id="labRange" min="42" max="156" step="1" value="108"></label>
+          <label>Start From<select id="labEntry"><option value="set">Set Stance</option><option value="step">Side Step</option><option value="turn">Turning Step</option><option value="guard">Guard Release</option></select></label>
+          <label>Angle<input id="labAngle" type="number" step="any" inputmode="decimal" placeholder="Bearing" aria-describedby="labAngleHint"></label>
+          <label>Speed<select id="labPace"><option value="1" selected>1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select></label>
+          <label class="check"><input type="checkbox" id="labLoop"> Loop</label>
+          <p id="labAngleHint" class="notes two" hidden>Degrees, 0° east, clockwise</p>
         </div>
       </details>
       <details id="labResultPanel" class="extra"><summary id="labResultSummary">Results</summary>
-        <ol id="labResults" class="results" aria-label="Attack results"></ol>
-        <p class="notes">Full circle tests eight bearings. Weapon comparison holds the selected style, form, and saber move constant. Practice never changes saves or Elo.</p>
+        <ol id="labResults" class="results" aria-label="Results"></ol>
       </details>
     </div>
   </section>

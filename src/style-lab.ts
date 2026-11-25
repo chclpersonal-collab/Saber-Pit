@@ -40,9 +40,14 @@ const normalizedDegrees=(n:number)=>{const x=n%360;return x<0?x+360:x||0;};
 const entryNames:Record<string,string|undefined>={advance:'on the advance',retreat:'on the retreat',lateral:'out of a side step',guard:'out of guard',pivot:'during a pivot'};
 const bearingName=(r:Pick<LabRound,'customDegrees'|'slot'>)=>r.customDegrees===null?STYLE_LAB_BEARINGS[r.slot].label:((Math.round(r.customDegrees*1000)/1000)%360)+'°';
 const travelNotes={
- king:'Tight pivot · free travel',queen:'Wide turn · free travel',rook:'Free travel · straight attacks',
- bishop:'Free travel · diagonal attacks',knight:'Free travel · flank attacks',pawn:'Free travel · short forward attack',
+ king:['Tight Pivot','Free Travel'],queen:['Wide Turn','Free Travel'],rook:['Free Travel','Straight'],
+ bishop:['Free Travel','Diagonal'],knight:['Free Travel','Flank'],pawn:['Free Travel','Short Forward'],
 };
+const styleHints:Record<string,string>={king:'Short reach, broad cut',queen:'Turn to face any bearing',rook:'Longest reach on straight lanes',bishop:'Reach across diagonal lanes',knight:'Full reach from a flank',pawn:'Short forward strike'};
+/** Facts in a row: separate v6-meta spans instead of a "·" chain. */
+function meta(el:HTMLElement,...parts:readonly(string|number|false|null|undefined)[]){
+ el.replaceChildren(...parts.filter(p=>p!==false&&p!==null&&p!==undefined&&p!=='').flatMap((p,i)=>{const s=document.createElement('span');s.className='v6-meta';s.textContent=String(p);return i?[' ',s]:[s];}));
+}
 const startingRange={king:68,queen:108,rook:100,bishop:92,knight:80,pawn:65};
 const formOf=(id:unknown):SaberForm=>Object.hasOwn(ARCADE_FORMS,id as PropertyKey)?id as SaberForm:'shii_cho';
 const selectedMoves=(form:SaberForm):Move[]=>arcadeMovesFor(form,14,{tactical:true,rankCuts:true,circuitCuts:true,arenaCuts:true,exchangeVariety:true,minorMoves:true}).filter((m:Move)=>m.mapAction!=='force');
@@ -74,7 +79,7 @@ export function createStyleLabRound(input:LabOptions={}){
  const [fighter,dummy]=g.fighters;
  Object.assign(fighter,{x:CX,y:CY,face:drill==='strike'?spin:0});
  Object.assign(dummy,{x:drill==='jump'?142:drill==='walk'?CX+210:CX+Math.cos(bearing)*range,y:drill==='jump'?444:drill==='walk'?CY+80:CY+Math.sin(bearing)*range,face:guardFace(bearing,stance),
-   think:99,action:held?'guard':'stagger',actionDuration:40,displayName:'Training rival',
+   think:99,action:held?'guard':'stagger',actionDuration:40,displayName:'Target',
    ...(held?{actionTime:.2,parryTime:0,guardBearing:guardFace(bearing,stance),guardDirected:true,guardLane:'center'}:{})});
  const state:LabState={phase:drill==='jump'?'jumping':drill==='walk'?'walking':'turning',elapsed:0,remainder:0,committed:false,lastId:0,outcome:null,window:null,settleAt:null};
  return Object.assign({style,form,slot,bearing,customDegrees,entry,range,stance,weapon,move,g,fighter,dummy,drill},state);
@@ -89,10 +94,10 @@ function inspectRelease(r:LabRound):ReleaseWindow|null{
 function classify(r:LabRound){
  if(r.outcome)return;
  const w=r.window;
- if(!w){r.outcome={id:'miss',label:'No contact'};return;}
- if(!w.lane||!w.angle)r.outcome={id:'lane',label:'Outside attack lane'};
- else if(w.distance>w.reach)r.outcome={id:'range',label:'Out of reach'};
- else r.outcome={id:'miss',label:'No contact'};
+ if(!w){r.outcome={id:'miss',label:'No Contact'};return;}
+ if(!w.lane||!w.angle)r.outcome={id:'lane',label:'Off Lane'};
+ else if(w.distance>w.reach)r.outcome={id:'range',label:'Out of Reach'};
+ else r.outcome={id:'miss',label:'No Contact'};
 }
 export function stepStyleLabRound(r:LabRound,dt=TICK){
  if(r.phase==='done'||!Number.isFinite(dt)||dt<=0)return r;
@@ -115,7 +120,7 @@ export function stepStyleLabRound(r:LabRound,dt=TICK){
      if(r.settleAt!==null&&r.elapsed>=r.settleAt||r.elapsed>=2.4){
        const travel=Math.round(Math.hypot(f.x-CX,f.y-CY));
        r.outcome=r.jumpKind?{id:'jump',label:r.jumpLabel+' · '+Math.round(r.jumpPeak)+' px high · '+travel+' px traveled'}:
-         {id:'miss',label:'Jump did not start'};
+         {id:'miss',label:'No Jump'};
        r.phase='done';
      }
      continue;
@@ -125,8 +130,8 @@ export function stepStyleLabRound(r:LabRound,dt=TICK){
      if(r.elapsed>=.56){
        const dx=f.x-CX,dy=f.y-CY,travel=Math.hypot(dx,dy);
        const actual=travel<6?null:wrap(Math.round(Math.atan2(dy,dx)/(Math.PI/4)));
-       r.outcome={id:actual===null?'lane':'walk',label:actual===null?'No step in that lane':
-         'Moved '+(r.customDegrees===null?STYLE_LAB_BEARINGS[actual].label:bearingName(r))+' · '+Math.round(travel)+' px'};
+       r.outcome={id:actual===null?'lane':'walk',label:actual===null?'No Step':
+         'Moved '+(r.customDegrees===null?STYLE_LAB_BEARINGS[actual].label:bearingName(r))+' '+Math.round(travel)+' px'};
        r.phase='done';
      }
      continue;
@@ -162,17 +167,17 @@ export function stepStyleLabRound(r:LabRound,dt=TICK){
        };
      }
      if(e.fighterId===f.id&&e.targetId===d.id&&['hit','launch','ko'].includes(e.kind)){
-       r.outcome={id:'hit',label:'Confirmed hit'};
+       r.outcome={id:'hit',label:'Hit'};
        r.damage=Math.round((r.damage??0)+(Number.isFinite(e.damage)?e.damage!:0));
        // Measure motion of the rival's body, not the swing trail or screen shake.
        r.hitOrigin??={x:d.x,y:d.y,measureAt:r.elapsed+.18};
      }
      if(e.fighterId===f.id&&e.kind==='expanded_contact'){
-       const verb: string|undefined=({anchor:'Slowed rival',veil:'Veiled rival',siphon:'Stamina siphon landed',echoStep:'Echo Step activated'} as Record<string,string|undefined>)[e.effect!];
+       const verb: string|undefined=({anchor:'Target Slowed',veil:'Target Veiled',siphon:'Siphon Hit',echoStep:'Echo Step'} as Record<string,string|undefined>)[e.effect!];
        if(verb)r.outcome={id:'effect',label:verb};
      }
-     if(e.fighterId===f.id&&e.kind==='force_ward'&&!e.targetId)r.outcome={id:'effect',label:'Ward raised'};
-     if(e.fighterId===d.id&&e.targetId===f.id&&['parry','block'].includes(e.kind))r.outcome={id:'guard',label:'Defended'};
+     if(e.fighterId===f.id&&e.kind==='force_ward'&&!e.targetId)r.outcome={id:'effect',label:'Ward Up'};
+     if(e.fighterId===d.id&&e.targetId===f.id&&['parry','block'].includes(e.kind))r.outcome={id:'guard',label:'Blocked'};
    }
    if(r.hitOrigin&&r.elapsed+1e-9>=r.hitOrigin.measureAt&&r.knockbackDistance===undefined)
      r.knockbackDistance=Math.round(Math.hypot(d.x-r.hitOrigin.x,d.y-r.hitOrigin.y));
@@ -206,13 +211,13 @@ function wire(){
  const timing=$('labTiming'),family=$('labMoveFamily'),pace=$('labPace'),defense=$('labDefense'),loop=$('labLoop'),pauseButton=$('labPause'),stepButton=$('labStep');
  function showTiming(data?:Timing|null){
    timing.hidden=!data;if(!data)return;
-   timing.textContent=data.windupMs+' ms windup · '+data.afterReleaseMs+' ms after release · '+data.stamina+' stamina · '+data.reach+' px reach';
+   meta(timing,data.windupMs+' ms Windup',data.afterReleaseMs+' ms Recovery',data.stamina+' STA',data.reach+' px Reach');
  }
  let slot=0,round:LabRound,stage:ReturnType<typeof createArcadeStage>,isRunning=false,queue:number[]=[],auto:'full'|'compare'|null=null,priorAngle:number|null=null,lastFrame=0,hold=0,drill:LabDrill='strike',comparison:ComparisonPane[]=[],comparisonNotes:(LabResult|null)[]=[],compareType:'style'|'weapons'='style',compareOptions:readonly CompareOptions[]=STYLE_LAB_COMPARE,originalSlot=0,cellNotes=new Map<number,LabResult>(),paused=false,steps=0;
  const opt=(name:string,value:string)=>new Option(name,value);
  weaponSet.replaceChildren(...ARCADE_SABER_OPTIONS.map(o=>opt(o.label,o.id)));weaponSet.value='single';
  styleSet.replaceChildren(...styles.map(id=>opt(ARCADE_CHESS_STYLES[id].label,id)));styleSet.value='queen';
- formSet.replaceChildren(...Object.entries(ARCADE_FORMS as Record<string,{label?:string;name:string}>).map(([id,s])=>opt(s.label??s.name,id)));formSet.value='shii_cho';
+ formSet.replaceChildren(...Object.entries(ARCADE_FORMS as Record<string,{name:string}>).map(([id,s])=>opt(s.name,id)));formSet.value='shii_cho';
  function moveList(){
    const chosen=moveSet.value;
    const freeAvailable=styleLabMoveList(formSet.value,weaponSet.value,'free_hand').length>0;
@@ -222,7 +227,7 @@ function wire(){
    if([...moveSet.options].some(o=>o.value===chosen))moveSet.value=chosen;
    refreshWeaponCompare(!isRunning);
    $('labStrike').textContent=family.value==='force'?'Cast':'Strike';
-   $('labSpin').title=family.value==='force'?'Test the cast from all eight bearings':'Test the strike from all eight bearings';
+   $('labSpin').title='All 8 bearings';
  }
  function options(){return {form:formSet.value,style:styleSet.value,slot,technique:moveSet.value,
    range:Number(rangeSet.value),weapon:weaponSet.value,stance:stanceSet.value,defense:defense.value,fromBearing:priorAngle,drill,
@@ -232,12 +237,8 @@ function wire(){
  buttons.addEventListener('change',()=>{if(!isRunning){comparison=[];comparisonNotes=[];cellNotes.clear();results();slot=wrap(Number(buttons.value));angleSet.value='';prepare(false);}});
  function detail(){
    const style=auto==='compare'&&round?round.style:styleSet.value as LabStyle;
-   $('labHint').textContent=style==='queen'?
-     'Wide turn. Strike in any direction by turning to face it; each individual swing still has a limit.':
-     style==='king'?'Tight pivot. Turn to any bearing, with short reach and a broad cut.':
-     style==='pawn'?'Move freely, then turn to line up a short forward strike. There is no capture move.':
-     ARCADE_CHESS_STYLES[style].hint;
-   $('labTravel').textContent=travelNotes[style];
+   $('labHint').textContent=styleHints[style]??'';
+   meta($('labTravel'),...travelNotes[style]);
    $('labRangeValue').textContent=rangeSet.value+' px';
  }
  function results(){
@@ -259,13 +260,13 @@ function wire(){
    round=createStyleLabRound({...options(),drill:go?drill:'strike'});
    stage=createArcadeStage(round.g.width,round.g.height,1,{mapId:'underpit',terrain:round.g.terrain});
    fx.reset();swingWaves.reset();hold=0;isRunning=go;showTiming(null);
-   announce(go?auto==='compare'?'Comparing '+ARCADE_CHESS_STYLES[round.style].label+' · Open Cut':(drill==='jump'?'Jumping toward ':drill==='walk'?'Walking toward ':'Turning toward ')+bearingName(round)+'…':'Ready to practice.');
+   announce(go?auto==='compare'?'Comparing '+ARCADE_CHESS_STYLES[round.style].label:(drill==='jump'?'Jumping ':drill==='walk'?'Walking ':'Turning ')+bearingName(round):'Ready');
    directions();detail();
  }
  function refreshWeaponCompare(on:boolean){
    const available=styleLabCanCompareWeapons(family.value);
    weaponCompare.disabled=!on||!available;
-   weaponCompareHint.hidden=available;
+   weaponCompareHint.hidden=true;
  }
  function enabled(on:boolean){
    for(const el of [styleSet,formSet,moveSet,rangeSet,stanceSet,weaponSet,family,defense,angleSet,entrySet,$('labStrike'),$('labSpin'),$('labWalk'),$('labJump'),$('labCompare')])el.disabled=!on;
@@ -292,15 +293,14 @@ function wire(){
      return {round:r,fx:createArcadeFX(),waves:createArcadeSwingWaves(),stage:createArcadeStage(W,H,1,{mapId:'underpit',terrain:r.g.terrain})};
    });
    comparisonNotes=[];cellNotes.clear();results();
-   $('labResultSummary').textContent='Comparison results';
-   $('labTravel').textContent='Same Open Cut · Simultaneous comparison';
-   if(type==='weapons')$('labTravel').textContent='Same move · Three weapon lengths';
-   announce(type==='weapons'?'Shoto, Single and Greatsaber · Same move':'King, Queen and Bishop · Same Open Cut');
+   $('labResultSummary').textContent='Comparison';
+   if(type==='weapons')meta($('labTravel'),'Same Move','3 Sabers');else meta($('labTravel'),'Same Open Cut','3 Styles');
+   announce(type==='weapons'?'Comparing sabers':'Comparing styles');
    $('labResultPanel').open=true;isRunning=true;enabled(false);
  }
  function stop(){
    if(auto==='compare'){slot=originalSlot;comparison=[];comparisonNotes=[];results();}
-   isRunning=false;auto=null;queue=[];hold=0;enabled(true);announce('Stopped. Choose a bearing to try again.');
+   isRunning=false;auto=null;queue=[];hold=0;enabled(true);announce('Stopped');
  }
  function paintedRound(r:LabRound){
    const previous=r.phase==='done'?null:r.previous;
@@ -380,22 +380,22 @@ function wire(){
        pane.fx.observe(pane.round.g.events);pane.fx.update(motionDt,reduced);
        if((pane.round.phase as LabState['phase'])==='done'){
          const r=pane.round, t=r.timing;
-         comparisonNotes[i]=compareType==='weapons'&&t?{...r.outcome!,label:r.outcome!.label+' · '+t.reach+' px · '+t.windupMs+' ms · '+t.stamina+' stamina'}:r.outcome;
+         comparisonNotes[i]=compareType==='weapons'&&t?{...r.outcome!,label:r.outcome!.label+', '+t.reach+' px, '+t.windupMs+' ms, '+t.stamina+' STA'}:r.outcome;
          results();
        }
      }
      if(comparison.every(pane=>pane.round.phase==='done')){
        isRunning=false;auto=null;slot=originalSlot;enabled(true);
-       announce(compareType==='weapons'?'Weapon comparison complete. Check reach, windup and stamina.':'Compared King, Queen and Bishop · Same Open Cut');
+       announce('Comparison done');
      }
    }else if(isRunning){
      if(round.phase!=='done'){
        stepStyleLabRound(round,motionDt);fx.observe(round.g.events);
-       if(round.phase==='striking'&&round.title)announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label+' · ':'')+round.title+' · '+bearingName(round));
+       if(round.phase==='striking'&&round.title)announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label+' ':'')+round.title+', '+bearingName(round));
        if((round.phase as LabState['phase'])==='done'){
          showTiming(auto?null:round.timing);
          if(round.drill==='strike'&&round.customDegrees===null){cellNotes.set(slot,round.outcome!);results();}
-         const shown=(round.damage!>0?' · '+round.damage+' damage':'')+(round.window?' · '+Math.round(round.window.distance)+' px at release':'')+(round.knockbackDistance!>0?' · '+round.knockbackDistance+' px knockback':'')+(round.startedFrom?' · '+round.startedFrom:'');
+         const shown=round.damage!>0?', '+round.damage+' DMG':'';
          announce((auto==='compare'?ARCADE_CHESS_STYLES[round.style].label:bearingName(round))+': '+round.outcome!.label+shown);
        }
      }else if((hold+=dt)>.30){
@@ -409,7 +409,7 @@ function wire(){
          isRunning=false;
          if(auto==='full'){
            const hits=[...cellNotes.values()].filter(note=>note.id==='hit'||note.id==='effect').length;
-           announce('Full circle complete: '+hits+' of 8 bearings succeeded.');
+           announce('Full Circle: '+hits+'/8 hits');
          }
          auto=null;enabled(true);
        }
@@ -418,7 +418,7 @@ function wire(){
    fx.update(motionDt,reduced);draw(motionDt);requestAnimationFrame(frame);
  }
  $('labStrike').addEventListener('click',()=>start(false));$('labSpin').addEventListener('click',()=>start(true));$('labStop').addEventListener('click',stop);$('labCompare').addEventListener('click',()=>startCompare());$('labCompareWeapons').addEventListener('click',()=>startCompare('weapons'));$('labWalk').addEventListener('click',()=>start(false,'walk'));$('labJump').addEventListener('click',()=>start(false,'jump'));
- function togglePause(){if(!isRunning)return;paused=!paused;steps=0;enabled(false);announce(paused?'Paused. Step moves one frame at quarter speed.':'Resumed.');}
+ function togglePause(){if(!isRunning)return;paused=!paused;steps=0;enabled(false);announce(paused?'Paused':'Resumed');}
  function step(){if(isRunning&&paused)steps++;}
  pauseButton.addEventListener('click',togglePause);stepButton.addEventListener('click',step);
  for(const el of [styleSet,formSet,moveSet,rangeSet,stanceSet,weaponSet,family,defense,angleSet,entrySet])el.addEventListener(el===rangeSet?'input':'change',()=>{
