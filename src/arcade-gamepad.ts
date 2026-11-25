@@ -104,3 +104,37 @@ export const P2_KEYS: Readonly<Record<string,PadAction>>=Object.freeze({
   arrowup:'up',arrowdown:'down',arrowleft:'left',arrowright:'right',
   '.':'strike','/':'heavy',',':'guard',';':'dash','l':'jump','m':'feint','n':'force',"'":'technique',
 });
+
+/** Held-through guard. After Resume, whatever a pad was already holding stays neutral until it lets go:
+ *  a button until it is released, a stick until it returns to centre. A fresh press or push then works at once. */
+export function createPadLatch(){
+  const latched=new Map<number,{held:Set<PadAction>;stick:boolean;look:boolean}>();
+  return {
+    /** Latch everything currently held on every pad. */
+    hold(pads:readonly PadState[]){
+      latched.clear();
+      for(const p of pads)latched.set(p.index,{held:new Set(p.held),stick:Boolean(p.stick.x||p.stick.y),look:Boolean(p.look)});
+    },
+    /** Called once a frame with the raw read: anything released or recentred is free again. */
+    update(pads:readonly PadState[]){
+      const live=new Map(pads.map(p=>[p.index,p]));
+      for(const [index,l] of latched){
+        const p=live.get(index);
+        if(!p){latched.delete(index);continue;}
+        for(const a of l.held)if(!p.held.has(a))l.held.delete(a);
+        if(!(p.stick.x||p.stick.y))l.stick=false;
+        if(!p.look)l.look=false;
+        if(!l.held.size&&!l.stick&&!l.look)latched.delete(index);
+      }
+    },
+    /** The pads as the fighters should see them. */
+    filter(pads:readonly PadState[]):PadState[] {
+      return pads.map(p=>{
+        const l=latched.get(p.index);
+        if(!l)return p;
+        return {...p,held:new Set([...p.held].filter(a=>!l.held.has(a))),stick:l.stick?{x:0,y:0}:p.stick,look:l.look?null:p.look};
+      });
+    },
+    get active(){return latched.size>0;},
+  };
+}

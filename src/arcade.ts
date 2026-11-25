@@ -53,7 +53,7 @@ import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
 import {mountVersusTouch} from './arcade-vs-touch.js';
-import {createPadReader,createPadSeats,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
+import {createPadReader,createPadSeats,createPadLatch,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
 interface Point{x:number;y:number}
@@ -128,7 +128,7 @@ hudText.addEventListener('change',()=>{
 let arenaBindings=loadKeyBindings(),keyMap=keyMapFrom(arenaBindings);
 const heldArenaKeys=createHeldArenaKeys(keys);
 // Controllers and local versus. Nothing here is saved: Two players is chosen per visit.
-const padReader=createPadReader(), padSeats=createPadSeats();
+const padReader=createPadReader(), padSeats=createPadSeats(), padLatch=createPadLatch();
 let pads:PadState[]=[], padStatsHeld=false, localVersus=false;
 const p2keys=new Set<string>(), p2pulse=new Set<string>(), heldP2Keys=createHeldArenaKeys(p2keys);
 const versusLive=()=>view==='game'&&game?.config.localVersus===true;
@@ -258,7 +258,7 @@ function currentTouchAim(){
   touchAim=null;syncTouchAim();return null;
 }
 function inputs(){
-  const {p1,p2}=padSeats.assign(pads,versusLive());
+  const seats=padSeats.assign(pads,versusLive()),p1=padLatch.filter(seats.p1),p2=padLatch.filter(seats.p2);
   const me=game.fighters.find(f=>f.control&&f.team===0);
   const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
   const none={held:new Set<string>(),pulse:new Set<string>(),stick:{x:0,y:0}};
@@ -280,8 +280,11 @@ function pollPads(){
   syncVersusTouch();
   if(!pads.length&&!padStatsHeld)return;
   if(pads.length)document.documentElement.dataset.arenaPad='true';
-  if(view==='game'&&mode!=='watch'&&mode!=='command'&&game.phase==='playing'&&pads.some(p=>p.pausePressed))pause(!paused);
-  const peek=view==='game'&&!paused&&game.phase==='playing'&&pads.some(p=>p.stats);
+  padLatch.update(pads);
+  // A dialog over the match (Settings, Controls, stats, guide) owns the pad: Menu is consumed, pause and the scoreboard stay as they are.
+  const dialogOpen=Boolean(settingsDialog?.open||savedStatsDialog?.open||$('keysDialog').open||$('statsDialog').open||$('rankDialog').open||$('guide').open);
+  if(!dialogOpen&&view==='game'&&mode!=='watch'&&mode!=='command'&&game.phase==='playing'&&pads.some(p=>p.pausePressed))pause(!paused);
+  const peek=!dialogOpen&&view==='game'&&!paused&&game.phase==='playing'&&pads.some(p=>p.stats);
   if(peek!==padStatsHeld){padStatsHeld=peek;scoreboard.hold(peek);}
 }
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
@@ -504,7 +507,9 @@ for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
 }
 function pause(value:boolean,{focus=true}={}){
   if(view!=='game'||game.phase!=='playing')return;
-  paused=value;clearInput();scoreboard.close();sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
+  paused=value;clearInput();scoreboard.close();
+  // Anything a pad holds through Resume stays neutral until it is released or recentred.
+  if(!paused)padLatch.hold(pads);sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
   $('pause').textContent=paused?'Resume':'Pause';
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
