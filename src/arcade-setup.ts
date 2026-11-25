@@ -46,9 +46,10 @@ export function arenaWorldSize(mapId:string,size:keyof typeof SIZE){
 export const presets={
   duel:{participation:'play',teamSizes:[1,1],rule:'elimination'},
   squad:{participation:'play',teamSizes:[3,3],rule:'elimination'},
-  // v6: every preset is played. Showdown puts you in Blue's slot 1; the Master trial makes you the SSS+ V.
+  // v6: every preset is played. Showdown puts you in Blue's slot 1; the Master trial makes you the SSS+ V,
+  // on the long clock: fifteen fighters take time to put down, even for a master.
   watch:{participation:'play',teamSizes:[5,5],rule:'elimination'},
-  master:{participation:'play',teamSizes:[1,15],rule:'elimination',startingRanks:['SSS+V','F']}
+  master:{participation:'play',teamSizes:[1,15],rule:'elimination',startingRanks:['SSS+V','F'],duration:150}
 };
 function pick<T,D>(value:unknown,choices:readonly T[],def:D):T|D{return choices.includes(value as T)?value as T:def;}
 const arenaChessStyle=(value:unknown)=>{
