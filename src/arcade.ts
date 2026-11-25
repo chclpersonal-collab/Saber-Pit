@@ -1187,6 +1187,7 @@ function showMoveStats(){
   $('fighterAppearanceDetails').textContent=appearance?
     'Gender: '+appearance.gender+' · Look: '+appearance.appearance+' · '+appearance.source:'';
   const moves=Object.entries(f?.moves??{}).filter(([id,n])=>n>0&&typeof id==='string').sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const movesUsed=document.getElementById('movesUsed');if(movesUsed)movesUsed.hidden=!moves.length;
   for(const [id,defense] of [['attackMoves',false],['defenseMoves',true]] as const){
     const rows=moves.filter(([key])=>defense===Boolean(defenseNames[key]||ARCADE_TECHNIQUES[key]?.tactical==='moving_guard')).map(([key,n])=>{
       const row=document.createElement('div');

@@ -229,7 +229,7 @@ body[data-loomen-boot] #app{position:fixed!important;inset:0;pointer-events:none
       <dl class="fighter-damage" aria-label="Selected fighter damage this round"><div><dt>Damage dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>Damage taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
       <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
       
-      <details class="recent-events"><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
+      <details class="recent-events" id="movesUsed" open><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
     </section>
     <div class="report-layout">
       <section><h3>This round</h3><table aria-label="This round totals"><thead><tr><th scope="col">Stat</th><th class="blue" scope="col">Blue</th><th class="pink" scope="col">Pink</th></tr></thead><tbody id="roundStats"></tbody></table></section>
