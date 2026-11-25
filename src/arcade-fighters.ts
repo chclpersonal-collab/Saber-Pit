@@ -31,7 +31,9 @@ type Fighter={
  rankFootwork?:{path?:string;bearing?:number}|null;recoveryFlow?:boolean;saberOff?:boolean;saberPhase?:string;saberPhaseChangedAt?:number;staffLead?:string|null;
  stanceFlow?:boolean;styleChoreo?:boolean;styleTravel?:boolean;trakataIgnitedAt?:number;weaponFlow?:boolean;
  [WALK_SOURCE]?:{actor?:object;dx?:number;dy?:number;speed?:number};
+ crowd?:{persona?:string;pose?:CrowdPoseCue|null}|null;
 };
+type CrowdPoseCue={kind:string;at:number;until:number};
 type Rig=ReturnType<typeof sampleArcadeFighter>;
 type Leg=Rig['legs'][number];
 type StyleSpin={style:string;amplitude:number;yaw:number;face:number;torsoScale:number;cloth:number;clothSide:number};
@@ -2143,6 +2145,56 @@ export function sampleArcadeRegionalPose(f:Fighter,r:PaintRig,time:number){
     legs:onLeg?r.legs.map(leg=>leg.side===(right?0:1)?{...leg,k:offset(leg.k,wave*x*12,wave*9)}:leg):r.legs};
 }
 
+// v6 crowd AI personality, presentation only: a small idle stance per temperament, and a brief flinch,
+// cower, taunt or victory carriage. The whole upper body (and the blade with it) moves as one, so no
+// joint stretches. Fighters without a crowd mind (every classic mode) are returned untouched.
+const crowdPoseSeen=new WeakMap<CrowdPoseCue,number>();
+const CROWD_STANCE:Readonly<Record<string,readonly [number,number,number]>>={
+  // [forward lean, drop, weapon lift] in px
+  reckless:[3.5,0,0],coward:[-2.5,2.5,-1],showoff:[-1,-2.5,0],tactician:[0,0,-3],loyal:[0,0,0],opportunist:[1.5,2.2,0],grudge:[2.5,.5,-1],
+};
+const UPPER=['head','helmet','shoulder','frontElbow','backElbow','hand','backHand','blade','offBlade','emitter','offEmitter'] as const;
+function shiftUpper(r:PaintRig,dx:number,dy:number,weaponLift=0,headX=0,headY=0){
+  const out:Record<string,unknown>={...r};
+  for(const key of UPPER){
+    const p=r[key as keyof PaintRig] as Point|null|undefined;
+    if(!p||typeof p.x!=='number'||typeof p.y!=='number')continue;
+    const weapon=key==='hand'||key==='blade'||key==='emitter'||key==='offBlade'||key==='offEmitter'||key==='frontElbow';
+    const head=key==='head'||key==='helmet';
+    out[key]=P(p.x+dx+(head?headX:0),p.y+dy+(weapon?weaponLift:0)+(head?headY:0));
+  }
+  return out as PaintRig;
+}
+export function sampleArcadeCrowdPose(f:Fighter,r:PaintRig,time:number){
+  const mind=f.crowd;
+  if(!mind||r.regionalFall||r.action==='ko'||f.alive===false)return r;
+  const fwd=r.hdx||1, cue=mind.pose;
+  if(cue&&isFinite(time)){
+    let started=crowdPoseSeen.get(cue);
+    if(started===undefined||time<started){started=time;crowdPoseSeen.set(cue,started);}
+    const age=time-started, span=Math.max(.05,cue.until-cue.at);
+    if(age<span){
+      const hold=Math.min(1,age/.12)*(age>span-.15?Math.max(0,(span-age)/.15):1);
+      const w=cue.kind==='flinch'?(r.reducedMotion?.5:Math.sin(Math.PI*clamp(age/span))):cue.kind==='victory'?Math.min(1,age/.3):hold;
+      if(cue.kind==='flinch')return shiftUpper(r,-fwd*6*w,4*w,2*w,-fwd*2*w,1*w);
+      if(cue.kind==='cower')return shiftUpper(r,-fwd*3*w,8*w,4*w,0,2*w);
+      if(cue.kind==='taunt'){
+        const raised=shiftUpper(r,-fwd*2*w,-3*w,7*w,-fwd*2*w,-1*w);
+        // Free hand beckons: lift it toward the shoulder (single blades only, the other hand is busy otherwise).
+        if(!r.staff&&!r.offBlade&&f.gear?.weapon!=='orbit'&&raised.backHand&&raised.shoulder){
+          const bh=raised.backHand;raised.backHand=P(bh.x+fwd*6*w,bh.y-14*w);
+          if(raised.backElbow)raised.backElbow=P(raised.backElbow.x+fwd*3*w,raised.backElbow.y-6*w);
+        }
+        return raised;
+      }
+      if(cue.kind==='victory')return shiftUpper(r,0,-3*w,-16*w,0,-1*w);
+    }
+  }
+  const quiet=r.action==='idle'||r.action==='walk'||r.action==='guard';
+  const stance=quiet&&mind.persona?CROWD_STANCE[mind.persona]:undefined;
+  return stance&&(stance[0]||stance[1]||stance[2])?shiftUpper(r,fwd*stance[0],stance[1],stance[2]):r;
+}
+
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
   const authored=sampleArcadePresentation(f,physical);
   if(ghost)return authored;
@@ -2151,7 +2203,8 @@ export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number,
   const impact=sampleArcadeImpactPose(f,air,time);
   const recovery=sampleArcadeRecoveryPose(f,impact,time);
   const settled=samplePeasantSoles(f,physical.orbitBlades?recovery:sampleArcadeBladeInterruption(f,recovery,time),time);
-  return sampleArcadeRegionalPose(f,settled,time);
+  const regional=sampleArcadeRegionalPose(f,settled,time);
+  return f.crowd?sampleArcadeCrowdPose(f,regional,time):regional;
 }
 
 export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOptions={}) {

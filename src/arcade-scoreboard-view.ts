@@ -31,6 +31,7 @@ export function renderArenaScoreboard(root:HTMLElement,model:ScoreboardModel){
       const row=el('tr',undefined,[r.me?'me':'',r.ko?'ko':''].filter(Boolean).join(' ')||undefined);
       const name=el('th');name.scope='row';
       name.append(el('span',undefined,'sb-dot '+team.side),el('span',r.rank,'sb-rank'),el('span',r.name,'sb-name'));
+      if(r.tag){const tag=el('span',r.tag,'sb-tag');tag.title='Temperament';name.append(tag);}
       if(r.me)name.append(el('span',' (you)','sr'));
       if(r.ko)name.append(el('span',' (down)','sr'));
       row.append(name,el('td',r.k),el('td',r.d),el('td',r.dmg.toLocaleString('en-US')),el('td',r.elo));

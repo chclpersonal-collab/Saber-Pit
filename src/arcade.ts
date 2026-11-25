@@ -44,6 +44,8 @@ import {arcadeHeroMarkers,drawArcadeHeroMarkers} from './arcade-hero-markers.js?
 import {arenaNode as $,readTouchPrefs,touchPrefsKey,arenaInputFrame} from './arcade-ui-input.js';
 import {createHeldArenaKeys,isEditableTarget,keyLabel,keyMapFrom,loadKeyBindings} from './arcade-keys.js';
 import {buildArenaScoreboard} from './arcade-scoreboard.js';
+import {crowdPersonaOf,CROWD_PERSONA_LABELS} from './arcade-crowd-ai.js';
+import {createArcadeBarks} from './arcade-crowd-barks.js';
 import {mountArenaScoreboard} from './arcade-scoreboard-view.js';
 import {buildRoundResult} from './arcade-results.js';
 import {renderRoundResult,renderResultMeta} from './arcade-results-view.js';
@@ -153,7 +155,8 @@ const scoreboard=mountArenaScoreboard({
   model:()=>view==='game'&&game?buildArenaScoreboard({
     fighters:game.fighters.map(f=>({id:f.id,team:f.team,slot:f.slot,control:f.control,alive:f.alive,
       name:f.displayName??formName(f.form),rank:gradeDisplayLabel(f.career?.grade??'F'),
-      kills:f.stats?.kills,deaths:f.stats?.deaths,damage:f.stats?.damage,slotRating:roundRatings[f.id],heroElo:f.heroElo})),
+      kills:f.stats?.kills,deaths:f.stats?.deaths,damage:f.stats?.damage,slotRating:roundRatings[f.id],heroElo:f.heroElo,
+      persona:crowdPersonaLabel(f)})),
     rule:game.config.rule,mapSize:String(matchSetup.mapSize??''),mapLabel:arenaFixedMapSize(matchSetup.mapId)?field(ARCADE_MAPS,matchSetup.mapId)?.[0]:undefined,round,secondsLeft:game.limit-game.time,rated:roundRated,
     objective:game.objective?.target?[game.objective.score[0]??0,game.objective.score[1]??0]:null,
   }):null,
@@ -161,8 +164,9 @@ const scoreboard=mountArenaScoreboard({
   onUnavailable:()=>{if(view==='game'&&game&&(paused||game.phase!=='playing')&&!document.querySelector('dialog[open]'))openStats();},
   canOpen:()=>view==='game'&&!paused&&game?.phase==='playing'&&!document.querySelector('dialog[open]:not(#scoreboard)'),
 });
-const punishLabels:Record<string,string>={whiff:'Whiff',parried:'Parry',guard_break:'Guard Break'};
-const callouts=createArcadeFloatingText();
+const punishLabels:Record<string,string>={whiff:'Whiff',parried:'Parry',guard_break:'Guard Break',terror:'Terror'};
+const callouts=createArcadeFloatingText(), barks=createArcadeBarks();
+const crowdPersonaLabel=(f:unknown)=>{const p=crowdPersonaOf(f);return p?CROWD_PERSONA_LABELS[p]:null;};
 const announce=(text:string)=>{$('announce').textContent=text;};
 /** Short labels as separate .v6-meta pills instead of a "·" chain. Empty parts are dropped. */
 function setPills(target:HTMLElement,parts:readonly (string|null|undefined|false)[]){
@@ -300,7 +304,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   document.body.dataset.seat=seat?seat.kind:'';document.body.dataset.seatLabel=seat?seat.label:'';
   career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingUnrecorded=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;padSeats.reset();$('walkTouch').setAttribute('aria-pressed','false');
   combatAudio.stopEvents();
-  view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
+  view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();barks.reset();
   clearInput();fx.reset();swingWaves.reset();
   const config=nextView==='menu'?setup:normalizeSetup(seat?{...matchSetup,mapId:seat.mapId,teamSizes:seat.teamSizes,heroPicks:[],participation:'play',playerSlot:0}:options.setup??matchSetup);
   if(nextView==='game')matchSetup=config;
@@ -331,7 +335,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   if(seat){const g=seat.game as ArcadeGame;[W,H]=[g.width,g.height];}
   game=seat?seat.game as ArcadeGame:createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
-    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,regionalInjuries:!isMenu,localVersus:!isMenu&&localVersus&&mode==='duel',perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
+    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,regionalInjuries:!isMenu,localVersus:!isMenu&&localVersus&&mode==='duel',perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,crowdAI:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,forcePools,squadTactics,laneDrill,opponentReads,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   if(novicePractice)game.config.novicePractice=true;
   const spreadDeployed=game.config.laneDrill===true;
@@ -931,6 +935,7 @@ function updateHUD(){
 function events(dt:number){
   fx.observe(game.events);fx.update(dt,reduced||crowdedLOD);
   if(view==='game')callouts.update(dt,game.events,game.fighters,{focusId:activeWatchHero()?.id});
+  if(view==='game')barks.update(dt,game.events,game.fighters);
   if(!$('heroWatch').hidden&&game.eventId>lastEvent){const fresh=game.events.filter(e=>e.id>lastEvent);heroWatchEvents=captureHeroWatch(fresh,game.fighters,heroWatchEvents);}
   const audible:ArcadeEvent[]=[];
   for(const e of game.events){
@@ -1078,6 +1083,7 @@ function draw(dt:number){
     }
   }
   fx.drawAir(ctx);
+  if(view==='game')barks.draw(ctx,{reducedMotion:reduced});
   if(view==='game')callouts.draw(ctx,{reducedMotion:reduced});
   if(touchAim?.id){
     const target=alive.find(f=>f.id===touchAim?.id);
@@ -1304,7 +1310,7 @@ function openStats(){
     h.scope='row';row.append(h,...obj.score.map((n,i)=>reportCell('td',Math.floor(n+1e-8),i?'pink':'blue')));$('roundStats').append(row);
   }
   $('reportSeed').textContent='Seed '+seed;$('copySeed').textContent='Copy Seed';
-  const eventsBy:Record<string,string>={stamina_hit:'STA Gain',expanded_release:'Technique',force_pool_release:'AI Force',hero_plan:'Hero Tactic',advanced_route:'Follow-Up',hero_reposition:'Crossfire Exit',trakata_off:'Tràkata Off',trakata_on:'Tràkata Relit',feint:'Feint',read:'Read',riposte:'Riposte',ally_blocked:'Ally Blocked',clash:'Clash',parry:'Parry',break:'Guard Break',ko:'Knockout',hazard:'Hazard Hit',capture:'Point Captured',deliver:'Relic Delivered',pickup:'Relic Pickup',drop:'Relic Dropped'};
+  const eventsBy:Record<string,string>={stamina_hit:'STA Gain',expanded_release:'Technique',force_pool_release:'AI Force',hero_plan:'Hero Tactic',advanced_route:'Follow-Up',hero_reposition:'Crossfire Exit',trakata_off:'Tràkata Off',trakata_on:'Tràkata Relit',feint:'Feint',read:'Read',riposte:'Riposte',ally_blocked:'Ally Blocked',clash:'Clash',parry:'Parry',break:'Guard Break',ko:'Knockout',hazard:'Hazard Hit',capture:'Point Captured',deliver:'Relic Delivered',pickup:'Relic Pickup',drop:'Relic Dropped',crowd_escape:'Breakout',crowd_scatter:'Scatter',crowd_flee:'Fled'};
   const namedCommit=(e:ArcadeEvent)=>(e.contact as number)>0&&!e.offhand&&combatMoveLabel(e.moveId??e.technique,e);
   const visible=game.events.filter(e=>e.punish||e.region||eventsBy[e.kind]||namedCommit(e)).slice(-8).reverse();
   const eventLabel=(e:ArcadeEvent)=>{
@@ -1327,6 +1333,7 @@ function openStats(){
     label.scope='row';if(f.displayName)label.append(reportCell('small',side+' '+(f.slot+1)),reportCell('small','Hero'));label.append(reportCell('small',formName(f.form)),reportCell('small',arcadeSaberOption(f.gear).label));
     const chess=chessReadout(f),habit=habitName(f);if(chess)label.append(reportCell('small',chess));
     if(habit)label.append(reportCell('small',habit));
+    const temper=f.control?null:crowdPersonaLabel(f);if(temper)label.append(reportCell('small',temper,'persona'));
     if(f.gear?.dualPhase)label.append(reportCell('small',f.saberPhase==='long'?'Long Blade':'Short Blade'));
     const earned=awards?.report.find(a=>a.id===f.id), summary=earned?.after??f.career;
     const rank=reportCell('td',''), record=game.records?.soldiers.find(r=>r.id===f.id);

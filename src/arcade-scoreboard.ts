@@ -12,12 +12,14 @@ export type ScoreboardFighter={
   slotRating?:unknown;
   /** A Saved Hero's own rating. */
   heroElo?:unknown;
+  /** v6 crowd AI temperament of a computer fighter (Reckless, Coward, ...): a small tag beside the name. */
+  persona?:string|null;
 };
 export type ScoreboardInput={
   fighters:readonly ScoreboardFighter[];rule:ScoreboardRule;mapSize:string;mapLabel?:string;round:number;
   secondsLeft:number;rated:boolean;objective?:readonly [number,number]|null;
 };
-export type ScoreboardRow={id:string;name:string;rank:string;k:number;d:number;dmg:number;elo:string;me:boolean;ko:boolean};
+export type ScoreboardRow={id:string;name:string;rank:string;k:number;d:number;dmg:number;elo:string;me:boolean;ko:boolean;tag?:string};
 export type ScoreboardTeam={side:'blue'|'pink';name:string;alive:number;total:number;rows:ScoreboardRow[]};
 export type ScoreboardModel={
   score:[number,number];meta:string[];round:string;rated:boolean;badge:'RATED'|'UNRATED';
@@ -55,6 +57,7 @@ export function buildArenaScoreboard(input:ScoreboardInput):ScoreboardModel {
     const rows=roster.map(f=>({
       id:f.id,slot:f.slot,name:f.name,rank:f.rank,k:count(f.kills),d:count(f.deaths),dmg:Math.round(count(f.damage)),
       elo:eloText(scoreboardElo(input.rated,f.slotRating,f.heroElo)),me:f.control,ko:!f.alive,
+      ...(f.persona&&!f.control?{tag:f.persona}:{}),
     })).sort(byScore).map(({slot:_slot,...row})=>row);
     return {side:team?'pink':'blue',name:team?'Pink':'Blue',alive:roster.filter(f=>f.alive).length,total:roster.length,rows} as ScoreboardTeam;
   }) as [ScoreboardTeam,ScoreboardTeam];
