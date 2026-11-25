@@ -731,7 +731,7 @@ test('live duels never teleport a drawn hand or blade, through the fastest real 
   assert.ok(worst.tip>60&&worst.hand>20,JSON.stringify(worst));
 });
 
-test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropped frames, and contact stays exact',async()=>{
+test('the drawn hand, blade, head and limb limits hold at 120 Hz, 30 Hz and with dropped frames, and contact stays exact',async()=>{
   const {createArcade,stepArcade}=await import('../dist/arcade-engine.js');
   const {sampleArcadeRenderRig,ARCADE_DRAWN_STEP}=await import('../dist/arcade-fighters.js');
   const {arcadeBasis}=await import('../dist/arcade-rig-projection.js');
@@ -745,13 +745,26 @@ test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropp
     ['air strike, contact .087',['ataru','soresu'],['single','dual'],8,2.8],
   ];
   const limit={hand:ARCADE_DRAWN_STEP.hand,tip:ARCADE_DRAWN_STEP.tip};
+  // Limb bones as the painter draws them (sleeve root > elbow > hand, hip > knee > foot): each length over its
+  // median in the duel. The drawn layer before the body carry (20859de) set this envelope [most, least, largest
+  // change in a frame]; the carry re-bends elbows and knees rigidly, so it keeps inside it.
+  const envelope={
+    '120 Hz':{'shoulder>elbow':[4.219,.017,1.458],'elbow>hand':[5.825,.007,1.49],'hip>knee':[3.744,.016,1.047],'knee>foot':[4.041,.02,.739]},
+    '30 Hz':{'shoulder>elbow':[4.11,.042,2.701],'elbow>hand':[4.788,.035,3.189],'hip>knee':[3.36,.041,1.2],'knee>foot':[2.932,.071,1.224]},
+    'dropped frames':{'shoulder>elbow':[3.985,.017,2.327],'elbow>hand':[6.026,.029,3.782],'hip>knee':[3.233,.038,1.695],'knee>foot':[3.335,.031,2.392]},
+  };
+  const reach=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y), bones=r=>{const o={};
+    for(const [e,h,sign] of [['frontElbow','hand',1],['backElbow','backHand',-1]]){const root={x:r.shoulder.x+sign*r.hdx*7.5,y:r.shoulder.y+5};
+      if(r[e]&&r[h]){o[e+' shoulder>elbow']=reach(root,r[e]);o[e+' elbow>hand']=reach(r[e],r[h]);}}
+    for(const l of r.legs)if(l.k){o[l.side+' hip>knee']=reach(l.hip??r.pelvis,l.k);o[l.side+' knee>foot']=reach(l.k,l.foot);}
+    return o;};
   for(const [rate,steps] of cadences){
-    let strikes=0,longest=0,longestBody=0;
+    let strikes=0,longest=0,longestBody=0;const limbs={};
     for(const [name,forms,kits,seed,seconds] of duels){
       const game=createArcade({mode:'watch',seed,teamSizes:[1,1],teamForms:forms.map(f=>[f]),startingSaberWeapon:kits,startingRanks:['SSS+V','SSS+V'],...flags});
-      const last=new Map(),carrying=new Map();let frame=0;
+      const last=new Map(),carrying=new Map(),runs=new Map();let frame=0;
       while(game.time<seconds){
-        const before=game.time;for(let s=0;s<steps[frame++%steps.length];s++)stepArcade(game,1/120);
+        const before=game.time,n=steps[frame++%steps.length];for(let s=0;s<n;s++)stepArcade(game,1/120);
         const frames=(game.time-before)*60;
         for(const f of game.fighters){
           const raw=pose(f,game.time),r=sampleArcadeRenderRig(f,raw,game.time);
@@ -774,9 +787,18 @@ test('the drawn hand, blade and head limits hold at 120 Hz, 30 Hz and with dropp
           if(r.bodyCarry>0){if(!carrying.has('body'+f.id))carrying.set('body'+f.id,game.time);longestBody=Math.max(longestBody,game.time-carrying.get('body'+f.id));}
           else carrying.delete('body'+f.id);
           last.set(f.id,{joints,side,action:raw.action});
+          if(f.alive!==false)for(const [k,v] of Object.entries(bones(r))){const id=f.id+' '+k;if(!runs.has(id))runs.set(id,[]);runs.get(id).push([frame,v]);}
         }
       }
+      for(const [id,run] of runs){
+        const sorted=run.map(x=>x[1]).sort((a,b)=>a-b),rest=sorted[sorted.length>>1],w=limbs[id.split(' ').pop()]??={most:0,least:Infinity,change:0};
+        run.forEach(([at,v],i)=>{const q=v/rest;w.most=Math.max(w.most,q);w.least=Math.min(w.least,q);
+          if(i&&run[i-1][0]===at-1)w.change=Math.max(w.change,Math.abs(q-run[i-1][1]/rest));});
+      }
     }
+    for(const [bone,[most,least,change]] of Object.entries(envelope[rate])){const w=limbs[bone];
+      assert.ok(w&&w.most<=most+.02&&w.least>=least-.002&&w.change<=change+.02,
+        `${rate}: ${bone} drawn from ${w?.least.toFixed(3)} to ${w?.most.toFixed(3)} of its length, changing ${w?.change.toFixed(3)} in a frame`);}
     assert.ok(strikes>20,`${rate}: ${strikes} contact frames`);
     assert.ok(longest<=.12+4/60,`${rate}: a carry lasted ${longest.toFixed(3)} s`);
     assert.ok(longestBody<=.3,`${rate}: a body carry lasted ${longestBody.toFixed(3)} s`);

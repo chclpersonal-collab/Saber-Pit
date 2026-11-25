@@ -2503,8 +2503,38 @@ function sampleArcadeDrawnContinuity(f:Fighter, r:PaintRig&{drawnCarry?:number},
   if(!kBody)return out;
   const moved:Record<string,unknown>={...out,bodyCarry:kBody};
   for(const key of BODY_POINTS)if(shift!.by[key])moved[key]=fromDrawn(shown[key]);
-  moved.legs=out.legs.map(leg=>{const next={...leg};for(const key of LEG_POINTS)if(shift!.by[`${leg.side}.${key}`])(next as Record<string,unknown>)[key]=fromDrawn(shown[`${leg.side}.${key}`]);return next;});
+  // Elbows and knees follow the carried anchors rigidly: each is re-bent between its carried root and its end
+  // (the hand stays on the grip path) keeping the engine pose's segment lengths and bend side, so a limb never
+  // stretches or squashes while the torso eases.
+  const shoulder=moved.shoulder as Point, pelvis=moved.pelvis as Point;
+  for(const [elbow,hand,sign] of [['frontElbow','hand',1],['backElbow','backHand',-1]] as const){
+    const e0=out[elbow] as Point|null|undefined, h=out[hand] as Point|null|undefined;
+    if(!e0||!h||shoulder===out.shoulder)continue;
+    const reach=P(sign*r.hdx*7.5,5);
+    moved[elbow]=rebend(P(out.shoulder.x+reach.x,out.shoulder.y+reach.y),e0,h,P(shoulder.x+reach.x,shoulder.y+reach.y),h);
+  }
+  moved.legs=out.legs.map(leg=>{
+    const next:Record<string,unknown>={...leg}, by=(key:string)=>shift!.by[`${leg.side}.${key}`];
+    for(const key of LEG_POINTS)if(by(key))next[key]=fromDrawn(shown[`${leg.side}.${key}`]);
+    // The hips ride on the pelvis, so they take its carry rather than one of their own.
+    const hip0=(leg as {hip?:Point}).hip;
+    if(hip0)next.hip=pelvis!==out.pelvis?P(hip0.x+pelvis.x-out.pelvis.x,hip0.y+pelvis.y-out.pelvis.y):hip0;
+    const hip=(next.hip as Point|undefined)??pelvis;
+    if(leg.k&&(hip!==(hip0??out.pelvis)||next.foot!==leg.foot))next.k=rebend(hip0??out.pelvis,leg.k,leg.foot,hip,next.foot as Point);
+    return next;
+  });
   return moved as PaintRig&{drawnCarry?:number;bodyCarry?:number};
+}
+/** The middle joint of a two-segment limb whose root and end moved: same segment lengths and bend side as
+ *  `a0`→`m0`→`c0`; when the new reach is too long or too short, the joint keeps its share of the line. */
+function rebend(a0:Point, m0:Point, c0:Point, a:Point, c:Point):Point{
+  const l1=far(a0,m0), l2=far(m0,c0), reach=far(a,c);
+  if(!(reach>1e-6)||!(l1+l2>1e-6))return P(m0.x+a.x-a0.x,m0.y+a.y-a0.y);
+  const ux=(c.x-a.x)/reach, uy=(c.y-a.y)/reach;
+  const side=Math.sign((c0.x-a0.x)*(m0.y-a0.y)-(c0.y-a0.y)*(m0.x-a0.x))||1;
+  if(reach>=l1+l2||reach<=Math.abs(l1-l2)){const along=reach>=l1+l2?reach*l1/(l1+l2):(l1>=l2?l1:-l1);return P(a.x+ux*along,a.y+uy*along);}
+  const along=(l1*l1-l2*l2+reach*reach)/(2*reach), out=Math.sqrt(Math.max(0,l1*l1-along*along))*side;
+  return P(a.x+ux*along-uy*out,a.y+uy*along+ux*out);
 }
 
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
