@@ -296,7 +296,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
   game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
-    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
+    round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,forcePools,squadTactics,laneDrill,opponentReads,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   if(novicePractice)game.config.novicePractice=true;
   const spreadDeployed=game.config.laneDrill===true;
@@ -649,7 +649,7 @@ function showEnd(){
   $('resultText').textContent=game.phase==='draw'?(timedOut?'Time limit · Both sides finished even.':'Both sides finished even.')
     :decidedByObjective?(timedOut?'Time limit · ':'')+(obj.rule==='control'?'Decided by signal points.':'Decided by relic deliveries.')
     :timedOut?'Time limit · '+(survivors[0]!==survivors[1]?'Decided by survivors.':'Decided by regional injuries.')
-    :mode==='watch'?'One side knocked out the other.':game.phase==='won'?'All rivals knocked out.':'Your side was knocked out.';
+    :mode==='watch'?'One side knocked out the other.':game.phase==='won'?'Pink side knocked out.':'Blue side knocked out.';
   const lastPunish=game.events.findLast(e=>e.punish&&(e.damage as number)>0);
   const relevant=lastPunish&&game.phase!=='draw'&&lastPunish.team===(game.phase==='won'?0:1)&&game.time-lastPunish.time<=3;
   $('turningPoint').hidden=!relevant;

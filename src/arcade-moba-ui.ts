@@ -24,7 +24,7 @@ const tactical=mountText('p','tacticalHint',field);tactical.hidden=true;
 const direction=mountText('p','firstTowerPing',field);direction.hidden=true;
 direction.setAttribute('aria-hidden','true');
 mountText('strong','firstTowerArrow',direction).textContent='↑';
-mountText('small','firstTowerLabel',direction).textContent='Enemy tower';
+mountText('small','firstTowerLabel',direction).textContent='Pink tower';
 const respawn=mountText('aside','respawnOverlay',field);respawn.hidden=true;
 respawn.setAttribute('aria-label','Respawn');
 mountText('strong','respawnTitle',respawn).textContent='Knocked out';
@@ -179,7 +179,7 @@ function renderHud(){
   }
   else if(objective){
     lastAnnounced=objective.id;
-    stamp(nodes.announce,objective.type==='tower'?(objective.team===0?'Enemy tower destroyed.':'Allied tower lost.'):'Respawn complete.');
+    stamp(nodes.announce,objective.type==='tower'?(objective.team===0?'Pink tower destroyed.':'Blue tower lost.'):'Respawn complete.');
   }
 }
 const moving=new Set<MobaHero>();
