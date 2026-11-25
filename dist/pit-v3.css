@@ -11,7 +11,7 @@ body.pit-v3{background:radial-gradient(ellipse at 20% -10%,#26282b 0%,transparen
 .pit-nav a:hover,.pit-nav a[aria-current]{color:var(--text);border-color:var(--amber)}
 .pit-v3[data-view=game] .pit-nav{display:none}
 .pit-v3 :is(.mast-right button,.lobby button,.lobby select,.lobby input,.dialog,.dialog-actions button,.loadout,.actions button){border-radius:0}
-.pit-v3 .mast-right button:hover,.pit-v3 .lobby button:not(.start-match):hover,.pit-v3 .lobby button[aria-pressed=true]{background:#30353a;border-color:var(--amber)}
+.pit-v3 .mast-right button:hover,.pit-v3 .lobby button:not(.start-match,[class*=v6-]):hover,.pit-v3 .lobby button:not([class*=v6-])[aria-pressed=true]{background:#30353a;border-color:var(--amber)}
 .pit-v3[data-view=menu] #app{display:grid;width:min(1536px,calc(100% - 52px));gap:0 clamp(12px,2vw,28px);grid-template-columns:minmax(0,1.55fr) minmax(370px,1fr);align-items:start}
 .pit-v3[data-view=menu] .mast{grid-row:1;grid-column:1/-1;margin-bottom:clamp(.75rem,2.7vh,1.5rem)}
 .pit-v3[data-view=menu] .entry{grid-column:2;grid-row:2;min-width:0}
