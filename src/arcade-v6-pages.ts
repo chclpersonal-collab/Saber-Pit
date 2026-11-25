@@ -1,7 +1,7 @@
 /** LOOMEN v6 chrome for the pages outside the Arena (Tournament, Gauntlet, Saves, Idle RPG, Style Lab, Three Fronts).
  *  Adds the same bottom nav as Home and opens a section named in the address. Look and links only:
  *  nothing here reads or writes a save, and every page keeps its own scripts. Authored by CLARISSA-01. */
-import './arcade-v6-menu-place.js?v=6.0.2-rc2';
+import './arcade-v6-menu-place.js?v=6.0.2';
 const ICON={
   home:'<path d="M3 11 12 3l9 8v10h-6v-6H9v6H3Z"/>',
   stats:'<path d="M4 20V10h3v10Zm6.5 0V4h3v16ZM17 20v-7h3v7ZM2 21h20v1.5H2Z"/>',

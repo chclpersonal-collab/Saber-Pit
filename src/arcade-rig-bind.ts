@@ -1,6 +1,6 @@
 /** World-anchored weapon bind, retaining full physical saber length. */
-import {arcadeBasis} from './arcade-rig-projection.js?v=6.0.2-rc2';
-import type {Point} from './arcade-rig-projection.js?v=6.0.2-rc2';
+import {arcadeBasis} from './arcade-rig-projection.js?v=6.0.2';
+import type {Point} from './arcade-rig-projection.js?v=6.0.2';
 type BindFighter=Parameters<typeof arcadeBasis>[0] & {clashX:number;clashY:number;clashRole?:string;
  clashFrom?:{hand?:Point;tip?:Point}};
 type Frame=Parameters<typeof arcadeBasis>[1];

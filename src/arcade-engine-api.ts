@@ -4,21 +4,21 @@
  * One boundary adapter prevents its incomplete inference from leaking
  * empty array types or unchecked values through every consumer.
  */
-import {createArcade as create,stepArcade as step} from './arcade-engine.js?v=6.0.2-rc2';
+import {createArcade as create,stepArcade as step} from './arcade-engine.js?v=6.0.2';
 import type {ArcadePoint,ArcadeBounds,ArcadeCover} from './arcade-engine-geometry.js';
-import type {ArcadeInput,ArcadeOrder} from './arcade-engine-step.js?v=6.0.2-rc2';
+import type {ArcadeInput,ArcadeOrder} from './arcade-engine-step.js?v=6.0.2';
 import type {ArcadeRecord,ArcadeRoundStats,ArcadeTeamStats} from './arcade-engine-stats.js';
 import type {ArcadeAirState} from './arcade-engine-air.js';
-import type {SaberForm,FighterBody,FighterGender} from './arcade-save-types.js?v=6.0.2-rc2';
-import type {arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2-rc2';
-import type {arcadeInjuryEffects,createArcadeInjuries} from './arcade-injuries.js?v=6.0.2-rc2';
+import type {SaberForm,FighterBody,FighterGender} from './arcade-save-types.js?v=6.0.2';
+import type {arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2';
+import type {arcadeInjuryEffects,createArcadeInjuries} from './arcade-injuries.js?v=6.0.2';
 import type {createArcadeObjective} from './arcade-objectives.js';
 import type {progressionSummary} from './progression.js';
 
-import type {ArcadeOptions,ArcadeConfig} from './arcade-engine-config.js?v=6.0.2-rc2';
+import type {ArcadeOptions,ArcadeConfig} from './arcade-engine-config.js?v=6.0.2';
 export type {ArcadeInput,ArcadeOptions};
-export {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_STAT_KEYS,arcadeMovesFor} from './arcade-engine.js?v=6.0.2-rc2';
-import type {OrbitCarry} from './arcade-orbit-sabers.js?v=6.0.2-rc2';
+export {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_STAT_KEYS,arcadeMovesFor} from './arcade-engine.js?v=6.0.2';
+import type {OrbitCarry} from './arcade-orbit-sabers.js?v=6.0.2';
 export type ArcadeMode='duel'|'squad'|'watch'|'command';
 export type ArcadeRule='elimination'|'control'|'relic';
 export type ArcadePhase='playing'|'won'|'lost'|'draw';

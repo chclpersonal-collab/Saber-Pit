@@ -10,7 +10,7 @@ import {arcadeExpandedMoveById} from './arcade-expanded-combat.js?v=3.1.0';
 import {ARCADE_AIR_STRIKES} from './arcade-air-gameplay.js?v=2.25.3';
 import {ARCADE_CHESS_STYLES} from './arcade-chess-styles.js?v=2.44.0';
 import {ARCADE_RANK_FOOTWORK} from './arcade-rank-footwork.js?v=2.27.0';
-import {ARCADE_BODY_REGIONS} from './arcade-injuries.js?v=6.0.2-rc2';
+import {ARCADE_BODY_REGIONS} from './arcade-injuries.js?v=6.0.2';
 
 const attacks={slash:'Opening Cut',slash2:'Reverse Cut',slash3:'Finishing Cut',slash4:'Fourth Cut',
  rush:'Rush Cut',sweep:'Sweep',uppercut:'Rising Cut',thrust:'Linear Thrust',wide_cut:'Wide Sweep',

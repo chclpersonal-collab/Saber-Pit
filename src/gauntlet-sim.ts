@@ -1,8 +1,8 @@
-import {createArcade,stepArcade,ARCADE_FORMS} from './arcade-engine.js?v=6.0.2-rc2';
-import {ARCADE_MAPS} from './arcade-stage.js?v=6.0.2-rc2';
+import {createArcade,stepArcade,ARCADE_FORMS} from './arcade-engine.js?v=6.0.2';
+import {ARCADE_MAPS} from './arcade-stage.js?v=6.0.2';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 import {fighterGender,appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
-import {arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2-rc2';
+import {arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2';
 import {validTournamentMove} from './arcade-tournament-adaptation.js?v=2.42.0';
 
 import {GAUNTLET_SIM_VERSION,gauntletReplayVersion} from './gauntlet-rules.js';

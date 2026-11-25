@@ -1,4 +1,4 @@
-import {ARENA_NORMAL_ELO_MAX_TEAM,arenaNormalRanked} from './arcade-normal-elo.js?v=6.0.2-rc2';
+import {ARENA_NORMAL_ELO_MAX_TEAM,arenaNormalRanked} from './arcade-normal-elo.js?v=6.0.2';
 
 type PickedHeroes=Readonly<Record<string,{id:string}|undefined>>;
 export function arenaLobbyRating(mode:string,rule:string,teamSizes:readonly number[],heroes:PickedHeroes,forcePools?:readonly (readonly string[])[],novicePractice=false,squadTactics=false,opponentReads=false){

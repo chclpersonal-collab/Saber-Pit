@@ -1,5 +1,5 @@
 import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
-import type {StorageReader,StorageWriter} from './arcade-save-types.js?v=6.0.2-rc2';
+import type {StorageReader,StorageWriter} from './arcade-save-types.js?v=6.0.2';
 type Stage = 'qualifier'|'opening'|'main';
 type Composition = ''|'all-female'|'all-male'|'mixed';
 type SquadFighter = NonNullable<ReturnType<typeof fighter>>;
@@ -20,10 +20,10 @@ type SavedFixture={id:string;teamIds?:string[];attempts?:AttemptWire[];winnerId:
 type ActiveWire={season:number;seed?:number;limit?:number;terrain?:string;directSeeds?:string[];playIn?:string[];qualifiers?:SavedFixture[];opening?:SavedFixture[];rounds?:SavedFixture[][];lastReplay?:ReplayWire&{attempt:number}};
 type SaveWire={version:number;ratingVersion?:number;season:number;peaks?:unknown;teams?:Record<string,TeamWire>;championId?:string;history?:HistoryWire[];active?:ActiveWire};
 import {arcadeChessStyleForId,normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
-import {tournamentFixtureTerrain,tournamentTerrainOption} from './arcade-map-rotation.js?v=6.0.2-rc2';
+import {tournamentFixtureTerrain,tournamentTerrainOption} from './arcade-map-rotation.js?v=6.0.2';
 import {sanitizeMatchReport} from './arcade-match-report.js?v=2.33.0';
 import {peakLeaderboard,readEloPeaks,recordRatedEloPeak,seedKnownEloPeak} from './arcade-peak-elo.js?v=2.28.0';
-import {ARCADE_FORM_IDS} from './arcade-engine.js?v=6.0.2-rc2';
+import {ARCADE_FORM_IDS} from './arcade-engine.js?v=6.0.2';
 import {fighterNameParts,fighterNameKeysGiven,fighterNameKeysFamily} from './arcade-fighter-names.js?v=2.18.2';
 
 import {clampElo,eloFloor,updateEloPair} from './arcade-elo.js';

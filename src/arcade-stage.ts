@@ -1,4 +1,4 @@
-import {paintCompound,paintCompoundObstacle,animateCompound} from './arcade-maps.js?v=6.0.2-rc2';
+import {paintCompound,paintCompoundObstacle,animateCompound} from './arcade-maps.js?v=6.0.2';
 import { createBattlefield, MAP_SIZES } from './maps.js?v=1.4.0';
 
 interface StageBox{x:number;y:number;width:number;height:number;kind:string;moveCost?:number;damagePerSecond?:number}

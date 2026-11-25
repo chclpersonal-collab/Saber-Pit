@@ -1,15 +1,15 @@
 import type {ArcadeSquadPlan} from './arcade-squad-tactics.js';
-import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeInput,ArcadeAttackSpec} from './arcade-engine-api.js?v=6.0.2-rc2';
+import type {ArcadeGame,ArcadeFighter,ArcadeEvent,ArcadeInput,ArcadeAttackSpec} from './arcade-engine-api.js?v=6.0.2';
 import type {arcadeFootworkPlan} from './arcade-rank-footwork.js';
 import type {progressionSummary,combatSkillProfile} from './progression.js';
 import type {normalizeHeroTactics} from './arcade-hero-tactics.js';
-import type {normalizeHeroLineup} from './arcade-heroes.js?v=6.0.2-rc2';
+import type {normalizeHeroLineup} from './arcade-heroes.js?v=6.0.2';
 import type {environmentAt} from './environment.js';
 import type {arcadeChessPawnStrike} from './arcade-chess-styles.js';
-import type {arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=6.0.2-rc2';
+import type {arcadeBladeWorld,arcadeFeetWorld} from './arcade-fighters.js?v=6.0.2';
 import type {arcadeEloSkill,ArenaReadSkill} from './arcade-elo-skill.js';
 import type {ARCADE_TECHNIQUES} from './arcade-repertoire.js';
-import type {ARCADE_RANK_COMBAT} from './arcade-engine-rank.js?v=6.0.2-rc2';
+import type {ARCADE_RANK_COMBAT} from './arcade-engine-rank.js?v=6.0.2';
 import type {ArcadeArchetype} from './arcade-engine-profile.js';
 import type {ArcadeCover} from './arcade-engine-geometry.js';
 
@@ -54,7 +54,7 @@ export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'
  combo:number;counterUntil:number;counterMove:boolean;targetId:string|null;targetUntil:number;
  contributors:{id:string;time:number;damage:number}[];
  rankDominance:number;feintRedirect?:number|null;spawn?:Point;
- injuries:Parameters<typeof import('./arcade-injuries.js?v=6.0.2-rc2').arcadeInjuryEffects>[0];
+ injuries:Parameters<typeof import('./arcade-injuries.js?v=6.0.2').arcadeInjuryEffects>[0];
  rankFootwork?:ReturnType<typeof arcadeFootworkPlan>|null;
  advancedTravel?:{id:string;until:number}|null;
  advancedTravelStart?:(Point&{id:string})|null;

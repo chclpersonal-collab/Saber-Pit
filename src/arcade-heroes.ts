@@ -1,4 +1,4 @@
-import type {Doctrine, SaberForm} from './arcade-save-types.js?v=6.0.2-rc2';
+import type {Doctrine, SaberForm} from './arcade-save-types.js?v=6.0.2';
 type LooseRecord = Record<string, unknown>;
 type HeroPickInput = {id?:unknown;slot?:unknown};
 export type HeroPick = {id:string;slot:number};

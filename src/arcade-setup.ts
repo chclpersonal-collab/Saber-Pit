@@ -1,6 +1,6 @@
-import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js?v=6.0.2-rc2';
-import type {SaberForm,StorageReader,StorageWriter} from './arcade-save-types.js?v=6.0.2-rc2';
-import type {ArcadeHeroLineup, HeroPick} from './arcade-heroes.js?v=6.0.2-rc2';
+import {normalizeTeamLooks,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js?v=6.0.2';
+import type {SaberForm,StorageReader,StorageWriter} from './arcade-save-types.js?v=6.0.2';
+import type {ArcadeHeroLineup, HeroPick} from './arcade-heroes.js?v=6.0.2';
 type FormSelection = SaberForm|'mixed';
 type Participation = 'play'|'watch'|'command';
 type UnknownGear = Parameters<typeof normalizeArcadeGear>[0];
@@ -13,10 +13,10 @@ type RawSetup = UnknownGear & {
  teamGenders?:readonly unknown[];teamAppearances?:readonly unknown[];
  teamForms?:readonly (readonly unknown[]|null|undefined)[];
 };
-import {normalizeHeroPick} from './arcade-heroes.js?v=6.0.2-rc2';
+import {normalizeHeroPick} from './arcade-heroes.js?v=6.0.2';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
-import {normalizeArcadeForcePool} from './arcade-force-pool.js?v=6.0.2-rc2';
-import {normalizeArcadeGear,arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2-rc2';
+import {normalizeArcadeForcePool} from './arcade-force-pool.js?v=6.0.2';
+import {normalizeArcadeGear,arcadeFighterGear} from './arcade-loadouts.js?v=6.0.2';
 import {normalizeArcadeChessStyle,arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 const FORMS:readonly SaberForm[]=['shii_cho','makashi','soresu','ataru','djem_so','niman','juyo'];
 const RANKS=SOLDIER_GRADES.map(x=>x.label);

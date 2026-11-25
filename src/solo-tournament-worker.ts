@@ -1,5 +1,5 @@
-import {playTournamentBout} from './arcade-tournament-sim.js?v=6.0.2-rc2';
-import type {SoloWorkerRequest, SoloWorkerReply, TournamentWorkerPort} from './tournament-worker-contract.js?v=6.0.2-rc2';
+import {playTournamentBout} from './arcade-tournament-sim.js?v=6.0.2';
+import type {SoloWorkerRequest, SoloWorkerReply, TournamentWorkerPort} from './tournament-worker-contract.js?v=6.0.2';
 
 declare const self: TournamentWorkerPort<SoloWorkerRequest, SoloWorkerReply>;
 

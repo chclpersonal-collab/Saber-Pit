@@ -1,8 +1,8 @@
 /** Gauntlet bouts a person fights as the solo fighter.
  *  Same fixture, rules, clock and learning as a simulated bout; only the solo fighter's controls change.
  *  A bout counts once: it is written only if the saved season still expects this exact fixture next. */
-import {createGauntletBattle,createGauntletRecorder,stepGauntletBattle,GAUNTLET_STEP,type GauntletInput,type GauntletBoutResult} from './gauntlet-sim.js?v=6.0.2-rc2';
-import {nextGauntletBout,recordGauntletBout} from './gauntlet-tournament.js?v=6.0.2-rc2';
+import {createGauntletBattle,createGauntletRecorder,stepGauntletBattle,GAUNTLET_STEP,type GauntletInput,type GauntletBoutResult} from './gauntlet-sim.js?v=6.0.2';
+import {nextGauntletBout,recordGauntletBout} from './gauntlet-tournament.js?v=6.0.2';
 
 type State=Parameters<typeof nextGauntletBout>[0];
 type Fixture=NonNullable<ReturnType<typeof nextGauntletBout>>;

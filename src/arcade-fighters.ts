@@ -1,5 +1,5 @@
-import type {Point} from './arcade-rig-projection.js?v=6.0.2-rc2';
-import {arcadeLimbDisabled} from './arcade-injuries.js?v=6.0.2-rc2';
+import type {Point} from './arcade-rig-projection.js?v=6.0.2';
+import {arcadeLimbDisabled} from './arcade-injuries.js?v=6.0.2';
 type Canvas=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
 type Figure={id:string;head:number;shoulder:number;waist:number;hip:number;thigh:number;calf:number;scale:number;legLength:number;skin:string;skinShadow:string;hair:string;hairLight:string};
 type Palette={shade:string;mid:string;steel:string;top:string;flare:string;slash:string;split:string};
@@ -55,16 +55,16 @@ type PlantMemory={legs:SupportFoot[];x?:number;y?:number;time?:number;distance?:
 type DrawOptions={ghost?:boolean|string;reducedMotion?:boolean;rig?:Rig;selected?:boolean;outline?:boolean;
   lowDetail?:boolean;pathFactory?:()=>Path2D|null;crowded?:boolean;hideSabers?:boolean;width?:number;height?:number;time?:number;framing?:string};
 
-import {polygon,line,flatEllipse,celPath,unit,at} from './arcade-rig-canvas.js?v=6.0.2-rc2';
+import {polygon,line,flatEllipse,celPath,unit,at} from './arcade-rig-canvas.js?v=6.0.2';
 import {JUMP_STYLE,aerialLowerBody,ataruAerialTrick} from './arcade-rig-aerial.js';
 import {ATTACK_BEATS,visualFamily,contactEnvelope,staffSweep} from './arcade-rig-swing.js';
 import {arcadeFoot,arcadeGait,GAIT_STRIDE,DISPLAY_STEP,displayStep} from './arcade-rig-gait.js?v=5.0.0';
-import {clashBind} from './arcade-rig-bind.js?v=6.0.2-rc2';
+import {clashBind} from './arcade-rig-bind.js?v=6.0.2';
 export {arcadeFoot,arcadeGait};
-import {arcadeRigRotation,arcadeBasis,arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld} from './arcade-rig-projection.js?v=6.0.2-rc2';
+import {arcadeRigRotation,arcadeBasis,arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld} from './arcade-rig-projection.js?v=6.0.2';
 export {arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld};
-import {sampleOrbitSabers,type OrbitCarry} from './arcade-orbit-sabers.js?v=6.0.2-rc2';
-import {arcadeSaberVariant} from './arcade-loadouts.js?v=6.0.2-rc2';
+import {sampleOrbitSabers,type OrbitCarry} from './arcade-orbit-sabers.js?v=6.0.2';
+import {arcadeSaberVariant} from './arcade-loadouts.js?v=6.0.2';
 import {samplePeasantPhrase,peasantHandoff} from './arcade-peasant-motion.js?v=3.0.0';
 import {sampleChessSwing} from './arcade-style-choreo.js?v=3.0.0';
 import {sampleWeaponFlow} from './arcade-weapon-flow.js?v=2.31.0';

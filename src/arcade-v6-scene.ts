@@ -1,7 +1,7 @@
 /** Menu art for the v6 home and modes cards: the game's own fighters with the approved ink pass,
  *  on the sunset stage. Menu only. The match renderer is untouched. */
-import {drawArcadeFighter} from './arcade-painter.js?v=6.0.2-rc2';
-import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=6.0.2-rc2';
+import {drawArcadeFighter} from './arcade-painter.js?v=6.0.2';
+import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=6.0.2';
 
 type Ctx=CanvasRenderingContext2D;
 type PaintFighter=NonNullable<Parameters<typeof sampleArcadeFighter>[0]>;

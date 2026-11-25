@@ -2,8 +2,8 @@
  *  Runs only when `config.crowdAI` is on (the live v6 Arena), on top of the authored and smart layers.
  *  It never steers a player-controlled fighter. Every draw is a hash of the tick, fighter and salt,
  *  so matches stay deterministic and the game RNG stream is untouched. */
-import type {SimCommand,SimFighter,SimGame} from './arcade-engine-state.js?v=6.0.2-rc2';
-import {arcadeInjuryBurden} from './arcade-injuries.js?v=6.0.2-rc2';
+import type {SimCommand,SimFighter,SimGame} from './arcade-engine-state.js?v=6.0.2';
+import {arcadeInjuryBurden} from './arcade-injuries.js?v=6.0.2';
 import {ARCADE_TECHNIQUES} from './arcade-repertoire.js?v=3.1.0';
 
 export type CrowdPersona='reckless'|'coward'|'showoff'|'tactician'|'loyal'|'opportunist'|'grudge';

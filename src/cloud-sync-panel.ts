@@ -1,11 +1,11 @@
-import type {BackupSummary, CareerSummary, QuestSummary} from './arcade-backup.js?v=6.0.2-rc2';
-import type {SyncAction, SyncResult} from './arcade-cloud-sync.js?v=6.0.2-rc2';
+import type {BackupSummary, CareerSummary, QuestSummary} from './arcade-backup.js?v=6.0.2';
+import type {SyncAction, SyncResult} from './arcade-cloud-sync.js?v=6.0.2';
 type SyncPresentation = SyncResult & {
   cloud?: BackupSummary | null; device?: BackupSummary | null;
   cloudRevision?: string | null; localDigest?: string | null; error?: string;
 };
-import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=6.0.2-rc2';
-import {readCloudRecovery} from './arcade-cloud-sync.js?v=6.0.2-rc2';
+import {browserSync,announceSyncedSave} from './cloud-sync-browser.js?v=6.0.2';
+import {readCloudRecovery} from './arcade-cloud-sync.js?v=6.0.2';
 const $=<T extends HTMLElement=HTMLButtonElement>(id: string)=>document.getElementById(id) as T;
 const controls=['cloudEnable','cloudDisable','cloudCheck','cloudDevice','cloudPull'];
 let last: SyncPresentation | null=null;

@@ -1,11 +1,11 @@
-import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=6.0.2-rc2';
+import {createArcadeSwingWaves} from './arcade-swing-waves.js?v=6.0.2';
 import {readArcadeReducedMotion} from './arcade-motion-preference.js?v=2.43.0';
-import {createTournamentReplay,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.2-rc2';
-import {arcadeReplayRules,supportsArcadeReplay} from './arcade-replay-rules.js?v=6.0.2-rc2';
-import {createArcadeStage,drawArcadeStage,drawArcadeObstacle} from './arcade-stage.js?v=6.0.2-rc2';
-import {createArcadeFX} from './arcade-fx.js?v=6.0.2-rc2';
-import {actionFrame,stepActionFrame} from './arcade-camera.js?v=6.0.2-rc2';
-import {createArcadeFloatingText} from './arcade-floating-text.js?v=6.0.2-rc2';
+import {createTournamentReplay,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.2';
+import {arcadeReplayRules,supportsArcadeReplay} from './arcade-replay-rules.js?v=6.0.2';
+import {createArcadeStage,drawArcadeStage,drawArcadeObstacle} from './arcade-stage.js?v=6.0.2';
+import {createArcadeFX} from './arcade-fx.js?v=6.0.2';
+import {actionFrame,stepActionFrame} from './arcade-camera.js?v=6.0.2';
+import {createArcadeFloatingText} from './arcade-floating-text.js?v=6.0.2';
 import {createReplayStepper,REPLAY_TICK} from './replay-stepper.js?v=3.0.0';
 import {fighterSamples,displayFighters,type ArcadeDisplayFighter} from './arcade-display.js?v=2.44.0';
 

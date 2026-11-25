@@ -12,7 +12,7 @@ import { forceAbilityById } from './force-abilities.js?v=1.4.0';
 import { getFormMoves } from './combat-forms.js?v=1.4.0';
 import { usesDualSabers, DUAL_SABER_PROFILE } from './dual-sabers.js?v=1.4.0';
 
-import type {SaveStorage, StorageReader, StorageWriter} from './arcade-save-types.js?v=6.0.2-rc2';
+import type {SaveStorage, StorageReader, StorageWriter} from './arcade-save-types.js?v=6.0.2';
 type Props = Record<string, unknown>;
 type CombatKind = 'saber' | 'force';
 type Side = 0 | 1 | null;

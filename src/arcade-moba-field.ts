@@ -1,6 +1,6 @@
 /** Presentation only: world positions, targeting, cooldowns and effects events
  * are owned by the MOBA simulation. Terrain never edits walkability. */
-import {BELL_RALLY_RULES,bellRallyCue,type BellRally} from './arcade-moba-rally.js?v=6.0.2-rc2';
+import {BELL_RALLY_RULES,bellRallyCue,type BellRally} from './arcade-moba-rally.js?v=6.0.2';
 import {MOBA_BATTLEFIELD} from './arcade-moba-map.js';
 const {width:W,height:H,lanes,crossings,blockers,cores,forum}=MOBA_BATTLEFIELD;
 const colors=['#75e5d5','#ff8e76'] as const;

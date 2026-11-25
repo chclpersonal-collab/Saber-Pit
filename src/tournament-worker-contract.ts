@@ -1,8 +1,8 @@
 // Type-only contracts for structured-clone messages. Imports preserve the
 // versioned runtime dependencies already used by the corresponding workers.
-import type {playTournamentBout} from './arcade-tournament-sim.js?v=6.0.2-rc2';
-import type {playSquadBout} from './squad-tournament-sim.js?v=6.0.2-rc2';
-import type {simulateGauntlet} from './gauntlet-sim.js?v=6.0.2-rc2';
+import type {playTournamentBout} from './arcade-tournament-sim.js?v=6.0.2';
+import type {playSquadBout} from './squad-tournament-sim.js?v=6.0.2';
+import type {simulateGauntlet} from './gauntlet-sim.js?v=6.0.2';
 
 export type TournamentWorkerReply<Result> =
   | {result: Result; error?: never}

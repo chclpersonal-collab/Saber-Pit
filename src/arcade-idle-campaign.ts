@@ -1,11 +1,11 @@
 /** Deterministic, timestamped first-quest expedition; separate from legacy runs. */
-import {createArcade} from './arcade-engine.js?v=6.0.2-rc2';
-import {normalizeBattleHero} from './arcade-heroes.js?v=6.0.2-rc2';
+import {createArcade} from './arcade-engine.js?v=6.0.2';
+import {normalizeBattleHero} from './arcade-heroes.js?v=6.0.2';
 import {arcadeChessStyleForId} from './arcade-chess-styles.js?v=2.44.0';
 import {appearanceSeedFor} from './arcade-fighter-profiles.js?v=2.18.3';
-import {QUEST_ENCOUNTER_LIMIT,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=6.0.2-rc2';
+import {QUEST_ENCOUNTER_LIMIT,stepQuestEncounter,questEncounterResult} from './arcade-quest-encounter.js?v=6.0.2';
 
-import type {BattleHero, QuestResult, QuestResultInput, SavedHeroInput, SaberForm, SaberWeapon} from './arcade-save-types.js?v=6.0.2-rc2';
+import type {BattleHero, QuestResult, QuestResultInput, SavedHeroInput, SaberForm, SaberWeapon} from './arcade-save-types.js?v=6.0.2';
 
 export interface IdleWaveDefinition {
   id: 'gate' | 'choir' | 'bell';

@@ -1,6 +1,6 @@
 type Fixture={id?:string}|null|undefined;
 type Active={terrain?:string;seed?:number;qualifiers?:Fixture[];opening?:Fixture[];rounds?:Fixture[][]}|null|undefined;
-import {ARCADE_MAPS} from './arcade-stage.js?v=6.0.2-rc2';
+import {ARCADE_MAPS} from './arcade-stage.js?v=6.0.2';
 export const TOURNAMENT_ROTATION='rotation';
 // The four distinct layouts (the other two official open stages share
 // Underpit's geometry). Keep this pool stable for saved rotation seasons.

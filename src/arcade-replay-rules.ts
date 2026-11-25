@@ -1,9 +1,9 @@
 // Tournament replay results depend on the exact 120-Hz combat and blade poses
 // used to record them. Load recorded older rules only on demand.
-import * as engine from './arcade-engine.js?v=6.0.2-rc2';
-import * as art from './arcade-fighters.js?v=6.0.2-rc2';
+import * as engine from './arcade-engine.js?v=6.0.2';
+import * as art from './arcade-fighters.js?v=6.0.2';
 
-import {drawArcadeFighter} from './arcade-painter.js?v=6.0.2-rc2';
+import {drawArcadeFighter} from './arcade-painter.js?v=6.0.2';
 
 // Archived runtimes intentionally remain immutable browser JS modules.
 type PlaybackEngine=Pick<typeof engine,'createArcade'|'stepArcade'>;

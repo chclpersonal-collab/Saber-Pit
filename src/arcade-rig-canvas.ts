@@ -1,5 +1,5 @@
 /** Shared, typed Canvas primitives for the legacy cel painter. */
-import type {Point} from './arcade-rig-projection.js?v=6.0.2-rc2';
+import type {Point} from './arcade-rig-projection.js?v=6.0.2';
 type Pair=readonly [number,number];
 type Canvas=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
 type PathCommand= ['M'|'L',number,number] | ['Q',number,number,number,number] |

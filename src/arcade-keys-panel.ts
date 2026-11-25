@@ -1,5 +1,5 @@
-import {KEY_ACTIONS,DEFAULT_KEY_BINDINGS,canBind,keyLabel,keyMapFrom,loadKeyBindings,rebindKey,saveKeyBindings} from './arcade-keys.js?v=6.0.2-rc2';
-import type {KeyAction,KeyBindings} from './arcade-keys.js?v=6.0.2-rc2';
+import {KEY_ACTIONS,DEFAULT_KEY_BINDINGS,canBind,keyLabel,keyMapFrom,loadKeyBindings,rebindKey,saveKeyBindings} from './arcade-keys.js?v=6.0.2';
+import type {KeyAction,KeyBindings} from './arcade-keys.js?v=6.0.2';
 
 /**
  * The Keys dialog: one row per action, press a row then press a key. Escape cancels a capture.

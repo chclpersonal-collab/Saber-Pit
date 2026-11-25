@@ -1,21 +1,21 @@
-import {supportsArcadeReplay} from './arcade-replay-rules.js?v=6.0.2-rc2';
+import {supportsArcadeReplay} from './arcade-replay-rules.js?v=6.0.2';
 import {ARCADE_CHESS_STYLES} from './arcade-chess-styles.js?v=2.44.0';
 import {tournamentBoutRates} from './arcade-bout-rates.js?v=2.34.0';
-import {tournamentFixtureTerrain} from './arcade-map-rotation.js?v=6.0.2-rc2';
+import {tournamentFixtureTerrain} from './arcade-map-rotation.js?v=6.0.2';
 import {masteryTitle,earnedMasteryTitle} from './arcade-mastery-title.js?v=2.33.0';
 import {ARCADE_TECHNIQUES} from './arcade-repertoire.js?v=2.42.0';
 import {TOURNAMENT_KEY,loadTournament,saveTournament,startTournament,nextTournamentBout,runTournamentStep,
-  tournamentLeaderboard,tournamentPeakLeaderboard,saveTournamentHero,removeTournamentHero,tournamentHeroes,tournamentHeroEligible,setTournamentHeroElo,setTournamentHeroGender,resetTournament,saveSquadTournamentHero,squadTournamentHeroId,squadTournamentHeroEligible} from './arcade-tournament.js?v=6.0.2-rc2';
+  tournamentLeaderboard,tournamentPeakLeaderboard,saveTournamentHero,removeTournamentHero,tournamentHeroes,tournamentHeroEligible,setTournamentHeroElo,setTournamentHeroGender,resetTournament,saveSquadTournamentHero,squadTournamentHeroId,squadTournamentHeroEligible} from './arcade-tournament.js?v=6.0.2';
 import {FIGHTER_GENDERS,fighterGenderLabel} from './arcade-fighter-profiles.js?v=2.18.3';
-import {drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2-rc2';
+import {drawArcadeFighterPreview} from './arcade-painter.js?v=6.0.2';
 import {ELO_FLOORS} from './arcade-elo.js?v=2.18.5';
-import {playTournamentBout,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.2-rc2';
-import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament,startSquadTournament,nextSquadBout,runSquadStep,resetSquadTournament,squadLeaderboard,squadPeakLeaderboard,squadGenderLabel,SQUAD_ELO_START,SQUAD_ELO_FLOOR} from './squad-tournament.js?v=6.0.2-rc2';
-import {SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=6.0.2-rc2';
+import {playTournamentBout,TOURNAMENT_REPLAY_RULESET} from './arcade-tournament-sim.js?v=6.0.2';
+import {SQUAD_TOURNAMENT_KEY,loadSquadTournament,saveSquadTournament,startSquadTournament,nextSquadBout,runSquadStep,resetSquadTournament,squadLeaderboard,squadPeakLeaderboard,squadGenderLabel,SQUAD_ELO_START,SQUAD_ELO_FLOOR} from './squad-tournament.js?v=6.0.2';
+import {SQUAD_REPLAY_RULESET} from './squad-tournament-sim.js?v=6.0.2';
 
 import {seasonWeek} from './tournament-calendar.js?v=3.1.1';
 
-import type {FighterBody, FighterGender, HeroAdaptation, StorageReader, StorageWriter} from './arcade-save-types.js?v=6.0.2-rc2';
+import type {FighterBody, FighterGender, HeroAdaptation, StorageReader, StorageWriter} from './arcade-save-types.js?v=6.0.2';
 type TournamentFormat = 'solo' | 'squad';
 type Source = 'saved' | 'live';
 type Winner = 0 | 1 | null;
@@ -672,13 +672,13 @@ async function settle(epoch: number){
   const squad=isSquad();
   let result: Settlement | false | null | undefined;
   if(squad){
-    const bout=await simulateInWorker(before,'./squad-tournament-worker.js?v=6.0.2-rc2');
+    const bout=await simulateInWorker(before,'./squad-tournament-worker.js?v=6.0.2');
     if(epoch!==runEpoch)return false;
     if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No squad fight result returned.');
     result=await (runSquadStep as unknown as SettleSquad)(squadState,()=>bout);
   }else if(before.limit===360||autoRun){
-    const bout=await simulateInWorker(before,'./solo-tournament-worker.js?v=6.0.2-rc2');
+    const bout=await simulateInWorker(before,'./solo-tournament-worker.js?v=6.0.2');
     if(epoch!==runEpoch)return false;
     if(syncTournamentSave(key)){stop('Reloaded from another tab');return false;}
     if(!bout)throw new Error('No duel result returned.');
@@ -1027,8 +1027,8 @@ watchLast.addEventListener('click',async()=>{
   replayDialog.showModal();
   try{
     const squad=isSquad();
-    const play=squad?(await import('./squad-tournament-replay.js?v=6.0.2-rc2')).startSquadTournamentPlayback:
-      (await import('./tournament-replay.js?v=6.0.2-rc2')).startTournamentPlayback;
+    const play=squad?(await import('./squad-tournament-replay.js?v=6.0.2')).startSquadTournamentPlayback:
+      (await import('./tournament-replay.js?v=6.0.2')).startTournamentPlayback;
     if(version!==replayEpoch||!replayDialog.open)return;
     const live=()=>version===replayEpoch&&replayDialog.open;
     const result=await (play as unknown as StartReplay)(canvas,replay,{

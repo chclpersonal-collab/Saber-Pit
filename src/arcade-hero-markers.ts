@@ -1,4 +1,4 @@
-import type { CameraPoint, CameraTransform } from './arcade-camera.js?v=6.0.2-rc2';
+import type { CameraPoint, CameraTransform } from './arcade-camera.js?v=6.0.2';
 interface HeroMarkerPose{pose:{alive?:boolean;heroId?:string|null;team:number;id:string};anchor?:CameraPoint|null}
 interface HeroMarker extends CameraPoint{team:number;id:string;anchorX:number;anchorY:number}
 const bound=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n));
