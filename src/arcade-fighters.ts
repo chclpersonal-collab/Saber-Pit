@@ -1761,7 +1761,8 @@ export function sampleArcadeFootwork(f:Fighter, r:PaintRig, time:number){
   // letting a nominal touchdown teleport the boot to the changed endpoint.
   // A boot already a long way behind its gait (a fighter backing off fast) is not rebased again,
   // or it would stay pinned frame after frame while the body slides away.
-  if(contiguous&&flowing&&kind===prev.kind&&(r.action==='ready'||r.action==='guard')&&
+  // A run keeps its own stride: re-pinning both boots every frame would leave them trailing behind the body.
+  if(contiguous&&flowing&&kind===prev.kind&&(r.action==='ready'||r.action==='guard')&&r.gait!=='run'&&
       feet.some(l=>{const p=prev.feet.find(v=>v.side===l.side);
         return p&&Math.hypot(l.foot.x-p.foot.x,l.foot.y-p.foot.y)>11;})&&
       !prev.feet.some(p=>{const g=projected.find(v=>v.side===p.side);
@@ -2297,8 +2298,34 @@ export function sampleArcadeFormStance(f:Fighter, physical:PaintRig, time:number
 
 type Grip={hand:Point;emitter:Point;blade:Point;backHand:Point;offEmitter:Point;offBlade:Point|null};
 type Rigid={dx:number;dy:number;turn:number};
-const gripHandoffs=new WeakMap<object,{time:number;key:string;drawn:Grip;bridge:{at:number;span:number;main:Rigid;off:Rigid}|null}>();
+type GripBridge={at:number;span:number;main:Rigid;off:Rigid;from?:number};
+const gripHandoffs=new WeakMap<object,{time:number;key:string;drawn:Grip;bridge:GripBridge|null}>();
 const snapInto=new Set(['hit','ko','clash']);
+const gripOf=(q:PaintRig):Grip=>({hand:q.hand,emitter:q.emitter,blade:q.blade,backHand:q.backHand,offEmitter:q.offEmitter,offBlade:q.offBlade??null});
+const far=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
+/** The rigid moves (grip shift plus blade turn) that carry each drawn grip back to where it was. */
+function gripRigids(was:Grip,target:Grip,staff:boolean){
+  const rigid=(h0:Point,t0:Point|null,h1:Point,t1:Point|null):Rigid=>({dx:h0.x-h1.x,dy:h0.y-h1.y,
+    turn:t0&&t1?wrapTurn(pitchOf(h0,t0)-pitchOf(h1,t1)):0});
+  return {main:staff?rigid(was.hand,was.blade,target.hand,target.blade):rigid(was.emitter,was.blade,target.emitter,target.blade),
+    off:rigid(was.offEmitter,was.offBlade,target.offEmitter,target.offBlade)};
+}
+/** Applies a fraction k of a grip bridge. Each grip moves rigidly with its blade, so a carried blade never
+ *  bends, stretches or detaches; the elbows follow half way. */
+function carryGrips(r:PaintRig,{main,off}:{main:Rigid;off:Rigid},k:number):PaintRig{
+  const move=(p:Point,pivot:Point,m:Rigid)=>{const x=p.x-pivot.x,y=p.y-pivot.y,c=Math.cos(m.turn*k),s=Math.sin(m.turn*k);
+    return P(pivot.x+m.dx*k+x*c-y*s,pivot.y+m.dy*k+x*s+y*c);};
+  const shift=(p:Point,m:Rigid,part=1)=>P(p.x+m.dx*k*part,p.y+m.dy*k*part);
+  if(r.staff)return {...r,hand:shift(r.hand,main),emitter:move(r.emitter,r.hand,main),blade:move(r.blade,r.hand,main),
+    offEmitter:move(r.offEmitter,r.hand,main),backHand:move(r.backHand,r.hand,main),
+    offBlade:r.offBlade?move(r.offBlade,r.hand,main):r.offBlade,frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,main,.5)};
+  const offPivot=r.offEmitter;
+  return {...r,hand:move(r.hand,r.emitter,main),emitter:shift(r.emitter,main),blade:move(r.blade,r.emitter,main),
+    backHand:move(r.backHand,offPivot,off),offEmitter:shift(r.offEmitter,off),offBlade:r.offBlade?move(r.offBlade,offPivot,off):r.offBlade,
+    frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,off,.5)};
+}
+/** Seconds left before a strike's blade has to be the engine blade (its contact); Infinity when not striking. */
+const contactLeft=(f:Fighter)=>f.attack?val(f.attackSpec?.contact,val(f.actionDuration,.3)*.45)-val(f.actionTime):Infinity;
 /** When a new action would put the hands or blade somewhere else in one frame, carry them there instead:
  *  the jump becomes an offset that fades over 100 ms, or for a strike by 60% of the way to its contact, so
  *  the contact frame is always the exact engine blade. A hit, a knockout and a bind still land at once. */
@@ -2307,44 +2334,133 @@ function sampleArcadeGripHandoff(f:Fighter, r:PaintRig&{gripHandoff?:number}, ti
   if(r.reducedMotion||f.alive===false||!isFinite(time)){gripHandoffs.delete(actor);return r;}
   const key=r.action+'/'+(f.attack?f.attackSerial??f.attack:'-');
   const prior=gripHandoffs.get(actor), dt=prior?time-prior.time:NaN;
-  const grip=(q:PaintRig):Grip=>({hand:q.hand,emitter:q.emitter,blade:q.blade,backHand:q.backHand,offEmitter:q.offEmitter,offBlade:q.offBlade??null});
-  const target=grip(r);
-  const left=f.attack?val(f.attackSpec?.contact,val(f.actionDuration,.3)*.45)-val(f.actionTime):Infinity;
+  const target=gripOf(r);
+  const left=contactLeft(f);
   let bridge=prior&&dt>=0&&dt<.1?prior.bridge:null;
   if(prior&&dt>=0&&dt<.1&&key!==prior.key&&!snapInto.has(r.action)&&left>.02){
-    const was=prior.drawn, far=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
+    const was=prior.drawn;
     const gap=Math.max(far(was.hand,target.hand),far(was.backHand,target.backHand),
       far(was.blade,target.blade)/2.5,was.offBlade&&target.offBlade?far(was.offBlade,target.offBlade)/2.5:0);
-    if(gap>8){
-      const rigid=(h0:Point,t0:Point|null,h1:Point,t1:Point|null):Rigid=>({dx:h0.x-h1.x,dy:h0.y-h1.y,
-        turn:t0&&t1?wrapTurn(pitchOf(h0,t0)-pitchOf(h1,t1)):0});
-      bridge={at:time,span:Math.min(.1,left*.6),main:r.staff?rigid(was.hand,was.blade,target.hand,target.blade):rigid(was.emitter,was.blade,target.emitter,target.blade),
-        off:rigid(was.offEmitter,was.offBlade,target.offEmitter,target.offBlade)};
-    }
+    if(gap>8)bridge={at:time,span:Math.min(.1,left*.6),...gripRigids(was,target,Boolean(r.staff))};
   }
   if(bridge&&(time-bridge.at>=bridge.span||snapInto.has(r.action)))bridge=null;
   let out=r;
   if(bridge){
     const k=1-smooth((time-bridge.at)/bridge.span);
-    // Each grip moves rigidly with its blade, so a carried blade never bends, stretches or detaches.
-    const move=(p:Point,pivot:Point,m:Rigid)=>{const x=p.x-pivot.x,y=p.y-pivot.y,c=Math.cos(m.turn*k),s=Math.sin(m.turn*k);
-      return P(pivot.x+m.dx*k+x*c-y*s,pivot.y+m.dy*k+x*s+y*c);};
-    const shift=(p:Point,m:Rigid,part=1)=>P(p.x+m.dx*k*part,p.y+m.dy*k*part);
-    const {main,off}=bridge;
-    if(r.staff){
-      out={...r,hand:shift(r.hand,main),emitter:move(r.emitter,r.hand,main),blade:move(r.blade,r.hand,main),
-        offEmitter:move(r.offEmitter,r.hand,main),backHand:move(r.backHand,r.hand,main),
-        offBlade:r.offBlade?move(r.offBlade,r.hand,main):r.offBlade,frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,main,.5)};
-    }else{
-      const offPivot=r.offEmitter;
-      out={...r,hand:move(r.hand,r.emitter,main),emitter:shift(r.emitter,main),blade:move(r.blade,r.emitter,main),
-        backHand:move(r.backHand,offPivot,off),offEmitter:shift(r.offEmitter,off),offBlade:r.offBlade?move(r.offBlade,offPivot,off):r.offBlade,
-        frontElbow:shift(r.frontElbow,main,.5),backElbow:shift(r.backElbow,off,.5)};
-    }
-    out={...out,gripHandoff:k};
+    out={...carryGrips(r,bridge,k),gripHandoff:k};
   }
-  gripHandoffs.set(actor,{time,key,drawn:grip(out),bridge});
+  gripHandoffs.set(actor,{time,key,drawn:gripOf(out),bridge});
   return out;
+}
+
+// The most a hand (px) and a blade tip (px) may move in one 60 fps frame of the drawn fighter, measured in
+// the fighter's own frame. A plain slash from the engine grip peaks at 35.2 and 82.7; walking stays under 2.5.
+export const ARCADE_DRAWN_STEP=Object.freeze({hand:36,tip:84});
+const drawnSteps=new WeakMap<object,{time:number;side:number;drawn:Grip;bridge:GripBridge|null;turn:number;spin:{at:number;span:number;turn:number}|null}>();
+// The fastest the whole drawn figure turns in one 60 fps frame (an Ataru flip turns about 0.4 rad a frame).
+const DRAWN_TURN_STEP=.7;
+const GRIP_POINTS=['hand','emitter','blade','backHand','offEmitter','offBlade','frontElbow','backElbow'] as const;
+/** Moves the grip points between rig space and the drawn figure (body roll and scale applied, root and hop
+ *  taken out): the space where a jump is actually seen. */
+function gripSpace(r:PaintRig,into:boolean):PaintRig{
+  const {project,local}=arcadeBasis({x:0,y:r.hop},r), map=into?project:local, out:Record<string,unknown>={...r};
+  for(const key of GRIP_POINTS){const p=r[key] as Point|null|undefined;if(p&&isFinite(p.x)&&isFinite(p.y))out[key]=map(p);}
+  return out as PaintRig;
+}
+/** Last layer of the drawn fighter. When any layer would put a hand or blade further in one frame than a fast
+ *  swing ever moves (an air recoil landing back at rest, an air strike's whip), the jump is carried as a rigid
+ *  offset that fades: outside a strike all of it, over 100 ms (60 ms into a hit); in a strike only what is over
+ *  the limit, gone by contact, so the contact frame is the exact engine blade. Jumps are measured on the drawn
+ *  figure, body roll included, relative to its root. A bind (clash) and a knockout land at once, a facing flip
+ *  starts afresh, and reduced motion is left alone. */
+function sampleArcadeDrawnContinuity(f:Fighter, r:PaintRig&{drawnCarry?:number}, time:number):PaintRig&{drawnCarry?:number}{
+  const actor=f[WALK_SOURCE]?.actor??f, side=Math.sign(r.forward||1);
+  if(r.reducedMotion||f.alive===false||!isFinite(time)){drawnSteps.delete(actor);return r;}
+  const prior=drawnSteps.get(actor), dt=prior?time-prior.time:NaN;
+  const live=Boolean(prior)&&dt>0&&dt<.1&&prior!.side===side;
+  const left=contactLeft(f), bind=r.action==='clash'||r.action==='ko';
+  let bridge=live&&!bind&&left>0?prior!.bridge:null;
+  if(bridge&&time-bridge.at>=bridge.span)bridge=null;
+  // A flip or tumble that ends mid-turn (an air hit landing back at rest) would spin the whole figure back in
+  // one frame; the drawn figure instead finishes the turn the short way, and its hands and blade with it.
+  const turn=arcadeRigRotation(r);
+  let spin=live&&!bind&&left>0?prior!.spin:null;
+  if(spin&&time-spin.at>=spin.span)spin=null;
+  const spun=(q:typeof spin)=>q?q.turn*(1-smooth((time-q.at)/q.span)):0;
+  if(live&&!bind&&left>0&&Math.abs(wrapTurn(turn+spun(spin)-prior!.turn))>DRAWN_TURN_STEP*dt*60)
+    spin={at:time,span:Math.min(.12,left),turn:wrapTurn(prior!.turn-turn)};
+  const extra=spun(spin);
+  if(extra)r={...r,roll:r.roll+extra/(r.flightSide??r.hdx)};
+  const seen=gripSpace(r,true);
+  const carried=(b:GripBridge|null)=>b?carryGrips(seen,b,(b.from??1)*(1-smooth((time-b.at)/b.span))):seen;
+  let drawn=carried(bridge);
+  if(live&&!bind&&left>0){
+    const was=prior!.drawn, frames=dt*60;
+    const gap=(q:PaintRig)=>{const now=gripOf(q);
+      return Math.max(far(was.hand,now.hand)/ARCADE_DRAWN_STEP.hand,far(was.backHand,now.backHand)/ARCADE_DRAWN_STEP.hand,
+        far(was.blade,now.blade)/ARCADE_DRAWN_STEP.tip,was.offBlade&&now.offBlade?far(was.offBlade,now.offBlade)/ARCADE_DRAWN_STEP.tip:0)/frames;};
+    if(gap(drawn)>1){
+      const span=Math.min(r.action==='hit'?.06:.1,left), rigids=gripRigids(was,gripOf(seen),Boolean(r.staff));
+      // Outside a strike nothing waits on the blade, so the whole jump is carried and eases out; in a strike
+      // the frame goes as far as the limit allows and the rest is shed by contact.
+      let lo=0,hi=1;
+      if(left<Infinity)for(let i=0;i<12;i++){const mid=(lo+hi)/2;if(gap(carryGrips(seen,rigids,mid))>.97)lo=mid;else hi=mid;}
+      bridge={at:time,span,from:hi,...rigids};
+      drawn=carried(bridge);
+    }
+    // A strike always stays within reach of its contact pose: with k frames left before the contact frame, the
+    // drawn grips may be no further from where the engine will put them than k frames of travel. So a whip into
+    // contact (a fast air strike) is shared out over the frames before it, and contact is the exact engine blade.
+    const k=left<Infinity?Math.max(1,Math.ceil(left/dt-1e-6)):Infinity;
+    if(k<=6){
+      // Follow the engine path to contact frame by frame, so a swing of more than half a turn keeps its way round.
+      const path=[sampleArcadeFighter(f,time)];
+      for(let j=1;j<=k;j++)path.push(sampleArcadeFighter({...f,actionTime:val(f.actionTime)+j*dt},time+j*dt));
+      const raw=path[0], next=path[k], pivot=r.staff?'hand':'emitter';
+      const sweep=(tip:'blade'|'offBlade',from:'hand'|'emitter'|'offEmitter')=>{let sum=0;
+        for(let j=1;j<=k;j++){const a=path[j-1],b=path[j];const ta=a[tip],tb=b[tip];
+          if(ta&&tb)sum+=wrapTurn(pitchOf(b[from],tb)-pitchOf(a[from],ta));}return sum;};
+      const {project}=arcadeBasis({x:0,y:r.hop},r), lead=(p:Point,a:Point|null|undefined,b:Point|null|undefined)=>{
+        if(!a||!b)return p;const pa=project(a),pb=project(b);return P(p.x+pb.x-pa.x,p.y+pb.y-pa.y);};
+      const sight=gripOf(seen), goal:Grip={hand:lead(sight.hand,raw.hand,next.hand),emitter:lead(sight.emitter,raw.emitter,next.emitter),
+        blade:lead(sight.blade,raw.blade,next.blade),backHand:lead(sight.backHand,raw.backHand,next.backHand),
+        offEmitter:lead(sight.offEmitter,raw.offEmitter,next.offEmitter),offBlade:sight.offBlade?lead(sight.offBlade,raw.offBlade,next.offBlade):null};
+      type Carry={main:Rigid;off:Rigid};
+      // Carries of this frame's grips: `front` puts them where the engine has them at contact (turning the way
+      // the swing actually goes), `back` where the last frame drew them, `held` is what is being carried now.
+      const front:Carry={main:{dx:goal[pivot].x-sight[pivot].x,dy:goal[pivot].y-sight[pivot].y,turn:sweep('blade',pivot)},
+        off:{dx:goal.offEmitter.x-sight.offEmitter.x,dy:goal.offEmitter.y-sight.offEmitter.y,turn:sight.offBlade?sweep('offBlade','offEmitter'):0}};
+      const back:Carry=gripRigids(was,sight,Boolean(r.staff));
+      const kb=bridge?(bridge.from??1)*(1-smooth((time-bridge.at)/bridge.span)):0;
+      const scale=(m:Rigid,t:number):Rigid=>({dx:m.dx*t,dy:m.dy*t,turn:m.turn*t}), still={dx:0,dy:0,turn:0};
+      const held:Carry=bridge?{main:scale(bridge.main,kb),off:scale(bridge.off,kb)}:{main:still,off:still};
+      // How many frames of the limit lie between two carries: a grip point moves at most its pivot's shift plus
+      // the arc its turn sweeps at its distance from the pivot, so a frame within one of these is within the limit.
+      const {hand:H,tip:T}=ARCADE_DRAWN_STEP, span=(p:Point|null|undefined,c:Point)=>p?far(p,c):-1;
+      const arms={main:r.staff?[[0,H],[span(sight.backHand,sight.hand),H],[span(sight.blade,sight.hand),T],[span(sight.offBlade,sight.hand),T]]
+        :[[span(sight.hand,sight.emitter),H],[span(sight.blade,sight.emitter),T]],
+        off:r.staff?[]:[[span(sight.backHand,sight.offEmitter),H],[span(sight.offBlade,sight.offEmitter),T]]};
+      const apart=(a:Carry,b:Carry)=>{let most=0;
+        for(const arm of ['main','off'] as const){const shift=Math.hypot(a[arm].dx-b[arm].dx,a[arm].dy-b[arm].dy),turn=Math.abs(a[arm].turn-b[arm].turn);
+          for(const [radius,limit] of arms[arm])if(radius>=0)most=Math.max(most,(shift+turn*radius)/limit);}
+        return most/frames;};
+      const blend=(a:Carry,b:Carry,t:number):Carry=>{const m=(u:Rigid,v:Rigid)=>({dx:mix(u.dx,v.dx,t),dy:mix(u.dy,v.dy,t),turn:mix(u.turn,v.turn,t)});
+        return {main:m(a.main,b.main),off:m(a.off,b.off)};};
+      // The drawn grips keep their authored path while contact is still within reach; once it is not, they are
+      // drawn just within reach, and if that would be a jump from the last frame, they go from the last frame
+      // straight toward contact instead, sharing what is left evenly.
+      const room=k*.9, gap=apart(held,front);
+      if(gap>room){
+        let pick=blend(held,front,1-room/gap);
+        if(apart(pick,back)>.97){const way=apart(back,front);pick=blend(back,front,way>room+.97?.97/way:Math.max(0,1-room/way));}
+        bridge={at:time,span:Math.max(1e-6,left),from:1,...pick};
+        drawn=carryGrips(seen,pick,1);
+      }
+    }
+  }
+  drawnSteps.set(actor,{time,side,drawn:gripOf(drawn),bridge,turn:turn+extra,spin});
+  const carry=Math.max(bridge?(bridge.from??1)*(1-smooth((time-bridge.at)/bridge.span)):0,extra?1-smooth((time-spin!.at)/spin!.span):0);
+  return bridge?{...gripSpace(drawn,false),drawnCarry:carry}:extra?{...r,drawnCarry:carry}:r;
 }
 
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
@@ -2359,7 +2475,7 @@ export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number,
   const recovery=sampleArcadeRecoveryPose(f,impact,time);
   const settled=samplePeasantSoles(f,physical.orbitBlades?recovery:sampleArcadeBladeInterruption(f,recovery,time),time);
   const regional=sampleArcadeRegionalPose(f,settled,time);
-  return f.crowd?sampleArcadeCrowdPose(f,regional,time):regional;
+  return sampleArcadeDrawnContinuity(f,f.crowd?sampleArcadeCrowdPose(f,regional,time):regional,time);
 }
 
 export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOptions={}) {

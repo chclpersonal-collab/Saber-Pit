@@ -678,3 +678,55 @@ test('stance hand-offs never teleport a hand or blade, and a strike is the engin
     }
   }
 });
+
+test('live duels never teleport a drawn hand or blade, through the fastest real moves and the known snaps',async()=>{
+  const {createArcade,stepArcade}=await import('../dist/arcade-engine.js');
+  const {sampleArcadeRenderRig,ARCADE_DRAWN_STEP}=await import('../dist/arcade-fighters.js');
+  const {arcadeBasis}=await import('../dist/arcade-rig-projection.js');
+  const flags={peasantMotion:true,liveEntry:true,recoveryFlow:true,stanceFlow:true,styleChoreo:true,impactPhysics:true,continuousCombat:true,anticipatingCombat:true,arenaCuts:true,activeFootwork:true,styleTravel:true,repertoireSupport:true,exchangeVariety:true,fluidFootwork:true,eloReads:true,balancePass:true,closeChoice:true,guardCounterplay:true,weaponFlow:true};
+  // Seeded duels picked from a survey of every attack the engine starts (9 forms x 4 kits x 3 seeds x 2 ranks):
+  // the shortest real contact per family, and the three snaps the stance work left (an air hit landing back at
+  // rest, a jump straight into an air slash, the dash carry spin). Frames run at 60 fps, both fighters drawn.
+  const duels=[
+    ['air hit landing',['ataru','soresu'],['single','single'],3,260],
+    ['jump into slash',['niman','soresu'],['single','single'],3,460],
+    ['dash spin',['soresu','soresu'],['single','single'],3,395],
+    ['air strike, contact .087',['ataru','soresu'],['single','dual'],8,170],
+    ['light .145 and riposte .170',['soresu','juyo'],['single','dual'],13,790],
+    ['sweep .179',['shii_cho','shii_cho'],['dual','dual'],3,495],
+    ['rush .155 and heavy .239',['makashi','makashi'],['dual','dual'],3,250],
+    ['feint follow-up .181',['makashi','makashi'],['staff','orbit'],13,300],
+    ['orbit air .089',['soresu','djem_so'],['orbit','single'],8,130],
+    ['orbit sweep .184',['shii_cho','shii_cho'],['orbit','single'],3,485],
+  ];
+  const worst={hand:0,tip:0,head:0};let strikes=0,carriedAtContact=0;
+  for(const [name,forms,kits,seed,frames] of duels){
+    const game=createArcade({mode:'watch',seed,teamSizes:[1,1],teamForms:forms.map(f=>[f]),startingSaberWeapon:kits,startingRanks:['SSS+V','SSS+V'],...flags});
+    const last=new Map();
+    for(let frame=0;frame<=frames;frame++){
+      stepArcade(game,1/120);stepArcade(game,1/120);
+      for(const f of game.fighters){
+        const raw=pose(f,game.time), r=sampleArcadeRenderRig(f,raw,game.time);
+        // Measured on the drawn figure relative to its own root: body roll, flips and scale applied, travel and
+        // hop taken out. Orbit blades fly on their own engine path and are drawn from it; only the hands are rig
+        // joints there. The head is held to the hand limit, so a whole-body snap (a flip spun back) shows too.
+        const {project}=arcadeBasis({x:0,y:r.hop},r), at=p=>p&&project(p);
+        const joints={head:at(r.head),hand:at(r.hand),backHand:at(r.backHand),...(raw.orbitBlades?{}:{tip:at(r.blade),offTip:at(r.offBlade)})};
+        const side=Math.sign(Math.cos(f.face)), prior=last.get(f.id);
+        // A facing flip mirrors the figure, and a bind or knockout lands at once.
+        if(prior&&f.alive&&prior.side===side&&!(raw.action!==prior.action&&['clash','ko'].includes(raw.action)))
+          for(const [k,p] of Object.entries(joints))if(p&&prior.joints[k]){
+            const d=Math.hypot(p.x-prior.joints[k].x,p.y-prior.joints[k].y), kind=k.endsWith('ip')?'tip':'hand';
+            worst[k==='head'?'head':kind]=Math.max(worst[k==='head'?'head':kind],d);
+            assert.ok(d<=ARCADE_DRAWN_STEP[kind]+.5,`${name}: ${k} moved ${d.toFixed(1)} px in one frame at ${frame} (${prior.action} > ${raw.action})`);
+          }
+        if(f.attack&&f.actionTime>=f.attackSpec?.contact){strikes++;
+          if(r.drawnCarry>0||r.held.gripHandoff>0)carriedAtContact++;}
+        last.set(f.id,{joints,side,action:raw.action});
+      }
+    }
+  }
+  assert.ok(strikes>100);
+  assert.equal(carriedAtContact,0,'at and after contact the drawn blade is the engine blade');
+  assert.ok(worst.tip>60&&worst.hand>20,JSON.stringify(worst));
+});
