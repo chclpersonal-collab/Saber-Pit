@@ -893,7 +893,7 @@ newSetup.addEventListener('submit',event=>{
     try{
       discardResume(saveKey());
       drawSeason({...config.options,seed:config.seed??randomSeasonSeed()});
-      newSetup.hidden=true;persist('Season drawn');render();nextButton.focus();
+      newSetup.hidden=true;persist('Season drawn');render();(fightButton.hidden?nextButton:fightButton).focus();
     }catch(error){console.error('Tournament setup failed',error);status('Couldn’t draw bracket');}
   });
 });

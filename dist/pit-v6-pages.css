@@ -168,6 +168,8 @@
 :root body.ops-shell .intro .eyebrow{display:none}
 /* Main action and the rest */
 :root body.ops-shell :is(button.primary,.button.primary,button.strong,#gPlay,#nextButton,#newButton){font-family:var(--v5-display);font-weight:400;font-size:20px;letter-spacing:.01em;color:var(--v5-ink);background:linear-gradient(180deg,#ffe36e,var(--v5-gold));box-shadow:0 var(--v5-lip) 0 var(--v5-gold-lip);border-radius:var(--v5-r)}
+/* With Fight out front, Sim Bout steps back: one main action per row. */
+:root body.ops-shell :is(.g-actions:has(#gFight:not([hidden],:disabled))>#gPlay,.schedule .actions:has(#fightButton:not([hidden],:disabled))>#nextButton){color:var(--v5-white);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink)}
 :root body.ops-shell :is(button,.button){border-radius:var(--v5-r)}
 /* ⋯ menus: one rounded square */
 :root body.ops-shell :is(.v6p-more>summary,summary.v5-tool){width:52px;height:52px;min-height:52px;border-radius:var(--v5-r);display:grid;place-items:center;padding:0;font-size:0;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);list-style:none;cursor:pointer}
