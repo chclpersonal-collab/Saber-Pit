@@ -24,7 +24,14 @@ const portrait=$<HTMLCanvasElement>('questPortrait'),ctx=portrait.getContext?.('
 const picker=$<HTMLSelectElement>('questPicker'), arena=$<HTMLCanvasElement>('questArena'), pace=$<HTMLSelectElement>('questReplaySpeed'), stage=$('questFightPanel');
 const pretty=(n?: number | null)=>Number(n??0).toLocaleString();
 const seconds=(ms: number)=>Math.max(0,Math.ceil(ms/1000))+'s';
-const kitLabel={orbit:'Traya’s Orbit',single:'Single saber',dual:'Dual sabers',staff:'Double-bladed saber'};
+const kitLabel:Record<string,string|undefined>={orbit:'Orbit',single:'Single',dual:'Dual',staff:'Double-Blade',shoto:'Shoto',greatsaber:'Greatsaber'};
+const kitName=(weapon?:string,grip?:string)=>grip==='backhand'&&(weapon==='single'||weapon==='dual')?(weapon==='dual'?'Backhand Dual':'Backhand'):kitLabel[weapon??''];
+/** Facts in a row: separate v6-meta spans instead of a "·" chain. */
+const meta=(id:string,...parts:readonly(string|number|false|null|undefined)[])=>{
+  const e=$(id),items=parts.filter(p=>p!==false&&p!==null&&p!==undefined&&p!=='').map(String),key=items.join('\n');
+  if(e.dataset.v6Meta===key&&e.childElementCount===items.length)return;
+  e.dataset.v6Meta=key;e.replaceChildren(...items.flatMap((t,i)=>{const s=document.createElement('span');s.className='v6-meta';s.textContent=t;return i?[' ',s]:[s];}));
+};
 let state=loadQuests(),heroes: RpgHero[]=[],paintedKey='',routeKey='',journalKey='',failedRev: number | null=null,failedLegacy='';
 let playback: ReturnType<typeof startArcadeTournamentPlayback> | null=null,scene: PlaybackScene | null=null,watchRunId='',hiddenPlaybackKey='';
 const put=(id: string,text: string)=>{const e=$(id);if(e.textContent!==text)e.textContent=text;};
@@ -34,6 +41,7 @@ const node=<K extends keyof HTMLElementTagNameMap>(tag: K,text?: string | number
 const outcome=(result: {status?: string} | null | undefined)=>result?.status==='won'?'Victory':result?.status==='lost'?'Defeat':'Draw';
 const legacyKey=(run: QuestRun | null | undefined)=>run?.encounter?run.startedAt+':'+run.attempt+':'+run.encounter.seed:'';
 const keyFor=(run: IdleExpedition,index: number)=>run.id+':'+index;
+const place=(name: string)=>name.replace(/^The /,'');
 function refreshHeroes(){
   const selected=picker.value;
   heroes=savedHeroes();
@@ -47,7 +55,7 @@ function paint(hero: RpgHero | null | undefined){
   const key=JSON.stringify([hero.id,name,form,hero.body,hero.gender,gear.weapon,gear.grip]);
   if(paintedKey===key)return;
   paintedKey=key;put('questHeroName',name);
-  put('questHeroForm',[form,kitLabel[gear.weapon!],gear.grip==='backhand'?'Reverse grip':null].filter(Boolean).join(' · ')||'Saved Hero');
+  if(form||kitName(gear.weapon,gear.grip))meta('questHeroForm',form,kitName(gear.weapon,gear.grip));else put('questHeroForm','Saved Hero');
   if(ctx){ctx.clearRect(0,0,136,136);art.drawArcadeFighterPreview(ctx,{...hero,appearanceSeed:(hero.appearanceSeed??hero.id) as number},{framing:'portrait',reducedMotion:true});}
 }
 function moveFocusToStage(){
@@ -59,7 +67,7 @@ function clearPlayback(){
   stage.dataset.scene='scout';
 }
 function showPlayback({created,name,enemy,key,result,index=null,legacy=false}: PlaybackOptions,focus=false){
-  if(!created){notice('This saved fight cannot be replayed.');return;}
+  if(!created){notice('Replay unavailable');return;}
   clearPlayback();
   const nowScene: PlaybackScene={key,legacy,result,index,ended:false};
   scene=nowScene;
@@ -81,7 +89,7 @@ function showPlayback({created,name,enemy,key,result,index=null,legacy=false}: P
         view();
       },
     });
-  }catch(error){clearPlayback();console.error('Idle RPG playback failed',error);notice('Could not open the battle view. Your saved run is unchanged.');}
+  }catch(error){clearPlayback();console.error('Idle RPG playback failed',error);notice('Fight view failed, run kept');}
   if(focus)moveFocusToStage();
   view();
 }
@@ -102,17 +110,17 @@ function showRoute(status: IdleStatus){
   const {run,index,phase}=status;
   const key=[run?.id,index,phase==='idle'?'idle':phase==='ready'||phase==='claimed'?'end':'run',...BELL_WAVES.map((_,i)=>run?.waves[i]?.result?.status??'')].join(':');
   if(routeKey===key)return;routeKey=key;
-  put('rpgRouteCount',`${run?.waves.filter(w=>w.result?.status==='won').length??0} / ${BELL_WAVES.length} CLEARED`);
+  put('rpgRouteCount',`${run?.waves.filter(w=>w.result?.status==='won').length??0}/${BELL_WAVES.length} Cleared`);
   $('rpgRouteNodes').replaceChildren(...BELL_WAVES.map((def,i)=>{
     const wave=run?.waves[i], result=wave?.result;
     const st=result?.status==='won'?'clear':result?'stopped':i===index?'current':'locked';
     const li=node('li');li.dataset.state=st;
     if(st==='current')li.setAttribute('aria-current','step');
     const icon=node('span',st==='clear'?'✓':i+1,'rpg-route-icon');icon.setAttribute('aria-hidden','true');
-    const text=node('small',st==='clear'?'Cleared':st==='stopped'?outcome(result):st==='current'?(phase==='idle'?'Start here':'Current wave'):'Locked');
-    li.append(icon,node('strong',def.name),text);
+    const text=node('small',st==='clear'?'Cleared':st==='stopped'?outcome(result):st==='current'?(phase==='idle'?'Start':'Current'):'Locked');
+    li.append(icon,node('strong',place(def.name)),text);
     if(result){
-      const watch=node('button','Replay');watch.type='button';watch.setAttribute('aria-label','Replay '+def.name);
+      const watch=node('button','Replay');watch.type='button';watch.setAttribute('aria-label','Replay '+place(def.name));
       watch.addEventListener('click',()=>{watchRunId='';showWave(run,i,true);});li.append(watch);
     }
     return li;
@@ -122,7 +130,7 @@ function showJournal(status: IdleStatus){
   const {run}=status,key=[run?.id,...(run?.waves??[]).map(w=>w.result?.status??'incoming')].join(':');
   if(key===journalKey)return;journalKey=key;
   const line=(speaker: string,text: string)=>{const li=node('li');li.append(node('strong',speaker),node('p',text));return li;};
-  $('questDialogue').replaceChildren(line('Gate notice','Find the bell clapper before the next shift.'),...(run?.waves??[]).map((wave,i)=>{
+  $('questDialogue').replaceChildren(line('Gate Notice','Find the bell clapper before the next shift.'),...(run?.waves??[]).map((wave,i)=>{
     const def=BELL_WAVES[i];
     return line(def.enemy,def.dialogue+(wave.result?' '+outcome(wave.result)+'.':''));
   }));
@@ -131,9 +139,9 @@ function showLegacyStatus(now: number){
   const {phase,run,remainingMs}=questStatus(state,now);
   hide('rpgLegacy',!run);if(!run)return;
   hide('rpgLegacySeal',phase!=='claimed');
-  put('rpgLegacyStatus',({preparing:'Entering the Underpit · '+seconds(remainingMs),fighting:'Duel underway · '+seconds(remainingMs),
-    finished:'Resolving the original duel…',ready:'Victory. Bellkeeper’s Seal is ready to claim.',lost:'Original duel ended in defeat.',
-    draw:'Original duel ended in a draw.',claimed:'Bellkeeper’s Seal secured.'} as Partial<Record<QuestPhase,string>>)[phase]??'');
+  put('rpgLegacyStatus',({preparing:'Entering Underpit, '+seconds(remainingMs),fighting:'Duel on, '+seconds(remainingMs),
+    finished:'Resolving duel',ready:'Seal ready to claim',lost:'Duel lost',
+    draw:'Duel drawn',claimed:'Seal secured'} as Partial<Record<QuestPhase,string>>)[phase]??'');
   hide('rpgLegacyWatch',!run.encounter||phase==='preparing');hide('rpgLegacyClaim',phase!=='ready');
 }
 function view(now=Date.now()){
@@ -142,40 +150,40 @@ function view(now=Date.now()){
   const selected=heroes.find(h=>h.id===picker.value),hero=canDeploy?selected:run?.hero;
   const def=BELL_WAVES[index], activeKey=run?keyFor(run,index):'';
   paint(hero);hide('questDispatch',!canDeploy||!heroes.length);hide('questEmpty',!canDeploy||Boolean(heroes.length));
-  put('questDeploy',phase==='claimed'?'Deploy again':'Deploy Hero');
+  put('questDeploy',phase==='claimed'?'Deploy Again':'Deploy');
   $<HTMLButtonElement>('questDeploy').disabled=canDeploy&&Number(status.patrolReward??0)>0;
-  put('rpgHeroCount',canDeploy?heroes.length+' READY':'DEPLOYED');
-  put('rpgStageState',scene?.legacy?'Original duel':scene?.result?'Replay':phase==='idle'?'Ready':phase==='preparing'?'Approaching':
-    phase==='fighting'?(scene?.ended?'Awaiting wave report':remainingMs?'In battle':'Resolving'):cleared?'Cleared':outcome(wave?.result));
+  put('rpgHeroCount',canDeploy?heroes.length+' Ready':'Deployed');
+  put('rpgStageState',scene?.legacy?'Original Duel':scene?.result?'Replay':phase==='idle'?'Ready':phase==='preparing'?'Approaching':
+    phase==='fighting'?(scene?.ended?'Resolving':remainingMs?'In Battle':'Resolving'):cleared?'Cleared':outcome(wave?.result));
   stage.dataset.phase=phase;
   stage.dataset.scene=scene?(scene.ended?'result':'fight'):'scout';
-  put('questFightTitle',scene?.legacy?'Original Bell Beneath duel':'The Bell Beneath');
-  put('rpgLocation',scene?.legacy?'THE UNDERPIT':`THE UNDERPIT · WAVE ${(scene?.index??index)+1} / ${BELL_WAVES.length}`);
-  put('rpgSceneCaption',def.name);
+  put('questFightTitle',scene?.legacy?'Original Duel':'Bell Beneath');
+  if(scene?.legacy)meta('rpgLocation','Underpit');else meta('rpgLocation','Underpit',`Wave ${(scene?.index??index)+1}/${BELL_WAVES.length}`);
+  put('rpgSceneCaption',place(def.name));
   hide('rpgSceneCaption',Boolean(scene));
   hide('questProgress',!timed);
   $<HTMLProgressElement>('questBar').max=phase==='preparing'?Math.max(1,(wave!.startedAt-(index?run!.waves[index-1].dueAt:run!.startedAt))/1000):wave?(wave.dueAt-wave.startedAt)/1000:1;
   $<HTMLProgressElement>('questBar').value=timed?Math.max(0,$<HTMLProgressElement>('questBar').max-remainingMs/1000):0;
-  put('questTime',remainingMs?seconds(remainingMs)+' left':'Resolving…');
+  put('questTime',remainingMs?seconds(remainingMs)+' left':'Resolving');
   hide('questWatch',!wave||phase==='preparing'||(!scene?.legacy&&scene?.key===activeKey));
-  put('questWatch',wave?.result?'Replay last wave':'Watch current wave');
+  put('questWatch',wave?.result?'Replay':'Watch');
   hide('questResolve',!timed||failedRev!==(c?.revision??0));
-  put('questStatus',canDeploy&&heroes.length?(Number(status.patrolReward??0)>0?'Collect your patrol salvage before sending another expedition.':'Runs progress while you’re away.'):timed?`${run!.hero.name} · ${def.name}`:'');
+  if(timed)meta('questStatus',run!.hero.name,place(def.name));else put('questStatus',canDeploy&&heroes.length?(Number(status.patrolReward??0)>0?'Collect salvage first':'Runs go on while away'):'');
   const balance=c?.wallet??0, available=Math.max(0,Number(status.patrolReward??0));
-  put('rpgLootStatus',pretty(balance)+' SALVAGE');
-  put('rpgLootName',phase==='ready'?pretty(reward)+' salvage ready':'Expedition salvage');
-  put('rpgLootDetail',phase==='ready'?(cleared?'All three waves cleared.':reward?'Salvage from cleared waves.':'No loot earned this expedition.'):'Earn salvage by clearing waves. Spend it on your Hero.');
-  hide('questClaim',phase!=='ready');put('questClaim',reward?'Claim '+pretty(reward)+' salvage':'Continue');
-  hide('questResult',phase!=='claimed');put('rpgRewardDetail',reward?pretty(reward)+' salvage added to your wallet.':'Expedition closed. You can deploy again.');
+  put('rpgLootStatus',pretty(balance)+' Salvage');
+  put('rpgLootName',phase==='ready'?pretty(reward)+' Salvage':'Salvage');
+  put('rpgLootDetail',phase==='ready'?(cleared?'All 3 waves cleared':reward?'From cleared waves':'No loot this run'):'Clear waves, upgrade your hero');
+  hide('questClaim',phase!=='ready');put('questClaim',reward?'Claim '+pretty(reward):'Continue');
+  hide('questResult',phase!=='claimed');put('rpgRewardDetail',reward?'+'+pretty(reward)+' Salvage':'Run closed');
   const cost=selected?idleCampaignUpgradeCost(c,selected.id):null;
   const level=selected&&c?.upgrades&&Object.hasOwn(c.upgrades,selected.id)?c.upgrades[selected.id]:0;
   hide('rpgUpgrade',!canDeploy||!selected);
-  put('rpgUpgradeDetail',level>=2?'Expedition kit fully upgraded.':level===1?'Improved saber equipped.':'Standard expedition kit.');
-  put('rpgUpgradeBuy',cost===null?'Max upgrades':(level===0?'Upgrade saber':'Upgrade Force')+' · '+cost);
+  put('rpgUpgradeDetail',level>=2?'Max Kit':level===1?'Saber Upgraded':'Standard Kit');
+  if(cost===null)put('rpgUpgradeBuy','Maxed');else meta('rpgUpgradeBuy',level===0?'Upgrade Saber':'Upgrade Force',pretty(cost));
   $<HTMLButtonElement>('rpgUpgradeBuy').disabled=cost===null||balance<cost;
   const showPatrol=Boolean(available>0||status.patrolNextMs!>0);
   hide('rpgPatrol',!showPatrol);$<HTMLButtonElement>('rpgPatrolCollect').disabled=!available;
-  put('rpgPatrolDetail',available?pretty(available)+' patrol salvage ready':'Next patrol salvage in '+seconds(status.patrolNextMs??0));
+  put('rpgPatrolDetail',available?pretty(available)+' salvage ready':'Next patrol in '+seconds(status.patrolNextMs??0));
   const legacyReady=questStatus(state,now).phase==='ready';
   hide('rpgClaimAll',Number(phase==='ready')+Number(available>0)+Number(legacyReady)<2);
   showRoute(status);showJournal(status);showLegacyStatus(now);
@@ -187,7 +195,7 @@ function persistCampaign(action: (prior?: IdleCampaign) => IdleCampaign | undefi
     state=loadQuests(); failedRev=null;notice();view();return true;
   }
   state=loadQuests();
-  if(!quiet)notice(next===prior?'That action isn’t available right now.':'Could not save this action. The latest save is shown.');
+  if(!quiet)notice(next===prior?'Not available now':'Save failed, latest shown');
   return false;
 }
 function persistLegacy(action: (state: QuestSave) => unknown){
@@ -232,8 +240,8 @@ $('rpgClaimAll').addEventListener('click',()=>{
   if(Number(idleCampaignStatus(loadQuests().campaign,now).patrolReward??0)>0)take(persistCampaign(c=>collectIdleCampaignPatrol(c,now)));
   if(questStatus(loadQuests(),now).phase==='ready')take(persistLegacy(c=>claimQuest(c,now)));
   tick();
-  if(failed)notice('Some rewards could not be claimed. The latest save is shown.');
-  else if(claimed)notice(claimed===1?'Reward claimed.':claimed+' rewards claimed.');
+  if(failed)notice('Some rewards not claimed');
+  else if(claimed)notice(claimed===1?'Reward claimed':claimed+' rewards claimed');
   if($('rpgClaimAll').hidden&&returnFocus)$('questNotice').focus();
 });
 $('rpgUpgradeBuy').addEventListener('click',()=>{if(persistCampaign(c=>upgradeIdleCampaignHero(c,picker.value,savedHeroes())))tick();});
@@ -245,7 +253,7 @@ $('questHideFight').addEventListener('click',()=>{
 });
 $('questResolve').addEventListener('click',()=>{failedRev=null;tick();});
 $('rpgLegacyWatch').addEventListener('click',showLegacy);
-$('rpgLegacyClaim').addEventListener('click',()=>{if(!persistLegacy(c=>claimQuest(c)))notice('Could not claim the original reward.');view();});
+$('rpgLegacyClaim').addEventListener('click',()=>{if(!persistLegacy(c=>claimQuest(c)))notice('Claim failed');view();});
 pace.addEventListener('change',()=>playback?.setSpeed(pace.value as unknown as number));
 picker.addEventListener('change',()=>view());
 window.addEventListener('storage',({key})=>{

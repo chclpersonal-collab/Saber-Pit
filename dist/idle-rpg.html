@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090909">
 <meta name="description" content="Deploy a Saved Hero, explore the Underpit and collect the rewards.">
-<title>Idle RPG · Loomen</title>
+<title>Idle RPG | Loomen</title>
 <link rel="stylesheet" href="./idle-rpg.css?v=4.0.0">
 <script type="module" src="./idle-rpg-sync-entry.js?v=5.1.0"></script>
 <link rel="stylesheet" href="./combat-captions.css?v=2.41.0">
@@ -14,8 +14,8 @@
 <body class="ops-shell ops-idle">
 <main class="quest-shell">
   <header class="ops-dock">
-    <a class="ops-brand" href="./index.html" aria-label="Loomen Arena">
-      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>LOOMEN</strong><small>VERSION 6.0.1</small></span>
+    <a class="ops-brand" href="./index.html" aria-label="Home">
+      <span class="ops-mark"><svg viewBox="0 0 34 36" aria-hidden="true"><path d="M17 2 31 8v13l-14 13L3 21V8z"/><path d="m8 15 7 8 12-13M19 27l6-6"/></svg></span><span><strong>LOOMEN</strong><small>v6.0.1</small></span>
     </a>
     <nav class="ops-nav" aria-label="Loomen modes">
       <a href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./pit-v4-icons.svg#swords"/></svg><span>Arena</span><small aria-hidden="true">01</small></a>
@@ -27,61 +27,61 @@
     <p class="ops-dock-foot" aria-hidden="true"><i></i> LOOMEN // OPS</p>
   </header>
   <section class="rpg-header" aria-labelledby="questTitle">
-    <div><p class="rpg-kicker">UNDERPIT CAMPAIGN</p><h1 id="questTitle">Idle RPG</h1></div>
-    <span class="rpg-tag" id="rpgChapterBadge">CHAPTER 1</span>
+    <div><p class="rpg-kicker">Underpit</p><h1 id="questTitle">Idle RPG</h1></div>
+    <span class="rpg-tag" id="rpgChapterBadge">Chapter 1</span>
   </section>
   <div class="rpg-layout">
     <section class="rpg-battle" id="questFightPanel" aria-labelledby="questFightTitle" data-scene="scout">
       <div class="rpg-battle-top">
-        <div><p class="rpg-kicker" id="rpgLocation">THE UNDERPIT</p><h2 id="questFightTitle" tabindex="-1">The Bell Beneath</h2></div>
+        <div><p class="rpg-kicker" id="rpgLocation">Underpit</p><h2 id="questFightTitle" tabindex="-1">Bell Beneath</h2></div>
         <p class="rpg-state" id="rpgStageState">Ready</p>
       </div>
       <div class="rpg-viewport">
         <img class="rpg-cavern" src="./idle-bell-stage.svg" alt="" width="1120" height="630">
-        <canvas id="questArena" width="960" height="540" role="img" aria-label="Loomen quest duel" hidden></canvas>
-        <div class="rpg-stage-caption"><p id="rpgSceneCaption">Flooded passage</p><p id="questFightMatchup" class="quest-matchup" hidden></p><p id="questFightClock" aria-live="off" hidden></p></div>
+        <canvas id="questArena" width="960" height="540" role="img" aria-label="Duel" hidden></canvas>
+        <div class="rpg-stage-caption"><p id="rpgSceneCaption">Flooded Passage</p><p id="questFightMatchup" class="quest-matchup" hidden></p><p id="questFightClock" aria-live="off" hidden></p></div>
       </div>
       <div class="rpg-battle-foot">
-        <div id="questProgress" class="quest-progress" hidden><label for="questBar">Run progress</label><progress id="questBar" max="40" value="0"></progress><output id="questTime" for="questBar"></output></div>
-        <div class="rpg-fight-actions"><button id="questWatch" type="button" hidden>Watch fight</button><button id="questHideFight" type="button" hidden>Hide fight</button>
-          <button id="questResolve" type="button" hidden>Resolve fight</button>
+        <div id="questProgress" class="quest-progress" hidden><label for="questBar">Progress</label><progress id="questBar" max="40" value="0"></progress><output id="questTime" for="questBar"></output></div>
+        <div class="rpg-fight-actions"><button id="questWatch" type="button" hidden>Watch</button><button id="questHideFight" type="button" hidden>Hide</button>
+          <button id="questResolve" type="button" hidden>Resolve</button>
           <label id="questReplayPace" hidden>Speed<select id="questReplaySpeed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select></label>
         </div>
       </div>
     </section>
     <section class="rpg-panel rpg-dispatch" aria-labelledby="dispatchTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">PARTY</p><h2 id="dispatchTitle">Saved Hero</h2></div><span class="rpg-tag" id="rpgHeroCount">0 READY</span></div>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker">Party</p><h2 id="dispatchTitle">Saved Hero</h2></div><span class="rpg-tag" id="rpgHeroCount">0 Ready</span></div>
       <figure id="questHeroProfile" class="quest-hero-profile" hidden><canvas id="questPortrait" width="136" height="136" aria-hidden="true"></canvas><figcaption><strong id="questHeroName"></strong><p id="questHeroForm"></p></figcaption></figure>
       <form id="questDispatch" class="rpg-dispatch-form" hidden>
-        <label for="questPicker">Choose Hero</label><select id="questPicker" required></select>
-        <button id="questDeploy" class="rpg-primary" type="submit">Deploy Hero</button>
+        <label for="questPicker">Hero</label><select id="questPicker" required></select>
+        <button id="questDeploy" class="rpg-primary" type="submit">Deploy</button>
       </form>
-      <p id="questEmpty" class="rpg-empty" hidden>No Saved Heroes yet. <a href="./tournament.html">Recruit one in Tournament</a>.</p>
+      <p id="questEmpty" class="rpg-empty" hidden><span>No Saved Heroes</span> <a href="./tournament.html">Recruit</a></p>
       <div class="rpg-upgrade" id="rpgUpgrade" hidden><p id="rpgUpgradeDetail"></p><button id="rpgUpgradeBuy" type="button">Upgrade</button></div>
       <p id="questStatus" class="rpg-status" aria-live="polite"></p>
       <p id="questNotice" class="rpg-notice" role="status" tabindex="-1" hidden></p>
     </section>
     <section class="rpg-panel rpg-route" aria-labelledby="rpgRouteTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">CAMPAIGN MAP</p><h2 id="rpgRouteTitle">Underpit route</h2></div><span class="rpg-tag" id="rpgRouteCount">0 / 3</span></div>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker">Map</p><h2 id="rpgRouteTitle">Route</h2></div><span class="rpg-tag" id="rpgRouteCount">0/3 Cleared</span></div>
       <ol id="rpgRouteNodes" class="rpg-route-nodes"></ol>
     </section>
     <section class="rpg-panel rpg-loot" aria-labelledby="rpgLootTitle">
-      <div class="rpg-panel-head"><div><p class="rpg-kicker">LOOT</p><h2 id="rpgLootTitle">Rewards</h2></div><span class="rpg-tag" id="rpgLootStatus">LOCKED</span></div>
-      <div class="rpg-loot-item"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4 40 13v22l-16 9-16-9V13zM24 11l8 8-8 18-8-18zM13 17h22"/></svg><div><strong id="rpgLootName">Bellkeeper’s Seal</strong><p id="rpgLootDetail">Defeat the guardian to unlock.</p></div></div>
-      <button class="rpg-primary" id="rpgClaimAll" type="button" hidden>Claim all</button>
-      <button class="rpg-primary" id="questClaim" type="button" hidden>Claim reward</button>
-      <div class="rpg-upgrade" id="rpgPatrol" hidden><p id="rpgPatrolDetail"></p><button id="rpgPatrolCollect" type="button">Collect salvage</button></div>
-      <section id="questResult" class="rpg-reward" hidden><strong>Secured</strong><p id="rpgRewardDetail">Recorded in your journal. No change to combat or Elo.</p></section>
+      <div class="rpg-panel-head"><div><p class="rpg-kicker">Loot</p><h2 id="rpgLootTitle">Rewards</h2></div><span class="rpg-tag" id="rpgLootStatus">Locked</span></div>
+      <div class="rpg-loot-item"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4 40 13v22l-16 9-16-9V13zM24 11l8 8-8 18-8-18zM13 17h22"/></svg><div><strong id="rpgLootName">Bellkeeper’s Seal</strong><p id="rpgLootDetail">Beat the guardian</p></div></div>
+      <button class="rpg-primary" id="rpgClaimAll" type="button" hidden>Claim All</button>
+      <button class="rpg-primary" id="questClaim" type="button" hidden>Claim</button>
+      <div class="rpg-upgrade" id="rpgPatrol" hidden><p id="rpgPatrolDetail"></p><button id="rpgPatrolCollect" type="button">Collect</button></div>
+      <section id="questResult" class="rpg-reward" hidden><strong>Secured</strong><p id="rpgRewardDetail"></p></section>
     </section>
     <details class="rpg-panel rpg-journal" aria-labelledby="journalTitle">
-      <summary><span id="journalTitle">Field journal</span><small>Story &amp; encounter log</small></summary>
+      <summary><span id="journalTitle">Journal</span></summary>
       <ol id="questDialogue" class="quest-dialogue"></ol>
-      <p class="quest-sources">Dialogue excerpts: <a href="https://www.digitaltq.com/wiki/idleon/quests/scripticus-1" target="_blank" rel="noopener">Scripticus, IdleOn</a>. Offline play inspired by <a href="https://store.steampowered.com/app/1267910/Melvor_Idle/" target="_blank" rel="noopener">Melvor Idle</a> and <a href="https://www.farlightgames.com/news/3/" target="_blank" rel="noopener">AFK Journey</a>.</p>
+      <p class="quest-sources"><span class="v6-meta">Dialogue: <a href="https://www.digitaltq.com/wiki/idleon/quests/scripticus-1" target="_blank" rel="noopener">Scripticus, IdleOn</a></span> <span class="v6-meta">Idle Play: <a href="https://store.steampowered.com/app/1267910/Melvor_Idle/" target="_blank" rel="noopener">Melvor Idle</a>, <a href="https://www.farlightgames.com/news/3/" target="_blank" rel="noopener">AFK Journey</a></span></p>
     </details>
     <details class="rpg-panel rpg-legacy" id="rpgLegacy" hidden>
-      <summary><span>Original Bell Beneath expedition</span><span id="rpgLegacySeal" class="rpg-tag" hidden>SEAL SECURED</span></summary>
+      <summary><span>Original Run</span><span id="rpgLegacySeal" class="rpg-tag" hidden>Seal Secured</span></summary>
       <p id="rpgLegacyStatus"></p>
-      <div class="rpg-fight-actions"><button id="rpgLegacyWatch" type="button" hidden>Watch original duel</button><button id="rpgLegacyClaim" type="button" hidden>Claim Bellkeeper’s Seal</button></div>
+      <div class="rpg-fight-actions"><button id="rpgLegacyWatch" type="button" hidden>Watch</button><button id="rpgLegacyClaim" type="button" hidden>Claim Seal</button></div>
     </details>
   </div>
 </main>
