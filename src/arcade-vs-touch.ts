@@ -15,6 +15,7 @@ export function stickVector(dx:number,dy:number,radius:number,dead=.14){
 
 export function mountVersusTouch(host:HTMLElement){
   const players:[VsTouchPlayer,VsTouchPlayer]=[0,1].map(()=>({held:new Set<string>(),pulse:new Set<string>(),stick:{x:0,y:0}})) as [VsTouchPlayer,VsTouchPlayer];
+  const resets:(()=>void)[]=[];
   const pads=players.map((player,i)=>{
     const pad=document.createElement('div');
     pad.className='vs-pad';pad.id='vsPad'+(i+1);pad.dataset.player=String(i+1);
@@ -35,6 +36,7 @@ export function mountVersusTouch(host:HTMLElement){
     stick.addEventListener('pointerdown',e=>{e.preventDefault();owner=e.pointerId;try{stick.setPointerCapture(e.pointerId);}catch{}move(e);});
     stick.addEventListener('pointermove',e=>{if(e.pointerId===owner)move(e);});
     for(const t of ['pointerup','pointercancel','lostpointercapture'] as const)stick.addEventListener(t,release);
+    const buttonResets:(()=>void)[]=[];
     const grid=document.createElement('div');grid.className='vs-buttons';
     grid.append(...BUTTONS.map(([action,label])=>{
       const b=document.createElement('button');b.type='button';b.dataset.p=action;b.textContent=label;
@@ -44,23 +46,31 @@ export function mountVersusTouch(host:HTMLElement){
       b.addEventListener('pointerdown',e=>{e.preventDefault();down.add(e.pointerId);try{b.setPointerCapture(e.pointerId);}catch{}
         player.held.add(action);if(PULSED.has(action))player.pulse.add(action);b.dataset.held='true';});
       for(const t of ['pointerup','pointercancel','lostpointercapture'] as const)b.addEventListener(t,off);
+      buttonResets.push(()=>{const ids=[...down];down.clear();b.dataset.held='false';for(const id of ids)try{b.releasePointerCapture(id);}catch{}});
       b.addEventListener('contextmenu',e=>e.preventDefault());
       return b;
     }));
     pad.append(stick,grid);host.append(pad);
+    // Drop this player's touch on the spot: fingers still down stop counting, and their captures are let go.
+    resets[i]=()=>{
+      const id=owner;owner=null;if(id!=null)try{stick.releasePointerCapture(id);}catch{}
+      knob.style.translate='';for(const r of buttonResets)r();
+      player.held.clear();player.pulse.clear();player.stick={x:0,y:0};
+    };
     return pad;
   });
-  function clear(){
-    for(const p of players){p.held.clear();p.pulse.clear();p.stick={x:0,y:0};}
-    for(const k of host.querySelectorAll<HTMLElement>('.vs-knob'))k.style.translate='';
-    for(const b of host.querySelectorAll<HTMLElement>('.vs-pad button'))b.dataset.held='false';
-  }
+  const shown:[boolean,boolean]=[false,false];
+  function clear(){for(const r of resets)r();}
   return {
     players,pads,clear,
-    /** Show or hide each pad; portrait turns Player 2 to face across the table. */
+    /** True while that player's pad is on screen; a hidden pad's input never reaches the fight. */
+    shown:(i:0|1)=>shown[i],
+    /** Show or hide each pad; portrait turns Player 2 to face across the table. Hiding one pad drops only that player's touch. */
     sync(show:readonly [boolean,boolean],portrait:boolean){
-      pads.forEach((pad,i)=>{pad.hidden=!show[i];pad.dataset.turned=String(i===1&&portrait);});
-      if(!show[0]&&!show[1])clear();
+      pads.forEach((pad,i)=>{
+        if(shown[i]&&!show[i])resets[i]!();
+        shown[i]=show[i]!;pad.hidden=!show[i];pad.dataset.turned=String(i===1&&portrait);
+      });
     },
   };
 }

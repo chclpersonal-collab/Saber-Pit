@@ -281,7 +281,8 @@ function inputs(){
   const {p1,p2}=padSeats.assign(pads,versusLive());
   const me=game.fighters.find(f=>f.control&&f.team===0);
   const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
-  const [t1,t2]=vsTouch.players, moved=(v:{x:number;y:number})=>v.x||v.y?v:null;
+  const none={held:new Set<string>(),pulse:new Set<string>(),stick:{x:0,y:0}};
+  const t1=vsTouch.shown(0)?vsTouch.players[0]:none,t2=vsTouch.shown(1)?vsTouch.players[1]:none,moved=(v:{x:number;y:number})=>v.x||v.y?v:null;
   const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name)||t1.held.has(name),pulse:new Set([...pulse,...t1.pulse]),
     fromStick:padStick(p1)??moved(t1.stick)??stick.snapshot(),aim:p,touchWalk,
     technique:()=>$('chosenTechnique').value},pendingOrder) as ArcadeInput;
@@ -291,7 +292,7 @@ function inputs(){
       fromStick:padStick(p2)??moved(t2.stick)??{x:0,y:0},aim:padAim(p2,pink),touchWalk:false,technique:()=>p2Technique??''},null);
     data.p2={...second,technique:second.technique||null,order:undefined};
   }
-  pulse.clear();p2pulse.clear();t1.pulse.clear();t2.pulse.clear();pendingOrder=null;return data;
+  pulse.clear();p2pulse.clear();for(const t of vsTouch.players)t.pulse.clear();pendingOrder=null;return data;
 }
 /** Once a frame: read controllers, and let Menu pause and View peek at the scoreboard like the keyboard does. */
 function pollPads(){
