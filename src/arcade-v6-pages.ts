@@ -1,6 +1,7 @@
 /** LOOMEN v6 chrome for the pages outside the Arena (Tournament, Gauntlet, Saves, Idle RPG, Style Lab, Three Fronts).
  *  Adds the same bottom nav as Home and opens a section named in the address. Look and links only:
  *  nothing here reads or writes a save, and every page keeps its own scripts. Authored by CLARISSA-01. */
+import './arcade-v6-menu-place.js?v=6.0.2-rc2';
 const ICON={
   home:'<path d="M3 11 12 3l9 8v10h-6v-6H9v6H3Z"/>',
   stats:'<path d="M4 20V10h3v10Zm6.5 0V4h3v16ZM17 20v-7h3v7ZM2 21h20v1.5H2Z"/>',
@@ -65,12 +66,19 @@ function mountGauntletMenu(){
   more.addEventListener('keydown',e=>{if(e.key==='Escape'&&more.open){more.open=false;summary.focus();}});
   document.addEventListener('click',e=>{if(more.open&&!more.contains(e.target as Node))more.open=false;});
 }
-/** Tournament: Next bout or New season stays out front; Run bracket, Auto Seasons and Watch join Reset under ⋯. */
+/** Tournament: Next bout or New season stays out front; Run bracket, Auto Seasons, Watch and Copy Seed join Reset under ⋯. */
 function mountTournamentMenu(){
   const menu=document.querySelector('#nextButton')?.parentElement?.querySelector('.v5-more-menu');
   if(!menu||menu.querySelector('#runButton'))return;
   const reset=document.getElementById('resetButton');
   for(const id of ['runButton','autoSeasons','watchLast']){const b=document.getElementById(id);if(b)menu.insertBefore(b,reset);}
+  // The seed line under the bracket was a helper line; its copy button joins the menu and only shows while a bracket has a seed.
+  const seed=document.getElementById('copyActiveSeed'),strip=document.getElementById('activeSeed');
+  if(seed&&strip){
+    seed.textContent='Copy Seed';menu.insertBefore(seed,reset);
+    const sync=()=>{seed.hidden=strip.hidden;};sync();
+    new MutationObserver(sync).observe(strip,{attributes:true,attributeFilter:['hidden']});
+  }
   const more=menu.closest('details');
   menu.addEventListener('click',e=>{if(more instanceof HTMLDetailsElement)closeMore(more,e.target as Element);});
   document.addEventListener('click',e=>{if(more?.open&&!more.contains(e.target as Node))more.open=false;});

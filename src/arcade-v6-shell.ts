@@ -2,6 +2,7 @@
  *  It only drives the existing setup controls (select change events, preset clicks, form submit).
  *  No save, storage key or rating code is read for writing here. */
 import {readArcadeCareer} from './arcade-career.js?v=6.0.2-rc2';
+import './arcade-v6-menu-place.js?v=6.0.2-rc2';
 import {statsView} from './arcade-stats-page.js?v=6.0.2-rc2';
 import {paintV6Scene,paintV6Fighter,paintV6Card,type V6Scene,type V6Card} from './arcade-v6-scene.js?v=6.0.2-rc2';
 import {SOLDIER_GRADES} from './progression.js?v=1.4.0';
