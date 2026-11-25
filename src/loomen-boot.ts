@@ -13,8 +13,10 @@ const timeout=setTimeout(()=>showProblem('Taking longer than expected. You can r
 import('./arcade-sync-entry.js?v=6.0.1-boot').then(()=>{
   requestAnimationFrame(()=>{
     clearTimeout(timeout);
+    // A seated bout (?seat=gauntlet) opens straight into the match screen; the home is still mounted behind it.
+    const view=body.dataset.view, seated=Boolean(body.dataset.seat||body.dataset.seatOpening);
     const skin=getComputedStyle(document.documentElement).getPropertyValue('--loomen-v6-skin').trim();
-    if(skin!=='ready'||!document.getElementById('v6Home')||!body.dataset.v6||body.dataset.view!=='menu'){
+    if(skin!=='ready'||!document.getElementById('v6Home')||!body.dataset.v6||!(view==='menu'||seated&&view==='game')){
       showProblem('LOOMEN couldn’t finish loading.');
       return;
     }

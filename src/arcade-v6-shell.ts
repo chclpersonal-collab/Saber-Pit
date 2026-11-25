@@ -261,7 +261,10 @@ function trimResult(o:HTMLElement){
     next.replaceChildren(el('span',undefined,rank),el('span',undefined,right));next.dataset.v6='1';
   }
   // A save warning hides Next round; then the way out reads as the Setup step the warning names.
-  if(resultLeave)resultLeave.textContent=get('again')?.hidden?'Back to Setup':'← Leave';
+  // A seated bout (Gauntlet) goes back to its own page, and its save line always shows.
+  const seatLabel=body.dataset.seat?body.dataset.seatLabel:'';
+  if(resultLeave)resultLeave.textContent=seatLabel?'Back to '+seatLabel:get('again')?.hidden?'Back to Setup':'← Leave';
   const note=get('rankResult');
-  if(note){const warn=(note.textContent??'').split(' · ').find(p=>/Save|Session only/.test(p))??'';note.textContent=warn;note.hidden=!warn;}
+  if(note&&seatLabel)note.hidden=false;
+  else if(note){const warn=(note.textContent??'').split(' · ').find(p=>/Save|Session only/.test(p))??'';note.textContent=warn;note.hidden=!warn;}
 }
