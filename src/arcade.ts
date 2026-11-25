@@ -1,4 +1,5 @@
 import {createArcadeCombatAudio} from './arcade-combat-audio.js';
+import {arenaSeatKind,openArenaSeat,type ArenaSeat} from './arena-seat.js';
 import {arenaFighterAppearance,ARENA_TEAM_GENDERS,ARENA_TEAM_APPEARANCES} from './arcade-team-looks.js';
 import {createAutoDuel} from './arcade-auto-duel.js';
 import {ARENA_MOTION_FLOW,PREVIEW_MOTION_FLOW} from './arcade-motion-flow.js?v=5.0.0';
@@ -65,7 +66,9 @@ type TechniqueRow={name:string;id:string;tactical?:string;opening?:string;circui
 const field = <T extends object>(obj:T,key:PropertyKey|undefined):T[keyof T]|undefined => obj[key as keyof T];
 const readCareerForUI=readArcadeCareer as unknown as ()=>Career|null;
 type HeroLineup=ReturnType<typeof battleHeroLineup>;
-type SceneOptions=Pick<ArcadeOptions,'records'|'careers'|'heroLineup'>&{setup?:ReturnType<typeof loadSetup>;arenaRatings?:ArenaRatings};
+type SceneOptions=Pick<ArcadeOptions,'records'|'careers'|'heroLineup'>&{setup?:ReturnType<typeof loadSetup>;arenaRatings?:ArenaRatings;seat?:ArenaSeat};
+// A bout another page owns (Gauntlet): this screen runs it with its own HUD and controls, and the seat settles it.
+let seat:ArenaSeat|null=null;
 type AimEvent=Pick<PointerEvent,'clientX'|'clientY'>;
 const canvas=$('arena'), ctx=canvas.getContext('2d',{alpha:false})!;
 let W=1120,H=640;
@@ -284,11 +287,14 @@ function pollPads(){
 function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:SceneOptions={}){
   if(nextView==='menu'){autoDuel.stop();roundSaveBaseline=undefined;autoCareerMode=undefined;}
   else autoDuel.clearRound();
+  if(seat&&seat!==options.seat)seat.leave();
+  seat=nextView==='game'?options.seat??null:null;
+  document.body.dataset.seat=seat?seat.kind:'';document.body.dataset.seatLabel=seat?seat.label:'';
   career=null;roundRatings=options.arenaRatings??{};roundRated=false;ratingUnrecorded=false;ratingReport=[];crowdedLOD=false;pendingOrder=null;touchWalk=false;padSeats.reset();$('walkTouch').setAttribute('aria-pressed','false');
   combatAudio.stopEvents();
   view=nextView; mode=nextMode; round=nextRound; paused=false; endDelay=0;lastEvent=0;moveSeen={};watchedPhases={};maxHeight=0;echoes.clear();displayTime=0;sim.remainder=0;sim.previous=null;hudAt=-1;hitDelay=0;callouts.reset();
   clearInput();fx.reset();swingWaves.reset();
-  const config=nextView==='menu'?setup:normalizeSetup(options.setup??matchSetup);
+  const config=nextView==='menu'?setup:normalizeSetup(seat?{...matchSetup,mapId:seat.mapId,teamSizes:seat.teamSizes,heroPicks:[],participation:'play',playerSlot:0}:options.setup??matchSetup);
   if(nextView==='game')matchSetup=config;
   const {records}=options;
   const useHeroes=options.heroLineup?
@@ -315,13 +321,14 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
     arenaNormalRating(roundRatings[team+'-'+slot]))):undefined;
   const fighterChessStyles=engineChessStyleOverrides({...config,teamSizes:sideSizes},sideHeroes);
   const demoBlue=config.participation==='play'?config.playerSlot:0;
-  game=createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
+  if(seat){const g=seat.game as ArcadeGame;[W,H]=[g.width,g.height];}
+  game=seat?seat.game as ArcadeGame:createArcade({...config,mode:isMenu?'watch':mode,seed:isMenu?451:seed,width:W,height:H,
     round,terrain,limit:config.duration,motionFlow:isMenu?PREVIEW_MOTION_FLOW:ARENA_MOTION_FLOW,smartAI:!isMenu,regionalInjuries:!isMenu,localVersus:!isMenu&&localVersus&&mode==='duel',perfectParryStamina:!isMenu,continuousCombat:!isMenu,anticipatingCombat:!isMenu,arenaCuts:!isMenu,activeFootwork:!isMenu,styleTravel:!isMenu,repertoireSupport:!isMenu,exchangeVariety:!isMenu,fluidFootwork:!isMenu,eloReads:!isMenu,impactPhysics:!isMenu,balancePass:!isMenu,closeChoice:!isMenu,guardCounterplay:!isMenu,minorMoves:!isMenu,forceVariants:!isMenu,weaponFlow:true,expandedCombat:!isMenu,circuitCuts:!isMenu,ratingSkill:!isMenu,arenaRatingSkill:useArenaElo,fighterRatings,customHeroTactics:!isMenu,advancedArena:!isMenu,teamForms:isMenu?[[lineups[0][demoBlue]],[lineups[1][0]]]:lineups,careers,records,
     teamSizes:sideSizes,forcePools,squadTactics,laneDrill,opponentReads,environment:config.environment,heroLineup:sideHeroes,fighterChessStyles:fighterChessStyles as ArcadeOptions["fighterChessStyles"]});
   if(novicePractice)game.config.novicePractice=true;
   const spreadDeployed=game.config.laneDrill===true;
   if(laneDrill)game.config.laneDrill=true; // even a placement fallback is a session-only drill
-  roundRated=!isMenu&&arenaNormalRanked(game);
+  roundRated=!isMenu&&!seat&&arenaNormalRanked(game);
   stage=createArcadeStage(W,H,round,{mapId:config.mapId,terrain:game.terrain,environment:config.environment});
   const shownMap=resolveArcadeMap(config.mapId,round);
   $('mapCaptionName').textContent=field(ARCADE_MAPS,shownMap)?.[0]??'Arena';
@@ -350,6 +357,8 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   syncFullscreen();
   $('pauseOverlay').hidden=true;$('result').hidden=true;$('pause').textContent='Pause';syncAutoDuel();scoreboard.close();
   for(const b of document.querySelectorAll<HTMLElement>('#help [data-home]'))b.hidden=view==='menu';
+  for(const [where,plain] of [['#pauseOverlay','Setup'],['#result','Setup'],['#help','Match setup']] as const)
+    for(const b of document.querySelectorAll<HTMLElement>(where+' [data-home]'))b.textContent=!seat?plain:where==='#result'?'Back to '+seat.label:'Leave bout';
   syncHelp();
   setupTechnique(game.fighters.find(f=>f.control),config.saberOnly&&!isMenu);
   $('modeLabel').textContent=matchLabel();
@@ -366,6 +375,7 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
   p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
   if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Blue · P1';$('rivalName').textContent='Pink · P2';}
+  if(seat){$('blueName').textContent='Blue';$('rivalName').textContent='Pink';$('profileText').textContent='Saves to '+seat.label+' · '+arcadeSaberOption(primary!.gear).label;}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
 }
@@ -468,13 +478,22 @@ $('autoDuelStart').addEventListener('click',()=>{
   readLobby();
   if(!$('autoDuelStart').disabled)launch(true);
 });
-function goHome(){setScene('menu');$('startMatch').focus({preventScroll:true});window.scrollTo({top:0});}
+function goHome(){
+  if(seat){const left=seat;left.leave();seat=null;location.assign(left.back);return;}
+  setScene('menu');$('startMatch').focus({preventScroll:true});window.scrollTo({top:0});}
 for(const b of document.querySelectorAll<HTMLElement>('[data-home]'))b.addEventListener('click',goHome);
 function nextCareerRound(){
   if(!career||$('again').hidden)return;
   seed=career.seed;setScene('game',mode,career.round,{careers:career.careers,records:career.records,setup:career.setup,heroLineup:career.heroLineup,arenaRatings:career.arenaRatings});
 }
-$('again').addEventListener('click',nextCareerRound);
+$('again').addEventListener('click',()=>{if(seat)void nextSeat(seat.kind);else nextCareerRound();});
+async function nextSeat(kind:ArenaSeat['kind']){
+  $('again').disabled=true;
+  const opened=await openArenaSeat(kind).catch(()=>({ok:false as const,text:'Could not open the next bout. Your save was unchanged.',back:seat?.back??'./index.html'}));
+  $('again').disabled=false;
+  if(opened.ok){seed=0;setScene('game',opened.seat.mode,1,{seat:opened.seat});return;}
+  $('rankResult').textContent=opened.text;$('again').hidden=true;
+}
 for(const button of document.querySelectorAll<HTMLElement>('[data-order]')){
   button.addEventListener('click',()=>{
     if(mode!=='command'||game.phase!=='playing')return;
@@ -671,6 +690,8 @@ canvas.addEventListener('pointerup',e=>{
 });
 function showEnd(){
   if(!$('result').hidden)return;
+  if(seat){showSeatEnd(seat);return;}
+  (document.getElementById('resultElo') as HTMLElement).hidden=false;
   const versus=game.config.localVersus===true;
   const text=game.phase==='draw'?'Draw':mode==='watch'||versus?(game.phase==='won'?'Blue wins':'Pink wins'):game.phase==='won'?'Round won':'Round lost';
   $('resultTitle').textContent=text;
@@ -727,6 +748,35 @@ function showEnd(){
   $(conflict?'resultStats':'again').focus({preventScroll:true});
   autoDuel.completeRound(persisted&&career.round<=100000);syncAutoDuel();
   announce(autoDuel.active?text+'. Next round in 3 seconds.':text);
+}
+function showSeatEnd(owner:ArenaSeat){
+  const head=game.phase==='draw'?'Draw':game.phase==='won'?'Blue wins':'Pink wins';
+  const timedOut=game.endReason==='timeout'||game.time+1e-8>=game.limit;
+  $('resultTitle').textContent=head;
+  $('result').dataset.winnerBody=game.phase==='won'?game.fighters.find(f=>f.control)?.body??'':'';
+  $('turningPoint').hidden=true;
+  const me=game.fighters.find(f=>f.control);
+  renderRoundResult($('result'),buildRoundResult({mode,teamSizes:game.config.teamSizes??[],round,seconds:game.time,rated:false,save:'untracked',who:null,
+    line:(me?.stats??{}) as Parameters<typeof buildRoundResult>[0]['line'],elo:null}));
+  $('resultTitle').textContent=head;
+  // Gauntlet Elo is settled by the Gauntlet itself, so the Arena's Elo block and rated badge do not apply here.
+  (document.getElementById('resultElo') as HTMLElement).hidden=true;(document.getElementById('resultBadge') as HTMLElement).textContent=owner.label.toUpperCase();
+  const clockText=Math.floor(game.time/60)+':'+String(Math.floor(game.time%60)).padStart(2,'0');
+  $('resultRound').textContent=owner.teamSizes.join('v')+' · '+clockText;
+  $('resultText').textContent=(timedOut?'Time limit · ':'')+(game.phase==='won'?'You knocked out the Pink side.':game.phase==='draw'?'Both sides finished even.':'Blue was knocked out.');
+  $('rankResult').textContent='Saving…';
+  $('again').textContent='Fight next bout';$('again').hidden=true;
+  updateHUD();
+  scoreboard.close();$('result').hidden=false;$('pause').hidden=true;clearInput();
+  $('resultStats').focus({preventScroll:true});
+  announce(head);
+  void owner.finish().then(end=>{
+    if(seat!==owner)return;
+    $('rankResult').textContent=end.text;$('rankResult').hidden=false;
+    $('result').dataset.seatSaved=String(end.saved);
+    $('again').hidden=!end.next;
+    if(end.next)$('again').focus({preventScroll:true});
+  });
 }
 const regionName=(id:string)=>ARCADE_BODY_REGIONS.find(x=>x.id===id)?.label??'Body';
 const shortRegion={head:'Head',torso:'Torso',leftArm:'L arm',rightArm:'R arm',leftLeg:'L leg',rightLeg:'R leg'};
@@ -810,6 +860,19 @@ function arenaRatingDetail(id:string, gradeIndex:number, compact=false){
   return head+(typeof delta==='number'?' ('+(delta>0?'+':'')+delta+')':'')+
     (cap===null?' · no rank cap':rating>=cap?' · '+ratingText(cap)+' cap · rank up':' · rank cap '+ratingText(cap));
 }
+/** One bar per fighter on each side (up to 8): full when unhurt, shrinking with the worst injured region, empty when out. */
+function renderTeamHealth(side:'blue'|'red',roster:ArcadeFighter[]){
+  const panel=document.querySelector<HTMLElement>(`.hud .health.${side==='blue'?'blue':'pink'}`);if(!panel)return;
+  let bars=panel.querySelector<HTMLElement>('.team-hp');
+  if(!bars){bars=document.createElement('div');bars.className='team-hp';bars.setAttribute('role','img');panel.querySelector('.energy')?.before(bars)??panel.append(bars);}
+  const shown=view==='game'&&roster.length<=8;bars.hidden=!shown;if(!shown)return;
+  const values=roster.map(f=>f.alive?Math.max(.04,1-Math.max(0,...arcadeRegionalCondition(f.injuries).map(r=>r.pct))/100):0);
+  const key=values.map(v=>v.toFixed(2)).join('/');if(bars.dataset.key===key)return;bars.dataset.key=key;
+  while(bars.children.length>values.length)bars.lastElementChild!.remove();
+  while(bars.children.length<values.length)bars.append(document.createElement('i'));
+  values.forEach((v,i)=>{const bar=bars!.children[i] as HTMLElement;bar.style.setProperty('--hp',String(v));bar.dataset.out=String(v===0);});
+  bars.setAttribute('aria-label',(side==='blue'?'Blue':'Pink')+' '+values.filter(v=>v>0).length+' of '+values.length+' standing');
+}
 function updateHUD(){
   updateHeroWatch();
   for(const [team,side] of [[0,'blue'],[1,'red']] as const){
@@ -823,6 +886,7 @@ function updateHUD(){
     $(`${side}Rank`).textContent=rank+(elo&&(!own||ratingUnrecorded)?' · '+elo:'');
     $(`${side}Rank`).title=lead?arenaRatingDetail(lead.id,lead.career.gradeIndex):'Displayed fighter rank';
     $(`${side}Count`).textContent=roster.filter(f=>f.alive).length+'/'+roster.length;
+    renderTeamHealth(side,roster);
     if(lead)renderRibbon(`${side}Injuries`,lead);
   }
   const second=game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined,stamina2=document.getElementById('energy2') as HTMLProgressElement|null;
@@ -1042,7 +1106,7 @@ function frame(now:number){
       if(view==='game'&&game.phase==='playing'){
         advanceSim(sim,dt*(mode==='watch'||mode==='command'?matchSetup.pace:game.config.novicePractice ? .75 : 1),{blocked:hitDelay>0,playing:()=>game.phase==='playing',step:()=>{
           sim.previous=fighterSamples(game.fighters);
-          if(view==='game')stepArcade(game,FRAME_STEP,inputs() as ArcadeInput);
+          if(view==='game'){if(seat)seat.step(inputs() as Record<string,unknown>);else stepArcade(game,FRAME_STEP,inputs() as ArcadeInput);}
         }});
       }else{
         sim.previous=null;
@@ -1131,7 +1195,7 @@ window.addEventListener('storage',e=>{
   savedCareer=readCareerForUI();
   if(view==='menu')refreshSavedRunUI();
 });
-window.addEventListener('pagehide',()=>{if(autoDuel.active){autoDuel.stop();syncAutoDuel();$('modeLabel').textContent='Showdown';}});
+window.addEventListener('pagehide',()=>{seat?.leave();if(autoDuel.active){autoDuel.stop();syncAutoDuel();$('modeLabel').textContent='Showdown';}});
 const reportRows=[['Saber swings','saberSwings'],['Saber hits','saberHits'],
   ['Blocks','blocks'],['Parries','parries'],['Directional reads','guardReads'],['Feints','feints'],['Ripostes','ripostes'],['Blade clashes','clashes'],['Ally-blocked swings','allyBlocks'],['Punishes','punishes'],['Counter hits','counters'],['Force casts','forceCasts'],
   ['Force hits','forceHits'],['Knockouts','kills'],['Deaths','deaths'],['Assists','assists'],['Hazard deaths','environmentDeaths']] as const;
@@ -1358,6 +1422,7 @@ function heroSelects(){
 }
 /** The name the player picked (Showdown, Master trial, Play a Hero), not just the engine mode. */
 function matchLabel(){
+  if(seat)return seat.label;
   if(game.config.localVersus)return 'Two players';
   if(autoDuel.active)return 'Auto battle';
   if(mode==='watch')return 'Showdown';
@@ -1524,3 +1589,12 @@ if(queuedHero&&prepareWatchHero(queuedHero))saveSetup(setup);
 window.addEventListener('pageshow',()=>{if(view==='menu')refreshHeroRoster();});
 window.addEventListener('storage',()=>{if(view==='menu')refreshHeroRoster();});
 applyLobby(); setScene('menu'); requestAnimationFrame(frame);
+const seatKind=arenaSeatKind();
+if(seatKind){
+  document.body.dataset.seatOpening=seatKind;
+  void openArenaSeat(seatKind).catch(()=>({ok:false as const,text:'Could not open the bout. Your save was unchanged.',back:'./index.html'})).then(opened=>{
+    delete document.body.dataset.seatOpening;
+    if(opened.ok){seed=0;setScene('game',opened.seat.mode,1,{seat:opened.seat});return;}
+    $('setupStatus').textContent=opened.text;
+  });
+}
