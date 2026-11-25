@@ -27,13 +27,13 @@ const forceFamily = (value:unknown) => typeof value === 'string' && Object.hasOw
 const select = (values:unknown, team:number) => Array.isArray(values) ? values[team] : undefined;
 
 export const ARCADE_SABER_OPTIONS = Object.freeze([
-  Object.freeze({ id: 'single', weapon: 'single', grip: 'forward', label: 'Single saber' }),
-  Object.freeze({ id: 'dual', weapon: 'dual', grip: 'forward', label: 'Dual sabers' }),
-  Object.freeze({ id: 'backhand', weapon: 'single', grip: 'backhand', label: 'Backhand single' }),
-  Object.freeze({ id: 'backhand-dual', weapon: 'dual', grip: 'backhand', label: 'Backhand dual' }),
-  Object.freeze({ id: 'staff', weapon: 'staff', grip: 'forward', label: 'Double-bladed saber' }),
+  Object.freeze({ id: 'single', weapon: 'single', grip: 'forward', label: 'Single' }),
+  Object.freeze({ id: 'dual', weapon: 'dual', grip: 'forward', label: 'Dual' }),
+  Object.freeze({ id: 'backhand', weapon: 'single', grip: 'backhand', label: 'Backhand' }),
+  Object.freeze({ id: 'backhand-dual', weapon: 'dual', grip: 'backhand', label: 'Backhand Dual' }),
+  Object.freeze({ id: 'staff', weapon: 'staff', grip: 'forward', label: 'Double-Blade' }),
   Object.freeze({ id: 'shoto', weapon: 'shoto', grip: 'forward', label: 'Shoto' }),
-  Object.freeze({ id: 'orbit', weapon: 'orbit', grip: 'forward', label: 'Traya’s Orbit · 3 floating sabers' }),
+  Object.freeze({ id: 'orbit', weapon: 'orbit', grip: 'forward', label: 'Orbit', blades: 3 }),
   Object.freeze({ id: 'greatsaber', weapon: 'greatsaber', grip: 'forward', label: 'Greatsaber' }),
 ]);
 
