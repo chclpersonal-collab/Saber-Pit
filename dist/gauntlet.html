@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="./gauntlet.css?v=3.2.3">
 <script type="module" src="./gauntlet-sync-entry.js?v=5.1.0"></script>
 <link rel="stylesheet" href="./pit-v4-tournaments.css?v=4.0.0">
-<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.3.0"><link rel="stylesheet" href="./pit-v6-pages.css?v=6.0.0"></head>
+<link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.3.0"><link rel="stylesheet" href="./pit-v6-pages.css?v=6.0.1-fight"></head>
 <body class="ops-shell pit-v4-tournaments ops-gauntlet">
 <main class="gauntlet-shell">
   <header class="ops-dock">
@@ -57,7 +57,8 @@
         </form>
         <div class="g-progress" id="gProgress" hidden><label for="gBar" id="gProgressText">Bouts complete</label><progress id="gBar" max="20" value="0"></progress></div>
         <div class="g-actions">
-          <button class="primary" id="gPlay" type="button" disabled>Next bout</button>
+          <button class="primary g-fight-start" id="gFight" type="button" disabled>Fight next bout</button>
+          <button id="gPlay" type="button" disabled>Next bout</button>
           <button id="gRun" type="button" disabled>Run bracket</button>
           <button id="gAuto" class="g-auto" type="button" aria-describedby="gAutoHelp">Auto Seasons</button>
           <button id="gStop" type="button" hidden>Stop after bout</button>
@@ -138,6 +139,18 @@
       <p id="gResetHelp">This clears Gauntlet seasons, medals, and career Elo on this device. Your 1v1, 5v5, Saved Heroes, and quest progress stay.</p>
       <div class="g-actions"><button value="cancel" autofocus>Cancel</button><button value="reset">Reset Gauntlet</button></div>
     </form>
+  </dialog>
+  <dialog id="gFightDialog" class="g-replay g-fight" aria-labelledby="gFightTitle">
+    <div class="g-section-top"><div><p class="ops-kicker">BLUE · 1 VS 3</p><h2 id="gFightTitle">Gauntlet bout</h2></div><button id="gFightLeave" type="button">Leave bout</button></div>
+    <div class="g-fight-bar"><span id="gFightPips" class="g-pips"></span><output id="gFightStatus" class="g-fight-clock" role="status"></output></div>
+    <div class="g-fight-stage">
+      <canvas id="gFightCanvas" width="960" height="540" tabindex="0" role="img" aria-label="Gauntlet bout. You are the Blue fighter."></canvas>
+      <div class="g-fight-pad" id="gFightPad">
+        <div class="g-stick" aria-hidden="true"><span></span></div>
+        <div class="g-fight-buttons"><button type="button" data-act="guard">Guard</button><button type="button" data-act="dash">Dash</button><button type="button" data-act="heavy">Heavy</button><button type="button" class="g-fight-strike" data-act="strike">Slash</button></div>
+      </div>
+    </div>
+    <div class="g-actions" id="gFightAfter" hidden><button class="primary" id="gFightNext" type="button">Fight next bout</button><button id="gFightClose" type="button">Back to bracket</button></div>
   </dialog>
   <dialog id="gReplay" class="g-replay" aria-labelledby="gReplayTitle">
     <div class="g-section-top"><div><p class="ops-kicker">READ-ONLY PLAYBACK</p><h2 id="gReplayTitle">Gauntlet replay</h2></div><form method="dialog"><button id="gCloseReplay" value="close" autofocus>Close</button></form></div>
