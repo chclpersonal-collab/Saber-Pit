@@ -38,3 +38,13 @@ test('a pink player who presses nothing never defends', () => {
   }
   assert.equal(defence,0);
 });
+
+test("player two's technique button fires their own form's technique", async () => {
+  const {arcadeMovesFor}=await import('../dist/arcade-engine-api.js');
+  const s=make(),[blue,pink]=s.fighters;
+  Object.assign(blue,{x:400,y:300});Object.assign(pink,{x:480,y:300});
+  const id=arcadeMovesFor(pink.form,pink.career.gradeIndex).at(-1)!.id;
+  let fired=false;
+  for(let i=0;i<40;i++){stepArcade(s,1/60,{p2:{technique:i<3?id:null,aimX:blue.x,aimY:blue.y}});if(pink.attack===id)fired=true;}
+  assert.ok(fired,`pink should use ${id}`);
+});

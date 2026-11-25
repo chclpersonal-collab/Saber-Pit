@@ -49,3 +49,10 @@ test('two players on one device is never rated and never saved', async () => {
   assert.equal(isArenaSessionOnly({...match.config,localVersus:true}),true);
   assert.equal(isArenaSessionOnly(match.config),false);
 });
+
+test('the phone sticks for two players have a dead zone and cap at full speed', async () => {
+  const {stickVector}=await import('../dist/arcade-vs-touch.js');
+  assert.deepEqual(stickVector(3,0,50),{x:0,y:0});
+  assert.deepEqual(stickVector(200,0,50),{x:1,y:0});
+  const half=stickVector(0,-25,50);assert.ok(Math.abs(half.y+.5)<1e-9);
+});

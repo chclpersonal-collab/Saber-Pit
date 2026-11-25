@@ -49,6 +49,7 @@ import {activeArenaPreset,arenaSetupSummary} from './arcade-setup-summary.js';
 import {createSettingsSession} from './arcade-settings-session.js';
 import {mountStatsPage} from './arcade-stats-page.js';
 import {mountKeysPanel} from './arcade-keys-panel.js';
+import {mountVersusTouch} from './arcade-vs-touch.js';
 import {createPadReader,assignPads,padHeld,padStick,padAim,P2_KEYS,type PadState} from './arcade-gamepad.js';
 /** Home's Continue run: same action as Match setup's, shown only with a saved run. */
 const homeContinue=document.getElementById('homeContinue');
@@ -126,6 +127,19 @@ const padReader=createPadReader();
 let pads:PadState[]=[], padStatsHeld=false, localVersus=false;
 const p2keys=new Set<string>(), p2pulse=new Set<string>(), heldP2Keys=createHeldArenaKeys(p2keys);
 const versusLive=()=>view==='game'&&game?.config.localVersus===true;
+// Two people on one phone: each gets a compact pad. Same query as the Arena's own touch layout.
+const vsTouch=mountVersusTouch(document.body);
+const touchLayout=matchMedia('(max-width:740px), (pointer:coarse) and (max-width:1100px), (orientation:landscape) and (max-height:520px) and (max-width:1100px)');
+const portraitView=matchMedia('(orientation:portrait)');
+let vsTouchKey='', p2Technique:string|null=null;
+function syncVersusTouch(){
+  const on=versusLive()&&touchLayout.matches&&!paused&&game.phase==='playing';
+  const show:[boolean,boolean]=[on&&pads.length<2,on&&pads.length<1];
+  const key=show.join()+portraitView.matches;
+  if(key===vsTouchKey)return;
+  vsTouchKey=key;vsTouch.sync(show,portraitView.matches);
+  document.body.dataset.vsTouch=String(show[0]||show[1]);
+}
 let scoreboardKey:string|null=null;
 const scoreboard=mountArenaScoreboard({
   root:document.getElementById('scoreboard') as HTMLDialogElement|null,toggle:document.getElementById('statsButton') as HTMLButtonElement|null,
@@ -248,7 +262,7 @@ function cancelStick(){
   paintStick();
 }
 function clearInput(clearAim=true){
-  touchDown=null;heldArenaKeys.clear();heldP2Keys.clear();p2pulse.clear();pointers.clear();pulse.clear();aim=null;cancelStick();scoreboardKey=null;scoreboard.hold(false);
+  touchDown=null;heldArenaKeys.clear();heldP2Keys.clear();p2pulse.clear();vsTouch.clear();pointers.clear();pulse.clear();aim=null;cancelStick();scoreboardKey=null;scoreboard.hold(false);
   if(clearAim){touchAim=null;syncTouchAim();}
   document.querySelectorAll<HTMLElement>('[data-held=true]').forEach(b=>b.dataset.held='false');
 }
@@ -266,19 +280,22 @@ function inputs(){
   const {p1,p2}=assignPads(pads,versusLive());
   const me=game.fighters.find(f=>f.control&&f.team===0);
   const p=padAim(p1,me)??currentTouchAim()??(aim&&screenToArena(aim.x,aim.y,{left:0,top:0,width:1,height:1},canvas.width,canvas.height,transform));
-  const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name),pulse,fromStick:padStick(p1)??stick.snapshot(),aim:p,touchWalk,
+  const [t1,t2]=vsTouch.players, moved=(v:{x:number;y:number})=>v.x||v.y?v:null;
+  const data=arenaInputFrame({held:name=>active(name)||padHeld(p1,name)||t1.held.has(name),pulse:new Set([...pulse,...t1.pulse]),
+    fromStick:padStick(p1)??moved(t1.stick)??stick.snapshot(),aim:p,touchWalk,
     technique:()=>$('chosenTechnique').value},pendingOrder) as ArcadeInput;
   if(versusLive()){
     const pink=game.fighters.find(f=>f.control&&f.team===1);
-    const second=arenaInputFrame({held:name=>p2keys.has(name)||padHeld(p2,name),pulse:p2pulse,fromStick:padStick(p2)??{x:0,y:0},
-      aim:padAim(p2,pink),touchWalk:false,technique:()=>''},null);
-    data.p2={...second,technique:null,order:undefined};
+    const second=arenaInputFrame({held:name=>p2keys.has(name)||padHeld(p2,name)||t2.held.has(name),pulse:new Set([...p2pulse,...t2.pulse]),
+      fromStick:padStick(p2)??moved(t2.stick)??{x:0,y:0},aim:padAim(p2,pink),touchWalk:false,technique:()=>p2Technique??''},null);
+    data.p2={...second,technique:second.technique||null,order:undefined};
   }
-  pulse.clear();p2pulse.clear();pendingOrder=null;return data;
+  pulse.clear();p2pulse.clear();t1.pulse.clear();t2.pulse.clear();pendingOrder=null;return data;
 }
 /** Once a frame: read controllers, and let Menu pause and View peek at the scoreboard like the keyboard does. */
 function pollPads(){
   pads=padReader.read();
+  syncVersusTouch();
   if(!pads.length&&!padStatsHeld)return;
   if(pads.length)document.documentElement.dataset.arenaPad='true';
   if(view==='game'&&mode!=='watch'&&mode!=='command'&&game.phase==='playing'&&pads.some(p=>p.pausePressed))pause(!paused);
@@ -365,6 +382,9 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   $('signatureHint').textContent=lore[primary!.form]?.signature||'Heavy attack';
   $('blueName').textContent=primary!.displayName??(mode==='duel'?formName(primary!.form):mode==='watch'?'Blue':'Blue side');
   $('rivalName').textContent=rival!.displayName??(mode==='duel'?formName(rival!.form):'Pink');
+  // Player 2 has no technique menu: their button uses their form's strongest technique, as Player 1's starts on.
+  const pink=view==='game'&&game.config.localVersus?game.fighters.find(f=>f.control&&f.team===1):undefined;
+  p2Technique=pink?arcadeMovesFor(pink.form,pink.career.gradeIndex).filter(m=>!config.saberOnly||m.mapAction!=='force').at(-1)?.id??null:null;
   if(view==='game'&&game.config.localVersus){$('modeLabel').textContent='Two players';$('blueName').textContent='Player 1';$('rivalName').textContent='Player 2';}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started. Both teams use AI.':titleCase(mode)+' started. Round '+round+'.');}
