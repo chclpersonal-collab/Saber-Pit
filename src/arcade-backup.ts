@@ -1,13 +1,13 @@
-import {TOURNAMENT_KEY,loadTournament} from './arcade-tournament.js?v=3.0.0';
-import {SQUAD_TOURNAMENT_KEY,loadSquadTournament} from './squad-tournament.js?v=2.40.0';
-import {GAUNTLET_KEY,GAUNTLET_MAX_SAVE_CHARS,normalizeGauntlet} from './gauntlet-tournament.js';
-import {ARCADE_CAREER_KEY,readArcadeCareer} from './arcade-career.js?v=2.18.5';
-import {normalizeHeroLineup} from './arcade-heroes.js?v=2.42.0';
-import {arenaNormalRating} from './arcade-normal-elo.js';
-import {QUEST_STORAGE_KEY,loadQuests} from './arcade-quests.js?v=3.3.0';
+import {TOURNAMENT_KEY,loadTournament} from './arcade-tournament.js?v=6.0.2-rc2';
+import {SQUAD_TOURNAMENT_KEY,loadSquadTournament} from './squad-tournament.js?v=6.0.2-rc2';
+import {GAUNTLET_KEY,GAUNTLET_MAX_SAVE_CHARS,normalizeGauntlet} from './gauntlet-tournament.js?v=6.0.2-rc2';
+import {ARCADE_CAREER_KEY,readArcadeCareer} from './arcade-career.js?v=6.0.2-rc2';
+import {normalizeHeroLineup} from './arcade-heroes.js?v=6.0.2-rc2';
+import {arenaNormalRating} from './arcade-normal-elo.js?v=6.0.2-rc2';
+import {QUEST_STORAGE_KEY,loadQuests} from './arcade-quests.js?v=6.0.2-rc2';
 
-import type {QuestSave} from './arcade-quests.js';
-import type {SaveStorage, StorageReader} from './arcade-save-types.js';
+import type {QuestSave} from './arcade-quests.js?v=6.0.2-rc2';
+import type {SaveStorage, StorageReader} from './arcade-save-types.js?v=6.0.2-rc2';
 
 export type BackupSection = 'arena' | 'duel' | 'squad' | 'gauntlet' | 'quest';
 interface SavedMatch { id: string; result?: unknown }

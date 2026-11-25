@@ -1,4 +1,4 @@
-import {combatCallout} from './arcade-callouts.js?v=3.1.0';
+import {combatCallout} from './arcade-callouts.js?v=6.0.2-rc2';
 import {declutterArcadeCallouts,arcadeCalloutBudget,arcadeCalloutFamily,arcadeCalloutText} from './arcade-callout-declutter.js?v=5.1.0';
 
 interface Cue{label:string;style:string;priority:number;tone:string;life:number;key:string}

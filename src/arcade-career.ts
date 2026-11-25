@@ -3,8 +3,8 @@ import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 import {createCareer, awardMerit, meritForRound, progressionSummary} from './progression.js?v=1.4.0';
 
 import {ELO_SCALE,migrateLegacyElo} from './arcade-elo.js?v=2.18.5';
-import {arenaNormalRanked,arenaNormalRating,arenaNormalCap,safeArenaNormalRatings,updateArenaNormalRatings} from './arcade-normal-elo.js';
-import type {ArenaNormalMatch,ArenaNormalRatings,ArenaNormalRatingChange} from './arcade-normal-elo.js';
+import {arenaNormalRanked,arenaNormalRating,arenaNormalCap,safeArenaNormalRatings,updateArenaNormalRatings} from './arcade-normal-elo.js?v=6.0.2-rc2';
+import type {ArenaNormalMatch,ArenaNormalRatings,ArenaNormalRatingChange} from './arcade-normal-elo.js?v=6.0.2-rc2';
 
 export const ARCADE_CAREER_KEY='saber-pit-arcade-careers-v1';
 type Career = ReturnType<typeof createCareer>;

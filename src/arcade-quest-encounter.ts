@@ -10,8 +10,8 @@ type QuestResultState=Pick<QuestStepState,"phase"|"endReason">&{time:number;stat
 type Game=QuestStepState & QuestResultState & {fighters:QuestFighter[];limit:number;config:{limit:number};elitePacing:{active:boolean;stage:string;measuredUntil:number;fullAt:number};
 };
 /** The Bell Beneath uses one deterministic Arcade duel live and headlessly. */
-import {createArcade,stepArcade} from './arcade-engine.js?v=5.0.0';
-import {normalizeBattleHero} from './arcade-heroes.js?v=2.42.0';
+import {createArcade,stepArcade} from './arcade-engine.js?v=6.0.2-rc2';
+import {normalizeBattleHero} from './arcade-heroes.js?v=6.0.2-rc2';
 
 import {arcadeChessStyleForId,normalizeArcadeChessStyle} from './arcade-chess-styles.js?v=2.44.0';
 

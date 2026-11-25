@@ -1,5 +1,5 @@
-import {simulateGauntlet} from './gauntlet-sim.js?v=3.2.3';
-import type {GauntletFixture, GauntletWorkerRequest, GauntletWorkerReply, TournamentWorkerPort} from './tournament-worker-contract.js';
+import {simulateGauntlet} from './gauntlet-sim.js?v=6.0.2-rc2';
+import type {GauntletFixture, GauntletWorkerRequest, GauntletWorkerReply, TournamentWorkerPort} from './tournament-worker-contract.js?v=6.0.2-rc2';
 
 declare const WorkerGlobalScope: abstract new (...args: never[]) =>
   TournamentWorkerPort<GauntletWorkerRequest, GauntletWorkerReply>;

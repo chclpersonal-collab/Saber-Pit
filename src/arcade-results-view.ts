@@ -1,4 +1,4 @@
-import type {RoundResultModel} from './arcade-results.js';
+import type {RoundResultModel} from './arcade-results.js?v=6.0.2-rc2';
 
 /** Mode, size, round and clock as separate pills; the parent styles .v6-meta. */
 export function renderResultMeta(target:HTMLElement|null,parts:readonly string[]){

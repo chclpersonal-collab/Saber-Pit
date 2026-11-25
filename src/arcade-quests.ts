@@ -1,11 +1,11 @@
 import {notifyCloudSaveCommitted} from './cloud-save-commit.js';
 /** The quest save is separate from the arena, both tournaments and Heroes. */
-import {createQuestEncounter,normalizeQuestEncounterDescriptor,resolveQuestEncounter,QUEST_ENCOUNTER_LIMIT} from './arcade-quest-encounter.js?v=3.0.0';
+import {createQuestEncounter,normalizeQuestEncounterDescriptor,resolveQuestEncounter,QUEST_ENCOUNTER_LIMIT} from './arcade-quest-encounter.js?v=6.0.2-rc2';
 
-import {normalizeIdleCampaign} from './arcade-idle-campaign.js?v=3.3.0';
+import {normalizeIdleCampaign} from './arcade-idle-campaign.js?v=6.0.2-rc2';
 
-import type {IdleCampaign} from './arcade-idle-campaign.js';
-import type {BattleHero, FighterBody, FighterGender, QuestResult, SavedHeroInput, SaberForm, StorageReader, StorageWriter} from './arcade-save-types.js';
+import type {IdleCampaign} from './arcade-idle-campaign.js?v=6.0.2-rc2';
+import type {BattleHero, FighterBody, FighterGender, QuestResult, SavedHeroInput, SaberForm, StorageReader, StorageWriter} from './arcade-save-types.js?v=6.0.2-rc2';
 
 export interface QuestHero {
   id: string;

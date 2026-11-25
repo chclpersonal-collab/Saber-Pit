@@ -9,8 +9,8 @@ type ClashFighter=P & {team:number;airHeight?:number;alive?:boolean;hp?:number;a
 type Solid={kind:string;x:number;y:number;width:number;height:number};
 /** Blade clashes use the same articulated pose/projection as the canvas. 2D
  * contact is constrained by fighter depth so perspective alone can't clash. */
-import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=5.0.0';
-import {sampleOrbitSabers} from './arcade-orbit-sabers.js';
+import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=6.0.2-rc2';
+import {sampleOrbitSabers} from './arcade-orbit-sabers.js?v=6.0.2-rc2';
 const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(v,hi));
 const cross=(a:P,b:P)=>a.x*b.y-a.y*b.x;
 const minus=(a:P,b:P)=>({x:a.x-b.x,y:a.y-b.y});

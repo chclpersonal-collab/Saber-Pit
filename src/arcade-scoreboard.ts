@@ -1,4 +1,4 @@
-import {arenaNormalRating} from './arcade-normal-elo.js';
+import {arenaNormalRating} from './arcade-normal-elo.js?v=6.0.2-rc2';
 
 /**
  * Mid-match scoreboard model. Pure: reads live round numbers the Arena already keeps and

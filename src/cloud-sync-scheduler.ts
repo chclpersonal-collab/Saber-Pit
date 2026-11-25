@@ -1,4 +1,4 @@
-import type {SyncResult} from './arcade-cloud-sync.js';
+import type {SyncResult} from './arcade-cloud-sync.js?v=6.0.2-rc2';
 type SchedulerOptions={
   canSync:()=>boolean;
   sync:()=>Promise<SyncResult>;

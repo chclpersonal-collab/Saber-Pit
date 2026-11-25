@@ -10,7 +10,7 @@ const showProblem=(message:string):void=>{
   if(boot)boot.dataset.failed='true';
 };
 const timeout=setTimeout(()=>showProblem('Still loading'),8000);
-import('./arcade-sync-entry.js?v=6.0.1-boot').then(()=>{
+import('./arcade-sync-entry.js?v=6.0.2-rc2').then(()=>{
   requestAnimationFrame(()=>{
     clearTimeout(timeout);
     // A seated bout (?seat=gauntlet) opens straight into the match screen; the home is still mounted behind it.

@@ -1,4 +1,4 @@
-import {BELL_RALLY_RULES,bellRallyBonus,consumeBellRally,createBellRally,stepBellRally,type BellRally} from './arcade-moba-rally.js';
+import {BELL_RALLY_RULES,bellRallyBonus,consumeBellRally,createBellRally,stepBellRally,type BellRally} from './arcade-moba-rally.js?v=6.0.2-rc2';
 import {MOBA_BATTLEFIELD,mobaClearPath,mobaWalk,mobaLaneWaypoint,mobaNavPoint} from './arcade-moba-map.js';
 /** Standalone, fixed-step, local Arena MOBA. No Arena career or tournament writes. */
 export const MOBA_WIDTH=MOBA_BATTLEFIELD.width, MOBA_HEIGHT=MOBA_BATTLEFIELD.height;

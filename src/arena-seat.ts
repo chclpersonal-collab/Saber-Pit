@@ -28,6 +28,6 @@ export type ArenaSeatOpen={ok:true;seat:ArenaSeat}|{ok:false;text:string;back:st
   /** Nothing went wrong: there is simply no bout yet, so the player goes straight back to draw one. */
   redirect?:true};
 export async function openArenaSeat(kind: ArenaSeatKind): Promise<ArenaSeatOpen>{
-  if(kind==='gauntlet')return (await import('./gauntlet-seat.js')).openGauntletSeat();
+  if(kind==='gauntlet')return (await import('./gauntlet-seat.js?v=6.0.2-rc2')).openGauntletSeat();
   return {ok:false,text:'Seat not available',back:'./index.html'};
 }
