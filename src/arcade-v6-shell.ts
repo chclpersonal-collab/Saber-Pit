@@ -49,6 +49,9 @@ function tile(opts:{title:string;card:V6Card;cta:string;href?:string;onPlay?:()=
 }
 const arena=tile({title:'Arena',card:'arena',cta:'Play',tag:'RANKED',big:true,onPlay:()=>showPlay()});
 const modesBtn=el('button','v6-cta v6-cta-2','Modes');modesBtn.type='button';modesBtn.addEventListener('click',()=>showPlay());arena.row.append(modesBtn);
+// Move the existing resume control; the career module still owns visibility and click handling.
+const resumeFromHome=get('homeContinue');
+if(resumeFromHome){resumeFromHome.className='v6-cta v6-cta-2';resumeFromHome.textContent='Continue';arena.row.append(resumeFromHome);}
 const grid=el('div','v6-grid');
 grid.append(arena.t,
   tile({title:'Three Fronts',card:'fronts',cta:'Play',tag:'NEW',tagTone:'green',tone:'v6-cta-cyan',href:'./moba.html'}).t,
