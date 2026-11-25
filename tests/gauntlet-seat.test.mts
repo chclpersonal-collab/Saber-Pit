@@ -93,5 +93,5 @@ test('a seat link with nothing to fight returns its reason instead of opening',(
   data.clear();refuse=()=>false;
   const opened=openGauntletSeat();
   assert.equal(opened.ok,false);
-  assert.match((opened as {text: string}).text,/Draw a bracket first/);
+  assert.match((opened as {text: string}).text,/draw a bracket/);
 });

@@ -14,3 +14,7 @@
   --v5-r-sm:10px;--v5-r:14px;--v5-r-lg:20px;--v5-lip:5px;
   --v5-shadow:0 10px 26px #0009;
 }
+
+/* Chained values (Solo 1 · Pts 12) are separate .v6-meta spans: a small dot sits between them, never a typed "·". */
+.v6-meta{white-space:nowrap}
+.v6-meta+.v6-meta::before{content:"";display:inline-block;width:4px;height:4px;margin:0 .55em;border-radius:50%;background:currentColor;opacity:.55;vertical-align:middle}

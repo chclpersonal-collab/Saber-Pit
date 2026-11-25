@@ -27,5 +27,5 @@ export function arenaSeatKind(search=globalThis.location?.search??''): ArenaSeat
 export type ArenaSeatOpen={ok:true;seat:ArenaSeat}|{ok:false;text:string;back:string};
 export async function openArenaSeat(kind: ArenaSeatKind): Promise<ArenaSeatOpen>{
   if(kind==='gauntlet')return (await import('./gauntlet-seat.js')).openGauntletSeat();
-  return {ok:false,text:'That seat is not available.',back:'./index.html'};
+  return {ok:false,text:'Seat not available',back:'./index.html'};
 }

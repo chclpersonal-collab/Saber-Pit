@@ -1597,7 +1597,7 @@ applyLobby(); setScene('menu'); requestAnimationFrame(frame);
 const seatKind=arenaSeatKind();
 if(seatKind){
   document.body.dataset.seatOpening=seatKind;
-  void openArenaSeat(seatKind).catch(()=>({ok:false as const,text:'Could not open the bout. Your save was unchanged.',back:'./index.html'})).then(opened=>{
+  void openArenaSeat(seatKind).catch(()=>({ok:false as const,text:'Could not open bout: save unchanged',back:'./index.html'})).then(opened=>{
     delete document.body.dataset.seatOpening;
     if(opened.ok){seed=0;setScene('game',opened.seat.mode,1,{seat:opened.seat});return;}
     $('setupStatus').textContent=opened.text;
