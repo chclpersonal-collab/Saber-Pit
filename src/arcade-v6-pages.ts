@@ -36,8 +36,33 @@ function openNamedSection(){
   if(target instanceof HTMLDetailsElement)target.open=true;
   target?.scrollIntoView({block:'start'});
 }
+/** Gauntlet: Next bout stays the one main button; the rest move, with their own listeners, into a ⋯ menu. */
+function mountGauntletMenu(){
+  const play=document.getElementById('gPlay'),actions=play?.parentElement;
+  if(!play||!actions||actions.querySelector('.v6p-more'))return;
+  const more=document.createElement('details');more.className='v6p-more';
+  const summary=document.createElement('summary');summary.setAttribute('aria-label','More Gauntlet controls');summary.textContent='⋯';
+  const menu=document.createElement('div');menu.className='v6p-more-menu';
+  for(const id of ['gRun','gAuto','gWatch']){const b=document.getElementById(id);if(b)menu.append(b);}
+  const archive=document.querySelector('.g-archive');
+  if(archive){menu.append(...archive.children);archive.remove();}
+  more.append(summary,menu);actions.append(more);
+  menu.addEventListener('click',e=>{if((e.target as Element).closest('button,a'))more.open=false;});
+  more.addEventListener('keydown',e=>{if(e.key==='Escape'&&more.open){more.open=false;summary.focus();}});
+  document.addEventListener('click',e=>{if(more.open&&!more.contains(e.target as Node))more.open=false;});
+}
+/** Tournament: Next bout or New season stays out front; Run bracket, Auto Seasons and Watch join Reset under ⋯. */
+function mountTournamentMenu(){
+  const menu=document.querySelector('#nextButton')?.parentElement?.querySelector('.v5-more-menu');
+  if(!menu||menu.querySelector('#runButton'))return;
+  const reset=document.getElementById('resetButton');
+  for(const id of ['runButton','autoSeasons','watchLast']){const b=document.getElementById(id);if(b)menu.insertBefore(b,reset);}
+  const more=menu.closest('details');
+  menu.addEventListener('click',e=>{if(more&&(e.target as Element).closest('button'))more.open=false;});
+  document.addEventListener('click',e=>{if(more?.open&&!more.contains(e.target as Node))more.open=false;});
+}
 if(typeof document!=='undefined'){
-  mountNav();openNamedSection();
+  mountNav();mountGauntletMenu();mountTournamentMenu();openNamedSection();
   addEventListener('hashchange',()=>{openNamedSection();
     for(const a of document.querySelectorAll('.v6p-nav a'))a.toggleAttribute('aria-current',false);
     const key=currentNavKey(location.pathname,location.hash);

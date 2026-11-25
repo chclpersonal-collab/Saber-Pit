@@ -90,7 +90,7 @@ for(const [preset,name,sub,scene] of MODE_ROWS){
   const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));
   b.append(thumbArt(THUMB[preset]??'arena'),tx);b.addEventListener('click',()=>{src.click();syncModes();});
   modeButtons.push(b);list.append(b);
-  if(preset==='squad')for(const [name,href,card] of [['Three Fronts','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Tournament','./tournament.html','tournament']] as const){
+  if(preset==='squad')for(const [name,href,card] of [['Three Fronts','./moba.html','fronts'],['Gauntlet','./gauntlet.html','gauntlet'],['Duel tournament','./tournament.html','tournament'],['Squad tournament','./tournament.html#squads','tournament']] as const){
     const a=el('a','v6-mode v6-mode-link');a.href=href;a.setAttribute('role','listitem');const tx=el('span','v6-mode-text');tx.append(el('b',undefined,name));a.append(thumbArt(card),tx);list.append(a);
   }
 }

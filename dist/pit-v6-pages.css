@@ -59,11 +59,8 @@
 :root body.ops-shell :is(code,kbd,small,.mono){font-family:var(--v5-ui)}
 :root body.ops-shell a{color:var(--v5-gold)}
 
-/* Format choice (1v1, 5v5, 1v3) as chips, not tabs. Jump links go. */
-:root body.ops-shell .format-picker{display:flex;flex-wrap:wrap;gap:10px;background:none;border:0;box-shadow:none;padding:0;margin:0 0 16px;clip-path:none}
-:root body.ops-shell .format-picker :is(a,button){display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);text-decoration:none;font-weight:800;border:0}
-:root body.ops-shell .format-picker :is(a,button):is([aria-current=page],[aria-pressed=true]){background:linear-gradient(180deg,#ffe066,var(--v5-gold));color:var(--v5-ink);box-shadow:0 0 0 2px var(--v5-gold-lip),0 4px 0 var(--v5-gold-lip)}
-:root body.ops-shell .format-picker .ops-format-mark,:root body.ops-shell .format-picker :is(a,button)[href^="#"],:root body.ops-shell .format-picker .jump,:root body.ops-shell .format-picker [class*=jump]{display:none}
+/* No mode tabs at the top: Duels, Squads and Gauntlet are picked from Home or Play. */
+:root body.ops-shell .format-picker{display:none}
 
 /* Bottom nav, added by arcade-v6-pages.js: fixed on phones, a row under the header elsewhere. */
 .v6p-nav{display:flex;justify-content:space-around;gap:4px;position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 6px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,#22164ff2,#140b2ef7);box-shadow:0 -2px 0 var(--v5-line)}
@@ -78,8 +75,12 @@
   .v6p-nav{padding:4px 6px max(4px,env(safe-area-inset-bottom))}
   .v6p-nav a{grid-auto-flow:column;gap:6px;align-items:center}
   .v6p-nav svg{width:20px;height:20px}
-  :root body.ops-shell .ops-hero h1{font-size:34px}
-  :root body.ops-shell .ops-dock{padding-top:8px}
+  :root body.ops-shell .ops-dock{position:absolute;top:10px;left:16px;padding:0;margin:0;z-index:5}
+  :root body.ops-shell .ops-brand{width:42px;height:42px}
+  :root body.ops-shell .ops-hero{padding:14px 0 10px 58px}
+  :root body.ops-shell .ops-hero h1{font-size:28px;line-height:1.1;margin:0}
+  :root body.ops-shell :is(.panel,.backup-panel,details.v5-fold){padding:12px 16px}
+  :root body.ops-shell .panel h2{font-size:22px}
 }
 
 /* Fixes after the first shots: jump buttons and swipe hints go, chips keep their own width, the nav stays muted. */
@@ -103,3 +104,42 @@
 :root body.ops-shell :is(.rpg-panel,.rpg-battle) :is(h2,h3,strong){font-family:var(--v5-display);font-weight:400;color:var(--v5-white)}
 :root body.ops-shell :is(.rpg-route-nodes>*){border-radius:var(--v5-r);border-color:var(--v5-line);background:var(--v5-deep)}
 :root body.ops-shell .ops-brand .ops-mark{color:var(--v5-gold)}
+
+/* Readable table headers on every page. */
+:root body.ops-shell th{font:800 .86rem/1.25 var(--v5-ui);letter-spacing:.02em;color:var(--v5-soft);padding-block:10px}
+:root body.ops-shell td{font-size:.9rem}
+:root body.ops-shell .g-table-window th{font-size:.86rem}
+
+/* One main action plus a ⋯ menu, added by arcade-v6-pages.js on the Gauntlet. */
+:root body.ops-shell .g-actions{display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+:root body.ops-shell .g-actions>#gPlay{flex:1 1 auto;min-height:52px;font-size:1.05rem}
+:root body.ops-shell .g-actions>#gStop:not([hidden]){flex:0 0 auto}
+.v6p-more{position:relative;flex:0 0 auto}
+.v6p-more>summary{list-style:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;cursor:pointer;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);font:900 22px/1 var(--v5-ui)}
+.v6p-more>summary::-webkit-details-marker{display:none}
+.v6p-more[open]>summary{box-shadow:0 0 0 2px var(--v5-gold),0 4px 0 var(--v5-ink)}
+.v6p-more-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:30;display:grid;gap:8px;min-width:220px;padding:10px;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 8px 24px #0009}
+.v6p-more-menu>:is(button,a){display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:44px;padding:0 14px;text-decoration:none}
+.v6p-more-menu>a{border-radius:var(--v5-r);color:var(--v5-white)!important;font:800 15px var(--v5-ui);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line)}
+.v6p-more-menu>[hidden]{display:none}
+.v6p-more-menu>#gReset{color:#ff8fa3}
+:root body.ops-shell .panel:has(.v6p-more[open]){position:relative;z-index:25}
+
+/* Tournament: same one-main-action row; the ⋯ menu holds the rest with their words, not icons alone. */
+:root body.ops-shell .schedule .actions{display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+:root body.ops-shell .schedule .actions>:is(#nextButton,#newButton){flex:1 1 auto;min-height:52px}
+:root body.ops-shell .v5-more-menu{min-width:230px;padding:10px;gap:8px;display:grid;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 8px 24px #0009;z-index:30}
+:root body.ops-shell .v5-more-menu>button{justify-content:flex-start;width:100%;font-size:15px}
+:root body.ops-shell .v5-more-menu>button[hidden]{display:none}
+:root body.ops-shell .v5-more-menu>.reset-action{color:#ff8fa3}
+:root body.ops-shell th{white-space:nowrap}
+/* Names in tables and brackets read as text you can tap, not as stacked buttons. */
+:root body.ops-shell .fighter-button{background:none;box-shadow:none;border-radius:8px;padding:4px 2px;min-height:44px;color:var(--v5-white);font-size:.95rem}
+:root body.ops-shell .board .fighter-button{display:flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:0}
+:root body.ops-shell .board .fighter-button small{flex-basis:100%;font-size:.78rem;color:var(--v5-gold)}
+:root body.ops-shell .fighter-button:not(:disabled):hover{background:#ffffff12;text-decoration:none}
+:root body.ops-shell .board table{table-layout:auto}
+:root body.ops-shell .board :is(th,td):not(:nth-child(2)){width:1%;padding-inline:6px}
+:root body.ops-shell .board td:nth-child(2){width:auto;min-width:230px}
+:root body.ops-shell :is(td,tbody th)>:is(button,.button){background:none;box-shadow:none;min-height:40px;padding:2px 4px;justify-content:flex-start;text-align:left;color:var(--v5-white);font-size:.95rem}
+:root body.ops-shell :is(td,tbody th)>:is(button,.button):hover{background:#ffffff12}
