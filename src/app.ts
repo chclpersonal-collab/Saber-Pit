@@ -148,8 +148,11 @@ const V6_NAMES: readonly (readonly [RegExp, (match: string, ...groups: string[])
   [/\b[Yy]our team\b/g, () => 'Blue'], [/\b[Ee]nemy team\b/g, () => 'Pink'], [/\b[Yy]our fighter\b/g, () => 'Blue'], [/\b[Ee]nemy fighter\b/g, () => 'Pink'],
   [/\bForce grip and release\b/g, () => 'Grip'], [/\bForce (push|burst|pulse|pull|barrier|lightning|repulse)\b/g, (_, power) => capital(power)],
   [/\bSaber throw\b/g, () => 'Saber Throw'], [/\bTelekinetic sweep\b/g, () => 'Sweep'], [/\blightsaber\b/g, () => 'Saber'],
-  [/ team style: /g, () => ' Style: '],
+  [/ team style: /g, () => ' Style: '], [/\bRed won\b/g, () => 'Pink won'],
 ];
+const V6_READINESS: Record<string, string> = { 'Force attacks are disabled by Saber only': 'Saber Only', 'No safe, ready cast in range': 'No cast in range', 'No ready fighter facing a threat': 'No threat in sight', 'Battle is not active': 'Not in battle' };
+const readinessLine = (reason: string) => V6_READINESS[reason] ?? statusLine(displayText(reason));
+const V6_ORDER_TIPS: Record<string, string> = { advance: 'Push to the objective', hold: 'Keep current cover', retreat: 'Fall back to home cover', flank: 'Stage high, then push', regroup: 'Gather behind the squad' };
 const v6Names = (text: string) => V6_NAMES.reduce((out, [pattern, name]) => out.replace(pattern, name), text);
 const displayText = (value: unknown) => v6Names(copyText(value));
 const displayBattleText = (value: unknown) => v6Names(copyBattleText(value));
@@ -382,7 +385,7 @@ function updateUI() {
   $('grenadeHint').textContent = paused ? 'Paused' : forceReady.ready ? `${forceReady.eligible} Ready` : 'Not Ready';
   $('grenadeFill').style.transform = `scaleX(${cooldown > 0 ? Math.max(0, 1 - cooldown / cooldownMax) : 0})`;
   $('grenadeBtn').setAttribute('aria-label', `Team Force, ${$('grenadeHint').textContent}`);
-  $('grenadeBtn').title = statusLine(displayText(forceReady.reason));
+  $('grenadeBtn').title = readinessLine(forceReady.reason);
   $('battleCanvas').setAttribute('aria-label', `Round ${game.round}. Blue ${living[0]} of ${teams[0].length}. Pink ${living[1]} of ${teams[1].length}. ${paused ? 'Paused' : ended ? 'Round over' : orderText[game.playerOrder]}`);
   updateUpgradeUI();
   const debug = $('debugState');
@@ -861,7 +864,7 @@ function updateUpgradeUI() {
   $('smokeHint').textContent = paused ? 'Paused' : guardReady.ready ? `${guardReady.eligible} Ready` : 'Not Ready';
   $('smokeFill').style.transform = `scaleX(${smoke > 0 ? Math.max(0, 1 - smoke / smokeCooldownMax) : 0})`;
   $('smokeBtn').setAttribute('aria-label', `Team Guard, ${$('smokeHint').textContent}`);
-  $('smokeBtn').title = statusLine(displayText(guardReady.reason));
+  $('smokeBtn').title = readinessLine(guardReady.reason);
   $('autoBtn').disabled = game.status !== 'playing';
   $('autoBtn').setAttribute('aria-pressed', String(Boolean(game.autoCommand)));
   $('autoLabel').textContent = game.autoCommand ? 'Auto On' : 'Auto Off';
@@ -1711,7 +1714,7 @@ function updateTeamOrders() {
   $('teamOrderHelp').textContent = 'Dashed marker shows the order point';
   for (const button of commands) {
     const active = enabled && intent?.order === button.dataset.order;
-    button.title = SQUAD_ORDERS[button.dataset.order!]?.description || '';
+    button.title = V6_ORDER_TIPS[button.dataset.order!] || '';
     button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     button.disabled = !enabled || paused || game.status !== 'playing' || intent?.eligible === 0;
     const shortcut = button.querySelector('kbd'); if (shortcut) shortcut.hidden = game.config?.mode !== 'command';
