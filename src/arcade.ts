@@ -1415,7 +1415,7 @@ $('watchHero').addEventListener('click',()=>{
   if(!prepareWatchHero())return;
   applyLobby();saveSetup(setup);setScene('menu');
   const name=heroRoster.find(h=>h.id===setup.heroPicks[0].id)?.name??'Saved Hero';
-  $('setupStatus').textContent=name+' will fight under AI control. Press Start match when ready.';
+  $('setupStatus').textContent='You fight as '+name+'. Press Start match when ready.';
 });
 $('lobby').addEventListener('change',()=>readLobby());
 for(const button of document.querySelectorAll<HTMLElement>('[data-preset]')){
