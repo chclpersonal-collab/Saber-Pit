@@ -61,8 +61,18 @@ function mountTournamentMenu(){
   menu.addEventListener('click',e=>{if(more&&(e.target as Element).closest('button'))more.open=false;});
   document.addEventListener('click',e=>{if(more?.open&&!more.contains(e.target as Node))more.open=false;});
 }
+/** Routine "Bout recorded." lines stay for screen readers only; a line that reports a problem still shows. */
+const PROBLEM=/could ?n[o']t|can ?n[o']t|cannot|fail|error|full|blocked|invalid|not saved|unable/i;
+function quietStatusLines(){
+  for(const id of ['tourStatus','gStatus','careerSearchNote']){
+    const el=document.getElementById(id);if(!el)continue;
+    el.classList.add('v6p-quiet');
+    const sync=()=>el.toggleAttribute('data-v6-problem',PROBLEM.test(el.textContent??''));
+    sync();new MutationObserver(sync).observe(el,{childList:true,characterData:true,subtree:true});
+  }
+}
 if(typeof document!=='undefined'){
-  mountNav();mountGauntletMenu();mountTournamentMenu();openNamedSection();
+  mountNav();mountGauntletMenu();mountTournamentMenu();quietStatusLines();openNamedSection();
   addEventListener('hashchange',()=>{openNamedSection();
     for(const a of document.querySelectorAll('.v6p-nav a'))a.toggleAttribute('aria-current',false);
     const key=currentNavKey(location.pathname,location.hash);

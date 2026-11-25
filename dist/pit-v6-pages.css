@@ -143,3 +143,6 @@
 :root body.ops-shell .board td:nth-child(2){width:auto;min-width:230px}
 :root body.ops-shell :is(td,tbody th)>:is(button,.button){background:none;box-shadow:none;min-height:40px;padding:2px 4px;justify-content:flex-start;text-align:left;color:var(--v5-white);font-size:.95rem}
 :root body.ops-shell :is(td,tbody th)>:is(button,.button):hover{background:#ffffff12}
+/* Routine status lines are read aloud, not shown; problems still show in red. */
+.v6p-quiet:not([data-v6-problem]){position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0;padding:0}
+.v6p-quiet[data-v6-problem]{color:#ff8fa3!important}
