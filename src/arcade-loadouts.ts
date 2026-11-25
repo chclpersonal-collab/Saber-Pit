@@ -33,6 +33,7 @@ export const ARCADE_SABER_OPTIONS = Object.freeze([
   Object.freeze({ id: 'backhand-dual', weapon: 'dual', grip: 'backhand', label: 'Backhand dual' }),
   Object.freeze({ id: 'staff', weapon: 'staff', grip: 'forward', label: 'Double-bladed saber' }),
   Object.freeze({ id: 'shoto', weapon: 'shoto', grip: 'forward', label: 'Shoto' }),
+  Object.freeze({ id: 'orbit', weapon: 'orbit', grip: 'forward', label: 'Traya’s Orbit · 3 floating sabers' }),
   Object.freeze({ id: 'greatsaber', weapon: 'greatsaber', grip: 'forward', label: 'Greatsaber' }),
 ]);
 
@@ -45,7 +46,7 @@ export const arcadeSaberVariant=(weapon?:string)=>Object.hasOwn(ARCADE_SABER_VAR
 function saberKit(config:Config|undefined, team:number) {
   const value = select(config?.startingSaberWeapon, team);
   const legacyDual = select(config?.startingDualSabers, team) === true;
-  const weapon = ['single', 'dual', 'staff', 'shoto', 'greatsaber'].includes(value) ? value : legacyDual ? 'dual' : 'single';
+  const weapon = ['single', 'dual', 'staff', 'shoto', 'greatsaber', 'orbit'].includes(value) ? value : legacyDual ? 'dual' : 'single';
   const grip = (weapon === 'single' || weapon === 'dual') && select(config?.startingSaberGrip, team) === 'backhand' ? 'backhand' : 'forward';
   return { weapon, grip };
 }
@@ -61,7 +62,7 @@ export function normalizeArcadeGear(raw:Config = {}) {
   return {
     startingSaberWeapon: kits.map(k => k.weapon),
     startingSaberGrip: kits.map(k => k.grip),
-    startingDualPhase: teams.map(team => select(raw?.startingDualPhase, team) === true),
+    startingDualPhase: teams.map(team => kits[team].weapon!=='orbit'&&select(raw?.startingDualPhase, team) === true),
     startingSaberQuality: teams.map(team => quality(select(raw?.startingSaberQuality, team))),
     startingDualSabers: kits.map(k => k.weapon === 'dual'),
     startingForceFamily: teams.map(team => forceFamily(select(raw?.startingForceFamily, team))),
@@ -76,8 +77,8 @@ export function arcadeFighterGear(config:Config, team:number) {
   return Object.freeze({
     saberQuality: quality(select(config?.startingSaberQuality, team)),
     weapon, grip, dualSabers,
-    dualPhase: select(config?.startingDualPhase, team) === true,
-    bladeCount: weapon === 'dual' || weapon === 'staff' ? 2 : 1,
+    dualPhase: weapon!=='orbit'&&select(config?.startingDualPhase, team) === true,
+    bladeCount: weapon === 'orbit' ? 3 : weapon === 'dual' || weapon === 'staff' ? 2 : 1,
     forceFamily: forceFamily(select(config?.startingForceFamily, team)),
     forceQuality: quality(select(config?.startingForceQuality, team)),
   });

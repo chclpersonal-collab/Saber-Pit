@@ -1,0 +1,11 @@
+# LOOMEN v6 combat and screens review
+
+Player path: Home → Play → Loadout → Fight → Pause / Settings / Controls → Result → Next round or Leave. Preserve private save access. Exercise the tournament, Gauntlet, Heroes, Three Fronts, Style Lab, Idle RPG, Saves and Stats in the same build. Review portrait and short landscape as well as desktop.
+
+- Three detached violet sabers, continuously orbiting. A light attack commits one blade; a heavy sends a staggered sequence. The same segments are drawn, hit and can be parried. The three blades cannot triple-hit the same fighter in one action.
+- Live motion preserves stance and blade angle across valid links. A resolved eligible contact can go directly to defense; airborne attacks and ground links retain their own gates. Breathing/weight shift stays over planted feet. Deliberate whiffs, knockdowns and stun retain counterplay.
+- Injury is regional. At 74% severity a limb becomes unusable; head and torso still follow existing region consequences. Losing support changes locomotion; an arm limits hand-held choices without disabling telekinesis. Match HUD opens the detailed region report. Knockout follows the impact pose and settles instead of snapping; this is procedural, not a full rigid-body solver.
+- Original synthesized combat Foley has different air, cloth, impact, armor and clash material, position/pan, priority and mute.
+- Bots read committed attacks and their repetition, stamina and openings; the higher skill policy can continue through a valid hit link. Maintain visible windows so mixed play can beat mashing without free defenses for a human-controlled fighter.
+
+Design references: [Traya's game](https://www.aspyr.com/games/star-wars-knights-of-the-old-republic-ii-the-sith-lords), [Sucker Punch on combat poses and character idle](https://blog.playstation.com/2026/11/04/bringing-jin-sakai-back-to-life-for-ghost-of-yotei-most-wanted/), [Epic animation sample](https://dev.epicgames.com/documentation/en-us/unreal-engine/game-animation-sample-project-in-unreal-engine), [Capcom V-Rival](https://www.youtube.com/watch?v=dFONOWfSoQk), [Bandai Namco ghost behavior](https://www.bandainamcoent.com/news/tekken-8-patch-notes-v1-13), [Riot replay practice](https://2xko.riotgames.com/en-gb/news/game-updates/2xko-patch-notes-1-2-1-may-11-2026/). These are references, not imported code or assets.

@@ -16,7 +16,7 @@ import type {ArcadeCover} from './arcade-engine-geometry.js';
 export interface Point {x:number;y:number}
 export type Cover=ArcadeCover&{kind:string;moveCost?:number};
 type Doctrine='balanced'|'aggressive'|'defensive';
-type Blade='primary'|'offhand'|'rear';
+type Blade='primary'|'offhand'|'rear'|'orbit_third';
 export interface BladeSegment { hand:Point;tip:Point }
 interface Pose extends BladeSegment {
  kind:string;origin:Point;facing:number;offhand?: BladeSegment | null;freeHand?:Point;
@@ -30,8 +30,8 @@ export interface BladeCast {
  contact:number;reach:number;arc:number;damage:number;knock:number;recoil:number;
  blade?:Blade;backLane?:boolean;isOffhand?:boolean;bladeTurn?:number;bladePointX?:number;bladePointY?:number;unavailable?:boolean;
 }
-export interface SimMove extends Omit<ArcadeAttackSpec,'offhand'>, BladeCast {
- offhand?:BladeCast;
+export interface SimMove extends Omit<ArcadeAttackSpec,'offhand'|'orbitThird'>, BladeCast {
+ offhand?:BladeCast;orbitThird?:BladeCast;
  id?:string;leadBlade?:'main'|'rear';mapAction?:string;effect?:string;forceAbility?:string;freeHand?:boolean;deflect?:boolean;launch?:boolean;air?:string;tactical?:string;rankSweep?:boolean;
  cap?:number;path?:string;lane?:string;chessStyle?:string;chessPromoted?:boolean;
 }
@@ -87,6 +87,7 @@ export interface SimFighter extends Omit<ArcadeFighter,'attackSpec'|'chessStyle'
  recentMistakes?:number[];
  releaseOutcome?:'pending'|'guarded'|'landed'|'miss'|'parried'|null;
  route?:(Point&{until:number})|null;
+ orbitTouched?:Set<string>;
  staffTouched?:Set<string>|null;
  trakataAim?:number|null;
 }

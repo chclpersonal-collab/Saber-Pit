@@ -119,3 +119,21 @@ test('a real airborne Scissor Cut links to a normal hit without generating anoth
   assert.ok(events.some(e=>e.kind==='hit'&&e.technique==='slash'));
   assert.equal(events.filter(e=>e.kind==='jump').length,1);
 });
+
+test('a resolved saber hit can roll directly into guard without visiting neutral',()=>{
+  const game=createArcade({mode:'duel',seed:12345,form:'shii_cho',startingRanks:['A','A'],terrain:'open',
+    motionFlow:ARENA_MOTION_FLOW});
+  const [player,enemy]=game.fighters;
+  Object.assign(player,{x:425,y:320,face:0});
+  Object.assign(enemy,{x:508,y:320,face:Math.PI,action:'stagger',actionDuration:10,think:10});
+  stepArcade(game,TICK,{strike:true,aimX:enemy.x,aimY:enemy.y});
+  const duration=player.actionDuration, strike=player.attackSpec!;
+  while(player.actionTime+1e-9<strike.contact+.050) {
+    stepArcade(game,TICK,{aimX:enemy.x,aimY:enemy.y});
+    assert.notEqual(player.action,'idle');
+  }
+  assert.ok(player.actionTime<duration&&player.attack);
+  stepArcade(game,TICK,{guard:true,aimX:enemy.x,aimY:enemy.y});
+  assert.equal(player.action,'guard');assert.equal(player.attack,null);
+  assert.ok(player.parryTime>0);
+});

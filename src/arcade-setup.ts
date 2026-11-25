@@ -46,8 +46,9 @@ export function arenaWorldSize(mapId:string,size:keyof typeof SIZE){
 export const presets={
   duel:{participation:'play',teamSizes:[1,1],rule:'elimination'},
   squad:{participation:'play',teamSizes:[3,3],rule:'elimination'},
-  watch:{participation:'watch',teamSizes:[5,5],rule:'elimination'},
-  master:{participation:'watch',teamSizes:[1,15],rule:'elimination',startingRanks:['SSS+V','F']}
+  // v6: every preset is played. Showdown puts you in Blue's slot 1; the Master trial makes you the SSS+ V.
+  watch:{participation:'play',teamSizes:[5,5],rule:'elimination'},
+  master:{participation:'play',teamSizes:[1,15],rule:'elimination',startingRanks:['SSS+V','F']}
 };
 function pick<T,D>(value:unknown,choices:readonly T[],def:D):T|D{return choices.includes(value as T)?value as T:def;}
 const arenaChessStyle=(value:unknown)=>{
@@ -112,7 +113,7 @@ export function canArenaLaneDrill(cfg:ArcadeSetup,heroes:ArcadeHeroLineup):boole
     cfg.startingRanks.every(r=>RANKS.indexOf(r)<=RANKS.indexOf('A'))&&
     !engineForcePools(cfg).some(pool=>pool.length)&&[0,1].every(i=>{
       const gear=arcadeFighterGear(cfg,i);
-      return gear.weapon!=='greatsaber'&&gear.forceFamily!=='force_pulse'&&gear.forceQuality==='standard';
+      return gear.weapon!=='greatsaber'&&gear.weapon!=='orbit'&&gear.forceFamily!=='force_pulse'&&gear.forceQuality==='standard';
     });
 }
 export function engineForcePools(cfg:ArcadeSetup): [string[],string[]] {
@@ -133,13 +134,14 @@ export function setupMode(cfg:ArcadeSetup){
   return cfg.participation==='watch'?'watch':cfg.participation==='command'?'command':cfg.teamSizes.every(n=>n===1)?'duel':'squad';
 }
 // An explicit shortcut only: ordinary lobby edits never change Play As.
-export function watchHeroSetup(cfg:ArcadeSetup|null,heroes:readonly ({id:string}|null)[],requestedId?:string|null){
+// v6: you pilot the saved Hero by default; pass 'watch' to spectate it instead.
+export function watchHeroSetup(cfg:ArcadeSetup|null,heroes:readonly ({id:string}|null)[],requestedId?:string|null,participation:'play'|'watch'='play'){
   if(!Array.isArray(heroes))return null;
   const fallback=cfg?.heroPicks?.map(p=>p.id)??[];
   const ids=requestedId?[requestedId]:[...fallback,...heroes.map(hero=>hero?.id)];
   const hero=ids.map(id=>heroes.find(row=>row?.id===id)).find(row=>row?.id);
   if(!hero)return null;
-  return normalizeSetup({...cfg,participation:'watch',rule:'elimination',teamSizes:[1,3],
+  return normalizeSetup({...cfg,participation,rule:'elimination',teamSizes:[1,3],
     startingRanks:['SSS+V','SSS+V'],playerSlot:0,heroPicks:[{id:hero.id,slot:0},{id:'',slot:0}]});
 }
 export function lobbyHeroControl(cfg:ArcadeSetup|null,team:number){

@@ -1,12 +1,13 @@
 /** Canvas/world conversions shared by live paint and blade collision. */
+import type {OrbitBlade} from './arcade-orbit-sabers.js';
 export type Point={x:number;y:number};
 type Origin={x?:number;y?:number};
 type RigFrame={roll:number;flightSide?:number|null;hdx:number;trick?:{angle?:number}|null;
  type:{scale:number;id:string};hop:number;waist:Point};
 type RigLeg={side:number;foot:Point;toes:Point;k:Point;planted:boolean};
 type BladeRig=RigFrame & {emitter?:Point|null;hand:Point;blade:Point;backHand:Point;
- shoulder:Point;offEmitter?:Point|null;offBlade?:Point|null;staff:boolean;saberPhase:string};
-type Emitter={id:'main'|'rear'|'off';hand:Point;tip:Point};
+ shoulder:Point;offEmitter?:Point|null;offBlade?:Point|null;staff:boolean;saberPhase:string;orbitBlades?:readonly OrbitBlade[]};
+type Emitter={id:'main'|'rear'|'off'|'orbit_third';hand:Point;tip:Point};
 const finite=(v?:number)=>Number.isFinite(v)?v!:0;
 const point=(x:number,y:number):Point=>({x,y});
 const mix=(a:number,b:number,t:number)=>a+(b-a)*t;
@@ -42,6 +43,11 @@ export function arcadeBladeWorld(f:Origin,r:BladeRig) {
   const blades:Emitter[]=[{id:'main',...primary}];
   const body=project(point(mix(r.waist.x,r.shoulder.x,.57),mix(r.waist.y,r.shoulder.y,.57)));
   const freeHand=project(r.backHand);
+  if(r.orbitBlades?.length===3){
+    const [a,b,c]=r.orbitBlades;
+    return {hand:a.hand,tip:a.tip,offhand:{hand:b.hand,tip:b.tip},phase:r.saberPhase,body,freeHand,
+      blades:[{id:'main',hand:a.hand,tip:a.tip},{id:'off',hand:b.hand,tip:b.tip},{id:'orbit_third',hand:c.hand,tip:c.tip}] as Emitter[]};
+  }
   if(!r.offBlade)return {...primary,phase:r.saberPhase,body,freeHand,blades};
   const offhand={hand:project(r.offEmitter??r.backHand),tip:project(r.offBlade)};
   blades.push({id:r.staff?'rear':'off',...offhand});

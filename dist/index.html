@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101112"><meta name="description" content="Loomen. Hand-inked saber duels and squad battles.">
-<title>Loomen</title><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
+<title>Loomen</title><link rel="stylesheet" href="./arcade.css?v=5.2.0-picker"><link rel="stylesheet" href="./pit-v3.css?v=3.0.0"><link rel="stylesheet" href="./pit-v4.css?v=5.0.0"><link rel="stylesheet" href="./pit-v4-presentation.css?v=4.0.0"><link rel="stylesheet" href="./pit-v5.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-tokens.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-hud.css?v=5.2.0"><link rel="stylesheet" href="./pit-v5-home.css?v=5.3.0"><link rel="stylesheet" href="./pit-v5-setup.css?v=5.3.0-setup"><link rel="stylesheet" href="./pit-v5-scoreboard.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-results.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-wordmark.css?v=5.2.1"><link rel="stylesheet" href="./pit-v5-settings.css?v=5.3.0-settings"><link rel="stylesheet" href="./pit-v5-stats.css?v=5.3.0-stats"><link rel="stylesheet" href="./pit-v6-shell.css?v=6.0.0-rc.1"><link rel="stylesheet" href="./pit-v5-fight.css?v=5.3.0-fight"></head>
 <body class="pit-v3 pit-v4 pit-v5">
 <main id="app">
   <header class="mast"><a href="./index.html" class="identity" aria-label="Loomen home"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true"><path fill="currentColor" d="M8 3h33v33l-7 5H3V10Z"/><path d="M12 33 30 14m-16-1 17 18M9 29l7 7m12-24 5 5" stroke="#111214" stroke-width="3" fill="none"/></svg><div class="wordmark">LOOMEN<span>VERSION 5.3.0</span></div></a>
@@ -23,8 +23,8 @@
     <form id="lobby" class="lobby">
       <div class="lobby-title"><div><p class="eyebrow">LOADOUT &amp; RULES</p><h2 id="lobbyHeading">Match setup</h2></div><div class="lobby-links"><button type="button" id="continueRun" hidden>Continue run</button><button type="button" id="autoDuelSaved" hidden>Auto battle saved run</button></div></div>
       <div class="arena-sync-status" data-cloud-notice-host role="status" aria-live="polite"></div>
-      <div class="presets" aria-label="Presets"><button type="button" data-preset="duel"><b>Duel</b><span>1v1 · You fight</span></button><button type="button" data-preset="squad"><b>Squad</b><span>3v3 · You fight</span></button><button type="button" data-preset="watch"><b>Showdown</b><span>5v5 · Watch</span></button><button type="button" data-preset="master" title="Watch an SSS+ V fighter take on 15 F fighters"><b>Master trial</b><span>1v15 · Watch</span></button><button type="button" id="watchHero" aria-describedby="watchHeroHelp"><b>Watch a Hero</b><span>Saved Hero · Watch</span></button></div>
-      <p id="watchHeroHelp" class="hero-help">Sets up a saved Hero against three SSS+ V fighters. Start when ready.</p>
+      <div class="presets" aria-label="Presets"><button type="button" data-preset="duel"><b>Duel</b><span>1v1 · You fight</span></button><button type="button" data-preset="squad"><b>Squad</b><span>3v3 · You fight</span></button><button type="button" data-preset="watch"><b>Showdown</b><span>5v5 · You fight</span></button><button type="button" data-preset="master" title="Be the SSS+ V fighter against 15 F fighters"><b>Master trial</b><span>1v15 · You fight</span></button><button type="button" id="watchHero" aria-describedby="watchHeroHelp"><b>Play a Hero</b><span>Saved Hero · You fight</span></button></div>
+      <p id="watchHeroHelp" class="hero-help">You fight as a saved Hero against three SSS+ V fighters.</p>
       <p id="setupSummary" class="setup-summary" aria-live="polite"></p>
       <details class="setup-custom" id="customizeMatch"><summary>Customize match</summary>
       <div class="setup-tabs" hidden role="tablist" aria-label="Match setup">
@@ -34,7 +34,7 @@
       </div>
       <div class="setup-section" id="setup-panel-match">
       <div class="lobby-grid">
-        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
+        <label>Play as<select id="participation"><option value="play">Fighter</option><option value="play-mixed">Fighter (Mixed form)</option><option value="versus">Two players (1v1)</option><option value="watch">Spectator</option><option value="command">Commander</option></select></label>
         <label>Rules<select id="rule"><option value="elimination">Elimination</option><option value="control">Control</option><option value="relic">Relic</option></select></label>
         <label>Map<select id="mapPick"></select></label>
         <label>Map size<select id="mapSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
@@ -107,9 +107,9 @@
     <canvas id="arena" width="1120" height="640" tabindex="0" aria-label="Loomen arena"></canvas>
     <div class="grain" aria-hidden="true"></div>
     <section id="hud" class="hud" aria-label="Match status" hidden>
-      <div class="health blue"><div class="hud-label"><strong id="blueName">Your side</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><div id="blueInjuries" class="injury-ribbon"></div><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina" title="At 30% stamina or lower, holding guard is weaker. Perfect parries and clean saber hits restore stamina."></progress></div>
+      <div class="health blue"><div class="hud-label"><strong id="blueName">Blue side</strong><span class="hud-mini"><b id="blueRank"></b><span id="blueCount"></span></span></div><button id="blueInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy" class="energy" max="1" value="1" aria-label="Stamina" title="At 30% stamina or lower, holding guard is weaker. Perfect parries and clean saber hits restore stamina."></progress></div>
       <div class="clock"><span id="round">Round 1</span><strong id="clock">0:45</strong></div>
-      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Rival side</strong></div><div id="redInjuries" class="injury-ribbon"></div></div>
+      <div class="health pink"><div class="hud-label"><span class="hud-mini"><span id="redCount"></span><b id="redRank"></b></span><strong id="rivalName">Pink side</strong></div><button id="redInjuries" type="button" class="injury-ribbon" aria-haspopup="dialog" aria-controls="statsDialog" aria-label="Inspect injuries"></button><progress id="energy2" class="energy" max="1" value="1" aria-label="Player 2 stamina" hidden></progress></div>
     </section>
     <div id="mapCaption" class="map-caption"><p class="eyebrow">MAP PREVIEW</p><strong id="mapCaptionName"></strong><span id="mapCaptionDesc"></span></div>
     <section id="objectiveHUD" class="objective-hud" aria-label="Objective score" hidden><b id="objectiveBlue" class="blue">0</b><span id="objectiveLabel"></span><b id="objectivePink" class="pink">0</b></section>
@@ -167,6 +167,11 @@
   <dialog id="keysDialog" class="guide keys-dialog" aria-labelledby="keysTitle">
     <div class="guide-head"><h2 id="keysTitle">Keys</h2><form method="dialog"><button type="submit">Close</button></form></div>
     <ol id="keysList" class="keys-list"></ol>
+    <h3 class="keys-sub">Controller</h3>
+    <ul class="keys-list keys-fixed" id="padList"><li><span>Move</span><kbd>Left stick / D-pad</kbd></li><li><span>Aim</span><kbd>Right stick</kbd></li><li><span>Slash</span><kbd>A / Cross</kbd></li><li><span>Signature</span><kbd>X / Square</kbd></li><li><span>Dash</span><kbd>B / Circle</kbd></li><li><span>Jump</span><kbd>Y / Triangle</kbd></li><li><span>Guard</span><kbd>LT / L2 (hold)</kbd></li><li><span>Technique</span><kbd>RT / R2</kbd></li><li><span>Feint</span><kbd>LB / L1</kbd></li><li><span>Force</span><kbd>RB / R1</kbd></li><li><span>Walk</span><kbd>L3</kbd></li><li><span>Extend blade</span><kbd>R3</kbd></li><li><span>Scoreboard</span><kbd>View / Share (hold)</kbd></li><li><span>Pause</span><kbd>Menu / Options</kbd></li></ul>
+    <h3 class="keys-sub">Two players</h3>
+    <p class="keys-note">Pick Two players in Match setup. Two controllers: one each. One controller: it plays Pink. A seat stays yours for the round, even if the controller drops. Pink's Technique uses their style's top technique. Pink on the keyboard:</p>
+    <ul class="keys-list keys-fixed" id="p2List"><li><span>Move</span><kbd>Arrows</kbd></li><li><span>Slash</span><kbd>.</kbd></li><li><span>Signature</span><kbd>/</kbd></li><li><span>Guard (hold)</span><kbd>,</kbd></li><li><span>Dash</span><kbd>;</kbd></li><li><span>Jump</span><kbd>L</kbd></li><li><span>Feint</span><kbd>M</kbd></li><li><span>Force</span><kbd>N</kbd></li><li><span>Technique</span><kbd>'</kbd></li></ul>
     <div class="keys-foot"><p id="keysStatus" role="status" aria-live="polite"></p><button type="button" id="keysReset">Reset</button></div>
   </dialog>
   <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
@@ -182,7 +187,7 @@
           <div class="set-row"><div class="set-text"><b>Attack hand</b><span>Side for the attack buttons</span></div><div class="set-seg" role="group" aria-label="Attack hand"><button type="button" data-touch-side="left" aria-pressed="false">Left</button><button type="button" data-touch-side="right" aria-pressed="false">Right</button></div></div>
         </section>
         <section role="tabpanel" id="setPanelAudio" aria-labelledby="setTabAudio" hidden>
-          <div class="set-row"><div class="set-text"><b>Sound</b><span>Hits, parries and knockouts</span></div><button type="button" id="sound" class="set-switch" aria-label="Sound" aria-pressed="false">Sound off</button></div>
+          <div class="set-row"><div class="set-text"><b>Sound</b><span>Blade, impact and movement sounds</span></div><button type="button" id="sound" class="set-switch" aria-label="Sound" aria-pressed="false">Sound off</button></div>
         </section>
         <section role="tabpanel" id="setPanelAccess" aria-labelledby="setTabAccess" hidden>
           <div class="set-row"><div class="set-text"><b>Text size</b><span>Arena scores, clock and objective text</span></div><div class="set-seg" role="group" aria-label="Text size"><button type="button" data-hud-text="100" aria-pressed="false">100%</button><button type="button" data-hud-text="125" aria-pressed="false">125%</button><button type="button" data-hud-text="150" aria-pressed="false">150%</button></div><select id="arenaHudText" hidden tabindex="-1" aria-hidden="true"><option value="100">100% (standard)</option><option value="125">125% (large)</option><option value="150">150% (extra large)</option></select></div>
@@ -201,8 +206,8 @@
       <div class="injury-top"><h3 id="injuryHeading">Body condition</h3><label>Fighter <select id="moveFighter"></select></label><p id="moveRank"></p></div>
       <details id="fighterAppearance" class="fighter-appearance-detail" hidden><summary>Gender &amp; appearance</summary><p id="fighterAppearanceDetails"></p></details>
       <dl class="fighter-damage" aria-label="Selected fighter damage this round"><div><dt>Damage dealt</dt><dd id="fighterDamageDealt">0</dd></div><div><dt>Damage taken</dt><dd id="fighterDamageTaken">0</dd></div></dl>
-      <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
-      <p class="report-note" id="injuryReference"></p>
+      <div class="injury-scroll"><table aria-label="Regional injuries and fatality odds"><thead><tr><th>Region</th><th>Injury</th><th>Front</th><th>Rear</th><th>Fatal risk, front / rear</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
+      <p class="report-note" id="injuryReference"></p><p class="report-note" id="fatalReference"></p>
       <details class="recent-events"><summary>Moves used</summary><div class="match-moves"><section><h4>Attacks &amp; Force</h4><dl id="attackMoves"></dl></section><section><h4>Defense, feints &amp; movement</h4><dl id="defenseMoves"></dl></section></div></details>
     </section>
     <div class="report-layout">

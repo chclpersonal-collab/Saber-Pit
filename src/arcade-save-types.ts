@@ -6,7 +6,7 @@ export interface SaveStorage extends StorageWriter { removeItem(key: string): vo
 export type SaberForm = 'shii_cho' | 'makashi' | 'soresu' | 'ataru' | 'djem_so' | 'niman' | 'juyo';
 export type FighterBody = 'woman' | 'femboy' | 'rabbit';
 export type FighterGender = 'female' | 'male' | 'nonbinary';
-export type SaberWeapon = 'single' | 'dual' | 'staff';
+export type SaberWeapon = 'single' | 'dual' | 'staff' | 'orbit';
 export type SaberGrip = 'forward' | 'backhand';
 export type Doctrine = 'balanced' | 'aggressive' | 'defensive';
 export type QuestOutcome = 'won' | 'lost' | 'draw';

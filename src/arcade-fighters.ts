@@ -1,4 +1,5 @@
 import type {Point} from './arcade-rig-projection.js';
+import {arcadeLimbDisabled} from './arcade-injuries.js?v=2.9.0';
 type Canvas=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
 type Figure={id:string;head:number;shoulder:number;waist:number;hip:number;thigh:number;calf:number;scale:number;legLength:number;skin:string;skinShadow:string;hair:string;hairLight:string};
 type Palette={shade:string;mid:string;steel:string;top:string;flare:string;slash:string;split:string};
@@ -9,18 +10,22 @@ type Entry=Partial<BladeSource> & {offhand?:BladeSource|null;freeHand?:Point;ori
  body?:{lean:number;bend:number;wide:number;torsoTurn:number;rhythm?:number;roll?:number;airPhase?:string};
  legs?:LegWorld[];stride?:{vx?:number;vy?:number;bearing?:number;kind?:string};
  momentum?:{main?:Vel|null;offhand?:Vel|null}};
+type InjuryReaction={at:number;bearing:number;region:string;strength:number};
+type RegionalFall={progress:number;side:number;angle:number};
 type Impact={at:number;bearing:number;strength:number;kind:string};
 type Recovery=Impact & {duration:number;impactAt:number};
 type Fighter={
  id?:number|string;team?:number;action?:string|{type?:string;kind?:string};x?:number;y?:number;face?:number;vx?:number;vy?:number;
  body?:string;gender?:string;form?:string;technique?:string|null;attack?:unknown;attackFamily?:string|null;attackSerial?:number|null;
- attackSpec?:{contact?:number;offhand?:{contact?:number};leadBlade?:string;forceAbility?:string;freeHand?:boolean;duration?:number;motion?:{path?:string;finish?:number;chamber?:number};chessStyle?:string;chessPromoted?:boolean}|null;
+ orbitCarry?:OrbitCarry|null;
+ attackSpec?:{contact?:number;reach?:number;orbit?:boolean;orbitThird?:{contact?:number;reach?:number};offhand?:{contact?:number;reach?:number};leadBlade?:string;forceAbility?:string;freeHand?:boolean;duration?:number;motion?:{path?:string;finish?:number;chamber?:number};chessStyle?:string;chessPromoted?:boolean}|null;
  gear?:{weapon?:string;grip?:string;staff?:boolean;dualSabers?:boolean;reverseGrip?:boolean;dualPhase?:boolean};
- poseFrom?:Entry|null;clashFrom?:{hand?:Point;tip?:Point;body?:Entry['body'];offhand?:boolean}|null;clashRole?:string|null;
+ poseFrom?:Entry|null;clashFrom?:{hand?:Point;tip?:Point;body?:Entry['body'];offhand?:boolean}|null;clashRole?:string|null;clashBlade?:string|null;
  alive?:boolean;hp?:number;actionTime?:number;actionDuration?:number;airFacing?:number|null;airHeight?:number;airPhase?:string;
  airProgress?:number;airborne?:number;airStrike?:string|null;appearanceSeed?:number;attackVariant?:string|null;career?:{gradeIndex?:number};
  chainFrom?:string|null;chainDepth?:number;chessStyle?:string;clashX?:number;clashY?:number;combo?:number;feintBearing?:number;
  groundBearing?:number;groundDistance?:number;groundPace?:number;groundSpeed?:number;guardBearing?:number|null;guardLane?:string;guardRead?:string|null;
+ regionalInjuries?:boolean;injuries?:Parameters<typeof arcadeLimbDisabled>[0];injuryReaction?:InjuryReaction;
  impactPhysics?:boolean;impactReaction?:Impact;impactRecovery?:Recovery;injuryEffects?:{moveSpeed?:number;moveScale?:number;guardEfficiency?:number;guardScale?:number};
  jumpBearing?:number;jumpKind?:string|null;liveEntry?:boolean;parryTime?:number;peasantMotion?:boolean;poseEntryDuration?:number;poseEntryOffset?:number;
  rankFootwork?:{path?:string;bearing?:number}|null;recoveryFlow?:boolean;saberOff?:boolean;saberPhase?:string;saberPhaseChangedAt?:number;staffLead?:string|null;
@@ -31,7 +36,7 @@ type Rig=ReturnType<typeof sampleArcadeFighter>;
 type Leg=Rig['legs'][number];
 type StyleSpin={style:string;amplitude:number;yaw:number;face:number;torsoScale:number;cloth:number;clothSide:number};
 type Appearance={ink:string;shade:string;gleam:string;coat:string;trim:string;femme:boolean;androgynous:boolean;softBoy:boolean;hair:string};
-type PaintRig=Rig & {appearance?:Appearance;styleSpin?:StyleSpin;bodySettle?:number;saberOff?:boolean;trakataFlash?:number};
+type PaintRig=Rig & {appearance?:Appearance;styleSpin?:StyleSpin;bodySettle?:number;saberOff?:boolean;trakataFlash?:number;regionalFall?:RegionalFall;primaryUnusable?:boolean;offhandUnusable?:boolean};
 type ChestKey='head'|'shoulder'|'pelvis'|'frontElbow'|'backElbow';
 type GroundHandoff={at:number;root:Point;prior:LegWorld[];support?:number;quickStep?:boolean};
 type GroundPose={kind:string;time:number;root:Point;handoff:GroundHandoff|null;feet:LegWorld[]};
@@ -56,6 +61,7 @@ import {clashBind} from './arcade-rig-bind.js';
 export {arcadeFoot,arcadeGait};
 import {arcadeRigRotation,arcadeBasis,arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld} from './arcade-rig-projection.js';
 export {arcadeHeroLabelWorld,arcadeFeetWorld,arcadeBladeWorld};
+import {sampleOrbitSabers,type OrbitCarry} from './arcade-orbit-sabers.js';
 import {arcadeSaberVariant} from './arcade-loadouts.js?v=3.1.0';
 import {samplePeasantPhrase,peasantHandoff} from './arcade-peasant-motion.js?v=3.0.0';
 import {sampleChessSwing} from './arcade-style-choreo.js?v=3.0.0';
@@ -320,8 +326,12 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
   if(action!=='ready'&&action!=='guard'&&action!=='parry'&&action!=='clash'&&action!=='ko'){
     // Blend entry and follow-through to the actual chosen guard. Prevent the
     // rapid pose pops that otherwise make chained moves look like teleporting.
-    const first=action==='hit'?1:smooth(t/.125);
-    const hold=first*(1-smooth((t-.79)/.21));
+    // Captured action entries already blend from the live blade and torso below.
+    // Don't blend toward neutral a second time before drawing the new cut.
+    const carriesCut=f.liveEntry&&Boolean(f.poseFrom)&&Boolean(f.attack)&&
+      ['slash','sweep','leap','rush','rise','uppercut'].includes(action);
+    const first=action==='hit'||carriesCut?1:smooth(t/.125);
+    const hold=first*(1-smooth((t-(carriesCut?.89:.79))/(carriesCut?.11:.21)));
     const idle={angle:stance?.angle??-1.05,extend:stance?.hand??13,handY:stance?.height??-45,
       offHand:stance?.two?stance.hand-6:stance?.off??7,offY:stance?.two?stance.height+4:-40,
       lean:stance?.lean??0,bend:stance?.bend??0,wide:stance?.feet??0};
@@ -388,6 +398,12 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
     bend+=guardLag*2.6; handY+=guardLag*5.2; offY+=guardLag*4; extend-=guardLag*3;
   }
   if(reducedMotion){if(!confirmedAir)hop*=.4;airGather*=.36;roll=0;trail=0;outline=0;torsoTurn=0;}
+  if(f.liveEntry&&action==='ready'&&phaseAir==='grounded'&&!reducedMotion){
+    const quiet=1-smooth((groundSpeed-2)/20), inhale=Math.sin(age*2.65), shift=Math.sin(age*1.15+Math.PI*.27);
+    lean+=shift*2.0*quiet;bend+=inhale*1.55*quiet;torsoTurn+=shift*.19*quiet;
+    handY+=Math.sin(age*2.65-.35)*1.25*quiet;offY+=inhale*1.0*quiet;
+    angle+=Math.sin(age*1.15-.25)*.065*quiet;
+  }
   const flightStep=gait&&run>.05&&gaitFeet!.every(foot=>!foot.planted) ? Math.min(...gaitFeet!.map(foot=>foot.lift))*.75 : 0;
   let rhythm=mix(idleBreath,Math.cos(walkPhase*TAU*2)*mix(-1.38,2.05,run)-flightStep,gaitWeight);
   const staff=f.gear?.weapon==='staff'||f.gear?.staff===true;
@@ -921,6 +937,7 @@ export function sampleArcadeFighter(f:Fighter={},time=0,{reducedMotion=false}={}
     backElbow=P(backElbow.x+phrase.offElbow*2.2,backElbow.y+Math.abs(phrase.offElbow)*1.7);
   }
   return {type,form,action,t,dy,forward,hdx,flightSide,lean,bend,wide,torsoTurn,hop,roll,trick,legs,waist,pelvis,shoulder,head,helmet,hand,backHand,frontElbow,backElbow,blade,offBlade,staff,reverse,saberPhase,ignition,emitter,offEmitter,offTrail,offActive,trail,outline,clash,
+    ...(f.gear?.weapon==='orbit'?{orbitBlades:sampleOrbitSabers(f,time,reducedMotion)}:{}),
     phase:age,...(f.liveEntry===true?{rhythm,bodyForward}:{}),gait:gait?(run>.55?'run':'walk'):'none',attackFamily:family,...(phrase?{peasantPhrase:phrase}:{}),...(styleArm?{chessChoreo:styleArm}:{}),freeHandAction,freeHandExtension,poseEntryActive:feed>0,poseEntryBlend:feed,airPhase:phaseAir,airStyle:airStyle?.name??null,airSilhouette:airStyle?.flight??0,palette:PALETTES[f.team===1?1:0],reducedMotion};
 }
 
@@ -2078,6 +2095,54 @@ function samplePeasantSoles(f:Fighter, r:PaintRig, time:number){
   return changed?{...r,legs:legs.sort((a,b)=>a.foot.y-b.foot.y)}:r;
 }
 
+const visibleInjury = new WeakMap<InjuryReaction,number>();
+/** Pose only: stretch/compression and delayed settling without writing hit sockets or physics. */
+export function sampleArcadeRegionalPose(f:Fighter,r:PaintRig,time:number){
+  if(!f.regionalInjuries)return r;
+  const suspended=f.gear?.weapon==='orbit';
+  const primaryUnusable=!suspended&&arcadeLimbDisabled(f.injuries,'rightArm');
+  const offhandUnusable=!suspended&&!r.staff&&arcadeLimbDisabled(f.injuries,'leftArm');
+  const hit=f.injuryReaction;
+  if(!hit||!isFinite(time))return primaryUnusable||offhandUnusable?{...r,primaryUnusable,offhandUnusable}:r;
+  // The reaction object is stable even when the renderer spreads a fresh
+  // fighter snapshot after the round. Use it as the visual clock anchor.
+  let started=visibleInjury.get(hit);
+  if(started===undefined||time<started){
+    started=time-Math.max(0,Math.min(.03,val(f.actionTime)));
+    visibleInjury.set(hit,started);
+  }
+  const age=Math.max(0,time-started), x=Math.cos(hit.bearing), y=Math.sin(hit.bearing);
+  const side=Math.abs(x)>.12?Math.sign(x):r.hdx;
+  const offset=(p:Point,dx:number,dy:number)=>P(p.x+dx,p.y+dy);
+  if(r.action==='ko'){
+    // Advance on the presentation clock so a last-fighter KO still falls
+    // after the fixed-step engine has stopped. The distal limbs follow late.
+    const fall=r.reducedMotion?1:smooth(age/.43);
+    const rebound=r.reducedMotion?0:Math.sin(Math.PI*clamp((age-.32)/.26))*.11;
+    const armLag=r.reducedMotion?1:smooth((age-.074)/.43), legLag=r.reducedMotion?1:smooth((age-.10)/.44);
+    const spread=hit.region.endsWith('Leg')?1.35:1;
+    return {...r,primaryUnusable,offhandUnusable,regionalFall:{progress:fall,side,angle:side*(1.46*fall-rebound)},
+      head:offset(r.head,side*5*fall,4*fall), shoulder:offset(r.shoulder,side*3*fall,3*fall),
+      hand:offset(r.hand,-side*14*armLag,15*armLag),backHand:offset(r.backHand,side*11*armLag,23*armLag),
+      legs:r.legs.map(leg=>{const twist=(leg.side===0?1:-1)*legLag*spread;
+        return {...leg,k:offset(leg.k,twist*12,-legLag*6),foot:offset(leg.foot,twist*8,legLag*4),
+          toes:offset(leg.toes,twist*10,legLag*7),planted:false};
+      }),
+    };
+  }
+  const reeling=age<.29&&r.action==='hit';
+  const wave=reeling?Math.sin(Math.PI*clamp(age/.29))*hit.strength*(r.reducedMotion?.32:1):0;
+  if(wave<.01)return primaryUnusable||offhandUnusable?{...r,primaryUnusable,offhandUnusable}:r;
+  const onLeg=hit.region.endsWith('Leg'),onArm=hit.region.endsWith('Arm'),right=hit.region.startsWith('right');
+  return {...r,primaryUnusable,offhandUnusable,
+    head:offset(r.head,wave*x*(onLeg?4:9),wave*(onLeg?5:3+y*5)),
+    shoulder:offset(r.shoulder,wave*x*6,wave*(onLeg?8:4)),
+    pelvis:offset(r.pelvis,wave*x*3,wave*(onLeg?7:2)),
+    frontElbow:offset(r.frontElbow,wave*x*3,wave*(onArm&&right?13:3)),
+    backElbow:offset(r.backElbow,wave*x*3,wave*(onArm&&!right?13:3)),
+    legs:onLeg?r.legs.map(leg=>leg.side===(right?0:1)?{...leg,k:offset(leg.k,wave*x*12,wave*9)}:leg):r.legs};
+}
+
 export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number, {ghost=false}:Pick<DrawOptions,"ghost">={}){
   const authored=sampleArcadePresentation(f,physical);
   if(ghost)return authored;
@@ -2085,7 +2150,8 @@ export function sampleArcadeRenderRig(f:Fighter, physical:PaintRig, time:number,
   const air=sampleArcadeAirHandoff(f,footwork,time);
   const impact=sampleArcadeImpactPose(f,air,time);
   const recovery=sampleArcadeRecoveryPose(f,impact,time);
-  return samplePeasantSoles(f,sampleArcadeBladeInterruption(f,recovery,time),time);
+  const settled=samplePeasantSoles(f,physical.orbitBlades?recovery:sampleArcadeBladeInterruption(f,recovery,time),time);
+  return sampleArcadeRegionalPose(f,settled,time);
 }
 
 export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOptions={}) {
@@ -2108,10 +2174,10 @@ export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOpt
   const rotate=arcadeRigRotation(physicalRig), pivot=physicalRig.waist;
   if(rotate) {ctx.translate(pivot.x,pivot.y);ctx.rotate(rotate);ctx.translate(-pivot.x,-pivot.y);}
   if(r.action==='ko'){
-    const fall=r.reducedMotion?1:smooth(r.t*3.3);
+    const impact=r.regionalFall,fall=impact?.progress??(r.reducedMotion?1:smooth(r.t*3.3));
     ctx.globalAlpha*=.84-.28*fall;
-    ctx.translate(-r.hdx*fall*14,1-fall*3);
-    ctx.rotate(-r.hdx*fall*1.43);
+    ctx.translate((impact?.side??-r.hdx)*fall*14,1-fall*3);
+    ctx.rotate(impact?.angle??-r.hdx*fall*1.43);
   }
   ctx.lineJoin='round';
   if(options.ghost) {
@@ -2122,15 +2188,29 @@ export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOpt
   const layers=outline&&!options.lowDetail?figureLayers(r,c,options.pathFactory??defaultPath):null;
   if(outline&&options.lowDetail)fastFigureRim(ctx,r,c,options.crowded!);
   const drawOffhand=()=>bladeArt(ctx,{...r,hand:r.offEmitter,blade:r.offBlade!,action:'slash',trail:r.offTrail},r.staff?c:{...c,slash:c.split},!r.staff);
-  const bladesVisible=options.hideSabers!==true&&(r.action!=='ko'||r.t<.25);
+  const orbit=f.gear?.weapon==='orbit';
+  const bladesVisible=(orbit||!r.primaryUnusable)&&options.hideSabers!==true&&(r.action!=='ko'||r.t<.25);
   if(!layers){
     footArt(ctx,r.legs[0],r.forward,c,r.type,false);
     footArt(ctx,r.legs[1],r.forward,c,r.type,true);
   }
-  if(!r.staff&&r.offBlade&&bladesVisible&&r.offActive<=.45)drawOffhand();
+  if(!r.staff&&!r.offhandUnusable&&r.offBlade&&bladesVisible&&r.offActive<=.45)drawOffhand();
   if(layers)paintFigureLayers(ctx,r,c,layers,options.crowded!);
   else bodyArt(ctx,r,c,options.lowDetail===true);
-  if(bladesVisible){
+  if(bladesVisible&&orbit){
+    const local=arcadeBasis(f,physicalRig).local;
+    const violet={...c,steel:'#b3a4db',slash:'#c88bff',split:'#edaeff'};
+    for(const blade of physicalRig.orbitBlades??sampleOrbitSabers(f,time,r.reducedMotion)){
+      const hand=local(blade.hand),tip=local(blade.tip);
+      if(blade.charge>.04&&!saberOff){
+        // Thinner, dashed windup line distinguishes a warning from a live cut.
+        ctx.save();ctx.globalAlpha=blade.charge*.61;ctx.setLineDash([3,4]);
+        line(ctx,[P(hand.x,hand.y-6),P(tip.x,tip.y-6)],'#ffd397',2);ctx.restore();
+      }
+      bladeArt(ctx,{...r,hand,blade:tip,trail:blade.trail,action:'slash'},violet,false);
+    }
+  }
+  if(bladesVisible&&!orbit){
     if(r.staff){
       line(ctx,[r.offEmitter,r.emitter],INK,11);
       line(ctx,[r.offEmitter,r.emitter],r.saberOff?'#74747a':c.steel,6);
@@ -2138,7 +2218,7 @@ export function drawArcadeFighter(ctx:Canvas, f:Fighter, time=0, options:DrawOpt
     }
     bladeArt(ctx,{...r,hand:r.emitter},c);
   }
-  if(r.offBlade&&bladesVisible&&(r.staff||r.offActive>.45))drawOffhand();
+  if(!r.offhandUnusable&&r.offBlade&&bladesVisible&&(r.staff||r.offActive>.45))drawOffhand();
   if(bladesVisible){
     // Leave the fingers in front of the hilt, rather than drawing the
     // hilt's bright trim over the whole floating glove.

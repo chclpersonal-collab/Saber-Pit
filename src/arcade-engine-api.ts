@@ -18,6 +18,7 @@ import type {progressionSummary} from './progression.js';
 import type {ArcadeOptions,ArcadeConfig} from './arcade-engine-config.js?v=5.0.0';
 export type {ArcadeInput,ArcadeOptions};
 export {ARCADE_ATTACKS,ARCADE_AIR_STRIKES,ARCADE_TRAKATA_ID,ARCADE_FORMS,ARCADE_FORM_IDS,ARCADE_STAT_KEYS,arcadeMovesFor} from './arcade-engine.js?v=5.1.0';
+import type {OrbitCarry} from './arcade-orbit-sabers.js';
 export type ArcadeMode='duel'|'squad'|'watch'|'command';
 export type ArcadeRule='elimination'|'control'|'relic';
 export type ArcadePhase='playing'|'won'|'lost'|'draw';
@@ -25,7 +26,7 @@ export type ArcadeTeam=0|1;
 export interface ArcadeAttackSpec {
   reach:number;arc:number;contact:number;duration:number;cost:number;
   damage:number;lunge:number;knock:number;recoil:number;
-  expanded?:boolean;staff?:boolean;airStrike?:boolean;offhand?:ArcadeAttackSpec;
+  expanded?:boolean;staff?:boolean;orbit?:boolean;airStrike?:boolean;offhand?:ArcadeAttackSpec;orbitThird?:ArcadeAttackSpec;
 }
 export interface ArcadeFighter extends ArcadePoint, ArcadeAirState {
   id:string;team:ArcadeTeam;slot:number;control:boolean;form:SaberForm;body:FighterBody;gender:FighterGender;
@@ -33,15 +34,16 @@ export interface ArcadeFighter extends ArcadePoint, ArcadeAirState {
   alive:boolean;
   action:string;actionTime:number;actionDuration:number;attack:string|null;attackSpec:ArcadeAttackSpec|null;technique:string|null;
   vx:number;vy:number;kx:number;ky:number;radius:number;groundDistance:number;groundSpeed:number;
-  energy:number;contact:boolean;offhandContact:boolean;parryTime:number;saberOff?:boolean;saberPhase:'short'|'long';
+  energy:number;contact:boolean;offhandContact:boolean;orbitThirdContact?:boolean;parryTime:number;saberOff?:boolean;saberPhase:'short'|'long';
   gear:ReturnType<typeof arcadeFighterGear>;career:ReturnType<typeof progressionSummary>;moves:Record<string,number>;
   injuries:ReturnType<typeof createArcadeInjuries>;injuryEffects:ReturnType<typeof arcadeInjuryEffects>;stats:ArcadeRoundStats;
   fatalRegion?:string;fatalDirection?:'front'|'rear';
+  regionalInjuries?:true;injuryReaction?:{at:number;bearing:number;region:string;strength:number};
   circuitCuts:boolean;expandedCombat:boolean;
   heroId?:string;displayName?:string;heroElo?:number;heroEloFloorGrade?:string;heroPlan?:string;
   chessStyle?:'pawn'|'bishop'|'rook'|'knight'|'queen'|'king'|'none';chessPawn?:{promoted:boolean;streak:number};
   combatHabit?:'opening_reader'|'lane_builder'|'tempo_keeper';heroDoctrine?:string;
-  bladeTurn?:number;spawn:ArcadePoint;
+  orbitCarry?:OrbitCarry|null;bladeTurn?:number;spawn:ArcadePoint;
 }
 export interface ArcadeEvent extends ArcadePoint {
   id:number;kind:string;fighterId:string;team:ArcadeTeam;time:number;face:number;form:SaberForm;technique:string|null;

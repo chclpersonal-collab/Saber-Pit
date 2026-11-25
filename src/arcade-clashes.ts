@@ -1,15 +1,16 @@
 type P={x:number;y:number};
 type BareBlade={hand:P;tip:P};
-type BladeId='primary'|'offhand'|'rear';
+type BladeId='primary'|'offhand'|'rear'|'orbit_third';
 type Body={lean:number;bend:number;wide:number;torsoTurn:number};
 type Emitter=BareBlade & {body:Body;offhand:boolean;bladeId:BladeId};
 type ClashFighter=P & {team:number;airHeight?:number;alive?:boolean;hp?:number;attack?:string|null;action:string;
- contact?:boolean;offhandContact?:boolean;actionTime:number;gear?:{dualSabers?:boolean;weapon?:string;staff?:boolean};
- attackSpec?:{freeHand?:boolean;contact?:number;blade?:BladeId;offhand?:{contact?:number;blade?:BladeId}}|null};
+ contact?:boolean;offhandContact?:boolean;orbitThirdContact?:boolean;actionTime:number;gear?:{dualSabers?:boolean;weapon?:string;staff?:boolean};
+ attackSpec?:{orbit?:boolean;orbitThird?:{contact?:number};freeHand?:boolean;contact?:number;blade?:BladeId;offhand?:{contact?:number;blade?:BladeId}}|null};
 type Solid={kind:string;x:number;y:number;width:number;height:number};
 /** Blade clashes use the same articulated pose/projection as the canvas. 2D
  * contact is constrained by fighter depth so perspective alone can't clash. */
 import {sampleArcadeFighter,arcadeBladeWorld} from './arcade-fighters.js?v=5.0.0';
+import {sampleOrbitSabers} from './arcade-orbit-sabers.js';
 const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(v,hi));
 const cross=(a:P,b:P)=>a.x*b.y-a.y*b.x;
 const minus=(a:P,b:P)=>({x:a.x-b.x,y:a.y-b.y});
@@ -43,7 +44,8 @@ const releases=(time:number,contact?:number)=>contact!==undefined&&Number.isFini
 function releaseMask(f:ClashFighter) {
   if((f.alive===false||(f.alive===undefined&&f.hp!<=0))||!f.attack||f.attackSpec?.freeHand===true||f.attack==='force'||f.action==='force')return 0;
   return (!f.contact&&releases(f.actionTime,f.attackSpec?.contact)?1:0)
-    |((f.gear?.dualSabers||f.gear?.weapon==='staff'||f.gear?.staff)&&!f.offhandContact&&releases(f.actionTime,f.attackSpec?.offhand?.contact)?2:0);
+    |((f.attackSpec?.orbit||f.gear?.dualSabers||f.gear?.weapon==='staff'||f.gear?.staff)&&!f.offhandContact&&releases(f.actionTime,f.attackSpec?.offhand?.contact)?2:0)
+    |(f.attackSpec?.orbit&&!f.orbitThirdContact&&releases(f.actionTime,f.attackSpec.orbitThird?.contact)?4:0);
 }
 export function activeClashBlade(f:ClashFighter){return releaseMask(f)>0;}
 /** The physical emitters participating in this tick, regardless of order. */
@@ -52,6 +54,10 @@ export function activeClashEmitters(f:ClashFighter,time:number):Emitter[]{
   if(!mask)return [];
   const rig=sampleArcadeFighter(f,time);
   const {lean,bend,wide,torsoTurn}=rig,body={lean,bend,wide,torsoTurn};
+  if(f.attackSpec?.orbit){
+    return sampleOrbitSabers(f,time).filter((_,i)=>(mask&(1<<i))!==0)
+      .map(({id,hand,tip})=>({bladeId:id,hand,tip,body,offhand:id!=='primary'}));
+  }
   const w:{hand:P;tip:P;offhand?:BareBlade}=arcadeBladeWorld(f,rig),staff=f.gear?.weapon==='staff'||f.gear?.staff;
   const on=(physical:BladeId):Emitter|undefined=>physical==='rear'||physical==='offhand'
     ?w.offhand&&{...w.offhand,body,offhand:true,bladeId:physical}

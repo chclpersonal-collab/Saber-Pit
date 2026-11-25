@@ -1,0 +1,148 @@
+/* LOOMEN v6 skin for the pages outside the Arena: Tournament, Gauntlet, Saves and the other ops pages.
+   Look only. Ids, forms, buttons and their handlers are untouched; layout and colour come from here.
+   Authored by CLARISSA-01. Loaded last so it wins over the older ops and v4 skins. */
+:root body.ops-shell{
+  --ops-amber:var(--v5-gold);--ops-bg:var(--v5-night);--ops-panel:var(--v5-panel);--ops-field:var(--v5-deep);--ops-tile:var(--v5-panel-hi);
+  --ops-edge:var(--v5-line);--ops-edge-hi:#7b68d8;--ops-copy:var(--v5-white);--ops-muted:var(--v5-muted);
+  --ops-type:var(--v5-ui);--ops-label:var(--v5-ui);--ops-notch:0px;
+  --pit-base:var(--v5-night);--pit-panel:var(--v5-panel);--pit-well:var(--v5-deep);--pit-tile:var(--v5-panel-hi);--pit-line:var(--v5-line);--pit-line-strong:#7b68d8;
+  --pit-text:var(--v5-white);--pit-muted:var(--v5-muted);--pit-accent:var(--v5-gold);--pit-accent-ink:var(--v5-ink);--pit-gold:var(--v5-gold);--pit-selection:#4a3a9e;
+  --warm:var(--v5-gold);--gold:var(--v5-gold);--muted:var(--v5-muted);--bright:var(--v5-white);--cream:var(--v5-white);--soft:var(--v5-soft);
+  --mono:var(--v5-ui);--serif:var(--v5-display);--label:var(--v5-ui);--pit-display:var(--v5-display);
+  --line:var(--v5-line);--edge:var(--v5-line);--stone:var(--v5-panel);--field:var(--v5-deep);--panel:var(--v5-panel);--panel-hi:var(--v5-panel-hi);
+  font-family:var(--v5-ui);font-weight:700;color:var(--v5-white);
+  background:repeating-conic-gradient(from 0deg at 50% -10%,#ffd23f0d 0 5deg,transparent 5deg 15deg),radial-gradient(90% 60% at 50% 0%,#5b2a9e 0%,#2a1466 45%,var(--v5-ink) 100%) fixed,var(--v5-ink);
+  min-height:100dvh;
+}
+:root body.ops-shell :is(#tournamentApp,.gauntlet-shell,.backup-shell,main){width:min(1180px,calc(100% - 32px));margin-inline:auto;padding:0 0 110px}
+
+/* No top tabs and no page chrome: a back button, the page title, and the same bottom nav as Home. */
+:root body.ops-shell .ops-dock{display:flex;align-items:center;gap:12px;position:static;border:0;background:none;box-shadow:none;padding:16px 0 4px;min-height:0;grid-template-columns:none}
+:root body.ops-shell .ops-dock .ops-nav,:root body.ops-shell .ops-dock .ops-dock-foot,:root body.ops-shell .ops-brand>span:not(.ops-mark){display:none}
+:root body.ops-shell .ops-brand{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;padding:0;border:0;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);text-decoration:none}
+:root body.ops-shell .ops-brand .ops-mark{display:block;width:22px;height:22px;background:none;border:0;padding:0}
+:root body.ops-shell .ops-brand .ops-mark svg{display:none}
+:root body.ops-shell .ops-brand .ops-mark::before{content:'';display:block;width:22px;height:22px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12l7 7'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12l7 7'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* Hero: the title only. Kickers, blurbs and schematic art go. */
+:root body.ops-shell .ops-hero{display:block;min-height:0;padding:6px 0 14px;margin:0;border:0;background:none;box-shadow:none;clip-path:none}
+:root body.ops-shell .ops-hero::before,:root body.ops-shell .ops-hero::after{display:none}
+:root body.ops-shell .ops-hero :is(.ops-kicker,.kicker,.eyebrow,p),:root body.ops-shell .ops-hero-art,:root body.ops-shell .ops-hero>svg{display:none}
+:root body.ops-shell .ops-hero h1{font-family:var(--v5-display);font-weight:400;font-size:clamp(40px,7vw,64px);line-height:1;letter-spacing:.01em;margin:0;color:var(--v5-white);-webkit-text-stroke:2px var(--v5-ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--v5-ink)}
+:root body.ops-shell .v5-head{display:block}
+
+/* Panels */
+:root body.ops-shell :is(.panel,.backup-panel,.board-window,.g-table-window,details.v5-fold){background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border:0;border-radius:var(--v5-r-lg);box-shadow:0 0 0 2px var(--v5-line),0 5px 0 var(--v5-ink);clip-path:none;color:var(--v5-white)}
+:root body.ops-shell :is(.panel,.backup-panel)::before,:root body.ops-shell :is(.panel,.backup-panel)::after{display:none}
+:root body.ops-shell :is(.panel,.backup-panel){padding:16px 18px}
+:root body.ops-shell :is(h2,h3){font-family:var(--v5-display);font-weight:400;letter-spacing:.01em;color:var(--v5-white)}
+:root body.ops-shell h2{font-size:24px}
+/* Helper and descriptor lines: the eyebrow kickers and the sentence straight under a section title. */
+:root body.ops-shell :is(.panel,.backup-panel,.g-section-top,.section-top) :is(.eyebrow,.ops-kicker,.kicker){display:none}
+:root body.ops-shell :is(.panel,.backup-panel) :is(h2,h3)+p:not([role]):not(output):not([aria-live]),
+:root body.ops-shell :is(.section-top,.g-section-top)+p:not([role]):not([aria-live]),
+:root body.ops-shell :is(.section-top,.g-section-top) p:not([role]):not([aria-live]),
+:root body.ops-shell .g-setup-intro p{display:none}
+:root body.ops-shell .backup-reminder{display:none}
+
+/* Controls */
+:root body.ops-shell :is(button,.button){font-family:var(--v5-ui);font-weight:800;border-radius:var(--v5-r);border:0;min-height:44px;padding:0 16px;color:var(--v5-white);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);clip-path:none;text-transform:none;letter-spacing:0}
+:root body.ops-shell :is(button,.button):not(:disabled):hover{background:linear-gradient(180deg,#4a39a0,var(--v5-panel-hi));color:var(--v5-white)}
+:root body.ops-shell :is(button.primary,.button.primary,.quest-controls button,button.quest-primary){background:linear-gradient(180deg,#ffe066,var(--v5-gold));color:var(--v5-ink);box-shadow:0 0 0 2px var(--v5-gold-lip),0 var(--v5-lip) 0 var(--v5-gold-lip)}
+:root body.ops-shell :is(button.primary,.button.primary):not(:disabled):hover{background:linear-gradient(180deg,#fff08f,#ffdc55);color:var(--v5-ink)}
+:root body.ops-shell :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){font-family:var(--v5-ui);font-weight:800;color:var(--v5-white);background:var(--v5-deep);border:2px solid var(--v5-line);border-radius:var(--v5-r-sm);min-height:44px;padding:0 12px}
+:root body.ops-shell :is(label,legend,dt,th){font-family:var(--v5-ui);text-transform:none;letter-spacing:0;color:var(--v5-soft)}
+:root body.ops-shell input[type=checkbox]{accent-color:var(--v5-gold)}
+:root body.ops-shell summary{font-family:var(--v5-display);font-weight:400;font-size:20px;color:var(--v5-white)}
+:root body.ops-shell table{font-family:var(--v5-ui);font-variant-numeric:tabular-nums}
+:root body.ops-shell :is(th,td){border-color:#5a47b866}
+:root body.ops-shell :is(code,kbd,small,.mono){font-family:var(--v5-ui)}
+:root body.ops-shell a{color:var(--v5-gold)}
+
+/* No mode tabs at the top: Duels, Squads and Gauntlet are picked from Home or Play. */
+:root body.ops-shell .format-picker{display:none}
+
+/* Bottom nav, added by arcade-v6-pages.js: fixed on phones, a row under the header elsewhere. */
+.v6p-nav{display:flex;justify-content:space-around;gap:4px;position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 6px max(10px,env(safe-area-inset-bottom));background:linear-gradient(180deg,#22164ff2,#140b2ef7);box-shadow:0 -2px 0 var(--v5-line)}
+.v6p-nav a{display:grid;justify-items:center;gap:2px;min-width:58px;padding:4px 6px;border-radius:12px;color:var(--v5-muted);font:800 12px var(--v5-ui);text-decoration:none}
+.v6p-nav a[aria-current=page]{color:var(--v5-gold)}
+.v6p-nav svg{width:24px;height:24px}
+@media (min-width:761px) and (min-height:521px){
+  .v6p-nav{left:50%;right:auto;transform:translateX(-50%);bottom:16px;border-radius:999px;padding:6px 14px;box-shadow:0 0 0 2px var(--v5-line),0 6px 0 var(--v5-ink)}
+}
+@media (orientation:landscape) and (max-height:520px){
+  :root body.ops-shell :is(#tournamentApp,.gauntlet-shell,.backup-shell,main){padding-bottom:70px}
+  .v6p-nav{padding:4px 6px max(4px,env(safe-area-inset-bottom))}
+  .v6p-nav a{grid-auto-flow:column;gap:6px;align-items:center}
+  .v6p-nav svg{width:20px;height:20px}
+  :root body.ops-shell .ops-dock{position:absolute;top:10px;left:16px;padding:0;margin:0;z-index:5}
+  :root body.ops-shell .ops-brand{width:42px;height:42px}
+  :root body.ops-shell .ops-hero{padding:14px 0 10px 58px}
+  :root body.ops-shell .ops-hero h1{font-size:28px;line-height:1.1;margin:0}
+  :root body.ops-shell :is(.panel,.backup-panel,details.v5-fold){padding:12px 16px}
+  :root body.ops-shell .panel h2{font-size:22px}
+}
+
+/* Fixes after the first shots: jump buttons and swipe hints go, chips keep their own width, the nav stays muted. */
+:root body.ops-shell .format-picker .peak-link,:root body.ops-shell .v5-swipe{display:none}
+:root body.ops-shell .format-picker>*{flex:0 0 auto;width:auto;min-width:0}
+:root body.ops-shell .v6p-nav a{color:var(--v5-muted);background:none;box-shadow:none;min-height:0}
+:root body.ops-shell .v6p-nav a[aria-current=page]{color:var(--v5-gold)}
+.v6p-nav{background:#170d36}
+:root body.ops-shell :is(.panel,.backup-panel){overflow:visible}
+/* Instruction and descriptor lines (static help text, not live status or results). */
+:root body.ops-shell :is(#gAutoHelp,#gMedals>p.muted,#gGroups>p.muted,.g-rules,#seasonWeek,#autoResumeHint,#squadClockHelp,#seedHelp,#terrainHelp,#newNote,
+  #leaderDetail,#leaderForms,#peakDetail,#peakHistory,.backup-note,#heroesPanel>p.muted:not([id]),#heroesPanel .muted:not([id]):not([role])){display:none}
+:root body.ops-shell :is(button,.button):disabled{opacity:.45;filter:saturate(.4);box-shadow:0 0 0 2px var(--v5-line)}
+:root body.ops-shell :is(.tour-guide,#heroesPanel li.empty){display:none}
+/* Idle RPG: same panels, buttons and type as the rest; kickers and blurbs go. */
+:root body.ops-shell :is(.rpg-panel,.rpg-battle){background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border:0;border-radius:var(--v5-r-lg);box-shadow:0 0 0 2px var(--v5-line),0 5px 0 var(--v5-ink);overflow:hidden;color:var(--v5-white)}
+:root body.ops-shell :is(.rpg-battle-top,.rpg-panel-head,.rpg-battle-foot){background:none;border-color:#5a47b866}
+:root body.ops-shell :is(.rpg-kicker,.rpg-header .rpg-kicker,#rpgLootDetail){display:none}
+:root body.ops-shell .rpg-header h1{font-family:var(--v5-display);font-weight:400;font-size:clamp(40px,7vw,64px);line-height:1;margin:0;color:var(--v5-white);-webkit-text-stroke:2px var(--v5-ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--v5-ink)}
+:root body.ops-shell .rpg-tag{font-family:var(--v5-ui);font-weight:800;border-radius:999px;border:0;background:var(--v5-deep);box-shadow:0 0 0 2px var(--v5-line);color:var(--v5-soft);padding:3px 10px}
+:root body.ops-shell :is(.rpg-panel,.rpg-battle) :is(h2,h3,strong){font-family:var(--v5-display);font-weight:400;color:var(--v5-white)}
+:root body.ops-shell :is(.rpg-route-nodes>*){border-radius:var(--v5-r);border-color:var(--v5-line);background:var(--v5-deep)}
+:root body.ops-shell .ops-brand .ops-mark{color:var(--v5-gold)}
+
+/* Readable table headers on every page. */
+:root body.ops-shell th{font:800 .86rem/1.25 var(--v5-ui);letter-spacing:.02em;color:var(--v5-soft);padding-block:10px}
+:root body.ops-shell td{font-size:.9rem}
+:root body.ops-shell .g-table-window th{font-size:.86rem}
+
+/* One main action plus a ⋯ menu, added by arcade-v6-pages.js on the Gauntlet. */
+:root body.ops-shell .g-actions{display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+:root body.ops-shell .g-actions>#gPlay{flex:1 1 auto;min-height:52px;font-size:1.05rem}
+:root body.ops-shell .g-actions>#gStop:not([hidden]){flex:0 0 auto}
+.v6p-more{position:relative;flex:0 0 auto}
+.v6p-more>summary{list-style:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;cursor:pointer;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink);color:var(--v5-white);font:900 22px/1 var(--v5-ui)}
+.v6p-more>summary::-webkit-details-marker{display:none}
+.v6p-more[open]>summary{box-shadow:0 0 0 2px var(--v5-gold),0 4px 0 var(--v5-ink)}
+.v6p-more-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:30;display:grid;gap:8px;min-width:220px;padding:10px;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 8px 24px #0009}
+.v6p-more-menu>:is(button,a){display:flex;align-items:center;justify-content:flex-start;width:100%;min-height:44px;padding:0 14px;text-decoration:none}
+.v6p-more-menu>a{border-radius:var(--v5-r);color:var(--v5-white)!important;font:800 15px var(--v5-ui);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line)}
+.v6p-more-menu>[hidden]{display:none}
+.v6p-more-menu>#gReset{color:#ff8fa3}
+:root body.ops-shell .panel:has(.v6p-more[open]){position:relative;z-index:25}
+
+/* Tournament: same one-main-action row; the ⋯ menu holds the rest with their words, not icons alone. */
+:root body.ops-shell .schedule .actions{display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+:root body.ops-shell .schedule .actions>:is(#nextButton,#newButton){flex:1 1 auto;min-height:52px}
+:root body.ops-shell .v5-more-menu{min-width:230px;padding:10px;gap:8px;display:grid;border-radius:var(--v5-r-lg);background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 8px 24px #0009;z-index:30}
+:root body.ops-shell .v5-more-menu>button{justify-content:flex-start;width:100%;font-size:15px}
+:root body.ops-shell .v5-more-menu>button[hidden]{display:none}
+:root body.ops-shell .v5-more-menu>.reset-action{color:#ff8fa3}
+:root body.ops-shell th{white-space:nowrap}
+/* Names in tables and brackets read as text you can tap, not as stacked buttons. */
+:root body.ops-shell .fighter-button{background:none;box-shadow:none;border-radius:8px;padding:4px 2px;min-height:44px;color:var(--v5-white);font-size:.95rem}
+:root body.ops-shell .board .fighter-button{display:flex;flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:0}
+:root body.ops-shell .board .fighter-button small{flex-basis:100%;font-size:.78rem;color:var(--v5-gold)}
+:root body.ops-shell .fighter-button:not(:disabled):hover{background:#ffffff12;text-decoration:none}
+:root body.ops-shell .board table{table-layout:auto}
+:root body.ops-shell .board :is(th,td):not(:nth-child(2)){width:1%;padding-inline:6px}
+:root body.ops-shell .board td:nth-child(2){width:auto;min-width:230px}
+:root body.ops-shell :is(td,tbody th)>:is(button,.button){background:none;box-shadow:none;min-height:40px;padding:2px 4px;justify-content:flex-start;text-align:left;color:var(--v5-white);font-size:.95rem}
+:root body.ops-shell :is(td,tbody th)>:is(button,.button):hover{background:#ffffff12}
+/* Routine status lines are read aloud, not shown; problems still show in red. */
+.v6p-quiet:not([data-v6-problem]){position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0;padding:0}
+.v6p-quiet[data-v6-problem]{color:#ff8fa3!important}

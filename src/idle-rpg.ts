@@ -24,7 +24,7 @@ const portrait=$<HTMLCanvasElement>('questPortrait'),ctx=portrait.getContext?.('
 const picker=$<HTMLSelectElement>('questPicker'), arena=$<HTMLCanvasElement>('questArena'), pace=$<HTMLSelectElement>('questReplaySpeed'), stage=$('questFightPanel');
 const pretty=(n?: number | null)=>Number(n??0).toLocaleString();
 const seconds=(ms: number)=>Math.max(0,Math.ceil(ms/1000))+'s';
-const kitLabel={single:'Single saber',dual:'Dual sabers',staff:'Double-bladed saber'};
+const kitLabel={orbit:'Traya’s Orbit',single:'Single saber',dual:'Dual sabers',staff:'Double-bladed saber'};
 let state=loadQuests(),heroes: RpgHero[]=[],paintedKey='',routeKey='',journalKey='',failedRev: number | null=null,failedLegacy='';
 let playback: ReturnType<typeof startArcadeTournamentPlayback> | null=null,scene: PlaybackScene | null=null,watchRunId='',hiddenPlaybackKey='';
 const put=(id: string,text: string)=>{const e=$(id);if(e.textContent!==text)e.textContent=text;};

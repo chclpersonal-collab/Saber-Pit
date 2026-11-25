@@ -1,11 +1,11 @@
 type Point = {x:number;y:number};
-type Emitter = 'main'|'off'|'rear';
+type Emitter = 'main'|'off'|'rear'|'orbit_third';
 type Blade = {id:Emitter;hand:Point;tip:Point};
 type World = {phase?:string;body?:Point;blades?:Blade[]; hand?:Point;tip?:Point};
 type Fighter = {id?:string|number;alive?:boolean;saberOff?:boolean;attack?:string|null;action?:string;actionTime?:number;
  attackSerial?:number;technique?:string|null;saberPhase?:string;staffLead?:string;team?:number;attackFamily?:string;
  gear?:{weapon?:string;grip?:string};
- attackSpec?:{contact?:number;offhand?:{contact?:number};forceAbility?:string;freeHand?:boolean;
+ attackSpec?:{contact?:number;offhand?:{contact?:number};orbitThird?:{contact?:number};forceAbility?:string;freeHand?:boolean;
  leadBlade?:Emitter;motion?:{path?:string};path?:string;family?:string;id?:string}|null;};
 type Segment = {hx:number;hy:number;tx:number;ty:number};
 type Sample = Segment & {at:number;t:number};
@@ -16,7 +16,7 @@ type FXContext=CanvasRenderingContext2D|OffscreenCanvasRenderingContext2D;
 /** Presentation only: ink ribbons collected from the real drawn blade, no hits or pose changes. */
 const AGE=.085, LIMIT=24, SEGMENTS=6, SAMPLE_SPACING=1/90;
 const solid=['#6ac7bf','#ed886b'], paper=['#e5fff2','#ffe0cb'];
-const ids=new Set<Emitter>(['main','off','rear']);
+const ids=new Set<Emitter>(['main','off','rear','orbit_third']);
 const thrust=/thrust|lunge|needle|pierce|point|stab|skewer/i;
 const point=(p?:Point):p is Point=>Number.isFinite(p?.x)&&Number.isFinite(p?.y);
 const mix=(a:number,b:number,t:number)=>a+(b-a)*t;
@@ -65,11 +65,13 @@ export function createArcadeSwingWaves(){
     for(const [id,h] of actor.emitters){
       if(!entries.some(e=>e.id===id&&point(e.hand)&&point(e.tip)))actor.emitters.delete(id);
     }
-    for(const e of entries.slice(0,2)){
+    for(const e of entries.slice(0,f.gear?.weapon==='orbit'?3:2)){
       if(!ids.has(e.id)||!point(e.hand)||!point(e.tip))continue;
       const other=staff?e.id!==lead:e.id==='off';
       const offContact=spec.offhand?.contact;
-      const beat=other&&offContact!==undefined&&Number.isFinite(offContact)?offContact:contact;
+      const orbit=f.gear?.weapon==='orbit', orbitBeat=e.id==='orbit_third'?spec.orbitThird?.contact:e.id==='off'?offContact:contact;
+      if(orbit&&!Number.isFinite(orbitBeat))continue;
+      const beat=orbit?orbitBeat!:other&&offContact!==undefined&&Number.isFinite(offContact)?offContact:contact;
       let h=actor.emitters.get(e.id);
       if(!h){h={prev:null,pieces:[]};actor.emitters.set(e.id,h);}
       const prior=h.prev;

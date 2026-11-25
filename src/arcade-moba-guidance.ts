@@ -7,8 +7,8 @@ export function mobaDeathSource(game:MobaState):string|null{
   if(hero)return hero.name;
   const tower=game.towers.find(x=>x.id===ko.actorId);
   if(tower)return laneNames[tower.lane]+' tower';
-  if(game.cores.some(x=>x.id===ko.actorId))return 'Enemy Core';
-  if(/^wave-\d+-[01]-[012]-[0123]$/.test(ko.actorId))return 'Enemy minion';
+  if(game.cores.some(x=>x.id===ko.actorId))return 'Pink Core';
+  if(/^wave-\d+-[01]-[012]-[0123]$/.test(ko.actorId))return 'Pink minion';
   return null;
 }
 export function mobaObjectiveCue(game:MobaState):{label:string;warning:boolean}{

@@ -92,7 +92,11 @@ export function portraitDuelActionFrame(width:number,height:number,viewWidth:num
   const room=Math.min(viewWidth/(base*(Math.abs(dx)+218)),viewHeight/(base*(feet-head+119)));
   // Deliberately allow a wide opening instead of losing the rival offscreen.
   // At exchange distance the prior close-up limit and above-head bias remain.
-  const zoom=Math.max(1,Math.min(room,2.05+.59*pair));
+  // Spend the extra magnification on an actual exchange, not on the
+  // approach. The same horizontal blade/vertical leap room still caps it.
+  const tight=clamp((198-gap)/96,0,1);
+  const closeZoom=.52*tight*tight*(3-2*tight);
+  const zoom=Math.max(1,Math.min(room,2.05+.59*pair+closeZoom));
   const xRoom=Math.min(width/2,viewWidth/(2*base*zoom)),yRoom=Math.min(height/2,viewHeight/(2*base*zoom));
   return {zoom,x:clamp((anchor.x+nearby.x)*.5,xRoom,width-xRoom),
     y:clamp((feet+head)*.5-32,yRoom,height-yRoom)};

@@ -1,15 +1,17 @@
 import {sampleArcadeFighter,sampleArcadeRenderRig} from './arcade-fighters.js?v=5.0.0';
+import {arcadeBasis} from './arcade-rig-projection.js';
 /** Original ink-cutout art for Saber Pit. Sampled rig is read-only: hands,
  * shoes and all blade tips come from the same motion/contact calculation. */
 import type {FighterPaintIdentity,FighterPaintOptions,FighterPreviewOptions} from './arcade-painter.js?v=5.0.0';
 interface PaintPoint{x:number;y:number}
-interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;side?:number}
+interface PaintLeg{foot:PaintPoint;toes:PaintPoint;k?:PaintPoint;hip?:PaintPoint;side?:number}
 interface InkActor extends FighterPaintIdentity{action?:string;attack?:unknown;vx?:number;vy?:number}
 interface HairRig{reducedMotion?:boolean;styleSpin?:{face:number;cloth?:number;clothSide?:number};torsoTurn?:number}
 interface RobeRig extends HairRig{shoulder:PaintPoint;waist:PaintPoint;pelvis?:PaintPoint;legs:readonly PaintLeg[];forward?:number;airPhase?:string}
 interface PaintRig extends RobeRig{
  hand?:PaintPoint;backHand?:PaintPoint;blade?:PaintPoint;offBlade?:PaintPoint|null;head?:PaintPoint;
- chest?:PaintPoint;roll:number;trick?:{angle?:number}|null;flightSide?:number;hdx:number;
+ chest?:PaintPoint;frontElbow?:PaintPoint;backElbow?:PaintPoint;roll:number;trick?:{angle?:number}|null;flightSide?:number;hdx:number;
+ regionalFall?:{progress:number;side:number;angle:number};primaryUnusable?:boolean;offhandUnusable?:boolean;
  action?:string;t:number;emitter?:PaintPoint;offEmitter?:PaintPoint;staff?:boolean;freeHandAction:boolean;freeHandExtension:number;
 }
 const TAU=Math.PI*2, clamp=(x:number,a:number,b:number)=>Math.min(b,Math.max(a,x));
@@ -77,7 +79,7 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
   for(const [i,x] of [[0,-7.3],[1,6.5]]){
    c.save();c.translate(x+ax*1.5,-12);c.rotate((i?.22:-.24)+sway);
    cap(c,0,-10,i?4.3:4.7,i?13.5:15.5,0,face,ink,1.3);
-   cap(c,0,-10.6,1.9,i?9:10.5,0,'#8a7485',null);c.restore();
+   cap(c,0,-10.6,2.2,i?9:10.5,0,'#765b76',null);c.restore();
   }
  }else if(variant===2){
   const knot=-ax*6.9;cap(c,knot,-16,5.7,4.6,-.25,hair,ink,1.25);
@@ -98,7 +100,11 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
    q.lineTo(forward+sweep,4.55);q.lineTo(w-.95,6.5);
    q.quadraticCurveTo(w-4,16.15,.12,16);q.quadraticCurveTo(-w+5.2,15.8,-w+.65,5.3);
   });
-  stroke(c,'#96818c',.8,forward-2.45,9.25,forward+.4,10.1,forward+2.1,9.45);
+  // Three coarse mask constructions survive at actual combat scale rather than granular scratches.
+  if(rabbit)stroke(c,'#bfacbd',1.25,forward-2.05,9.4,forward+2.2,9.4);
+  else if(femme)stroke(c,'#bfacbd',1.35,forward-4.0,8.15,forward-.5,10.25,forward+3.25,8.7);
+  else stroke(c,'#bfacbd',1.25,forward-1.4,8,forward+.45,11.15);
+
   const outer=clamp(forward+spread,-w+3.1,w-2.9), inner=clamp(forward-spread,-w+3.1,w-2.9);
   const slope=ax*(active?.85:1.0);
   const eyes=hit?2.0:active?.45:0;
@@ -107,6 +113,16 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
   if(Math.abs(outer-inner)>4.75)
     stroke(c,edge,1.43,outer-1.8,.27+slope*.5,outer+.6,-.51+eyes*.61,outer+2.15,-1.16+slope*.46);
   c.restore();
+ }
+ if(!rabbit&&!femme&&variant===0){
+  // Short segmented cap follows the unmodified outer head dimensions.
+  const brow=ax*3.6;
+  path(c,'#34303c',ink,q=>{
+   q.moveTo(-w+.4,-5.2);q.quadraticCurveTo(-w+1.15,-14.35,-7,-15.5);
+   q.quadraticCurveTo(brow-1,-18,9,-14.9);q.quadraticCurveTo(w-1,-12,w-.5,-6.7);
+   q.lineTo(brow+4.4,-7.7);q.lineTo(brow-3,-6.4);q.lineTo(-w+.4,-5.2);
+  },1.7);
+  stroke(c,'#9a879a',1.45,brow-5.8,-11.1,brow+.7,-12.1,brow+5.85,-10.7);
  }
  if(!rabbit&&(femme||variant!==0)){
   const off=-ax*3.05, back=1-visible;
@@ -126,8 +142,9 @@ function head(c:CanvasRenderingContext2D,r:HairRig,f:InkActor,p:PaintPoint,seed:
    q.lineTo(-w+1.5,lower+(long?11:7.6));q.lineTo(-w+.2,lower+3.9);
    q.lineTo(-w-2,lower+6.5);q.quadraticCurveTo(-w-3.1,lower+2.15,-w*.96-1,-3.7);
   },1.65);
-  stroke(c,'#60555b',.83,-9+off,-13.4,-5.2+off,-15.6,1.7+off,-16.05);
-  stroke(c,'#645860',.72,4.1+off,-14.5,7.1+off,-12.75,10.4+off,lower-1.5);
+  // One confident highlight follows the actual fringe mass; omit sub-pixel secondary grooves.
+  stroke(c,'#938194',femme?1.45:1.3,-9+off,-13.1,-5.2+off,-15.25,1.8+off,-16.05);
+  if(femme)stroke(c,'#716073',1.24,2.6+off,-13.8,5.0+off,-11.1,8.9+off,lower-2.0);
  }
  c.restore();
 }
@@ -174,6 +191,23 @@ function glove(c:CanvasRenderingContext2D,p:PaintPoint,back:boolean,aim:number,c
  stroke(c,'#967d75',.82,-6.1,-4.7,-3.2,-2.6,-2.6,.82);
  if(open)for(const [i,y] of [-4,-1.7,.7,3.1].entries())stroke(c,pale,1.85,4.7,y,9.85+Math.sin(i)*1.8,y-.47);
  c.restore();
+}
+// Ink the continuous garment underneath the glove and boot sprites. The
+// endpoints are sampled joints, so this follows the same swing, idle and fall.
+function clothLimb(c:CanvasRenderingContext2D,start:PaintPoint,bend:PaintPoint,end:PaintPoint,color:string,width:number,tint?:string){
+ c.beginPath();c.moveTo(start.x,start.y);
+ c.quadraticCurveTo(bend.x,bend.y,(bend.x+end.x)*.5,(bend.y+end.y)*.5);c.lineTo(end.x,end.y);
+ if(!tint){c.strokeStyle=ink;c.lineWidth=width+2.8;c.stroke();}
+ c.strokeStyle=tint??color;c.lineWidth=width;c.stroke();
+}
+function inkLeg(c:CanvasRenderingContext2D,leg:PaintLeg,pelvis:PaintPoint,kit:readonly string[],tint?:string){
+ const start=pt(leg.hip,pelvis.x,pelvis.y),k=pt(leg.k,(start.x+leg.foot.x)*.5,(start.y+leg.foot.y)*.5);
+ clothLimb(c,start,k,leg.foot,leg.side===1?kit[2]:'#24212d',leg.side===1?8.8:7.7,tint);
+}
+function inkSleeve(c:CanvasRenderingContext2D,r:PaintRig,end:PaintPoint,front:boolean,kit:readonly string[],tint?:string){
+ const start={x:r.shoulder.x+(front?1:-1)*r.hdx*7.5,y:r.shoulder.y+5};
+ const k=pt(front?r.frontElbow:r.backElbow,(start.x+end.x)*.5,(start.y+end.y)*.5+4);
+ clothLimb(c,start,k,end,front?kit[0]:kit[2],front?9.4:8.2,tint);
 }
 function robe(c:CanvasRenderingContext2D,r:RobeRig,kit:readonly string[],seed:number,team:string,outlined:boolean,body?:string,tint?:string,opponent=false){
  const high=r.shoulder, belt=r.waist, pelvic=r.pelvis??{x:belt.x,y:belt.y+10};
@@ -268,13 +302,15 @@ export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,t
  c.translate(0,-physical.hop);c.scale(physical.type.scale,physical.type.scale);
  if(tilt){c.translate(pivot.x,pivot.y);c.rotate(tilt);c.translate(-pivot.x,-pivot.y);}
  if(!live){
-  const fall=reducedMotion?1:clamp(r.t*3.3,0,1);
-  c.globalAlpha*=.81-.29*fall;c.translate(-r.hdx*fall*14,1-fall*3);c.rotate(-r.hdx*fall*1.43);
+  const impact=r.regionalFall,fall=impact?.progress??(reducedMotion?1:clamp(r.t*3.3,0,1));
+  c.globalAlpha*=.81-.29*fall;c.translate((impact?.side??-r.hdx)*fall*14,1-fall*3);c.rotate(impact?.angle??-r.hdx*fall*1.43);
  }
  const b=rib;
+ const hip=r.pelvis??{x:r.waist.x,y:r.waist.y+10};
  if(ghost){
   const tint=typeof ghost==='string'?ghost:team;
-  for(const leg of boots)boot(c,leg,kit,tint);
+  for(const leg of boots){inkLeg(c,leg,hip,kit,tint);boot(c,leg,kit,tint);}
+  inkSleeve(c,r,rear,false,kit,tint);inkSleeve(c,r,hand,true,kit,tint);
   robe(c,r,kit,seed,team,false,f.body,tint);
   cap(c,headPt.x,headPt.y,16.2,16.1,0,tint,null);
   for(const p of [hand,rear])cap(c,p.x,p.y,8.5,7.7,0,tint,null);
@@ -284,25 +320,43 @@ export function drawArcadePeasantFighter(c:CanvasRenderingContext2D,f:InkActor,t
  // Lengthen the cuff along the existing shin, leaving the sole and gait anchored.
  const restCuff=r.airPhase==='grounded'&&(r.action==='idle'||r.action==='guard')?
    clamp((32-Math.hypot(f.vx??0,f.vy??0))/16,0,1):0;
- const hip=r.pelvis??{x:r.waist.x,y:r.waist.y+10};
  for(const leg of boots){
+  inkLeg(c,leg,hip,kit);
   const over=restCuff*clamp((leg.foot.y-hip.y-35)*.53,0,8);
   boot(c,leg,kit,undefined,over);
  }
+ inkSleeve(c,r,rear,false,kit);
  robe(c,r,kit,seed,edge,outline,f.body,undefined,f.team===1);
+ inkSleeve(c,r,hand,true,kit);
  head(c,r,f,headPt,seed,tilt,edge);
  const liveBlade=f.saberOff!==true&&live;
- if(!hideSabers&&(live||r.t<.24)){
+ const orbit=physical.orbitBlades;
+ if(orbit&&!hideSabers&&(live||(r.regionalFall?.progress??r.t)<.24)){
+  const {local}=arcadeBasis(f,physical);
+  for(const arc of orbit){
+   const h=local(arc.hand),tip=local(arc.tip);
+   if(liveBlade&&arc.charge>.04&&!reducedMotion){
+    c.save();c.globalAlpha=arc.charge*.70;c.setLineDash([3,4]);
+    stroke(c,'#ffd397',2,h.x,h.y-5,tip.x,tip.y-5);c.restore();
+   }
+   if(liveBlade&&arc.trail>.02&&!reducedMotion){
+    c.save();c.globalAlpha=.25*arc.trail;
+    stroke(c,'#ca85ff',8,h.x,h.y,tip.x,tip.y);c.restore();
+   }
+   blade(c,h,tip,'#c88bff',liveBlade);
+  }
+ }
+ if(!orbit&&!hideSabers&&(live||(r.regionalFall?.progress??r.t)<.24)){
   const emitter=r.emitter??hand, off=r.offEmitter??rear;
   if(r.staff&&tip2){
    stroke(c,deep,9,emitter.x,emitter.y,off.x,off.y);
    stroke(c,'#86786b',4,emitter.x,emitter.y,off.x,off.y);
   }
-  if(tip2)blade(c,off,tip2,r.staff?team:f.team===1?'#ffe0a2':'#c2c6ff',liveBlade);
-  blade(c,emitter,tip,team,liveBlade);
+  if(tip2)blade(c,off,tip2,r.staff?team:f.team===1?'#ffe0a2':'#c2c6ff',liveBlade&&!r.primaryUnusable&&!r.offhandUnusable);
+  blade(c,emitter,tip,team,liveBlade&&!r.primaryUnusable);
  }
  glove(c,rear,true,Math.atan2(rear.y-b.y,rear.x-b.x),kit,r.freeHandAction&&r.freeHandExtension>.20);
- glove(c,hand,false,Math.atan2(tip.y-hand.y,tip.x-hand.x),kit);
+ glove(c,hand,false,orbit?Math.atan2(hand.y-b.y,hand.x-b.x):Math.atan2(tip.y-hand.y,tip.x-hand.x),kit,Boolean(orbit&&liveBlade));
  c.restore();
  return physical;
 }

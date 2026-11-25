@@ -1,0 +1,25 @@
+/* LOOMEN v6 look for The Three Fronts. Look only: ids, buttons and the field are untouched.
+   Authored by CLARISSA-01. Loaded after moba.css and the v5 tokens. */
+:root body.v6-moba{--ink:var(--v5-ink);--panel:var(--v5-panel);--edge:var(--v5-line);--white:var(--v5-white);--mute:var(--v5-muted);--amber:var(--v5-gold);
+  --blue:var(--v5-blue);--red:var(--v5-red);font-family:var(--v5-ui);font-weight:700;
+  background:repeating-conic-gradient(from 0deg at 50% -10%,#ffd23f0d 0 5deg,transparent 5deg 15deg),radial-gradient(90% 60% at 50% 0%,#5b2a9e 0%,#2a1466 45%,var(--v5-ink) 100%) fixed,var(--v5-ink)}
+:root body.v6-moba :is(button,select,input){font-family:var(--v5-ui)}
+/* No site tabs, version or tags: a round back button only. */
+:root body.v6-moba .mast{background:none;border:0;min-height:62px}
+:root body.v6-moba .mast nav,:root body.v6-moba .brand b,:root body.v6-moba .intro .tags{display:none}
+:root body.v6-moba .brand{width:46px;height:46px;border-radius:50%;justify-content:center;background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));box-shadow:0 0 0 2px var(--v5-line),0 4px 0 var(--v5-ink)}
+:root body.v6-moba .brand span{font-size:0;width:22px;height:22px;background:var(--v5-gold);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12l7 7'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5 8 12l7 7'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Lane picker and result: the v5 card. Blurbs and the hint lines go. */
+:root body.v6-moba .overlay{background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border:0;border-radius:var(--v5-r-lg);box-shadow:0 0 0 2px var(--v5-line),0 6px 0 var(--v5-ink),var(--v5-shadow)}
+:root body.v6-moba .overlay h2{font-family:var(--v5-display);font-weight:400;letter-spacing:.01em;-webkit-text-stroke:2px var(--v5-ink);paint-order:stroke fill;text-shadow:0 3px 0 var(--v5-ink)}
+:root body.v6-moba #brief>p,:root body.v6-moba #formHint,:root body.v6-moba #bellHelp,:root body.v6-moba .bell-toggle small,:root body.v6-moba #brief>small,:root body.v6-moba footer{display:none}
+:root body.v6-moba .form-pick label{color:var(--v5-soft);letter-spacing:0;text-transform:none;font-size:.9rem}
+:root body.v6-moba .form-pick select{border:2px solid var(--v5-line);border-radius:var(--v5-r-sm);background:var(--v5-deep);font-weight:800}
+:root body.v6-moba .bell-toggle{display:inline-flex;align-items:center;gap:8px;margin:.5rem 0}
+:root body.v6-moba .bell-toggle input{accent-color:var(--v5-gold)}
+:root body.v6-moba .deploy button,:root body.v6-moba #restart{border:0;border-radius:var(--v5-r);font-weight:900;color:var(--v5-ink);background:linear-gradient(180deg,#ffe066,var(--v5-gold));box-shadow:0 0 0 2px var(--v5-gold-lip),0 var(--v5-lip) 0 var(--v5-gold-lip)}
+/* Score bar and fighter bar */
+:root body.v6-moba .score{font-family:var(--v5-ui)}
+:root body.v6-moba .team b{font-family:var(--v5-display);font-weight:400;letter-spacing:.02em}
+:root body.v6-moba .field-tools{background:linear-gradient(180deg,var(--v5-panel-hi),var(--v5-panel));border-top:2px solid var(--v5-line)}
+:root body.v6-moba .controls button{border-radius:var(--v5-r)}
