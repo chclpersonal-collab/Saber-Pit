@@ -385,3 +385,5 @@
 :root body.pit-v5 #result .v6-result-art[hidden]{display:none}
 /* Hover keeps the v6 skin: a small lift, never the old lobby colours. */
 @media (hover:hover){:root body.pit-v5 :is(.v6-cta,.v6-chip,.v6-back):hover{filter:brightness(1.1)}}
+/* Phone: the fixed Loadout / Play bar sits on a solid strip, so the mode list never shows through its gap. */
+@media (max-width:760px){:root body.pit-v5 .v6-go::before{content:"";position:absolute;z-index:-1;left:-10px;right:-10px;top:-14px;bottom:calc(-1 * max(10px,env(safe-area-inset-bottom)));background:linear-gradient(180deg,#140b2e00,var(--v5-night) 14px);pointer-events:none}}
