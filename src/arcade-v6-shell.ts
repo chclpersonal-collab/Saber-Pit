@@ -150,7 +150,7 @@ lobby?.addEventListener('click',()=>setTimeout(syncModes,0));
 
 /* ---------- views ---------- */
 function setScreen(s:'home'|'play'|'loadout'){body.dataset.v6=s;requestAnimationFrame(()=>{paintAll();syncModes();});}
-function showHome(){setScreen('home');fillCard();window.scrollTo(0,0);}
+function showHome(){setScreen('home');fillCard();window.scrollTo(0,0);if(Object.hasOwn(MODE_LINKS,location.hash.slice(1)))history.replaceState(history.state,'',location.pathname+location.search);}
 function showPlay(){setScreen('play');window.scrollTo(0,0);}
 for(const a of document.querySelectorAll<HTMLAnchorElement>('a.launch-setup[href="#entry"]'))a.addEventListener('click',e=>{e.preventDefault();showPlay();});
 let lastView=body.dataset.view;
@@ -165,7 +165,16 @@ function fillHudElo(){
 if(hudName)new MutationObserver(fillHudElo).observe(hudName,{attributes:true,attributeFilter:['data-own-elo']});
 new MutationObserver(()=>{const v=body.dataset.view;if(v===lastView)return;lastView=v;if(v==='menu'){fillCard();requestAnimationFrame(paintAll);}if(v==='game')fillHudElo();}).observe(body,{attributes:true,attributeFilter:['data-view']});
 let resizeTimer=0;addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=window.setTimeout(paintAll,120);});
-setScreen(location.hash==='#entry'?'play':'home');
+// Shareable mode links: index.html#duel, #squads, #showdown, #master open Play with that mode picked.
+const MODE_LINKS:Record<string,string>={duel:'duel',squads:'squad',showdown:'watch',master:'master'};
+const linkFor=(preset:string)=>Object.keys(MODE_LINKS).find(k=>MODE_LINKS[k]===preset);
+function openModeLink(){
+  const preset=MODE_LINKS[location.hash.slice(1)];if(!preset)return false;
+  modeButtons.find(b=>b.dataset.v6Preset===preset)?.click();showPlay();return true;
+}
+for(const b of modeButtons)b.addEventListener('click',()=>{const k=linkFor(b.dataset.v6Preset??'');if(k&&location.hash!=='#'+k)history.replaceState(history.state,'','#'+k);});
+if(!openModeLink())setScreen(location.hash==='#entry'?'play':'home');
+addEventListener('hashchange',()=>{if(body.dataset.view==='menu')openModeLink();});
 // Links from the other pages' bottom nav.
 if(location.hash==='#stats')document.querySelector<HTMLButtonElement>('[data-open-stats]')?.click();
 else if(location.hash==='#settings')get<HTMLButtonElement>('settingsOpen')?.click();
