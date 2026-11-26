@@ -9,7 +9,7 @@
 | C01 | No auto-dodge, guard, or attacks for a player without input | Verified in targeted tests on the exact candidate |
 | C02 | Distinct AI personalities show up in normal play | Candidate |
 | C03 | SSS+V master trials vs 15+ F meet the agreed target across builds, maps and seeds | In progress; sampled results depend on time limit |
-| C04 | Real friendly fire with clear attribution and no duplicate hits | In progress |
+| C04 | Real friendly fire with clear attribution and no duplicate hits | Separate preview: live 3v3 opens with Friendly Fire; injury, attribution and legacy tests pass. Combined integration and final scope pending. |
 | C05 | Full customization, map and AI-count parity with useful Classic features in the v6 UI | In progress |
 | C06 | Three Fronts lane choices match the requested behavior | Candidate; need exact request comparison |
 | C07 | Auto Seasons runs repeatedly without lost records or stuck transitions | Candidate; long run pending |
@@ -34,6 +34,9 @@
 | Q05 | Phone stats show the full Blue form name | In progress |
 | Q06 | Mobile navigation, Back and deep links route correctly | In progress |
 | Q07 | Play a Hero 1v3 no longer ends almost immediately for the reported matchup | In progress |
+
+## Latest evidence
+Friendly-fire candidate `600c9ec` is a separate test build. Engine checks verified ally injuries, fatal-hit credit, and one hit per attack across multi-blade releases. Desktop Play → Modes → Squads → Watch reached a real 3v3 with the Friendly Fire HUD. On twelve Underpit 1v15 samples at 150 seconds, friendly fire enabled: 11 wins and one timeout loss. That is one map/time sample and not a broad rank pass. Flag-off matched the untouched candidate on 20 seeded fixtures. Ragdoll work is separate and ongoing.
 
 ## Shared and final gates
 Reference-faithful v6 on each screen and dimensions; all intended modes playable including Gauntlet; smarter AI; Blue/Pink language; unclipped and usable ⋯ menus; no unwanted top labels/tabs/helper text; accurate form pose previews; no legacy player-facing builds; avoid unnecessary UI/code; modern copy pass; independent rank benchmarks with fixed fixtures; preset binding; and a whole unedited duel with the small visual, input and audio details checked. Fresh cache tags must match the final build; the joint release gate includes archive parity, private access, signed-in upgrade, physical Android and save/return checks. Preset and Three Fronts exact acceptance details are being matched to the original requests. Nothing deploys before sign-off on the full list.
