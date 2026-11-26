@@ -29,7 +29,8 @@ body[data-scoreboard] .arena-shell{z-index:40}
 .sb-table thead th:first-child{text-align:left}
 .sb-table abbr{text-decoration:none}
 .sb-table td,.sb-table tbody th{padding:6px 9px;background:#ffffff0d;text-align:right;font-weight:600}
-.sb-table tbody th{text-align:left;display:flex;align-items:center;gap:7px;min-width:0;border-radius:9px 0 0 9px}
+.sb-table tbody th{text-align:left;display:flex;flex-wrap:wrap;align-items:center;gap:4px 7px;min-width:0;border-radius:9px 0 0 9px}
+/* A long rank badge must never cut the saber form: the temperament tag drops under the name instead. */
 .sb-table td:last-child{border-radius:0 9px 9px 0}
 .sb-table .sb-team th{display:table-cell;background:none;border-radius:0;padding:9px 2px 2px;font:800 1rem/1 var(--display,system-ui)}
 .sb-table .sb-team small{margin-left:8px;font:600 .74rem/1 system-ui,sans-serif;color:var(--muted,#a69b89)}
