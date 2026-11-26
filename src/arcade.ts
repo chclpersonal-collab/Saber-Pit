@@ -392,7 +392,20 @@ function setScene(nextView:Scene,nextMode:ArenaMode='duel',nextRound=1,options:S
   if(seat){setPills($('profileText'),[seat.label,arcadeSaberOption(primary!.gear).label]);}
   updateHUD();
   if(view==='game'){window.scrollTo({top:0});canvas.focus({preventScroll:true});announce(mode==='watch'?'Showdown started':titleCase(mode)+' round '+round);}
+  backGuard(view==='game');
 }
+
+// Phone back during a match pauses it instead of leaving the page; a second back leaves.
+// One history entry per match, reused across rounds; a back that lands on a finished match's entry keeps going.
+let backArmed=false, backDangling=false;
+function backGuard(inGame:boolean){
+  if(inGame){backArmed=true;backDangling=false;if((history.state as {loomen?: string}|null)?.loomen!=='match')history.pushState({loomen:'match'},'');}
+  else if(backArmed){backArmed=false;backDangling=(history.state as {loomen?: string}|null)?.loomen==='match';}
+}
+addEventListener('popstate',()=>{
+  if(backArmed){backArmed=false;if(view==='game'&&!paused)pause(true);return;}
+  if(backDangling){backDangling=false;history.back();}
+});
 
 const FORM_AIR_NAMES={
   shii_cho:'Wheel Hop',
@@ -519,6 +532,7 @@ function pause(value:boolean,{focus=true}={}){
   // Anything a pad holds through Resume stays neutral until it is released or recentred.
   if(!paused)padLatch.hold(pads);sim.remainder=0;sim.previous=null;$('pauseOverlay').hidden=!paused;
   $('pause').textContent=paused?'Resume':'Pause';
+  if(!paused)backGuard(true);
   if(focus){if(paused)$('resume').focus({preventScroll:true});else canvas.focus({preventScroll:true});}
 }
 $('pause').addEventListener('click',()=>pause(!paused));$('resume').addEventListener('click',()=>pause(false));
